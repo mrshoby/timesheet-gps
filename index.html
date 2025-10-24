@@ -20,6 +20,7 @@
       --ring:#cfe0e7;
       --danger:#ef4444;
       --warn:#f59e0b;
+      --extra:#3b82f6; /* albastru pt. extra */
     }
     *{box-sizing:border-box}
     html,body{height:100%; width:100%}
@@ -77,6 +78,7 @@
     .btn.pause{ --bg:#f59e0b; --fg:#111827 }
     .btn.unpause{ --bg: var(--brand); --fg:#fff }
     .btn.finish{ --bg: var(--accent); --fg:#fff }
+    .btn.extra{ --bg: var(--extra); --fg:#fff } /* buton Extra */
     .btn:disabled{opacity:.6;cursor:not-allowed;}
     .leave{ border:1px dashed #cbd5e1;border-radius:14px;padding:12px;background:#f8fafc; }
     .kicker{font-size:12px;color:var(--muted);margin-bottom:6px}
@@ -184,6 +186,7 @@
           <button class="btn pause"   id="btnPause">Pause</button>
           <button class="btn unpause" id="btnUnpause">Unpause</button>
           <button class="btn finish"  id="btnFinish">Finish</button>
+          <button class="btn extra"   id="btnExtra" title="Ore extra (separate de suplimentare)">Extra</button>
         </div>
 
         <div id="status" class="status" role="status" aria-live="polite"></div>
@@ -200,6 +203,7 @@
           <div class="item"><b>Start</b> pornește pontajul</div>
           <div class="item"><b>Pause</b> / <b>Unpause</b> marchează pauzele.</div>
           <div class="item"><b>Finish</b> încheie ziua de lucru.</div>
+          <div class="item"><b>Extra</b> marchează orele extra (separate de suplimentare).</div>
           <div class="item"><b>Concedii</b> — alege tipul și trimite cererea.</div>
         </div>
         <div class="footer">© <span id="year"></span> SERVELECT. Toate drepturile rezervate.</div>
@@ -235,6 +239,8 @@
     <input type="hidden" id="f_device" />
     <input type="hidden" id="f_notes" />
     <input type="hidden" id="f_maps" />
+    <!-- câmp dedicat pentru Extra (dacă ai un entry separat în Google Form, îl poți mapa din config.json) -->
+    <input type="hidden" id="f_extra" />
   </form>
 
   <!-- Fallback inline employees list -->
@@ -251,7 +257,6 @@ Ana Radu
   <script>
 /** Trimite cererea de concediu la Apps Script WebApp (fără preflight CORS) */
 async function sendLeave(payload) {
-  // IMPORTANT: text/plain evită preflight OPTIONS, iar Apps Script citește e.postData.contents
   const r = await fetch(CFG.leaveEndpoint, {
     method: 'POST',
     headers: {'Content-Type':'text/plain;charset=utf-8'},
@@ -283,6 +288,8 @@ async function sendLeave(payload) {
     const leaveNotes = document.getElementById('leaveNotes');
     const leaveStatus = document.getElementById('leaveStatus');
 
+    const btnExtra = document.getElementById('btnExtra');
+
     function setStatus(msg, cls) { statusEl.className = 'status ' + (cls||''); statusEl.textContent = msg; }
     function setCfg(msg, cls) { cfgEl.className = 'chip ' + (cls||''); cfgEl.textContent = msg; }
     function setEmp(msg, cls) { empStatus.className = 'status ' + (cls||''); empStatus.textContent = msg; }
@@ -297,7 +304,6 @@ async function sendLeave(payload) {
       if (!CFG.formAction || !CFG.fields) throw new Error('Config incomplet');
       setCfg('Config încărcat', 'ok');
       try { setLeaveNames(); } catch(_) {}
-      // Expose global pentru sendLeave()
       window.CFG = CFG;
     } catch (e) {
       setCfg('Eroare config: ' + (e.message||e), 'err');
@@ -339,11 +345,12 @@ async function sendLeave(payload) {
       'f_acc':      names.accuracy,
       'f_device':   names.device,
       'f_notes':    names.notes,
-      'f_maps':     names.mapsLink
+      'f_maps':     names.mapsLink,
+      'f_extra':    (names.extra || null) /* câmp separat pt. Extra (opțional) */
     };
     Object.entries(idMap).forEach(([id,name]) => {
       const el = document.getElementById(id);
-      if (name) el.setAttribute('name', name);
+      if (el && name) el.setAttribute('name', name);
     });
 
     // ==================== EMPLOYEES LOADING ====================
@@ -358,7 +365,7 @@ async function sendLeave(payload) {
       const semiCount = (text.match(/;/g) || []).length;
       const delim = semiCount > comma ? ';' : ',';
       const rows = text.split('\n')
-        .map(line => line.split(delim).map(c => c.trim().replace(/^"|"$/g,'')))
+        .map(line => line.split(delim).map(c => c.trim().replace(/^\"|\"$/g,'')))
         .filter(r => r.length && r.join('').length);
       const header = rows[0].map(h => (h||'').toLowerCase());
       let startIdx = 0, nameCol = 0;
@@ -442,7 +449,7 @@ async function sendLeave(payload) {
     });
 
     function disableTimeButtons(disabled) {
-      ['btnStart','btnPause','btnUnpause','btnFinish'].forEach(id=>{
+      ['btnStart','btnPause','btnUnpause','btnFinish','btnExtra'].forEach(id=>{
         const el = document.getElementById(id);
         if (el) el.disabled = !!disabled;
       });
@@ -451,6 +458,13 @@ async function sendLeave(payload) {
       disableTimeButtons(disabled);
       const lbtn = document.getElementById('btnLeave');
       if (lbtn) lbtn.disabled = !!disabled;
+    }
+
+    // ==================== STATE: sesiune activă (Start -> Finish) ====================
+    let sessionActive = false;
+    function updateExtraAvailability() {
+      // Extra permis doar când NU este sesiune activă
+      btnExtra.disabled = sessionActive;
     }
 
     // ——— Trimite cererea de concediu
@@ -468,7 +482,6 @@ async function sendLeave(payload) {
 
       setLeaveStatus('Se trimite cererea…', '');
 
-      // (A) opțional: trimite și într-un Google Form separat (dacă e configurat)
       let formSubmitted = false;
       if (CFG.leaveFormAction && CFG.leaveFields) {
         try {
@@ -486,7 +499,6 @@ async function sendLeave(payload) {
         }
       }
 
-      // (B) endpoint WebApp (Apps Script)
       let endpointOk = false, endpointMsg = '';
       if (CFG.leaveEndpoint) {
         try {
@@ -515,14 +527,19 @@ async function sendLeave(payload) {
 
     // ==================== TIME ACTIONS ====================
     let busy = false;
-    function submitAction(action) {
+    function submitAction(action, opts={}) {
       if (busy) return;
       if (!empSel.value) { setStatus('Selectează angajat.', 'err'); return; }
       if (!actSel.value) { setStatus('Alege tip de activitate.', 'err'); return; }
       if (!locInput.value.trim()) { setStatus('Scrie o locație.', 'err'); locInput.focus(); return; }
       if (!('geolocation' in navigator)) { setStatus('Geolocație indisponibilă pe acest dispozitiv.', 'err'); return; }
-      if (['concediu de odihna','concediu medical','concediu pentru ore suplimentare'].includes((actSel.value||'').toLowerCase())) {
+      if (leaveTypeSet.has((actSel.value||'').toLowerCase())) {
         setStatus('Pentru concediu folosește „Trimite cererea de concediu”.', 'warn');
+        return;
+      }
+      // Dacă se apasă Extra în timp ce există sesiune activă, blochează cu mesaj.
+      if (action === 'extra' && sessionActive) {
+        setStatus('Finalizează pontajul (Finish) înainte de a începe orele extra.', 'warn');
         return;
       }
 
@@ -549,12 +566,23 @@ async function sendLeave(payload) {
           document.getElementById('f_notes').value = (notesEl.value || '');
           document.getElementById('f_maps').value = maps;
 
+          // Dacă există câmp dedicat pentru extra în Google Form, setează-l explicit
+          const extraField = document.getElementById('f_extra');
+          if (action === 'extra' && extraField && extraField.getAttribute('name')) {
+            extraField.value = '1';
+          }
+
           form.submit();
           setStatus(`Trimis ✓ (${action.toUpperCase()}). Verifică Google Sheet.`, 'ok');
           lastEl.textContent = JSON.stringify({
             action, timestamp: ts, angajat: empSel.value, activitate: actSel.value,
             locatie: locInput.value.trim(), latitude: lat, longitude: lon, accuracy: acc
           }, null, 2);
+
+          // Actualizează starea sesiunii
+          if (action === 'start') sessionActive = true;
+          if (action === 'finish') sessionActive = false;
+          updateExtraAvailability();
 
           setTimeout(()=>{ busy=false; disableAllButtons(false); }, 800);
         },
@@ -567,6 +595,12 @@ async function sendLeave(payload) {
     document.getElementById('btnPause').addEventListener('click', ()=>submitAction('pause'));
     document.getElementById('btnUnpause').addEventListener('click', ()=>submitAction('unpause'));
     document.getElementById('btnFinish').addEventListener('click', ()=>submitAction('finish'));
+
+    // ——— EXTRA
+    btnExtra.addEventListener('click', ()=> submitAction('extra'));
+
+    // Inițial: extra permis (nu există sesiune deschisă)
+    updateExtraAvailability();
   })();
   </script>
 </body>
