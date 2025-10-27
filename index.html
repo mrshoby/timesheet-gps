@@ -31,12 +31,16 @@
       background:
         linear-gradient(180deg, rgba(149, 202, 75, 0.91) 0%, rgba(81, 106, 117, 0.88) 66%),
         url('background.jpg');
-      background-size: cover; background-position: center center; background-repeat: no-repeat; background-attachment: fixed;
+      background-size: cover;
+      background-position: center center;
+      background-repeat: no-repeat;
+      background-attachment: fixed;
       min-height:100vh;
     }
     .shell{max-width:1100px;margin:0 auto;padding:24px;}
     .nav{
-      display:flex;align-items:center;justify-content:space-between;gap:16px;padding:14px 16px;border-radius:16px;
+      display:flex;align-items:center;justify-content:space-between;
+      gap:16px;padding:14px 16px;border-radius:16px;
       background:linear-gradient(180deg, rgba(255,255,255,.95), rgba(255,255,255,.80));
       backdrop-filter: blur(8px);
       box-shadow: 0 8px 30px rgba(81,106,117,.18);
@@ -75,6 +79,7 @@
     .btn.unpause{ --bg: var(--brand); --fg:#fff }
     .btn.finish{ --bg: var(--accent); --fg:#fff }
     .btn.extra{ --bg: var(--extra); --fg:#fff }
+    .btn.danger{ --bg: var(--danger); --fg:#fff }
     .btn:disabled{opacity:.6;cursor:not-allowed;}
     .leave{ border:1px dashed #cbd5e1;border-radius:14px;padding:12px;background:#f8fafc; }
     .kicker{font-size:12px;color:var(--muted);margin-bottom:6px}
@@ -86,6 +91,12 @@
     .summary .item{ display:flex;align-items:center;gap:10px;padding:12px;border-radius:14px;background:#f8fafc;border:1px solid #e2e8f0; }
     .footer{ margin-top:18px;font-size:12px;color:var(--muted);text-align:center }
     .ok{color:#15803d} .err{color:#ef4444} .warn{color:#a16207}
+    .state{margin-top:6px;font-weight:700}
+    .state .pill{display:inline-block;padding:6px 10px;border-radius:999px;font-size:12px}
+    .pill.idle{background:#e5e7eb;color:#374151}
+    .pill.work{background:#dcfce7;color:#166534}
+    .pill.pause{background:#fff7ed;color:#9a3412}
+    .pill.extra{background:#dbeafe;color:#1e3a8a}
   </style>
 </head>
 <body>
@@ -111,13 +122,13 @@
         <div class="grid cols-3">
           <div>
             <label for="employeeSelect">Angajat</label>
-            <select id="employeeSelect" disabled><option>Se încarcă...</option></select>
+            <select id="employeeSelect"><option>Se încarcă...</option></select>
             <div class="status" id="empStatus"></div>
           </div>
 
           <div>
             <label for="activitySelect">Tip de activitate</label>
-            <select id="activitySelect" disabled>
+            <select id="activitySelect">
               <option value="" selected disabled>Alege tip...</option>
               <option>atelier</option>
               <option>birou-lucrare</option>
@@ -137,14 +148,14 @@
 
           <div>
             <label for="locationInput">Locație</label>
-            <input id="locationInput" type="text" placeholder="ex: Șantier B – Poartă 2" disabled />
+            <input id="locationInput" type="text" placeholder="ex: Șantier B – Poartă 2" />
           </div>
         </div>
 
         <div class="grid" style="margin-top:12px">
           <div>
             <label for="notes">Notă (opțional)</label>
-            <input id="notes" type="text" placeholder="ex: Proiect X, client Y" disabled />
+            <input id="notes" type="text" placeholder="ex: Proiect X, client Y" />
           </div>
         </div>
 
@@ -178,18 +189,22 @@
         </div>
 
         <div class="btnbar" style="margin-top:16px">
-          <button class="btn primary" id="btnStart"   disabled>Start</button>
-          <button class="btn pause"   id="btnPause"   disabled>Pause</button>
-          <button class="btn unpause" id="btnUnpause" disabled>Unpause</button>
-          <button class="btn finish"  id="btnFinish"  disabled>Finish</button>
-          <button class="btn extra"   id="btnExtraStart"  disabled>Extra Start</button>
-          <button class="btn extra"   id="btnExtraFinish" disabled>Extra Finish</button>
+          <button class="btn primary" id="btnStart">Start</button>
+          <button class="btn pause"   id="btnPause">Pause</button>
+          <button class="btn unpause" id="btnUnpause">Unpause</button>
+          <button class="btn finish"  id="btnFinish">Finish</button>
+
+          <button class="btn extra"   id="btnExtraStart" title="Începe ore extra">Extra Start</button>
+          <button class="btn extra danger" id="btnExtraFinish" title="Termină ore extra">Extra Finish</button>
         </div>
+
+        <div class="state" id="stateView"><span class="pill idle">Stare: liber</span></div>
 
         <div id="status" class="status" role="status" aria-live="polite"></div>
         <div id="last" class="status mono"></div>
       </div>
 
+      <!-- Right: Helper / Summary -->
       <aside class="card rail">
         <header style="display:flex;align-items:center;gap:10px;margin:4px 0 10px">
           <span class="dot" aria-hidden="true"></span>
@@ -199,7 +214,7 @@
           <div class="item"><b>Start</b> pornește pontajul</div>
           <div class="item"><b>Pause</b> / <b>Unpause</b> marchează pauzele.</div>
           <div class="item"><b>Finish</b> încheie ziua de lucru.</div>
-          <div class="item"><b>Extra Start / Extra Finish</b> pentru orele extra (separate de suplimentare) — doar după ce ai închis tura normală.</div>
+          <div class="item"><b>Extra Start/Finish</b> marchează orele extra (separate de suplimentare).</div>
           <div class="item"><b>Concedii</b> — alege tipul și trimite cererea.</div>
         </div>
         <div class="footer">© <span id="year"></span> SERVELECT. Toate drepturile rezervate.</div>
@@ -207,10 +222,11 @@
     </section>
   </div>
 
+  <!-- Hidden iframe for Google Forms -->
   <iframe name="hidden_iframe" style="display:none;"></iframe>
-  <iframe name="hidden_iframe_leave" style="display:none;"></iframe>
 
-  <!-- Leave Google Form (opțional) -->
+  <!-- Hidden iframe for Google Leave Form -->
+  <iframe name="hidden_iframe_leave" style="display:none;"></iframe>
   <form id="leaveForm" method="POST" target="hidden_iframe_leave">
     <input type="hidden" id="lv_name" />
     <input type="hidden" id="lv_type" />
@@ -250,7 +266,7 @@ Ana Radu
   <script>
 /** Trimite cererea de concediu la Apps Script WebApp (fără preflight CORS) */
 async function sendLeave(payload) {
-  const r = await fetch(window.CFG.leaveEndpoint, {
+  const r = await fetch(CFG.leaveEndpoint, {
     method: 'POST',
     headers: {'Content-Type':'text/plain;charset=utf-8'},
     body: JSON.stringify(payload)
@@ -263,7 +279,7 @@ async function sendLeave(payload) {
   return data;
 }
 
-(async function app(){
+(async function() {
   const statusEl = document.getElementById('status');
   const cfgEl = document.getElementById('cfg');
   const lastEl = document.getElementById('last');
@@ -288,51 +304,52 @@ async function sendLeave(payload) {
   const btnExtraStart = document.getElementById('btnExtraStart');
   const btnExtraFinish = document.getElementById('btnExtraFinish');
 
+  const stateView = document.getElementById('stateView');
+
   function setStatus(msg, cls) { statusEl.className = 'status ' + (cls||''); statusEl.textContent = msg; }
-  function setCfg(msg, cls)    { cfgEl.className = 'chip ' + (cls||''); cfgEl.textContent = msg; }
-  function setEmp(msg, cls)    { empStatus.className = 'status ' + (cls||''); empStatus.textContent = msg; }
+  function setCfg(msg, cls) { cfgEl.className = 'chip ' + (cls||''); cfgEl.textContent = msg; }
+  function setEmp(msg, cls) { empStatus.className = 'status ' + (cls||''); empStatus.textContent = msg; }
   function setLeaveStatus(msg, cls) { leaveStatus.className = 'status ' + (cls||''); leaveStatus.textContent = msg; }
 
-  // ==== STATE ====
-  let sessionActive = false;   // între Start și Finish
-  let sessionEnded  = false;   // devine true după Finish
-  let paused = false;          // între Pause și Unpause
-  let extraActive = false;     // între Extra Start și Extra Finish
-  let busy = false;
-
-  function updateButtons(){
-    // timpul normal
-    btnStart.disabled   = busy || sessionActive || extraActive;
-    btnPause.disabled   = busy || !sessionActive || extraActive;
-    btnUnpause.disabled = busy || !paused || !sessionActive || extraActive;
-    btnFinish.disabled  = busy || !sessionActive || extraActive;
-
-    // extra doar după ce s-a încheiat o sesiune normală; și exclusiv când nu e altă sesiune
-    btnExtraStart.disabled  = busy || sessionActive || extraActive || !sessionEnded;
-    btnExtraFinish.disabled = busy || !extraActive;
-
-    // câmpuri
-    const fieldsDisabled = !!busy || (!window.CFG);
-    [empSel, actSel, locInput, notesEl].forEach(el => el.disabled = fieldsDisabled);
-  }
-  updateButtons();
-
-  // ==== CONFIG ====
+  // ===== Config.json =====
+  let CFG = null;
   try {
     const r = await fetch('config.json?v=' + Date.now(), {cache:'no-store'});
     if (!r.ok) throw new Error('HTTP ' + r.status);
-    const cfg = await r.json();
-    if (!cfg.formAction || !cfg.fields) throw new Error('Config incomplet');
-    window.CFG = cfg;
+    CFG = await r.json();
+    if (!CFG.formAction || !CFG.fields) throw new Error('Config incomplet');
     setCfg('Config încărcat', 'ok');
-  } catch(e){
+    window.CFG = CFG;
+    try { setLeaveNames(); } catch(_) {}
+  } catch (e) {
     setCfg('Eroare config: ' + (e.message||e), 'err');
-    return; // fără config nu continuăm
+    disableAllButtons(true); return;
   }
 
-  // bind form fields (Google Form)
-  form.action = window.CFG.formAction;
-  const names = window.CFG.fields;
+  // Bind Leave Google Form (opțional)
+  function setLeaveNames() {
+    if (!CFG.leaveFormAction || !CFG.leaveFields) return false;
+    const m = CFG.leaveFields;
+    const map = {
+      'lv_name':  m.name,
+      'lv_type':  m.activityType,
+      'lv_email': m.personalEmail,
+      'lv_start': m.startDate,
+      'lv_end':   m.endDate,
+      'lv_notes': m.notes,
+      'lv_ts':    m.timestamp
+    };
+    Object.entries(map).forEach(([id, name]) => {
+      const el = document.getElementById(id);
+      if (el && name) el.setAttribute('name', name);
+    });
+    document.getElementById('leaveForm').action = CFG.leaveFormAction;
+    return true;
+  }
+
+  // Bind Google Forms fields
+  form.action = CFG.formAction;
+  const names = CFG.fields;
   const idMap = {
     'f_action':   names.action,
     'f_timestamp':names.timestamp,
@@ -347,32 +364,12 @@ async function sendLeave(payload) {
     'f_maps':     names.mapsLink,
     'f_extra':    (names.extra || null)
   };
-  Object.entries(idMap).forEach(([id,name])=>{
+  Object.entries(idMap).forEach(([id,name]) => {
     const el = document.getElementById(id);
     if (el && name) el.setAttribute('name', name);
   });
 
-  // Leave Google Form (opțional)
-  (function setLeaveNames(){
-    if (!window.CFG.leaveFormAction || !window.CFG.leaveFields) return;
-    const m = window.CFG.leaveFields;
-    const map = {
-      'lv_name':  m.name,
-      'lv_type':  m.activityType,
-      'lv_email': m.personalEmail,
-      'lv_start': m.startDate,
-      'lv_end':   m.endDate,
-      'lv_notes': m.notes,
-      'lv_ts':    m.timestamp
-    };
-    Object.entries(map).forEach(([id, name])=>{
-      const el = document.getElementById(id);
-      if (el && name) el.setAttribute('name', name);
-    });
-    document.getElementById('leaveForm').action = window.CFG.leaveFormAction;
-  })();
-
-  // ==== EMPLOYEES ====
+  // ===== Employees load (CSV/GitHub/config/fallback) =====
   function parseEmployeesCSV(text){
     if (text && text.charCodeAt && text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
     text = (text || '').replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim();
@@ -405,85 +402,206 @@ async function sendLeave(payload) {
     return el.textContent.split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
   }
   async function loadEmployees() {
-    function fill(list){
-      empSel.innerHTML = '';
-      const ph = document.createElement('option');
-      ph.value=''; ph.textContent='Alege angajat…'; ph.disabled = true; ph.selected = true;
-      empSel.appendChild(ph);
-      list.forEach(v => { const o=document.createElement('option'); o.value=v; o.textContent=v; empSel.appendChild(o); });
-      empSel.disabled = false; actSel.disabled = false; locInput.disabled = false; notesEl.disabled = false;
-    }
+    const status = msg => setEmp(msg, 'ok');
     try {
-      if (window.CFG.employeesCsv) {
-        const url = window.CFG.employeesCsv + (window.CFG.employeesCsv.includes('?') ? '&' : '?') + 'v=' + Date.now();
+      if (CFG.employeesCsv) {
+        const url = CFG.employeesCsv + (CFG.employeesCsv.includes('?') ? '&' : '?') + 'v=' + Date.now();
         const r = await fetch(url, {cache:'no-store'});
         if (r.ok) {
           const txt = await r.text();
           const list = parseEmployeesCSV(txt);
-          if (list.length) { fill(list); setEmp('Angajați încărcați din employeesCsv.', 'ok'); return; }
+          if (list.length) { fillEmployees(list); status('Angajați încărcați din employeesCsv.'); return; }
         }
       }
     } catch(e){}
+
     try {
       const raw = 'https://raw.githubusercontent.com/mrshoby/timesheet-gps/main/employees.csv?v=' + Date.now();
       const r2 = await fetch(raw, {cache:'no-store'});
       if (r2.ok) {
         const txt2 = await r2.text();
         const list2 = parseEmployeesCSV(txt2);
-        if (list2.length) { fill(list2); setEmp('Angajați încărcați din RAW GitHub.', 'ok'); return; }
+        if (list2.length) { fillEmployees(list2); status('Angajați încărcați din RAW GitHub.'); return; }
       }
     } catch(e){}
-    if (Array.isArray(window.CFG.employees) && window.CFG.employees.length) {
-      fill(window.CFG.employees);
-      setEmp('Angajați încărcați din config.json.', 'ok'); return;
+
+    if (Array.isArray(CFG.employees) && CFG.employees.length) {
+      fillEmployees(CFG.employees);
+      status('Angajați încărcați din config.json.');
+      return;
     }
+
     const inline = getInlineEmployees();
-    if (inline.length) { fill(inline); setEmp('Angajați încărcați din fallback inline.', 'ok'); return; }
+    if (inline.length) {
+      fillEmployees(inline);
+      status('Angajați încărcați din fallback inline.');
+      return;
+    }
+
+    fillEmployees([]);
     setEmp('Nu am putut încărca lista de angajați. Verifică employees.csv / config.json.', 'err');
   }
+  function fillEmployees(list){
+    const sel = empSel;
+    sel.innerHTML = '';
+    const ph = document.createElement('option');
+    ph.value=''; ph.textContent='Alege angajat…'; ph.disabled = true; ph.selected = true;
+    sel.appendChild(ph);
+    list.forEach(v => { const o=document.createElement('option'); o.value=v; o.textContent=v; sel.appendChild(o); });
+  }
   await loadEmployees();
-  updateButtons();
 
-  // LEAVE panel: afișează când tipul e concediu
+  // ===== Leave (concedii) =====
   const leaveTypeSet = new Set(['concediu de odihna','concediu medical','concediu pentru ore suplimentare']);
   actSel.addEventListener('change', () => {
     const isLeave = leaveTypeSet.has((actSel.value||'').toLowerCase());
     leavePanel.style.display = isLeave ? '' : 'none';
-    // când e leave, blochez restul de butoane de timp
-    [btnStart, btnPause, btnUnpause, btnFinish, btnExtraStart, btnExtraFinish].forEach(b=>b.disabled = isLeave || b.disabled);
+    disableTimeButtons(isLeave);
   });
 
-  // ===== Core submit =====
-  function guardBeforeSubmit(action){
-    // câmpuri minime
-    if (!empSel.value) { setStatus('Selectează angajat.', 'err'); return false; }
-    if (!actSel.value) { setStatus('Alege tip de activitate.', 'err'); return false; }
-    if (!locInput.value.trim()) { setStatus('Scrie o locație.', 'err'); locInput.focus(); return false; }
-    if (!('geolocation' in navigator)) { setStatus('Geolocație indisponibilă pe acest dispozitiv.', 'err'); return false; }
-
-    // reguli de stare
-    if (action === 'finish' && !sessionActive) { setStatus('Trebuie să pornești pontajul (Start) înainte de a-l încheia.', 'warn'); return false; }
-    if (action === 'unpause' && !paused)      { setStatus('Nu poți reîncepe (Unpause) dacă nu ești în pauză.', 'warn'); return false; }
-    if (action === 'pause' && !sessionActive) { setStatus('Nu poți pune pauză fără o sesiune activă.', 'warn'); return false; }
-
-    if (action === 'extra_start' && (!sessionEnded || sessionActive)) {
-      setStatus('Finalizează pontajul normal (Finish) înainte de a începe orele extra.', 'warn'); return false;
-    }
-    if (action === 'extra_finish' && !extraActive) {
-      setStatus('Nu poți încheia orele extra fără Extra Start.', 'warn'); return false;
-    }
-
-    return true;
+  function disableTimeButtons(disabled) {
+    [btnStart,btnPause,btnUnpause,btnFinish,btnExtraStart,btnExtraFinish].forEach(el=> el.disabled = !!disabled);
+  }
+  function disableAllButtons(disabled){
+    disableTimeButtons(disabled);
+    const lbtn = document.getElementById('btnLeave');
+    if (lbtn) lbtn.disabled = !!disabled;
   }
 
-  function submitAction(action){
-    if (busy) return;
-    if (leaveTypeSet.has((actSel.value||'').toLowerCase())) {
-      setStatus('Pentru concediu folosește „Trimite cererea de concediu”.', 'warn'); return;
-    }
-    if (!guardBeforeSubmit(action)) return;
+  // ===== STATE MACHINE =====
+  let sessionActive = false;   // Start -> true, Finish -> false
+  let paused = false;          // Pause -> true, Unpause -> false
+  let extraActive = false;     // Extra Start -> true, Extra Finish -> false
 
-    busy = true; updateButtons();
+  function updateStatePill(){
+    let html = '';
+    if (extraActive) html = '<span class="pill extra">Stare: ore extra active</span>';
+    else if (sessionActive && paused) html = '<span class="pill pause">Stare: pauză</span>';
+    else if (sessionActive) html = '<span class="pill work">Stare: pontaj activ</span>';
+    else html = '<span class="pill idle">Stare: liber</span>';
+    stateView.innerHTML = html;
+  }
+
+  function updateButtons(){
+    // Cât timp ești în EXTRA → blochează tot ce e normal
+    if (extraActive) {
+      btnStart.disabled = true;
+      btnPause.disabled = true;
+      btnUnpause.disabled = true;
+      btnFinish.disabled = true;
+      btnExtraStart.disabled = true;
+      btnExtraFinish.disabled = false;
+      updateStatePill();
+      return;
+    }
+
+    // Nu ești în extra:
+    btnExtraStart.disabled = sessionActive;     // nu poți începe extra dacă ai sesiune normală deschisă
+    btnExtraFinish.disabled = true;             // ExtraFinish doar în extraActive
+
+    // Sesiune normală:
+    btnStart.disabled = sessionActive;          // nu poți porni încă un start
+    btnFinish.disabled = !sessionActive;        // nu poți termina fără start
+
+    btnPause.disabled = (!sessionActive || paused);    // poți pune pauză doar dacă e activ și nu e deja pauză
+    btnUnpause.disabled = (!sessionActive || !paused); // poți scoate pauza doar dacă e pauză activă
+
+    updateStatePill();
+  }
+  updateButtons();
+
+  // ===== Leave send =====
+  document.getElementById('btnLeave').addEventListener('click', async () => {
+    setLeaveStatus('', '');
+    if (!empSel.value) { setLeaveStatus('Selectează angajat.', 'err'); return; }
+    const tip = (actSel.value || '').toLowerCase();
+    if (!leaveTypeSet.has(tip)) { setLeaveStatus('Alege un tip de concediu.', 'err'); return; }
+    const sd = leaveStart.value;
+    const ed = leaveEnd.value;
+    if (!sd || !ed) { setLeaveStatus('Completează intervalul (start și sfârșit).', 'err'); return; }
+    if (ed < sd) { setLeaveStatus('Data de sfârșit nu poate fi înainte de start.', 'err'); return; }
+    const email = (leaveEmail.value || '').trim();
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { setLeaveStatus('Email personal invalid.', 'err'); return; }
+
+    setLeaveStatus('Se trimite cererea…', '');
+
+    let formSubmitted = false;
+    if (CFG.leaveFormAction && CFG.leaveFields) {
+      try {
+        document.getElementById('lv_name').value  = empSel.value;
+        document.getElementById('lv_type').value  = tip;
+        document.getElementById('lv_email').value = email;
+        document.getElementById('lv_start').value = sd;
+        document.getElementById('lv_end').value   = ed;
+        document.getElementById('lv_notes').value = (leaveNotes.value || '');
+        document.getElementById('lv_ts').value    = new Date().toISOString();
+        document.getElementById('leaveForm').submit();
+        formSubmitted = true;
+      } catch (e) {}
+    }
+
+    let endpointOk = false, endpointMsg = '';
+    if (CFG.leaveEndpoint) {
+      try {
+        const payload = {
+          name: empSel.value,
+          activityType: tip,
+          startDate: sd,
+          endDate: ed,
+          personalEmail: email,
+          notes: (leaveNotes.value || '')
+        };
+        const res = await sendLeave(payload);
+        endpointOk = true;
+        endpointMsg = ' (înregistrată ' + res.zile + ' zile)';
+      } catch (err) {}
+    }
+
+    if (formSubmitted || endpointOk) {
+      setLeaveStatus('Cerere trimisă' + endpointMsg + '. Email HR + Reply-To la ' + email + '.', 'ok');
+    } else {
+      setLeaveStatus('Eroare: nu s-a putut trimite cererea (Form/Endpoint). Verifică configurația.', 'err');
+    }
+  });
+
+  // ===== Submit action to Google Form =====
+  let busy = false;
+  function submitAction(action, opts={}) {
+    if (busy) return;
+    if (!empSel.value) { setStatus('Selectează angajat.', 'err'); return; }
+    if (!actSel.value) { setStatus('Alege tip de activitate.', 'err'); return; }
+    if (!locInput.value.trim()) { setStatus('Scrie o locație.', 'err'); locInput.focus(); return; }
+    if (!('geolocation' in navigator)) { setStatus('Geolocație indisponibilă pe acest dispozitiv.', 'err'); return; }
+    if (leaveTypeSet.has((actSel.value||'').toLowerCase())) {
+      setStatus('Pentru concediu folosește „Trimite cererea de concediu”.', 'warn');
+      return;
+    }
+
+    // REGULI LOGICE:
+    if (action === 'start') {
+      if (sessionActive) { setStatus('Pontaj deja activ. Dă Finish înainte de un nou Start.', 'warn'); return; }
+      if (extraActive) { setStatus('Ești în sesiune de ore extra. Dă Extra Finish înainte de Start normal.', 'warn'); return; }
+    }
+    if (action === 'pause') {
+      if (!sessionActive) { setStatus('Nu poți pune Pauză fără Start.', 'warn'); return; }
+      if (paused) { setStatus('Ești deja în Pauză.', 'warn'); return; }
+    }
+    if (action === 'unpause') {
+      if (!sessionActive) { setStatus('Nu poți face Unpause fără Start.', 'warn'); return; }
+      if (!paused) { setStatus('Nu ești în Pauză.', 'warn'); return; }
+    }
+    if (action === 'finish') {
+      if (!sessionActive) { setStatus('Nu poți încheia fără Start.', 'warn'); return; }
+    }
+    if (action === 'extra_start') {
+      if (sessionActive) { setStatus('Finalizează pontajul (Finish) înainte de a începe orele extra.', 'warn'); return; }
+      if (extraActive) { setStatus('Sesiune extra deja activă.', 'warn'); return; }
+    }
+    if (action === 'extra_finish') {
+      if (!extraActive) { setStatus('Nu poți termina orele extra fără Extra Start.', 'warn'); return; }
+    }
+
+    busy = true; disableAllButtons(true);
     setStatus('Se obține locația GPS…');
 
     navigator.geolocation.getCurrentPosition(
@@ -506,10 +624,11 @@ async function sendLeave(payload) {
         document.getElementById('f_notes').value = (notesEl.value || '');
         document.getElementById('f_maps').value = maps;
 
-        // extra flag în form (dacă ai câmp dedicat)
         const extraField = document.getElementById('f_extra');
-        if (extraField && extraField.getAttribute('name')) {
-          extraField.value = (action === 'extra_start' || action === 'extra_finish') ? '1' : '';
+        if ((action === 'extra_start' || action === 'extra_finish') && extraField && extraField.getAttribute('name')) {
+          extraField.value = (action === 'extra_start') ? 'start' : 'finish';
+        } else if (extraField) {
+          extraField.value = '';
         }
 
         form.submit();
@@ -519,88 +638,35 @@ async function sendLeave(payload) {
           locatie: locInput.value.trim(), latitude: lat, longitude: lon, accuracy: acc
         }, null, 2);
 
-        // state machine
-        if (action === 'start')        { sessionActive = true; paused = false; sessionEnded = false; }
-        if (action === 'pause')        { paused = true; }
-        if (action === 'unpause')      { paused = false; }
-        if (action === 'finish')       { sessionActive = false; paused = false; sessionEnded = true; }
-        if (action === 'extra_start')  { extraActive = true; }
+        // Update state
+        if (action === 'start') { sessionActive = true; paused = false; }
+        if (action === 'pause') { paused = true; }
+        if (action === 'unpause') { paused = false; }
+        if (action === 'finish') { sessionActive = false; paused = false; }
+        if (action === 'extra_start') { extraActive = true; }
         if (action === 'extra_finish') { extraActive = false; }
 
-        busy = false; updateButtons();
+        updateButtons();
+
+        setTimeout(()=>{ busy=false; disableAllButtons(false); updateButtons(); }, 800);
       },
-      err => { setStatus('Eroare locație: ' + err.message, 'err'); busy=false; updateButtons(); },
+      err => { setStatus('Eroare locație: ' + err.message, 'err'); busy=false; disableAllButtons(false); },
       { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 }
     );
   }
 
   // Bind buttons
-  btnStart.addEventListener('click',   ()=> submitAction('start'));
-  btnPause.addEventListener('click',   ()=> submitAction('pause'));
-  btnUnpause.addEventListener('click', ()=> submitAction('unpause'));
-  btnFinish.addEventListener('click',  ()=> submitAction('finish'));
-  btnExtraStart.addEventListener('click',  ()=> submitAction('extra_start'));
-  btnExtraFinish.addEventListener('click', ()=> submitAction('extra_finish'));
+  btnStart.addEventListener('click', ()=>submitAction('start'));
+  btnPause.addEventListener('click', ()=>submitAction('pause'));
+  btnUnpause.addEventListener('click', ()=>submitAction('unpause'));
+  btnFinish.addEventListener('click', ()=>submitAction('finish'));
 
-  // Leave send
-  document.getElementById('btnLeave').addEventListener('click', async () => {
-    setLeaveStatus('', '');
-    if (!empSel.value) { setLeaveStatus('Selectează angajat.', 'err'); return; }
-    const tip = (actSel.value || '').toLowerCase();
-    if (!leaveTypeSet.has(tip)) { setLeaveStatus('Alege un tip de concediu.', 'err'); return; }
-    const sd = leaveStart.value;
-    const ed = leaveEnd.value;
-    if (!sd || !ed) { setLeaveStatus('Completează intervalul (start și sfârșit).', 'err'); return; }
-    if (ed < sd) { setLeaveStatus('Data de sfârșit nu poate fi înainte de start.', 'err'); return; }
-    const email = (leaveEmail.value || '').trim();
-    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { setLeaveStatus('Email personal invalid.', 'err'); return; }
+  btnExtraStart.addEventListener('click', ()=>submitAction('extra_start'));
+  btnExtraFinish.addEventListener('click', ()=>submitAction('extra_finish'));
 
-    setLeaveStatus('Se trimite cererea…', '');
-
-    let formSubmitted = false;
-    if (window.CFG.leaveFormAction && window.CFG.leaveFields) {
-      try {
-        document.getElementById('lv_name').value  = empSel.value;
-        document.getElementById('lv_type').value  = tip;
-        document.getElementById('lv_email').value = email;
-        document.getElementById('lv_start').value = sd;
-        document.getElementById('lv_end').value   = ed;
-        document.getElementById('lv_notes').value = (leaveNotes.value || '');
-        document.getElementById('lv_ts').value    = new Date().toISOString();
-        document.getElementById('leaveForm').submit();
-        formSubmitted = true;
-      } catch (e) {
-        console.warn('Leave Form submit failed, continui cu endpoint.', e);
-      }
-    }
-
-    let endpointOk = false, endpointMsg = '';
-    if (window.CFG.leaveEndpoint) {
-      try {
-        const payload = {
-          name: empSel.value,
-          activityType: tip,
-          startDate: sd,
-          endDate: ed,
-          personalEmail: email,
-          notes: (leaveNotes.value || '')
-        };
-        const res = await sendLeave(payload);
-        endpointOk = true;
-        endpointMsg = ' (înregistrată ' + res.zile + ' zile)';
-      } catch (err) {
-        console.warn('Leave endpoint error:', err);
-      }
-    }
-
-    if (formSubmitted || endpointOk) {
-      setLeaveStatus('Cerere trimisă' + endpointMsg + '. Email HR + Reply-To la ' + email + '.', 'ok');
-    } else {
-      setLeaveStatus('Eroare: nu s-a putut trimite cererea (Form/Endpoint). Verifică configurația.', 'err');
-    }
-  });
-
-})(); // end app IIFE
+  // Inițial
+  updateButtons();
+})();
   </script>
 </body>
 </html>
