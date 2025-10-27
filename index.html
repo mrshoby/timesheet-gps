@@ -306,6 +306,9 @@ async function sendLeave(payload) {
     setCfg('Config încărcat', 'ok');
     try { setLeaveNames(); } catch(_) {}
     window.CFG = CFG;
+
+     await loadEmployees();
+    s
   } catch (e) {
     setCfg('Eroare config: ' + (e.message||e), 'err');
     disableAllButtons(true); return;
@@ -439,7 +442,7 @@ async function sendLeave(payload) {
     list.forEach(v => { const o=document.createElement('option'); o.value=v; o.textContent=v; sel.appendChild(o); });
   }
 
-  await loadEmployees();
+ 
 
   // ==================== LEAVE (concedii) ====================
   const leaveTypeSet = new Set(['concediu de odihna','concediu medical','concediu pentru ore suplimentare']);
