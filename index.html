@@ -388,8 +388,32 @@ async function sendLeave(payload) {
     const cached = loadLS();
     if (cached) STATE = Object.assign(blankState(), cached);
 
+    async function handleEmployeeChange(){
+  const name = (empSel.value || '').trim();
+  if (!name) { setEmp(''); return; }
+
+  // 1) pornește de la ce ai în localStorage (dacă folosești)
+  let st = typeof blankState === 'function' ? blankState() : null;
+  if (typeof loadLS === 'function') {
+    const cached = loadLS();
+    if (cached) st = Object.assign(st || {}, cached);
+  }
+
+  // 2) dacă există endpoint, suprascrie cu starea reală de pe server
+  try {
+    const remote = await fetchState(name);
+    if (remote) st = remote;
+  } catch (_) {}
+
+  // 3) păstrează în variabila globală (dacă o folosești) și aplică UI
+  if (typeof STATE !== 'undefined' && st) STATE = st;
+  applyStateToUI(st);
+}
+
     // Dacă există stateEndpoint, cerem starea reală a angajatului curent când se selectează
     empSel.addEventListener('change', handleEmployeeChange);
+    // afișează statusul imediat dacă selectul are deja o valoare (sau când pagina revine din cache)
+if (empSel.value) { handleEmployeeChange(); }
     actSel.addEventListener('change', () => {
       const isLeave = LEAVE_TYPES.has((actSel.value||'').toLowerCase());
       leavePanel.style.display = isLeave ? '' : 'none';
