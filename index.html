@@ -77,6 +77,7 @@
     .btn.pause{ --bg:#f59e0b; --fg:#111827 }
     .btn.unpause{ --bg: var(--brand); --fg:#fff }
     .btn.finish{ --bg: var(--accent); --fg:#fff }
+    .btn.extra{ --bg:#64748b; --fg:#fff }
     .btn:disabled{opacity:.6;cursor:not-allowed;}
     .leave{ border:1px dashed #cbd5e1;border-radius:14px;padding:12px;background:#f8fafc; }
     .kicker{font-size:12px;color:var(--muted);margin-bottom:6px}
@@ -186,6 +187,12 @@
           <button class="btn finish"  id="btnFinish">Finish</button>
         </div>
 
+        <!-- EXTRA HOURS -->
+        <div class="btnbar" style="margin-top:6px">
+          <button class="btn extra"  id="btnXStart">Extra Start</button>
+          <button class="btn extra"  id="btnXFinish">Extra Finish</button>
+        </div>
+
         <div id="status" class="status" role="status" aria-live="polite"></div>
         <div id="last" class="status mono"></div>
       </div>
@@ -197,10 +204,11 @@
           <h2 style="margin:0;font-size:18px">Scurt ghid</h2>
         </header>
         <div class="summary">
-          <div class="item"><b>Start</b> pornește pontajul</div>
-          <div class="item"><b>Pause</b> / <b>Unpause</b> marchează pauzele.</div>
-          <div class="item"><b>Finish</b> încheie ziua de lucru.</div>
-          <div class="item"><b>Concedii</b> — alege tipul și trimite cererea.</div>
+          <div class="item"><b>Start</b> pornește pontajul (program normal).</div>
+          <div class="item"><b>Pause</b> / <b>Unpause</b> marchează pauzele în timpul programului normal.</div>
+          <div class="item"><b>Finish</b> încheie ziua de lucru (program normal).</div>
+          <div class="item"><b>Extra Start/Finish</b> — pentru <u>ore extra separate</u>, după ce ai terminat programul normal.</div>
+          <div class="item"><b>Concedii</b> — alege tipul și trimite cererea (trimisă la HR).</div>
         </div>
         <div class="footer">© <span id="year"></span> SERVELECT. Toate drepturile rezervate.</div>
       </aside>
@@ -235,6 +243,8 @@
     <input type="hidden" id="f_device" />
     <input type="hidden" id="f_notes" />
     <input type="hidden" id="f_maps" />
+    <!-- nou: flag pentru ore extra -->
+    <input type="hidden" id="f_isExtra" />
   </form>
 
   <!-- Fallback inline employees list -->
@@ -251,19 +261,21 @@ Ana Radu
   <script>
 /** Trimite cererea de concediu la Apps Script WebApp (fără preflight CORS) */
 async function sendLeave(payload) {
-  // IMPORTANT: text/plain evită preflight OPTIONS, iar Apps Script citește e.postData.contents
   const r = await fetch(CFG.leaveEndpoint, {
     method: 'POST',
     headers: {'Content-Type':'text/plain;charset=utf-8'},
     body: JSON.stringify(payload)
   });
   const txt = await r.text();
-  let data;
-  try { data = JSON.parse(txt); }
-  catch { throw new Error('Răspuns invalid: ' + txt.slice(0,200)); }
+  let data; try { data = JSON.parse(txt); } catch { throw new Error('Răspuns invalid: ' + txt.slice(0,200)); }
   if (!r.ok || !data.ok) throw new Error((data && data.error) || ('HTTP '+r.status));
   return data;
 }
+
+// Stare locală + cheie per angajat/zi (pentru inter-blocări locale și fallback)
+function dayKeyFor(name){ const d=new Date(); const yyyy=d.getFullYear(), mm=("0"+(d.getMonth()+1)).slice(-2), dd=("0"+d.getDate()).slice(-2); return `pontaj:${name}:${yyyy}-${mm}-${dd}`; }
+function readLocalState(name){ try{ return JSON.parse(localStorage.getItem(dayKeyFor(name)) || '{}'); }catch{ return {}; } }
+function writeLocalState(name, st){ try{ localStorage.setItem(dayKeyFor(name), JSON.stringify(st||{})); }catch(e){} }
 
   (async function() {
     const statusEl = document.getElementById('status');
@@ -297,8 +309,7 @@ async function sendLeave(payload) {
       if (!CFG.formAction || !CFG.fields) throw new Error('Config incomplet');
       setCfg('Config încărcat', 'ok');
       try { setLeaveNames(); } catch(_) {}
-      // Expose global pentru sendLeave()
-      window.CFG = CFG;
+      window.CFG = CFG; // expune global pentru sendLeave()
     } catch (e) {
       setCfg('Eroare config: ' + (e.message||e), 'err');
       disableAllButtons(true); return;
@@ -339,7 +350,8 @@ async function sendLeave(payload) {
       'f_acc':      names.accuracy,
       'f_device':   names.device,
       'f_notes':    names.notes,
-      'f_maps':     names.mapsLink
+      'f_maps':     names.mapsLink,
+      'f_isExtra':  names.isExtra // opțional nou
     };
     Object.entries(idMap).forEach(([id,name]) => {
       const el = document.getElementById(id);
@@ -442,7 +454,7 @@ async function sendLeave(payload) {
     });
 
     function disableTimeButtons(disabled) {
-      ['btnStart','btnPause','btnUnpause','btnFinish'].forEach(id=>{
+      ['btnStart','btnPause','btnUnpause','btnFinish','btnXStart','btnXFinish'].forEach(id=>{
         const el = document.getElementById(id);
         if (el) el.disabled = !!disabled;
       });
@@ -481,9 +493,7 @@ async function sendLeave(payload) {
           document.getElementById('lv_ts').value    = new Date().toISOString();
           document.getElementById('leaveForm').submit();
           formSubmitted = true;
-        } catch (e) {
-          console.warn('Leave Form submit failed, continui cu endpoint.', e);
-        }
+        } catch (e) { console.warn('Leave Form submit failed, continui cu endpoint.', e); }
       }
 
       // (B) endpoint WebApp (Apps Script)
@@ -513,9 +523,66 @@ async function sendLeave(payload) {
       }
     });
 
+    // ==================== STATE GUARDRAILS ====================
+    let state = { normalActive:false, paused:false, extraActive:false };
+
+    async function refreshRemoteState(){
+      const name = empSel.value;
+      if (!name) return;
+      // Dacă ai un endpoint în Apps Script care răspunde cu starea curentă:
+      // CFG.statusEndpoint?name=...&date=YYYY-MM-DD  ->  {normalActive:true/false, paused:true/false, extraActive:true/false}
+      try{
+        if (CFG.statusEndpoint){
+          const d = new Date();
+          const date = `${d.getFullYear()}-${('0'+(d.getMonth()+1)).slice(-2)}-${('0'+d.getDate()).slice(-2)}`;
+          const r = await fetch(`${CFG.statusEndpoint}?name=${encodeURIComponent(name)}&date=${date}`, {cache:'no-store'});
+          if (r.ok){
+            const js = await r.json();
+            state = Object.assign({normalActive:false, paused:false, extraActive:false}, js||{});
+            writeLocalState(name, state);
+            setEmp('Starea a fost sincronizată din server.', 'ok');
+            setButtons();
+            return;
+          }
+        }
+      }catch(e){/* ignoră, fallback local */}
+      // fallback localStorage
+      state = Object.assign({normalActive:false, paused:false, extraActive:false}, readLocalState(name));
+      setButtons();
+    }
+
+    function setButtons(){
+      const normOn = state.normalActive;
+      const exOn   = state.extraActive;
+      document.getElementById('btnStart').disabled   = normOn || exOn; // nu poți porni dacă e ceva în derulare
+      document.getElementById('btnPause').disabled   = !normOn || state.paused;
+      document.getElementById('btnUnpause').disabled = !normOn || !state.paused;
+      document.getElementById('btnFinish').disabled  = !normOn;
+
+      document.getElementById('btnXStart').disabled  = normOn || exOn; // Extra permis doar când NIMIC nu e pornit
+      document.getElementById('btnXFinish').disabled = !exOn;
+    }
+
+    empSel.addEventListener('change', refreshRemoteState);
+
     // ==================== TIME ACTIONS ====================
     let busy = false;
-    function submitAction(action) {
+    function guard(action){
+      // reguli cerute
+      if (action === 'start' && state.normalActive) return 'Ai deja o sesiune activă. Încheie cu Finish.';
+      if (action === 'finish' && !state.normalActive) return 'Nu poți da Finish fără Start.';
+      if (action === 'pause' && !state.normalActive) return 'Nu poți pune Pause fără Start.';
+      if (action === 'unpause' && !state.normalActive) return 'Nu poți da Unpause fără Start.';
+
+      if (action === 'extra_start'){
+        if (state.normalActive) return 'Finalizează pontajul normal înainte de orele extra.';
+        if (state.extraActive)  return 'Sesiunea de ore extra este deja pornită.';
+      }
+      if (action === 'extra_finish' && !state.extraActive) return 'Nu poți încheia orele extra fără Extra Start.';
+      return '';
+    }
+
+    function submitAction(action, isExtra){
       if (busy) return;
       if (!empSel.value) { setStatus('Selectează angajat.', 'err'); return; }
       if (!actSel.value) { setStatus('Alege tip de activitate.', 'err'); return; }
@@ -525,6 +592,9 @@ async function sendLeave(payload) {
         setStatus('Pentru concediu folosește „Trimite cererea de concediu”.', 'warn');
         return;
       }
+
+      const ruleMsg = guard(isExtra ? (action==='start'?'extra_start':'extra_finish') : action);
+      if (ruleMsg){ setStatus(ruleMsg, 'warn'); return; }
 
       busy = true; disableAllButtons(true);
       setStatus('Se obține locația GPS…');
@@ -537,22 +607,39 @@ async function sendLeave(payload) {
           const ts = new Date().toISOString();
           const maps = `https://maps.google.com/?q=${lat},${lon}`;
 
-          document.getElementById('f_action').value = action;
+          document.getElementById('f_action').value    = isExtra ? (action==='start'?'extra_start':'extra_finish') : action;
+          document.getElementById('f_isExtra').value   = isExtra ? '1' : '0';
           document.getElementById('f_timestamp').value = ts;
-          document.getElementById('f_name').value = empSel.value;
-          document.getElementById('f_activity').value = actSel.value;
-          document.getElementById('f_location').value = locInput.value.trim();
-          document.getElementById('f_lat').value = lat;
-          document.getElementById('f_lon').value = lon;
-          document.getElementById('f_acc').value = acc;
-          document.getElementById('f_device').value = navigator.userAgent;
-          document.getElementById('f_notes').value = (notesEl.value || '');
-          document.getElementById('f_maps').value = maps;
+          document.getElementById('f_name').value      = empSel.value;
+          document.getElementById('f_activity').value  = actSel.value;
+          document.getElementById('f_location').value  = locInput.value.trim();
+          document.getElementById('f_lat').value       = lat;
+          document.getElementById('f_lon').value       = lon;
+          document.getElementById('f_acc').value       = acc;
+          document.getElementById('f_device').value    = navigator.userAgent;
+          document.getElementById('f_notes').value     = (notesEl.value || '');
+          document.getElementById('f_maps').value      = maps;
 
           form.submit();
-          setStatus(`Trimis ✓ (${action.toUpperCase()}). Verifică Google Sheet.`, 'ok');
+
+          // update local state imediat (optimist)
+          if (!isExtra){
+            if (action==='start'){ state.normalActive = true; state.paused = false; }
+            if (action==='pause'){ state.paused = true; }
+            if (action==='unpause'){ state.paused = false; }
+            if (action==='finish'){ state.normalActive = false; state.paused = false; }
+          } else {
+            if (action==='start'){ state.extraActive = true; }
+            if (action==='finish'){ state.extraActive = false; }
+          }
+          writeLocalState(empSel.value, state);
+          setButtons();
+
+          setStatus(`Trimis ✓ (${(isExtra?('EXTRA '+action):action).toUpperCase()}). Verifică Google Sheet.`, 'ok');
           lastEl.textContent = JSON.stringify({
-            action, timestamp: ts, angajat: empSel.value, activitate: actSel.value,
+            action: document.getElementById('f_action').value,
+            isExtra: isExtra,
+            timestamp: ts, angajat: empSel.value, activitate: actSel.value,
             locatie: locInput.value.trim(), latitude: lat, longitude: lon, accuracy: acc
           }, null, 2);
 
@@ -563,10 +650,16 @@ async function sendLeave(payload) {
       );
     }
 
-    document.getElementById('btnStart').addEventListener('click', ()=>submitAction('start'));
-    document.getElementById('btnPause').addEventListener('click', ()=>submitAction('pause'));
-    document.getElementById('btnUnpause').addEventListener('click', ()=>submitAction('unpause'));
-    document.getElementById('btnFinish').addEventListener('click', ()=>submitAction('finish'));
+    document.getElementById('btnStart').addEventListener('click', ()=>submitAction('start', false));
+    document.getElementById('btnPause').addEventListener('click', ()=>submitAction('pause', false));
+    document.getElementById('btnUnpause').addEventListener('click', ()=>submitAction('unpause', false));
+    document.getElementById('btnFinish').addEventListener('click', ()=>submitAction('finish', false));
+
+    document.getElementById('btnXStart').addEventListener('click', ()=>submitAction('start', true));
+    document.getElementById('btnXFinish').addEventListener('click', ()=>submitAction('finish', true));
+
+    // Initializează starea pentru angajat selectat implicit (dacă e cazul)
+    setButtons();
   })();
   </script>
 </body>
