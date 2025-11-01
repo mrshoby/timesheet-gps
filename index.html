@@ -302,10 +302,13 @@ async function sendLeave(payload) {
   function setEmp(msg, cls) { empStatus.className = 'status ' + (cls||''); empStatus.textContent = msg; }
   function setLeaveStatus(msg, cls) { leaveStatus.className = 'status ' + (cls||''); leaveStatus.textContent = msg; }
 
-  // CONFIG
+  // ================= GLOBAL STATE & CONST =================
   let CFG = null;
   let STATE = blankState();
   const LS_KEY = 'pontaj/state/v1';
+
+  // Concedii (trebuie DEASUPRA listenerelor)
+  const LEAVE_TYPES = new Set(['concediu de odihna','concediu medical','concediu pentru ore suplimentare']);
 
   function blankState(){
     return {
@@ -322,6 +325,7 @@ async function sendLeave(payload) {
   function loadLS(){ try { return JSON.parse(localStorage.getItem(LS_KEY) || 'null'); } catch{return null;} }
   function saveLS(){ try { localStorage.setItem(LS_KEY, JSON.stringify(STATE)); } catch{} }
 
+  // ================= BIND CONFIG TO FORMS =================
   function bindCFGToForm() {
     form.action = CFG.formAction;
     const names = CFG.fields;
@@ -344,7 +348,6 @@ async function sendLeave(payload) {
     });
   }
 
-  // Leave -> optional Google Form mapping
   function bindLeaveForm() {
     if (!CFG.leaveFormAction || !CFG.leaveFields) return false;
     const m = CFG.leaveFields;
@@ -365,7 +368,7 @@ async function sendLeave(payload) {
     return true;
   }
 
-  // Load config
+  // ================= INIT =================
   (async function init(){
     try {
       const r = await fetch('config.json?v=' + Date.now(), {cache:'no-store'});
@@ -384,36 +387,14 @@ async function sendLeave(payload) {
 
     await loadEmployees();
 
-    // Restaurăm starea locală; dacă avem endpoint de stare — îl folosim (persistență cross-device)
+    // Restore local state
     const cached = loadLS();
     if (cached) STATE = Object.assign(blankState(), cached);
 
-    async function handleEmployeeChange(){
-  const name = (empSel.value || '').trim();
-  if (!name) { setEmp(''); return; }
-
-  // 1) pornește de la ce ai în localStorage (dacă folosești)
-  let st = typeof blankState === 'function' ? blankState() : null;
-  if (typeof loadLS === 'function') {
-    const cached = loadLS();
-    if (cached) st = Object.assign(st || {}, cached);
-  }
-
-  // 2) dacă există endpoint, suprascrie cu starea reală de pe server
-  try {
-    const remote = await fetchState(name);
-    if (remote) st = remote;
-  } catch (_) {}
-
-  // 3) păstrează în variabila globală (dacă o folosești) și aplică UI
-  if (typeof STATE !== 'undefined' && st) STATE = st;
-  applyStateToUI(st);
-}
-
-    // Dacă există stateEndpoint, cerem starea reală a angajatului curent când se selectează
+    // Handlers
     empSel.addEventListener('change', handleEmployeeChange);
-    // afișează statusul imediat dacă selectul are deja o valoare (sau când pagina revine din cache)
-if (empSel.value) { handleEmployeeChange(); }
+    if (empSel.value) { handleEmployeeChange(); }
+
     actSel.addEventListener('change', () => {
       const isLeave = LEAVE_TYPES.has((actSel.value||'').toLowerCase());
       leavePanel.style.display = isLeave ? '' : 'none';
@@ -423,6 +404,7 @@ if (empSel.value) { handleEmployeeChange(); }
     wireButtons();
   })();
 
+  // ================= BUTTON ENABLE/DISABLE =================
   function disableTimeButtons(disabled) {
     [btnStart,btnPause,btnUnpause,btnFinish,btnExtraStart,btnExtraFinish].forEach(el=>{
       if (el) el.disabled = !!disabled;
@@ -434,8 +416,7 @@ if (empSel.value) { handleEmployeeChange(); }
     if (lbtn) lbtn.disabled = !!disabled;
   }
 
-  // LEAVE
-  const LEAVE_TYPES = new Set(['concediu de odihna','concediu medical','concediu pentru ore suplimentare']);
+  // ================= LEAVE FLOW =================
   document.getElementById('btnLeave').addEventListener('click', async () => {
     setLeaveStatus('', '');
     if (!empSel.value) { setLeaveStatus('Selectează angajat.', 'err'); return; }
@@ -491,7 +472,7 @@ if (empSel.value) { handleEmployeeChange(); }
     }
   });
 
-  // ==================== EMPLOYEES ====================
+  // ================= EMPLOYEES =================
   function parseEmployeesCSV(text){
     if (text && text.charCodeAt && text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
     text = (text || '').replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim();
@@ -576,21 +557,14 @@ if (empSel.value) { handleEmployeeChange(); }
 
   async function handleEmployeeChange(){
     STATE = blankState();
-    STATE.name = empSel.value || '';
+    STATE.name = (empSel.value || '').trim();
     saveLS();
-    await refreshServerState(); // dacă există endpoint
+    await refreshServerState(); // ia starea cross-device
     reflectState();
   }
 
-  // ==================== STATE (UI + server) ====================
+  // ================= STATE (UI + server) =================
   function reflectState(){
-    // Reguli:
-    // - Start permis doar dacă !running && !extra.running
-    // - Pause permis dacă running && !paused
-    // - Unpause permis dacă running && paused
-    // - Finish permis dacă running (indiferent paused)
-    // - Extra Start permis dacă !extra.running && !running (și ideal după un finish, dacă vrei strict)
-    // - Extra Finish permis dacă extra.running
     const running = STATE.normal.running;
     const paused  = STATE.normal.paused;
     const extraR  = STATE.extra.running;
@@ -600,22 +574,27 @@ if (empSel.value) { handleEmployeeChange(); }
     btnUnpause.disabled     = !empSel.value || !running || !paused;
     btnFinish.disabled      = !empSel.value || !running;
 
-    // Extra doar când nu e tură normală deschisă:
     btnExtraStart.disabled  = !empSel.value || running || extraR;
     btnExtraFinish.disabled = !empSel.value || !extraR;
+
+    // Status text
+    if (!empSel.value) { setEmp(''); return; }
+    if (extraR) { setEmp('EXTRA activ.', 'ok'); return; }
+    if (running && paused) { setEmp('START activ — în PAUSE.', 'warn'); return; }
+    if (running) { setEmp('START activ.', 'ok'); return; }
+    setEmp('Nicio sesiune activă.', '');
   }
 
   async function refreshServerState(){
-    if (!CFG.stateEndpoint || !STATE.name) return;
+    if (!CFG.guardEndpoint || !STATE.name) return;
     try{
-      const url = CFG.stateEndpoint + '?name=' + encodeURIComponent(STATE.name) + '&t=' + Date.now();
+      const url = CFG.guardEndpoint + '?fn=state&name=' + encodeURIComponent(STATE.name) + '&t=' + Date.now();
       const r = await fetch(url, {cache:'no-store'});
       if (!r.ok) throw new Error('HTTP ' + r.status);
       const srv = await r.json();
-      // așteptăm: {ok:true, state:{ normal:{running,paused}, extra:{running}, lastNormalStart, lastNormalFinish, lastExtraStart, lastExtraFinish }}
       if (srv && srv.ok && srv.state){
         STATE = Object.assign(blankState(), srv.state);
-        STATE.name = empSel.value || STATE.name || '';
+        STATE.name = STATE.name || (empSel.value || '');
         saveLS();
       }
     }catch(e){
@@ -623,41 +602,39 @@ if (empSel.value) { handleEmployeeChange(); }
     }
   }
 
-async function guardActionRemote(name, action){
-  if (!window.CFG || !CFG.guardEndpoint) return {ok:true}; // fallback: nu blocăm
-  const r = await fetch(CFG.guardEndpoint + '?fn=guard', {
-    method: 'POST',
-    headers: {'Content-Type':'text/plain;charset=utf-8'},
-    body: JSON.stringify({ name, action })
-  });
-  const txt = await r.text();
-  let data; try { data = JSON.parse(txt); } catch { return {ok:true}; }
-  return data;
-}
-async function fetchState(name){
-  if (!window.CFG || !CFG.guardEndpoint) return null;
-  const r = await fetch(CFG.guardEndpoint + '?fn=state&name=' + encodeURIComponent(name), { cache:'no-store' });
-  const txt = await r.text();
-  try { return JSON.parse(txt).state || null; } catch { return null; }
-}
-  
+  async function guardActionRemote(name, action){
+    if (!window.CFG || !CFG.guardEndpoint) return {ok:true}; // fallback: nu blocăm
+    const r = await fetch(CFG.guardEndpoint + '?fn=guard', {
+      method: 'POST',
+      headers: {'Content-Type':'text/plain;charset=utf-8'},
+      body: JSON.stringify({ name, action })
+    });
+    const txt = await r.text();
+    let data; try { data = JSON.parse(txt); } catch { return {ok:true}; }
+    return data;
+  }
+  async function fetchState(name){
+    if (!window.CFG || !CFG.guardEndpoint) return null;
+    const r = await fetch(CFG.guardEndpoint + '?fn=state&name=' + encodeURIComponent(name), { cache:'no-store' });
+    const txt = await r.text();
+    try { return JSON.parse(txt).state || null; } catch { return null; }
+  }
+
   async function guardServer(action){
     if (!CFG.guardEndpoint || !STATE.name) return {ok:true};
     try{
-      const payload = { name: STATE.name, action };
-      const r = await fetch(CFG.guardEndpoint, {
+      const r = await fetch(CFG.guardEndpoint + '?fn=guard', {
         method:'POST',
         headers:{'Content-Type':'text/plain;charset=utf-8'},
-        body: JSON.stringify(payload)
+        body: JSON.stringify({ name: STATE.name, action })
       });
       const txt = await r.text();
-      let data; try{data=JSON.parse(txt)}catch{ data=null; }
+      let data; try{ data = JSON.parse(txt); } catch{ data = null; }
       if (!data || data.ok !== true) return {ok:false, msg:(data && data.msg) || 'Acțiune nepermisă (guard).'};
       return {ok:true};
     }catch(e){
       console.warn('guardServer:', e);
-      // dacă guard nu răspunde, nu blocăm — dar validăm local
-      return {ok:true};
+      return {ok:true}; // dacă guard nu răspunde, nu blocăm (validăm local)
     }
   }
 
@@ -669,33 +646,32 @@ async function fetchState(name){
     switch(action){
       case 'start':
         if (running)  return 'Ai deja un START în derulare.';
-        if (extraR)   return 'Finalizează mai întâi „Extra” înainte de a porni norma.';
+        if (extraR)   return 'Finalizează „Extra” înainte de START.';
         return null;
       case 'pause':
-        if (!running) return 'Nu poți da PAUSE fără START.';
-        if (paused)   return 'Ești deja pe PAUSE.';
+        if (!running) return 'Nu poți PAUSE fără START.';
+        if (paused)   return 'Ești deja în PAUSE.';
         return null;
       case 'unpause':
-        if (!running) return 'Nu poți da UNPAUSE fără START.';
+        if (!running) return 'Nu poți UNPAUSE fără START.';
         if (!paused)  return 'Nu ești în PAUSE.';
         return null;
       case 'finish':
-        if (!running) return 'Nu poți da FINISH fără START.';
+        if (!running) return 'Nu poți FINISH fără START.';
         return null;
       case 'extra_start':
-        if (running)  return 'Finalizează norma înainte de „EXTRA START”.';
-        if (extraR)   return 'Ai deja EXTRA pornit.';
-        // opțional: verifică dacă ai avut un finish azi (strictețe)
+        if (running)  return 'Finalizează norma înainte de EXTRA START.';
+        if (extraR)   return 'EXTRA este deja pornit.';
         return null;
       case 'extra_finish':
-        if (!extraR)  return 'Nu poți da „EXTRA FINISH” fără „EXTRA START”.';
+        if (!extraR)  return 'Nu poți EXTRA FINISH fără EXTRA START.';
         return null;
       default:
         return null;
     }
   }
 
-  // ==================== ACTION SUBMIT ====================
+  // ================= ACTION SUBMIT =================
   let busy = false;
 
   function setFormPayload(action, ts, gps){
@@ -712,18 +688,19 @@ async function fetchState(name){
     document.getElementById('f_maps').value      = `https://maps.google.com/?q=${gps.lat},${gps.lon}`;
   }
 
- async function submitAction(action) {
-  if (busy) return;
-  if (!empSel.value) { setStatus('Selectează angajat.', 'err'); return; }
-  if (!actSel.value) { setStatus('Alege tip de activitate.', 'err'); return; }
-  if (!locInput.value.trim()) { setStatus('Scrie o locație.', 'err'); locInput.focus(); return; }
+  async function submitAction(action) {
+    if (busy) return;
+    if (!empSel.value) { setStatus('Selectează angajat.', 'err'); return; }
+    if (!actSel.value) { setStatus('Alege tip de activitate.', 'err'); return; }
+    if (!locInput.value.trim()) { setStatus('Scrie o locație.', 'err'); locInput.focus(); return; }
 
-  // 🔒 verificare cu serverul (cross-device)
-  setStatus('Verific starea…');
-  try {
-    const g = await guardActionRemote(empSel.value.trim(), action);
-    if (!g.ok) { setStatus(g.msg || 'Acțiune blocată de regulile de pontaj.', 'warn'); return; }
-  } catch(_) { /* dacă pică endpoint-ul, nu blocăm local */ }
+    // Pre-verificare rapidă cu guard (cross-device)
+    setStatus('Verific starea…');
+    try {
+      const g = await guardActionRemote(empSel.value.trim(), action);
+      if (!g.ok) { setStatus(g.msg || 'Acțiune blocată de regulile de pontaj.', 'warn'); return; }
+    } catch(_) {}
+
     if (!('geolocation' in navigator)) { setStatus('Geolocație indisponibilă pe acest dispozitiv.', 'err'); return; }
     if (LEAVE_TYPES.has((actSel.value||'').toLowerCase())) {
       setStatus('Pentru concediu folosește „Trimite cererea de concediu”.', 'warn');
@@ -734,7 +711,7 @@ async function fetchState(name){
     const lg = localGuard(action);
     if (lg) { setStatus(lg, 'warn'); return; }
 
-    // 2) gard server (dacă există)
+    // 2) gard server (safety)
     const gg = await guardServer(action);
     if (!gg.ok) { setStatus(gg.msg || 'Acțiune nepermisă (server).', 'err'); await refreshServerState(); reflectState(); return; }
 
@@ -749,18 +726,18 @@ async function fetchState(name){
       };
       const ts = new Date().toISOString();
 
-      // 3) populăm form și trimitem spre Google Form (care declanșează onFormSubmit)
+      // 3) trimitem către Google Form (declanșează onFormSubmit în Sheets/Apps Script)
       setFormPayload(action, ts, gps);
       form.submit();
 
-      // 4) actualizăm local state imediat (UX), apoi încercăm sync cu server (stateEndpoint)
+      // 4) actualizăm local state pentru UX
       applyLocalTransition(action, ts);
       saveLS();
       reflectState();
       setStatus(`Trimis ✓ (${action.toUpperCase()}). Verifică Google Sheet.`, 'ok');
       lastEl.textContent = JSON.stringify({action, timestamp: ts, angajat: empSel.value, activitate: actSel.value, locatie: locInput.value.trim(), ...gps}, null, 2);
 
-      // 5) după o mică pauză, revalidăm starea din server (dacă există)
+      // 5) după ~1s, sincronizăm starea din server
       setTimeout(async ()=>{
         await refreshServerState();
         reflectState();
