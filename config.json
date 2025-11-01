@@ -15,6 +15,8 @@
     "mapsLink": "entry.692020218"
   },
   "leaveEndpoint": "https://script.google.com/macros/s/AKfycbzBLamn0m3m9-e3NAVTF3EIpG6lqX6TsnW_AL6HuX8RSmT8kGGKR9970L6aZrKSDAYT/exec",
+  "stateEndpoint": "https://script.google.com/macros/s/AKfycbzBLamn0m3m9-e3NAVTF3EIpG6lqX6TsnW_AL6HuX8RSmT8kGGKR9970L6aZrKSDAYT/exec?fn=state",
+  "guardEndpoint": "https://script.google.com/macros/s/AKfycbzBLamn0m3m9-e3NAVTF3EIpG6lqX6TsnW_AL6HuX8RSmT8kGGKR9970L6aZrKSDAYT/exec?fn=guard"
   "employeesCsv": "https://raw.githubusercontent.com/mrshoby/timesheet-gps/main/employees.csv",
   "employees": [
     "Ion Popescu",
