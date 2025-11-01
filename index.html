@@ -1,981 +1,794 @@
-/***************************************
- * PONTAJ — Code.gs (complet, cu EXTRA și normalizare acțiuni)
- * - Start / Pause / Unpause / Finish
- * - Extra Start / Extra Finish (ore extra, separat)
- * - Coloane: Durata (ore), Suplimentar (h), Extra (h), Indicator
- * - Foi statistici: Ore zilnice, Total lunar, Ore suplimentare, Ore extra
- * - PDF rapoarte: zilnic & săptămânal (EXTRA separat în zilnic)
- * - WebApp:
- *     GET  ?fn=state&name=...   -> starea curentă (running/paused/extra)
- *     POST ?fn=guard {name,action} -> validare acțiune (gard)
- *     POST (fără fn sau fn=leave)  -> cerere concediu (HR)
- ***************************************/
-
-/*********************** UTILITARE GENERALE ************************/
-
-function _norm(s){ return String(s == null ? '' : s).trim(); }
-function _deaccent(s){ s=String(s==null?'':s); try{return s.normalize('NFD').replace(/[\u0300-\u036f]/g,'');}catch(e){return s;} }
-
-function _getHeaders(sh){
-  if (!sh) throw new Error('Sheet missing');
-  var lastCol = sh.getLastColumn();
-  if (!lastCol) return [];
-  return sh.getRange(1,1,1,lastCol).getValues()[0].map(function(x){ return String(x); });
-}
-function _findCol(headers, keys){
-  if (!headers || !headers.length) return 0;
-  var keysN = keys.map(function(k){ return _deaccent(String(k).toLowerCase()); });
-  for (var i = 0; i < headers.length; i++) {
-    var h = _deaccent(String(headers[i]).toLowerCase());
-    for (var k = 0; k < keysN.length; k++) {
-      if (h.indexOf(keysN[k]) >= 0) return i + 1;
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SERVELECT • Pontaj & Concedii</title>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="icon" href="favicon.png" />
+  <meta name="theme-color" content="#516A75"/>
+  <style>
+    :root{
+      --brand: rgba(81,106,117,0.88);
+      --brand-dark:#2f3e45;
+      --accent: rgba(149,202,75,0.91);
+      --text:#0f172a;
+      --muted:#5b6b73;
+      --bg:#f4f7f9;
+      --card:#ffffff;
+      --ring:#cfe0e7;
+      --danger:#ef4444;
+      --warn:#f59e0b;
     }
-  }
-  return 0;
-}
-
-function _toDate(v){
-  if (Object.prototype.toString.call(v) === '[object Date]') return isNaN(v) ? null : v;
-  if (typeof v === 'string'){
-    var s = v.replace(' ', 'T');
-    var d = new Date(s);
-    if (!isNaN(d)) return d;
-  }
-  return null;
-}
-function _num(v){
-  if (v === null || v === undefined) return 0;
-  if (typeof v === 'number') return isNaN(v) ? 0 : v;
-  if (typeof v === 'string'){
-    var s = v.trim().replace(',', '.'); var n = parseFloat(s);
-    return isNaN(n) ? 0 : n;
-  }
-  return 0;
-}
-function _asHours(v){
-  if (v === null || v === undefined) return 0;
-  if (typeof v === 'number') return v;
-  if (Object.prototype.toString.call(v) === '[object Date]'){
-    var msInDay = 24 * 3600 * 1000;
-    var ms = v.getTime() % msInDay;
-    return Math.round((ms / 36e5) * 100) / 100;
-  }
-  if (typeof v === 'string'){
-    var s = v.trim();
-    if (/^\d{1,2}:\d{1,2}(:\d{1,2})?$/.test(s)){
-      var parts = s.split(':'), h = _num(parts[0]), m = _num(parts[1]), sec = parts[2] ? _num(parts[2]) : 0;
-      return Math.round((h + m/60 + sec/3600) * 100) / 100;
+    *{box-sizing:border-box}
+    html,body{height:100%; width:100%}
+    body{
+      margin:0;
+      font-family: Montserrat, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      color:var(--text);
+      background:
+        linear-gradient(180deg, rgba(149, 202, 75, 0.91) 0%, rgba(81, 106, 117, 0.88) 66%),
+        url('background.jpg');
+      background-size: cover;
+      background-position: center center;
+      background-repeat: no-repeat;
+      background-attachment: fixed;
+      min-height:100vh;
     }
-    s = s.replace(',', '.'); var n = parseFloat(s);
-    return isNaN(n) ? 0 : n;
-  }
-  return 0;
-}
-function _round2(n){ return Math.round(n * 100) / 100; }
-
-function _isActivity(v){
-  var a = _norm(v).toLowerCase();
-  var set = {
-    'atelier':1,'deplasare':1,'pe drum':1,'birou + deplasare':1,
-    'birou-lucrare':1,'ofertare':1,'concediu de odihna':1,
-    'concediu medical':1,'zi libera legala':1,'birou-administrativ':1,
-    'home office':1,'invoire':1,'concediu pentru ore suplimentare':1
-  };
-  return !!set[a];
-}
-function _stdHoursForActivity(act){
-  var a = _norm(act).toLowerCase();
-  if (a === 'atelier' || a === 'deplasare' || a === 'pe drum' || a === 'birou + deplasare') return 8.5;
-  return 8.0;
-}
-function _getResponsesSheet_(ss){
-  var sheets = ss.getSheets();
-  for (var i=0;i<sheets.length;i++){
-    var nm = String(sheets[i].getName());
-    var nmn = _deaccent(nm.toLowerCase());
-    if (/responses/.test(nmn) || /raspuns/.test(nmn)) return sheets[i];
-  }
-  return ss.getSheets()[0];
-}
-
-/** Normalizare ACȚIUNI (spații/cratime → underscore + sinonime) */
-function _normAction(a){
-  var s = _norm(a).toLowerCase().replace(/[-\s]+/g,'_');
-  if (s === 'resume') s = 'unpause';
-  if (s === 'stop')   s = 'finish';
-  if (s === 'extra start')  s = 'extra_start';
-  if (s === 'extra finish') s = 'extra_finish';
-  return s;
-}
-
-/*********************** INDICATOR (bulină) ************************/
-
-function _removeIndicatorCF_(sh, cInd){
-  var rules = sh.getConditionalFormatRules(), keep=[];
-  for (var i=0;i<rules.length;i++){
-    var r = rules[i], rgs = r.getRanges(), hit=false;
-    if (rgs && rgs.length){
-      for (var j=0;j<rgs.length;j++){
-        var rg = rgs[j];
-        if (rg && rg.getColumn() <= cInd && (rg.getColumn()+rg.getNumColumns()-1) >= cInd){ hit=true; break; }
-      }
+    .shell{max-width:1100px;margin:0 auto;padding:24px;}
+    .nav{
+      display:flex;align-items:center;justify-content:space-between;
+      gap:16px;padding:14px 16px;border-radius:16px;
+      background:linear-gradient(180deg, rgba(255,255,255,.95), rgba(255,255,255,.80));
+      backdrop-filter: blur(8px);
+      box-shadow: 0 8px 30px rgba(81,106,117,.18);
+      border:1px solid rgba(81,106,117,.18);
     }
-    if (!hit) keep.push(r);
-  }
-  if (keep.length !== rules.length) sh.setConditionalFormatRules(keep);
-}
-
-function paintOneIndicatorRow_(sh, row, cDur, cInd, cAct, cLoc){
-  if (!cDur || !cInd || row < 2) return;
-  var valDur = sh.getRange(row, cDur).getValue();
-  var dur = _asHours(valDur);
-
-  var act = cAct ? _norm(sh.getRange(row, cAct).getDisplayValue()) : '';
-  if (!act && cLoc){
-    var maybe = _norm(sh.getRange(row, cLoc).getDisplayValue());
-    if (_isActivity(maybe)) act = maybe;
-  }
-  var std = _stdHoursForActivity(act);
-
-  var headers = _getHeaders(sh);
-  var cOT = _findCol(headers, ['suplimentar (h)','overtime','suplimentar']);
-  if (cOT){
-    var ot = Math.max(0, _round2(dur - std));
-    sh.getRange(row, cOT).setNumberFormat('0.00').setValue(ot);
-  }
-  sh.getRange(row, cInd).setValue('');
-
-  var bg = null;
-  if (dur > 0){
-    if (dur < std) bg = '#F87171';
-    else if (Math.abs(dur - std) < 1e-9) bg = '#4ADE80';
-    else bg = '#C084FC';
-  }
-  sh.getRange(row, cInd, 1, 1).setBackground(bg || null);
-}
-
-function repaintAllIndicators_(){
-  var ss = SpreadsheetApp.getActive();
-  var sh = _getResponsesSheet_(ss);
-  var headers = _getHeaders(sh);
-  var cDur = _findCol(headers, ['durata (ore)','duration(h)','durata']);
-  var cInd = _findCol(headers, ['indicator','bulina','indicator bulina']);
-  var cAct = _findCol(headers, ['tip de activitate','activity type','tip activitate','activitate']);
-  var cLoc = _findCol(headers, ['locație','locatie','location']);
-  if (!cDur || !cInd) return;
-  _removeIndicatorCF_(sh, cInd);
-  var last = Math.max(2, sh.getLastRow());
-  for (var r=2; r<=last; r++){
-    paintOneIndicatorRow_(sh, r, cDur, cInd, cAct, cLoc);
-  }
-}
-
-/*********************** PAUSE HELPER ************************/
-
-function _sumPausedMsForInterval_(data, iNm, iAc, iTs, name, tStart, tFinish){
-  var evts = [];
-  for (var i=0;i<data.length;i++){
-    var n = _norm(data[i][iNm]); if (n !== name) continue;
-    var a = _normAction(data[i][iAc]);
-    if (a !== 'pause' && a !== 'unpause') continue;
-    var t = _toDate(data[i][iTs]); if (!t) continue;
-    if (t <= tStart || t > tFinish) continue;
-    evts.push({t:t, a:a});
-  }
-  evts.sort(function(x,y){ return x.t - y.t; });
-
-  var pausedMs = 0, openPauseAt = null;
-  for (var j=0;j<evts.length;j++){
-    var e = evts[j];
-    if (e.a === 'pause'){
-      if (openPauseAt === null){ openPauseAt = e.t; }
-    } else if (e.a === 'unpause'){
-      if (openPauseAt !== null){
-        pausedMs += (e.t.getTime() - openPauseAt.getTime());
-        openPauseAt = null;
-      }
+    .brand{display:flex;align-items:center;gap:12px;text-decoration:none;color:inherit}
+    .brand img{ width:38px;height:38px;object-fit:contain;aspect-ratio:1/1;border-radius:10px;box-shadow:0 3px 10px rgba(81,106,117,.25) }
+    .brand h1{font-size:18px;letter-spacing:.2px;margin:0;line-height:1.1}
+    .brand h1 span{display:block;font-weight:700}
+    .brand small{display:block;font-size:12px;color:var(--muted);margin-top:2px}
+    .hero{ margin-top:20px; display:grid;grid-template-columns:1.1fr .9fr;gap:24px;align-items:stretch; }
+    @media (max-width:900px){ .hero{grid-template-columns:1fr} }
+    .card{ background:var(--card); border:1px solid rgba(14,165,233,.12); border-radius:18px; box-shadow:0 20px 60px rgba(2,132,199,.08); }
+    .panel{padding:20px 20px 14px 20px}
+    .panel header{ display:flex;align-items:center;gap:10px;margin:6px 0 14px; }
+    .panel header .dot{ width:10px;height:10px;border-radius:50%;background:var(--accent); box-shadow:0 0 0 4px rgba(149,202,75,0.18); }
+    .panel header h2{margin:0;font-size:18px}
+    .sub{color:var(--muted);font-size:14px;margin:0 0 14px}
+    label{display:block;font-size:12px;color:var(--muted);margin:4px 0 6px}
+    .grid{display:grid;gap:14px}
+    .grid.cols-3{grid-template-columns:repeat(3,minmax(0,1fr))}
+    .grid.cols-2{grid-template-columns:repeat(2,minmax(0,1fr))}
+    @media (max-width:900px){ .grid.cols-3,.grid.cols-2{grid-template-columns:1fr} }
+    select, input[type="text"], input[type="email"], input[type="date"]{
+      width:100%;padding:12px 12px;border-radius:12px;border:1px solid #e5e7eb;background:#fff;
+      font-size:15px;outline:none;transition: box-shadow .15s, border-color .15s;
     }
-  }
-  if (openPauseAt !== null){
-    pausedMs += (tFinish.getTime() - openPauseAt.getTime());
-  }
-  return Math.max(0, pausedMs);
-}
+    select:focus, input:focus{ border-color: var(--brand); box-shadow:0 0 0 4px var(--ring); }
+    .btnbar{display:flex;flex-wrap:wrap;gap:10px;margin-top:8px}
+    .btn{ --bg:#e2e8f0; --fg:#0f172a; appearance:none;border:0;border-radius:12px;padding:12px 16px;font-weight:600;
+      cursor:pointer;transition: transform .06s ease, box-shadow .2s ease, background .2s; box-shadow:0 6px 16px rgba(15,23,42,.08);
+      color:var(--fg);background:var(--bg); }
+    .btn:active{transform: translateY(1px)}
+    .btn.primary{ --bg: var(--accent); --fg:#fff }
+    .btn.pause{ --bg:#f59e0b; --fg:#111827 }
+    .btn.unpause{ --bg: var(--brand); --fg:#fff }
+    .btn.finish{ --bg: var(--accent); --fg:#fff }
+    .btn.extra{ --bg:#64748b; --fg:#fff }
+    .btn:disabled{opacity:.6;cursor:not-allowed;}
+    .leave{ border:1px dashed #cbd5e1;border-radius:14px;padding:12px;background:#f8fafc; }
+    .kicker{font-size:12px;color:var(--muted);margin-bottom:6px}
+    .status{font-size:13px;color:var(--muted);margin-top:10px}
+    .mono{font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;white-space:pre-wrap}
+    .chip{ display:inline-flex;align-items:center;gap:8px;padding:8px 10px;border-radius:999px;background:rgba(81,106,117,.10);color:#2f3e45;font-weight:600;font-size:12px }
+    .rail{padding:18px}
+    .summary{ display:grid;gap:12px }
+    .summary .item{ display:flex;align-items:center;gap:10px;padding:12px;border-radius:14px;background:#f8fafc;border:1px solid #e2e8f0; }
+    .footer{ margin-top:18px;font-size:12px;color:var(--muted);text-align:center }
+    .ok{color:#15803d} .err{color:#ef4444} .warn{color:#a16207}
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <nav class="nav card">
+      <a class="brand" href="#" aria-label="Spre început">
+        <img src="favicon.png" alt="Siglă SERVELECT" />
+        <div>
+          <h1><span>SERVELECT</span><small>Pontaj & Management Concedii</small></h1>
+        </div>
+      </a>
+      <div class="chip" id="cfg">Se încarcă configurația…</div>
+    </nav>
 
-/*********************** HANDLERS FORM/EDIT ************************/
+    <section class="hero">
+      <div class="card panel">
+        <header>
+          <span class="dot" aria-hidden="true"></span>
+          <h2>Înregistrare activitate</h2>
+        </header>
+        <p class="sub">Alege <b>Angajat</b>, <b>Tip de activitate</b>, completează <b>Locația</b> și (opțional) o <b>Notă</b>. Apoi folosește butoanele de mai jos.</p>
 
-function onFormSubmit(e){
-  var sh = e.range.getSheet();
-  var headers = _getHeaders(sh);
+        <div class="grid cols-3">
+          <div>
+            <label for="employeeSelect">Angajat</label>
+            <select id="employeeSelect"><option>Se încarcă...</option></select>
+            <div class="status" id="empStatus"></div>
+          </div>
 
-  var cTs = headers.indexOf('Timestamp') + 1; 
-  if (!cTs) cTs = _findCol(headers, ['timestamp','data','ora']);
-  var cAc = _findCol(headers, ['action','actiune','acțiune']);
-  var cNm = _findCol(headers, ['name','nume','angajat']);
-  var cActType = _findCol(headers, ['tip de activitate','activity type','tip activitate','activitate']);
-  var cLoc = _findCol(headers, ['locație','locatie','location']);
-  if(!cTs || !cAc || !cNm) return;
+          <div>
+            <label for="activitySelect">Tip de activitate</label>
+            <select id="activitySelect">
+              <option value="" selected disabled>Alege tip...</option>
+              <option>atelier</option>
+              <option>birou-lucrare</option>
+              <option>deplasare</option>
+              <option>ofertare</option>
+              <option>concediu de odihna</option>
+              <option>concediu medical</option>
+              <option>zi libera legala</option>
+              <option>birou-administrativ</option>
+              <option>home office</option>
+              <option>invoire</option>
+              <option>pe drum</option>
+              <option>concediu pentru ore suplimentare</option>
+              <option>birou + deplasare</option>
+            </select>
+          </div>
 
-  var row = e.range.getRow();
-  var action = _normAction(sh.getRange(row, cAc).getDisplayValue());
-  // interes doar pentru acțiuni de timp
-  if(['finish','start','pause','unpause','extra_start','extra_finish'].indexOf(action) === -1) return;
+          <div>
+            <label for="locationInput">Locație</label>
+            <input id="locationInput" type="text" placeholder="ex: Șantier B – Poartă 2" />
+          </div>
+        </div>
 
-  // asigură coloanele necesare
-  var cDur = _findCol(headers, ['durata (ore)','duration(h)','durata']);
-  if(!cDur){
-    sh.insertColumnAfter(headers.length);
-    cDur = headers.length + 1;
-    sh.getRange(1, cDur).setValue('Durata (ore)');
-    sh.getRange(2, cDur, Math.max(1, sh.getMaxRows()-1), 1).setNumberFormat('0.00');
-    headers = _getHeaders(sh);
-  }
-  var cInd = _findCol(headers, ['indicator','bulina','indicator bulina']);
-  if(!cInd){
-    sh.insertColumnAfter(sh.getLastColumn());
-    cInd = sh.getLastColumn();
-    sh.getRange(1, cInd).setValue('Indicator');
-    headers = _getHeaders(sh);
-  }
-  var cOT = _findCol(headers, ['suplimentar (h)','overtime','suplimentar']);
-  if(!cOT){
-    sh.insertColumnAfter(sh.getLastColumn());
-    cOT = sh.getLastColumn();
-    sh.getRange(1, cOT).setValue('Suplimentar (h)');
-    sh.getRange(2, cOT, Math.max(1, sh.getMaxRows()-1), 1).setNumberFormat('0.00');
-    headers = _getHeaders(sh);
-  }
-  var cEX = _findCol(headers, ['extra (h)','extra']);
-  if(!cEX){
-    sh.insertColumnAfter(sh.getLastColumn());
-    cEX = sh.getLastColumn();
-    sh.getRange(1, cEX).setValue('Extra (h)');
-    sh.getRange(2, cEX, Math.max(1, sh.getMaxRows()-1), 1).setNumberFormat('0.00');
-    headers = _getHeaders(sh);
-  }
+        <div class="grid" style="margin-top:12px">
+          <div>
+            <label for="notes">Notă (opțional)</label>
+            <input id="notes" type="text" placeholder="ex: Proiect X, client Y" />
+          </div>
+        </div>
 
-  var name = _norm(sh.getRange(row, cNm).getDisplayValue());
-  var cTsIdx = cTs-1, cAcIdx = cAc-1, cNmIdx = cNm-1;
-  var tsFinish = _toDate(sh.getRange(row, cTs).getValue());
+        <!-- Leave panel -->
+        <div id="leavePanel" class="leave" style="display:none;margin-top:16px">
+          <div class="kicker"><b>Cerere concediu</b> — completează intervalul de zile, emailul personal și o notă. Se trimite automat la HR.</div>
+          <div class="grid cols-3">
+            <div>
+              <label for="leaveStart">Data start</label>
+              <input type="date" id="leaveStart" />
+            </div>
+            <div>
+              <label for="leaveEnd">Data sfârșit</label>
+              <input type="date" id="leaveEnd" />
+            </div>
+            <div>
+              <label for="leaveEmail">Email personal</label>
+              <input type="email" id="leaveEmail" placeholder="ex: prenume.nume@..." />
+            </div>
+          </div>
+          <div class="grid" style="margin-top:10px">
+            <div>
+              <label for="leaveNotes">Notă către HR (opțional)</label>
+              <input type="text" id="leaveNotes" placeholder="ex: motiv / detalii" />
+            </div>
+          </div>
+          <div class="btnbar">
+            <button id="btnLeave" class="btn primary" type="button">Trimite cererea de concediu</button>
+            <span class="status" id="leaveStatus"></span>
+          </div>
+        </div>
 
-  if(action === 'finish' || action === 'extra_finish'){
-    if(tsFinish){
-      var data = sh.getRange(2, 1, Math.max(0, sh.getLastRow()-1), sh.getLastColumn()).getValues();
+        <!-- Main action buttons -->
+        <div class="btnbar" style="margin-top:16px">
+          <button class="btn primary" id="btnStart">Start</button>
+          <button class="btn pause"   id="btnPause">Pause</button>
+          <button class="btn unpause" id="btnUnpause">Unpause</button>
+          <button class="btn finish"  id="btnFinish">Finish</button>
+        </div>
 
-      var lookFor = (action === 'finish') ? 'start' : 'extra_start';
-      var startTime = null;
-      // caută ultimul START/EXTRA_START fără FINISH ulterior
-      for(var i=data.length-1;i>=0;i--){
-        var n = _norm(data[i][cNmIdx]);
-        var a = _normAction(data[i][cAcIdx]);
-        var t = _toDate(data[i][cTsIdx]);
-        if(n===name && a===lookFor && t && t<=tsFinish){ startTime=t; break; }
-        if(n===name && (a==='finish' || a==='extra_finish') && t && t<=tsFinish) break;
-      }
+        <!-- EXTRA time buttons -->
+        <div class="btnbar" style="margin-top:8px">
+          <button class="btn extra" id="btnExtraStart" title="Pornește orele extra (separate de suplimentare)">Extra Start</button>
+          <button class="btn extra" id="btnExtraFinish" title="Încheie orele extra">Extra Finish</button>
+        </div>
 
-      if(startTime){
-        if (action === 'finish'){
-          var pausedMs = _sumPausedMsForInterval_(data, cNmIdx, cAcIdx, cTsIdx, name, startTime, tsFinish);
-          var gross = tsFinish.getTime() - startTime.getTime();
-          var net = Math.max(0, gross - pausedMs);
-          var hours = _round2(net/36e5);
-          sh.getRange(row, cDur).setNumberFormat('0.00').setValue(hours);
-          sh.getRange(row, cInd).setValue('');
-        } else {
-          var grossE = tsFinish.getTime() - startTime.getTime();
-          var hE = _round2(grossE/36e5);
-          sh.getRange(row, cEX).setNumberFormat('0.00').setValue(hE);
-        }
-      } else {
-        if (action === 'finish'){ sh.getRange(row, cDur).setValue(''); }
-        if (action === 'extra_finish'){ sh.getRange(row, cEX).setValue(''); }
-        sh.getRange(row, cInd).setValue('');
-      }
-    }
-  } else {
-    // start/pause/unpause/extra_start -> doar resetăm indicatorul
-    sh.getRange(row, cInd).setValue('');
-  }
+        <div id="status" class="status" role="status" aria-live="polite"></div>
+        <div id="last" class="status mono"></div>
+      </div>
 
-  _removeIndicatorCF_(sh, cInd);
-  var cAct = _findCol(headers, ['tip de activitate','activity type','tip activitate','activitate']);
-  paintOneIndicatorRow_(sh, row, cDur, cInd, cAct, cLoc);
+      <!-- Right: Helper / Summary -->
+      <aside class="card rail">
+        <header style="display:flex;align-items:center;gap:10px;margin:4px 0 10px">
+          <span class="dot" aria-hidden="true"></span>
+          <h2 style="margin:0;font-size:18px">Scurt ghid</h2>
+        </header>
+        <div class="summary">
+          <div class="item"><b>Start</b> pornește pontajul</div>
+          <div class="item"><b>Pause</b> / <b>Unpause</b> marchează pauzele.</div>
+          <div class="item"><b>Finish</b> încheie ziua de lucru.</div>
+          <div class="item"><b>Extra Start/Finish</b> — ore extra separate de suplimentare.</div>
+          <div class="item"><b>Concedii</b> — alege tipul și trimite cererea.</div>
+        </div>
+        <div class="footer">© <span id="year"></span> SERVELECT. Toate drepturile rezervate.</div>
+      </aside>
+    </section>
+  </div>
 
-  try { buildDailySummary(); } catch (err) { Logger.log(err); }
-  try { buildMonthlyTotals(); } catch (err) { Logger.log(err); }
-  try { buildOvertimeSheet(); } catch (err) { Logger.log(err); }
-  try { buildExtraSheet(); } catch (err) { Logger.log(err); }
-}
+  <!-- Hidden iframes -->
+  <iframe name="hidden_iframe" style="display:none;"></iframe>
+  <iframe name="hidden_iframe_leave" style="display:none;"></iframe>
 
-function onEdit(e){
-  if (!e || !e.range) return;
-  var sh = e.range.getSheet();
-  var row = e.range.getRow(), col = e.range.getColumn();
-  if (row < 2) return;
+  <!-- Leave Google Form -->
+  <form id="leaveForm" method="POST" target="hidden_iframe_leave">
+    <input type="hidden" id="lv_name" />
+    <input type="hidden" id="lv_type" />
+    <input type="hidden" id="lv_email" />
+    <input type="hidden" id="lv_start" />
+    <input type="hidden" id="lv_end" />
+    <input type="hidden" id="lv_notes" />
+    <input type="hidden" id="lv_ts" />
+  </form>
 
-  var headers = _getHeaders(sh);
-  var cDur = _findCol(headers, ['durata (ore)','duration(h)','durata']);
-  var cAct = _findCol(headers, ['tip de activitate','activity type','tip activitate','activitate']);
-  var cLoc = _findCol(headers, ['locație','locatie','location']);
-  var cInd = _findCol(headers, ['indicator','bulina','indicator bulina']);
-  if (!cDur || !cInd) return;
+  <!-- Main Google Form payload -->
+  <form id="gform" method="POST" target="hidden_iframe">
+    <input type="hidden" id="f_action" />
+    <input type="hidden" id="f_timestamp" />
+    <input type="hidden" id="f_name" />
+    <input type="hidden" id="f_activity" />
+    <input type="hidden" id="f_location" />
+    <input type="hidden" id="f_lat" />
+    <input type="hidden" id="f_lon" />
+    <input type="hidden" id="f_acc" />
+    <input type="hidden" id="f_device" />
+    <input type="hidden" id="f_notes" />
+    <input type="hidden" id="f_maps" />
+  </form>
 
-  if (col !== cDur && col !== cAct && col !== cLoc) return;
+  <!-- Fallback inline employees list -->
+  <script type="text/plain" id="employees-inline">
+Ion Popescu
+Maria Ionescu
+Vlad Georgescu
+Ana Radu
+  </script>
 
-  var rawDur = sh.getRange(row, cDur).getValue();
-  var dur = _asHours(rawDur);
-  sh.getRange(row, cDur).setNumberFormat('0.00').setValue(dur);
-  sh.getRange(row, cInd).setValue('');
+  <script>document.getElementById('year').textContent = new Date().getFullYear();</script>
 
-  _removeIndicatorCF_(sh, cInd);
-  paintOneIndicatorRow_(sh, row, cDur, cInd, cAct, cLoc);
-}
-
-/*********************** CONFIG RAPOARTE & DRIVE ************************/
-
-const REPORTS_PARENT_ID = "16FqKRS76NbU8TQhj9Ype3-orcSSHWn_Y"; // schimbă dacă vrei alt folder
-
-function _getReportsRoot_() {
-  if (REPORTS_PARENT_ID && REPORTS_PARENT_ID.trim()) {
-    try { return DriveApp.getFolderById(REPORTS_PARENT_ID.trim()); }
-    catch (e) { Logger.log("Folder ID invalid sau inaccesibil: " + e); }
-  }
-  return DriveApp.getRootFolder();
-}
-function _ensureFolder_(parent, name){
-  var it = parent.getFoldersByName(name);
-  return it.hasNext() ? it.next() : parent.createFolder(name);
-}
-function _moveFileToFolder_(file, destFolder){
-  try { file.moveTo(destFolder); }
-  catch (err) {
-    try { destFolder.addFile(file); DriveApp.getRootFolder().removeFile(file); }
-    catch(e2){ Logger.log('Nu am putut muta fișierul: ' + (e2 && e2.message ? e2.message : e2)); }
-  }
-}
-
-/*********************** SHEET BUILDERS ************************/
-
-function _ensureSheet_(ss, name, headers) {
-  var sh = ss.getSheetByName(name) || ss.insertSheet(name);
-  sh.clearContents();
-  if (headers && headers.length) {
-    sh.getRange(1, 1, 1, headers.length).setValues([headers]);
-    sh.getRange(1, 1, 1, headers.length).setFontWeight('bold');
-  }
-  return sh;
-}
-
-/** Ore zilnice: Nume | Data | Ore | Suplimentar (h) | Extra (h) */
-function buildDailySummary(){
-  var ss = SpreadsheetApp.getActive();
-  var formSh = _getResponsesSheet_(ss);
-  var headers = _getHeaders(formSh);
-
-  var cTs  = headers.indexOf('Timestamp') + 1; if(!cTs)  cTs  = _findCol(headers,['timestamp','data','ora']);
-  var cNm  = _findCol(headers,['name','nume','angajat']);
-  var cDur = _findCol(headers,['durata (ore)','duration(h)','durata']);
-  var cOT  = _findCol(headers,['suplimentar (h)','overtime','suplimentar']);
-  var cEX  = _findCol(headers,['extra (h)','extra']);
-  if(!cTs || !cNm || !cDur){
-    Logger.log('buildDailySummary: coloane lipsă');
-    _ensureSheet_(ss,'Ore zilnice',['Nume','Data','Ore','Suplimentar (h)','Extra (h)']).autoResizeColumns(1,5);
-    PropertiesService.getScriptProperties().setProperty('daily_details_json', JSON.stringify({}));
-    return;
-  }
-
-  var last = Math.max(2, formSh.getLastRow());
-  if (last < 2) {
-    _ensureSheet_(ss, 'Ore zilnice', ['Nume','Data','Ore','Suplimentar (h)','Extra (h)']).autoResizeColumns(1,5);
-    PropertiesService.getScriptProperties().setProperty('daily_details_json', JSON.stringify({}));
-    return;
-  }
-
-  var vals = formSh.getRange(2,1,last-1, formSh.getLastColumn()).getValues();
-  var map = {}; // key = "Nume|yyyy-mm-dd" -> {h, ot, ex}
-  var tz = Session.getScriptTimeZone();
-
-  for (var i=0;i<vals.length;i++){
-    var ts = _toDate(vals[i][cTs-1]); if(!ts) continue;
-    var name = _norm(vals[i][cNm-1]); if(!name) continue;
-    var h = _asHours(vals[i][cDur-1]);
-    var ot = cOT ? _num(vals[i][cOT-1]) : Math.max(0, h - 8);
-    var ex = cEX ? _num(vals[i][cEX-1]) : 0;
-
-    if(!(h>0) && !(ex>0)) continue;
-
-    var d = new Date(ts); d.setHours(0,0,0,0);
-    var dayStr = Utilities.formatDate(d, tz, 'yyyy-MM-dd');
-    var key = name + '|' + dayStr;
-    if (!map[key]) map[key] = {h:0, ot:0, ex:0};
-    if (h>0){ map[key].h  += h; map[key].ot += (cOT ? ot : Math.max(0,h-8)); }
-    if (ex>0){ map[key].ex += ex; }
-  }
-
-  var out = [['Nume','Data','Ore','Suplimentar (h)','Extra (h)']];
-  Object.keys(map).sort().forEach(function(k){
-    var p = k.split('|'), v = map[k];
-    out.push([p[0], p[1], _round2(v.h), _round2(v.ot), _round2(v.ex)]);
+  <script>
+/** Trimite cererea de concediu la Apps Script WebApp (fără preflight CORS) */
+async function sendLeave(payload) {
+  const r = await fetch(CFG.leaveEndpoint, {
+    method: 'POST',
+    headers: {'Content-Type':'text/plain;charset=utf-8'},
+    body: JSON.stringify(payload)
   });
-
-  var sh = _ensureSheet_(ss, 'Ore zilnice', out[0]);
-  if (out.length > 1) {
-    sh.getRange(2,1,out.length-1, out[0].length).setValues(out.slice(1));
-    sh.getRange(2,3, out.length-1, 3).setNumberFormat('0.00');
-  }
-  sh.autoResizeColumns(1,5);
-
-  PropertiesService.getScriptProperties().setProperty('daily_details_json', JSON.stringify(map));
+  const txt = await r.text();
+  let data;
+  try { data = JSON.parse(txt); }
+  catch { throw new Error('Răspuns invalid: ' + txt.slice(0,200)); }
+  if (!r.ok || !data.ok) throw new Error((data && data.error) || ('HTTP '+r.status));
+  return data;
 }
 
-/** Total lunar (include Extra separat) */
-function buildMonthlyTotals(){
-  var ss = SpreadsheetApp.getActive();
-  var daily = ss.getSheetByName('Ore zilnice');
-  var t = _ensureSheet_(ss, 'Total lunar', ['Nume','Luna','Total ore','Suplimentar (h)','Extra (h)']);
+(function(){
+  const statusEl = document.getElementById('status');
+  const cfgEl = document.getElementById('cfg');
+  const lastEl = document.getElementById('last');
+  const notesEl = document.getElementById('notes');
+  const locInput = document.getElementById('locationInput');
+  const empSel = document.getElementById('employeeSelect');
+  const actSel = document.getElementById('activitySelect');
+  const empStatus = document.getElementById('empStatus');
+  const form = document.getElementById('gform');
 
-  if (!daily || daily.getLastRow() < 2) { t.autoResizeColumns(1,5); return; }
+  const leavePanel = document.getElementById('leavePanel');
+  const leaveStart = document.getElementById('leaveStart');
+  const leaveEnd = document.getElementById('leaveEnd');
+  const leaveEmail = document.getElementById('leaveEmail');
+  const leaveNotes = document.getElementById('leaveNotes');
+  const leaveStatus = document.getElementById('leaveStatus');
 
-  var vals = daily.getRange(2,1,daily.getLastRow()-1, 5).getValues(); // Nume, Data, Ore, OT, EX
-  var map = {}; // key = "Nume|YYYY-MM" -> {h, ot, ex}
+  const btnStart = document.getElementById('btnStart');
+  const btnPause = document.getElementById('btnPause');
+  const btnUnpause = document.getElementById('btnUnpause');
+  const btnFinish = document.getElementById('btnFinish');
+  const btnExtraStart = document.getElementById('btnExtraStart');
+  const btnExtraFinish = document.getElementById('btnExtraFinish');
 
-  for (var i=0;i<vals.length;i++){
-    var n  = _norm(vals[i][0]);
-    var ds = vals[i][1];
-    var h  = _num(vals[i][2]);
-    var ot = _num(vals[i][3]);
-    var ex = _num(vals[i][4]);
-    if(!n || !ds) continue;
-    var d = new Date(ds); if(isNaN(d)) continue;
-    var ym = d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2);
-    var key = n+'|'+ym;
-    if(!map[key]) map[key] = {h:0, ot:0, ex:0};
-    map[key].h += h; map[key].ot += ot; map[key].ex += ex;
-  }
+  function setStatus(msg, cls) { statusEl.className = 'status ' + (cls||''); statusEl.textContent = msg; }
+  function setCfg(msg, cls) { cfgEl.className = 'chip ' + (cls||''); cfgEl.textContent = msg; }
+  function setEmp(msg, cls) { empStatus.className = 'status ' + (cls||''); empStatus.textContent = msg; }
+  function setLeaveStatus(msg, cls) { leaveStatus.className = 'status ' + (cls||''); leaveStatus.textContent = msg; }
 
-  var out = [['Nume','Luna','Total ore','Suplimentar (h)','Extra (h)']];
-  Object.keys(map).sort().forEach(function(k){
-    var p=k.split('|'); var v=map[k];
-    out.push([p[0], p[1], _round2(v.h), _round2(v.ot), _round2(v.ex)]);
-  });
+  // ================= GLOBAL STATE & CONST =================
+  let CFG = null;
+  let STATE = blankState();
+  const LS_KEY = 'pontaj/state/v1';
 
-  if (out.length > 1) {
-    t.getRange(2,1,out.length-1, out[0].length).setValues(out.slice(1));
-    t.getRange(2,3, out.length-1, 3).setNumberFormat('0.00');
-  }
-  t.autoResizeColumns(1,5);
-}
+  // Concedii (trebuie DEASUPRA listenerelor)
+  const LEAVE_TYPES = new Set(['concediu de odihna','concediu medical','concediu pentru ore suplimentare']);
 
-/** Ore suplimentare (OT > 0) */
-function buildOvertimeSheet(){
-  var ss = SpreadsheetApp.getActive();
-  var daily = ss.getSheetByName('Ore zilnice');
-  var sh = _ensureSheet_(ss, 'Ore suplimentare', ['Nume','Data','Suplimentar (h)']);
-
-  if (!daily || daily.getLastRow() < 2) { sh.autoResizeColumns(1,3); return; }
-
-  var vals = daily.getRange(2,1,daily.getLastRow()-1, 5).getValues(); // Nume, Data, Ore, OT, EX
-  var out = [['Nume','Data','Suplimentar (h)']];
-  for (var i=0;i<vals.length;i++){
-    var n  = _norm(vals[i][0]);
-    var ds = vals[i][1];
-    var ot = _num(vals[i][3]);
-    if (ot > 0) out.push([n, ds, _round2(ot)]);
-  }
-
-  if (out.length > 1) {
-    sh.getRange(2,1,out.length-1, 3).setValues(out.slice(1));
-    sh.getRange(2,3, out.length-1, 1).setNumberFormat('0.00');
-  }
-  sh.autoResizeColumns(1,3);
-}
-
-/** Ore extra (doar extra) */
-function buildExtraSheet(){
-  var ss = SpreadsheetApp.getActive();
-  var daily = ss.getSheetByName('Ore zilnice');
-  var sh = _ensureSheet_(ss, 'Ore extra', ['Nume','Data','Extra (h)']);
-
-  if (!daily || daily.getLastRow() < 2) { sh.autoResizeColumns(1,3); return; }
-
-  var vals = daily.getRange(2,1,daily.getLastRow()-1, 5).getValues(); // Nume, Data, Ore, OT, EX
-  var out = [['Nume','Data','Extra (h)']];
-  for (var i=0;i<vals.length;i++){
-    var n  = _norm(vals[i][0]);
-    var ds = vals[i][1];
-    var ex = _num(vals[i][4]);
-    if (ex > 0) out.push([n, ds, _round2(ex)]);
-  }
-
-  if (out.length > 1) {
-    sh.getRange(2,1,out.length-1, 3).setValues(out.slice(1));
-    sh.getRange(2,3, out.length-1, 1).setNumberFormat('0.00');
-  }
-  sh.autoResizeColumns(1,3);
-}
-
-/** Rebuild complet */
-function rebuildAllReports(){
-  buildDailySummary();
-  buildMonthlyTotals();
-  buildOvertimeSheet();
-  buildExtraSheet();
-}
-
-/*********************** PDF RAPOARTE ************************/
-
-function dailyReports(){
-  var ss = SpreadsheetApp.getActive();
-  var formSh = _getResponsesSheet_(ss);
-  var headers = _getHeaders(formSh);
-
-  var cTs=_findCol(headers,['timestamp','data','ora']); if(!cTs) cTs = headers.indexOf('Timestamp')+1;
-  var cNm=_findCol(headers,['name','nume']);
-  var cDur=_findCol(headers,['durata (ore)','duration(h)','durata']);
-  var cOT =_findCol(headers,['suplimentar (h)','overtime','suplimentar']);
-  var cEX=_findCol(headers,['extra (h)','extra']);
-  var cAct=_findCol(headers,['tip de activitate','activity type','tip activitate','activitate']);
-  var cLoc=_findCol(headers,['locație','locatie','location']);
-  if(!cTs||!cNm||!cDur) return;
-
-  var tz = Session.getScriptTimeZone();
-  var now = new Date();
-  var start = new Date(now); start.setDate(now.getDate()-1); start.setHours(0,0,0,0);
-  var end   = new Date(start); end.setHours(23,59,59,999);
-  var dayStr = Utilities.formatDate(start, tz, 'yyyy-MM-dd');
-
-  var lastRow=Math.max(2, formSh.getLastRow());
-  var vals=formSh.getRange(2,1,lastRow-1, formSh.getLastColumn()).getValues();
-
-  var byEmp = {};
-  for (var i=0;i<vals.length;i++){
-    var ts=_toDate(vals[i][cTs-1]); if(!ts) continue;
-    if (ts < start || ts > end) continue;
-    var n=_norm(vals[i][cNm-1]); if(!n) continue;
-
-    var h=_asHours(vals[i][cDur-1]); var ot=cOT? _num(vals[i][cOT-1]) : Math.max(0,h-8);
-    var ex=cEX? _num(vals[i][cEX-1]) : 0;
-    var act=cAct? _norm(vals[i][cAct-1]) : '';
-    var loc=cLoc? _norm(vals[i][cLoc-1]) : '';
-
-    if (!byEmp[n]) byEmp[n] = { totalH:0, totalOT:0, totalEX:0, rows:[], extra:[] };
-    if (h>0){
-      byEmp[n].totalH += h;
-      byEmp[n].totalOT += ot;
-      byEmp[n].rows.push({ time: Utilities.formatDate(ts, tz, 'HH:mm'), act: act, loc: loc, h: _round2(h), ot: _round2(ot) });
-    }
-    if (ex>0){
-      byEmp[n].totalEX += ex;
-      byEmp[n].extra.push({ time: Utilities.formatDate(ts, tz, 'HH:mm'), act: act, loc: loc, h: _round2(ex) });
-    }
-  }
-
-  var root = _getReportsRoot_();
-  var f1 = _ensureFolder_(root, 'Pontaj - Rapoarte Zilnice');
-  var year = Utilities.formatDate(start, tz, 'yyyy');
-  var month = Utilities.formatDate(start, tz, 'yyyy-MM');
-  var f2 = _ensureFolder_(f1, year);
-  var f3 = _ensureFolder_(f2, month);
-  var f4 = _ensureFolder_(f3, dayStr);
-
-  var empNames = Object.keys(byEmp);
-  for (var e=0; e<empNames.length; e++){
-    var name = empNames[e];
-    var info = byEmp[name];
-
-    var doc = DocumentApp.create('Raport Zilnic - ' + name + ' - ' + dayStr);
-    var b = doc.getBody();
-    b.appendParagraph('Raport Zilnic Pontaj').setHeading(DocumentApp.ParagraphHeading.HEADING1);
-    b.appendParagraph('Angajat: ' + name).setHeading(DocumentApp.ParagraphHeading.HEADING2);
-    b.appendParagraph('Data: ' + dayStr);
-    b.appendParagraph(' ');
-
-    if (info.rows.length){
-      var table = b.appendTable([['Ora', 'Tip activitate', 'Locație', 'Ore', 'Suplimentar (h)']]);
-      table.getRow(0).editAsText().setBold(true);
-      info.rows.sort(function(a,b){ return a.time.localeCompare(b.time); });
-      info.rows.forEach(function(rw){
-        var tr = table.appendTableRow();
-        tr.appendTableCell(String(rw.time));
-        tr.appendTableCell(String(rw.act || ''));
-        tr.appendTableCell(String(rw.loc || ''));
-        tr.appendTableCell(String(rw.h));
-        tr.appendTableCell(String(rw.ot));
-      });
-      b.appendParagraph('Total ore: ' + _round2(info.totalH) + ' h').setBold(true);
-      b.appendParagraph('Suplimentar total: ' + _round2(info.totalOT) + ' h').setBold(true);
-      b.appendParagraph(' ');
-    }
-
-    if (info.extra.length){
-      b.appendParagraph('Ore EXTRA').setHeading(DocumentApp.ParagraphHeading.HEADING2);
-      var tableE = b.appendTable([['Ora', 'Tip activitate', 'Locație', 'Extra (h)']]);
-      tableE.getRow(0).editAsText().setBold(true);
-      info.extra.sort(function(a,b){ return a.time.localeCompare(b.time); });
-      info.extra.forEach(function(rw){
-        var tr = tableE.appendTableRow();
-        tr.appendTableCell(String(rw.time));
-        tr.appendTableCell(String(rw.act || ''));
-        tr.appendTableCell(String(rw.loc || ''));
-        tr.appendTableCell(String(rw.h));
-      });
-      b.appendParagraph('Total EXTRA: ' + _round2(info.totalEX) + ' h').setBold(true);
-    }
-
-    doc.saveAndClose(); Utilities.sleep(500);
-    var file = DriveApp.getFileById(doc.getId());
-    _moveFileToFolder_(file, f4);
-    var pdf = file.getAs('application/pdf');
-    var pdfName = 'Raport_Zilnic_' + name + '_' + dayStr + '.pdf';
-    f4.createFile(pdf).setName(pdfName);
-  }
-}
-
-function weeklyReports(){
-  var ss=SpreadsheetApp.getActive();
-  var formSh=_getResponsesSheet_(ss);
-  var headers=_getHeaders(formSh);
-  var cTs=_findCol(headers,['timestamp','data','ora']); if(!cTs) cTs=headers.indexOf('Timestamp')+1;
-  var cNm=_findCol(headers,['name','nume']);
-  var cDur=_findCol(headers,['durata (ore)','duration(h)','durata']);
-  var cOT=_findCol(headers,['suplimentar (h)','overtime','suplimentar']);
-  var cEX=_findCol(headers,['extra (h)','extra']);
-  if(!cTs||!cNm||!cDur) return;
-
-  // săptămâna anterioară completă (Luni-Duminică)
-  var now=new Date(); var day=now.getDay();
-  var todayIs = (day+6)%7; // 0 = Luni
-  var start=new Date(now); start.setDate(now.getDate()-todayIs-7); start.setHours(0,0,0,0);
-  var end=new Date(start); end.setDate(start.getDate()+6); end.setHours(23,59,59,999);
-
-  var vals=formSh.getRange(2,1, Math.max(0,formSh.getLastRow()-1), formSh.getLastColumn()).getValues();
-  var perEmp={}, dayNames=['Luni','Marti','Miercuri','Joi','Vineri','Sambata','Duminica'];
-  for(var i=0;i<vals.length;i++){
-    var ts=_toDate(vals[i][cTs-1]); var n=_norm(vals[i][cNm-1]);
-    var h=_asHours(vals[i][cDur-1]); var ot=cOT? _num(vals[i][cOT-1]) : Math.max(0,h-8);
-    var ex=cEX? _num(vals[i][cEX-1]) : 0;
-    if(!ts||!n) continue; if(ts<start||ts>end) continue;
-    var dn=dayNames[(ts.getDay()+6)%7];
-    if(!perEmp[n]) perEmp[n]={days:{}, total:0, totalOT:0, totalEX:0};
-    if (h>0){
-      if(!perEmp[n].days[dn]) perEmp[n].days[dn]={h:0,ot:0,ex:0};
-      perEmp[n].days[dn].h+=h; perEmp[n].days[dn].ot+=ot; perEmp[n].total+=h; perEmp[n].totalOT+=ot;
-    }
-    if (ex>0){
-      if(!perEmp[n].days[dn]) perEmp[n].days[dn]={h:0,ot:0,ex:0};
-      perEmp[n].days[dn].ex+=ex; perEmp[n].totalEX+=ex;
-    }
-  }
-
-  var tz = Session.getScriptTimeZone();
-  var root=_getReportsRoot_();
-  var fYear=_ensureFolder_(root, Utilities.formatDate(start, tz,'yyyy'));
-  var fWeek=_ensureFolder_(fYear, Utilities.formatDate(start, tz,'YYYY-ww'));
-
-  Object.keys(perEmp).forEach(function(name){
-    var info=perEmp[name];
-    var doc=DocumentApp.create('Raport '+name+' '+Utilities.formatDate(start, tz,'yyyy-MM-dd'));
-    var b=doc.getBody();
-    b.appendParagraph('Raport săptămânal pontaj').setHeading(DocumentApp.ParagraphHeading.HEADING1);
-    b.appendParagraph('Angajat: '+name).setHeading(DocumentApp.ParagraphHeading.HEADING2);
-    b.appendParagraph('Interval: '+Utilities.formatDate(start, tz,'yyyy-MM-dd')+' — '+Utilities.formatDate(end, tz,'yyyy-MM-dd'));
-    b.appendParagraph(' ');
-    var table=b.appendTable([['Zi','Ore','Suplimentar (h)','Extra (h)']]); table.getRow(0).editAsText().setBold(true);
-    for (var d=0; d<dayNames.length; d++){
-      var dn = dayNames[d], row = (info.days[dn]||{h:0,ot:0,ex:0});
-      var tr = table.appendTableRow();
-      tr.appendTableCell(dn);
-      tr.appendTableCell(String(_round2(row.h)));
-      tr.appendTableCell(String(_round2(row.ot)));
-      tr.appendTableCell(String(_round2(row.ex)));
-    }
-    b.appendParagraph('Total: '+_round2(info.total)+' h').setBold(true);
-    b.appendParagraph('Suplimentar total: '+_round2(info.totalOT) + ' h').setBold(true);
-    b.appendParagraph('Total EXTRA: '+_round2(info.totalEX) + ' h').setBold(true);
-    doc.saveAndClose(); Utilities.sleep(500);
-
-    var file=DriveApp.getFileById(doc.getId());
-    _moveFileToFolder_(file, fWeek);
-    var blob=file.getAs('application/pdf'); 
-    var pdfName='Raport_'+name+'_'+Utilities.formatDate(start, tz,'yyyy-MM-dd')+'.pdf'; 
-    fWeek.createFile(blob).setName(pdfName);
-  });
-}
-
-/*********************** CONCEDII — WEB APP ************************/
-
-var HR_TO = 'office@servelect.ro'; // destinatar notificări HR
-var LEAVE_TYPES = {
-  'concediu de odihna': true,
-  'concediu medical': true,
-  'concediu pentru ore suplimentare': true
-};
-
-function ensureConcediiSheet_() {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var sh = ss.getSheetByName('Concedii');
-  if (!sh) sh = ss.insertSheet('Concedii');
-  if (sh.getLastRow() === 0) {
-    sh.appendRow(['Data cererii','Nume','Tip concediu','Start','Sfârșit','Zile','Email personal','Notă','Status email']);
-    sh.getRange('A2:A').setNumberFormat('yyyy-MM-dd HH:mm');
-    sh.getRange('D2:E').setNumberFormat('yyyy-MM-dd');
-    sh.getRange('F2:F').setNumberFormat('0');
-  }
-  return sh;
-}
-
-function safeSendEmail(opts) {
-  var BLOCKED_RECIPIENTS = [/@googlegroups\.com$/i];
-  var toList = String(opts.to || '')
-    .split(',')
-    .map(function(s){ return s.trim(); })
-    .filter(function(addr){
-      return addr && !BLOCKED_RECIPIENTS.some(function(rx){ return rx.test(addr); });
-    });
-  if (!toList.length) { Logger.log('safeSendEmail: destinatar blocat/gol: ' + JSON.stringify(opts)); return; }
-  opts.to = toList.join(', ');
-  MailApp.sendEmail(opts);
-}
-
-function jsonResp_(obj){
-  return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON);
-}
-
-/*********************** WEBAPP: STATE & GUARD & LEAVE ************************/
-
-// ——— Determină starea curentă din răspunsuri (cross-device)
-function _computeStateForName_(name){
-  var ss = SpreadsheetApp.getActive();
-  var sh = _getResponsesSheet_(ss);
-  var headers = _getHeaders(sh);
-  if (!headers.length || sh.getLastRow() < 2) {
+  function blankState(){
     return {
-      ok:true, state:{
-        name:name||'',
-        normal:{running:false, paused:false},
-        extra:{running:false},
-        lastNormalStart:null,lastNormalFinish:null,
-        lastExtraStart:null,lastExtraFinish:null
-      }
+      name: '',
+      normal: { running:false, paused:false },
+      extra:  { running:false },
+      lastNormalStart: null,
+      lastNormalFinish: null,
+      lastExtraStart: null,
+      lastExtraFinish: null
     };
   }
-  var cTs  = headers.indexOf('Timestamp')+1 || _findCol(headers,['timestamp','data','ora']);
-  var cNm  = _findCol(headers,['name','nume']);
-  var cAc  = _findCol(headers,['action','actiune','acțiune']);
-  if (!cTs||!cNm||!cAc) {
-    return { ok:true, state:{ name:name||'', normal:{running:false,paused:false}, extra:{running:false} } };
+
+  function loadLS(){ try { return JSON.parse(localStorage.getItem(LS_KEY) || 'null'); } catch{return null;} }
+  function saveLS(){ try { localStorage.setItem(LS_KEY, JSON.stringify(STATE)); } catch{} }
+
+  // ================= BIND CONFIG TO FORMS =================
+  function bindCFGToForm() {
+    form.action = CFG.formAction;
+    const names = CFG.fields;
+    const idMap = {
+      'f_action':   names.action,
+      'f_timestamp':names.timestamp,
+      'f_name':     names.name,
+      'f_activity': names.activityType,
+      'f_location': names.location,
+      'f_lat':      names.latitude,
+      'f_lon':      names.longitude,
+      'f_acc':      names.accuracy,
+      'f_device':   names.device,
+      'f_notes':    names.notes,
+      'f_maps':     names.mapsLink
+    };
+    Object.entries(idMap).forEach(([id,name]) => {
+      const el = document.getElementById(id);
+      if (name) el.setAttribute('name', name);
+    });
   }
 
-  var vals = sh.getRange(2,1,sh.getLastRow()-1, sh.getLastColumn()).getValues();
-  // doar ale lui "name", sortate crescător după timp
-  var rows = [];
-  for (var i=0;i<vals.length;i++){
-    var n=_norm(vals[i][cNm-1]);
-    if (name && n!==name) continue;
-    var a=_normAction(vals[i][cAc-1]);
-    var t=_toDate(vals[i][cTs-1]);
-    if (!t) continue;
-    rows.push({t:t,a:a});
+  function bindLeaveForm() {
+    if (!CFG.leaveFormAction || !CFG.leaveFields) return false;
+    const m = CFG.leaveFields;
+    const map = {
+      'lv_name':  m.name,
+      'lv_type':  m.activityType,
+      'lv_email': m.personalEmail,
+      'lv_start': m.startDate,
+      'lv_end':   m.endDate,
+      'lv_notes': m.notes,
+      'lv_ts':    m.timestamp
+    };
+    Object.entries(map).forEach(([id, name]) => {
+      const el = document.getElementById(id);
+      if (el && name) el.setAttribute('name', name);
+    });
+    document.getElementById('leaveForm').action = CFG.leaveFormAction;
+    return true;
   }
-  rows.sort(function(x,y){ return x.t - y.t; });
 
-  var state = {
-    name:name||'',
-    normal:{running:false, paused:false},
-    extra:{running:false},
-    lastNormalStart:null,lastNormalFinish:null,
-    lastExtraStart:null,lastExtraFinish:null
-  };
-
-  var pauseOpen=false;
-  for (var r=0;r<rows.length;r++){
-    var a = rows[r].a, t = rows[r].t.toISOString();
-    if (a==='start'){ state.normal.running=true; state.normal.paused=false; state.lastNormalStart=t; }
-    else if (a==='pause' && state.normal.running){ state.normal.paused=true; pauseOpen=true; }
-    else if (a==='unpause' && state.normal.running){ state.normal.paused=false; pauseOpen=false; }
-    else if (a==='finish'){ state.normal.running=false; state.normal.paused=false; state.lastNormalFinish=t; pauseOpen=false; }
-    else if (a==='extra_start'){ state.extra.running=true; state.lastExtraStart=t; }
-    else if (a==='extra_finish'){ state.extra.running=false; state.lastExtraFinish=t; }
-  }
-  return { ok:true, state:state };
-}
-
-// ——— Validează o acțiune pe baza stării actuale
-function _guardAction_(state, action){
-  action = _normAction(action);
-
-  var running = state.normal.running;
-  var paused  = state.normal.paused;
-  var extraR  = state.extra.running;
-
-  switch(action){
-    case 'start':
-      if (running)  return {ok:false,msg:'Ai deja START activ.'};
-      if (extraR)   return {ok:false,msg:'Finalizează „EXTRA” înainte de START.'};
-      return {ok:true};
-    case 'pause':
-      if (!running) return {ok:false,msg:'Nu poți PAUSE fără START.'};
-      if (paused)   return {ok:false,msg:'Ești deja în PAUSE.'};
-      return {ok:true};
-    case 'unpause':
-      if (!running) return {ok:false,msg:'Nu poți UNPAUSE fără START.'};
-      if (!paused)  return {ok:false,msg:'Nu ești în PAUSE.'};
-      return {ok:true};
-    case 'finish':
-      if (!running) return {ok:false,msg:'Nu poți FINISH fără START.'};
-      return {ok:true};
-    case 'extra_start':
-      if (running)  return {ok:false,msg:'Închide norma (FINISH) înainte de EXTRA START.'};
-      if (extraR)   return {ok:false,msg:'EXTRA este deja pornit.'};
-      return {ok:true};
-    case 'extra_finish':
-      if (!extraR)  return {ok:false,msg:'Nu poți EXTRA FINISH fără EXTRA START.'};
-      return {ok:true};
-    default:
-      return {ok:false,msg:'Acțiune necunoscută: '+action};
-  }
-}
-
-// ——— doGet: state endpoint
-function doGet(e){
-  var fn = (e && e.parameter && e.parameter.fn) ? String(e.parameter.fn) : '';
-  if (fn === 'state'){
-    var name = (e && e.parameter && e.parameter.name) ? String(e.parameter.name) : '';
-    if (!name) return jsonResp_({ok:false, error:'Lipsește param name'});
-    return jsonResp_(_computeStateForName_(name));
-  }
-  // fallback
-  return ContentService.createTextOutput('Servelect Web App activ').setMimeType(ContentService.MimeType.TEXT);
-}
-
-// ——— doPost: guard sau leave
-function doPost(e) {
-  try {
-    var fn = (e && e.parameter && e.parameter.fn) ? String(e.parameter.fn) : 'leave';
-    var payload = (e && e.postData && e.postData.contents) ? e.postData.contents : '{}';
-    var data = {};
-    try { data = JSON.parse(payload); } catch(_) { data={}; }
-
-    if (fn === 'guard'){
-      var nameG = _norm(data.name||'');
-      var action = _normAction(data.action);
-      if (!nameG) return jsonResp_({ok:false, msg:'Lipsește name'});
-      if (!action) return jsonResp_({ok:false, msg:'Lipsește action'});
-      var st = _computeStateForName_(nameG);
-      if (!st.ok) return jsonResp_({ok:false, msg:'Nu pot obține starea.'});
-      var g = _guardAction_(st.state, action);
-      return jsonResp_(g);
+  // ================= INIT =================
+  (async function init(){
+    try {
+      const r = await fetch('config.json?v=' + Date.now(), {cache:'no-store'});
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      CFG = await r.json();
+      if (!CFG.formAction || !CFG.fields) throw new Error('Config incomplet');
+      setCfg('Config încărcat', 'ok');
+      window.CFG = CFG;
+    } catch (e) {
+      setCfg('Eroare config: ' + (e.message||e), 'err');
+      disableAllButtons(true); return;
     }
 
-    // === leave (implicit) ===
-    var name = String(data.name || '').trim();
-    var activityType = String(data.activityType || '').trim().toLowerCase();
-    var startDateStr = String(data.startDate || '').trim();
-    var endDateStr   = String(data.endDate || '').trim();
-    var personalEmail = String(data.personalEmail || '').trim();
-    var notes = String(data.notes || '').trim();
+    bindCFGToForm();
+    bindLeaveForm();
 
-    if (!name) return jsonResp_({ok:false, error:'Lipsește numele'});
-    if (!LEAVE_TYPES[activityType]) return jsonResp_({ok:false, error:'Tip concediu nevalid'});
-    if (!startDateStr || !endDateStr) return jsonResp_({ok:false, error:'Lipsesc datele de început/sfârșit'});
-    if (!personalEmail || !/.+@.+\..+/.test(personalEmail)) return jsonResp_({ok:false, error:'Email personal invalid'});
+    await loadEmployees();
 
-    var startDate = new Date(startDateStr);
-    var endDate   = new Date(endDateStr);
-    if (isNaN(startDate) || isNaN(endDate)) return jsonResp_({ok:false, error:'Date invalide'});
-    if (endDate < startDate) return jsonResp_({ok:false, error:'Sfârșitul < început'});
+    // Restore local state
+    const cached = loadLS();
+    if (cached) STATE = Object.assign(blankState(), cached);
 
-    var zile = Math.floor((endDate - startDate)/(1000*60*60*24)) + 1;
+    // Handlers
+    empSel.addEventListener('change', handleEmployeeChange);
+    if (empSel.value) { handleEmployeeChange(); }
 
-    var sh = ensureConcediiSheet_();
-    sh.appendRow([ new Date(), name, activityType, startDate, endDate, zile, personalEmail, notes, 'În așteptare' ]);
-    var row = sh.getLastRow();
+    actSel.addEventListener('change', () => {
+      const isLeave = LEAVE_TYPES.has((actSel.value||'').toLowerCase());
+      leavePanel.style.display = isLeave ? '' : 'none';
+      disableTimeButtons(isLeave);
+    });
 
-    var subject = 'Cerere concediu - ' + name + ' (' + zile + ' zile)';
-    var body =
-      'A fost trimisă o nouă cerere de concediu:\n\n' +
-      'Angajat: ' + name + '\n' +
-      'Tip concediu: ' + activityType + '\n' +
-      'Interval: ' + startDate.toDateString() + ' - ' + endDate.toDateString() + ' (' + zile + ' zile)\n' +
-      'Email personal: ' + personalEmail + '\n' +
-      'Notă: ' + (notes || '(niciuna)') + '\n\n' +
-      '---\nAcest mesaj a fost generat automat.';
+    wireButtons();
+  })();
+
+  // ================= BUTTON ENABLE/DISABLE =================
+  function disableTimeButtons(disabled) {
+    [btnStart,btnPause,btnUnpause,btnFinish,btnExtraStart,btnExtraFinish].forEach(el=>{
+      if (el) el.disabled = !!disabled;
+    });
+  }
+  function disableAllButtons(disabled){
+    disableTimeButtons(disabled);
+    const lbtn = document.getElementById('btnLeave');
+    if (lbtn) lbtn.disabled = !!disabled;
+  }
+
+  // ================= LEAVE FLOW =================
+  document.getElementById('btnLeave').addEventListener('click', async () => {
+    setLeaveStatus('', '');
+    if (!empSel.value) { setLeaveStatus('Selectează angajat.', 'err'); return; }
+    const tip = (actSel.value || '').toLowerCase();
+    if (!LEAVE_TYPES.has(tip)) { setLeaveStatus('Alege un tip de concediu.', 'err'); return; }
+    const sd = leaveStart.value;
+    const ed = leaveEnd.value;
+    if (!sd || !ed) { setLeaveStatus('Completează intervalul (start și sfârșit).', 'err'); return; }
+    if (ed < sd) { setLeaveStatus('Data de sfârșit nu poate fi înainte de start.', 'err'); return; }
+    const email = (leaveEmail.value || '').trim();
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { setLeaveStatus('Email personal invalid.', 'err'); return; }
+
+    setLeaveStatus('Se trimite cererea…', '');
+
+    // optional: Google Form
+    let formSubmitted = false;
+    if (CFG.leaveFormAction && CFG.leaveFields) {
+      try {
+        document.getElementById('lv_name').value  = empSel.value;
+        document.getElementById('lv_type').value  = tip;
+        document.getElementById('lv_email').value = email;
+        document.getElementById('lv_start').value = sd;
+        document.getElementById('lv_end').value   = ed;
+        document.getElementById('lv_notes').value = (leaveNotes.value || '');
+        document.getElementById('lv_ts').value    = new Date().toISOString();
+        document.getElementById('leaveForm').submit();
+        formSubmitted = true;
+      } catch (e) { console.warn('Leave Form submit failed', e); }
+    }
+
+    // endpoint WebApp
+    let endpointOk = false, endpointMsg = '';
+    if (CFG.leaveEndpoint) {
+      try {
+        const payload = {
+          name: empSel.value,
+          activityType: tip,
+          startDate: sd,
+          endDate: ed,
+          personalEmail: email,
+          notes: (leaveNotes.value || '')
+        };
+        const res = await sendLeave(payload);
+        endpointOk = true;
+        endpointMsg = ' (înregistrată ' + res.zile + ' zile)';
+      } catch (err) { console.warn('Leave endpoint error:', err); }
+    }
+
+    if (formSubmitted || endpointOk) {
+      setLeaveStatus('Cerere trimisă' + endpointMsg + '. HR a fost notificat.', 'ok');
+    } else {
+      setLeaveStatus('Eroare: nu s-a putut trimite cererea (Form/Endpoint).', 'err');
+    }
+  });
+
+  // ================= EMPLOYEES =================
+  function parseEmployeesCSV(text){
+    if (text && text.charCodeAt && text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
+    text = (text || '').replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim();
+    if (!text) return [];
+    if (!/,|;/.test(text)) {
+      return text.split('\n').map(s => s.trim()).filter(Boolean);
+    }
+    const comma = (text.match(/,/g) || []).length;
+    const semiCount = (text.match(/;/g) || []).length;
+    const delim = semiCount > comma ? ';' : ',';
+    const rows = text.split('\n')
+      .map(line => line.split(delim).map(c => c.trim().replace(/^"|"$/g,'')))
+      .filter(r => r.length && r.join('').length);
+    const header = rows[0].map(h => (h||'').toLowerCase());
+    let startIdx = 0, nameCol = 0;
+    if (header.some(h => /angajat|nume|employee|name/.test(h))) {
+      nameCol = Math.max(0, header.findIndex(h => /angajat|nume|employee|name/.test(h)));
+      startIdx = 1;
+    }
+    const list = [];
+    for (let i=startIdx;i<rows.length;i++){
+      const v = (rows[i][nameCol] || '').trim();
+      if (v) list.push(v);
+    }
+    return list;
+  }
+
+  function getInlineEmployees(){
+    const el = document.getElementById('employees-inline');
+    if (!el) return [];
+    return el.textContent.split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
+  }
+
+  async function loadEmployees() {
+    try {
+      if (CFG.employeesCsv) {
+        const url = CFG.employeesCsv + (CFG.employeesCsv.includes('?') ? '&' : '?') + 'v=' + Date.now();
+        const r = await fetch(url, {cache:'no-store'});
+        if (r.ok) {
+          const txt = await r.text();
+          const list = parseEmployeesCSV(txt);
+          if (list.length) { fillEmployees(list); setEmp('Angajați încărcați din employeesCsv.', 'ok'); return; }
+        }
+      }
+    } catch(e){}
 
     try {
-      safeSendEmail({ to: HR_TO, subject: subject, body: body, replyTo: personalEmail, name: name + ' (Servelect Pontaj)' });
-      safeSendEmail({ to: personalEmail, subject: '[Copie] ' + subject, body: body, name: 'Servelect Pontaj' });
-      sh.getRange(row, 9).setValue('Trimis ✓');
-    } catch (sendErr) {
-      sh.getRange(row, 9).setValue('Eroare: ' + String(sendErr));
+      const raw = 'https://raw.githubusercontent.com/mrshoby/timesheet-gps/main/employees.csv?v=' + Date.now();
+      const r2 = await fetch(raw, {cache:'no-store'});
+      if (r2.ok) {
+        const txt2 = await r2.text();
+        const list2 = parseEmployeesCSV(txt2);
+        if (list2.length) { fillEmployees(list2); setEmp('Angajați încărcați din RAW GitHub.', 'ok'); return; }
+      }
+    } catch(e){}
+
+    if (Array.isArray(CFG.employees) && CFG.employees.length) {
+      fillEmployees(CFG.employees);
+      setEmp('Angajați încărcați din config.json.', 'ok');
+      return;
     }
-    return jsonResp_({ ok:true, zile:zile, sentTo: HR_TO });
 
-  } catch (err) {
-    return jsonResp_({ ok:false, error: String(err) });
+    const inline = getInlineEmployees();
+    if (inline.length) {
+      fillEmployees(inline);
+      setEmp('Angajați încărcați din fallback inline.', 'ok');
+      return;
+    }
+
+    fillEmployees([]);
+    setEmp('Nu am putut încărca lista de angajați.', 'err');
   }
-}
 
-/*********************** DIAGNOSTIC ************************/
-
-function showExecutionContext() {
-  var user = Session.getActiveUser().getEmail();
-  var tz = Session.getScriptTimeZone();
-  var root = _getReportsRoot_();
-  Logger.log('Execută ca: ' + user);
-  Logger.log('Time zone: ' + tz);
-  Logger.log('Folder rădăcină rapoarte: ' + root.getName() + ' | URL: ' + root.getUrl());
-}
-function smokeDrive() {
-  var root = _getReportsRoot_();
-  var testFolder = _ensureFolder_(root, 'TEST_Pontaj');
-  var f = testFolder.createFile('hello.txt', 'ok ' + new Date());
-  Logger.log('Am scris: ' + f.getName() + ' | URL: ' + f.getUrl());
-}
-function forceDailyNow() { dailyReports(); Logger.log('dailyReports() rulat.'); }
-function forceWeeklyNow(){ weeklyReports(); Logger.log('weeklyReports() rulat.'); }
-function diagPontaj(){
-  var ss = SpreadsheetApp.getActive();
-  var sh = _getResponsesSheet_(ss);
-  var headers = _getHeaders(sh);
-  Logger.log('Sheet răspunsuri: ' + sh.getName());
-  Logger.log('Antete: ' + JSON.stringify(headers));
-  function col(keys){ return _findCol(headers, keys); }
-  var cTs  = headers.indexOf('Timestamp')+1 || col(['timestamp','data','ora']);
-  var cNm  = col(['name','nume','angajat']);
-  var cAc  = col(['action','actiune','acțiune']);
-  var cDur = col(['durata (ore)','duration(h)','durata']);
-  Logger.log('cTs=' + cTs + ', cNm=' + cNm + ', cAc=' + cAc + ', cDur=' + cDur);
-  Logger.log('Rows răspunsuri (fără header): ' + Math.max(0, sh.getLastRow()-1));
-  rebuildAllReports();
-  var dz = ss.getSheetByName('Ore zilnice');
-  var ot = ss.getSheetByName('Ore suplimentare');
-  var ex = ss.getSheetByName('Ore extra');
-  var ml = ss.getSheetByName('Total lunar');
-  Logger.log('Ore zilnice rows: ' + (dz ? dz.getLastRow() : 0));
-  Logger.log('Ore suplimentare rows: ' + (ot ? ot.getLastRow() : 0));
-  Logger.log('Ore extra rows: ' + (ex ? ex.getLastRow() : 0));
-  Logger.log('Total lunar rows: ' + (ml ? ml.getLastRow() : 0));
-}
-
-function ensureFormSubmitTrigger(){
-  // creează trigger „On form submit” pentru spreadsheetul curent, dacă nu există
-  var ssId = SpreadsheetApp.getActive().getId();
-  var has = ScriptApp.getProjectTriggers().some(function(t){
-    return t.getTriggerSourceId() === ssId && t.getEventType() === ScriptApp.EventType.ON_FORM_SUBMIT;
-  });
-  if (!has){
-    ScriptApp.newTrigger('onFormSubmit')
-      .forSpreadsheet(ssId)
-      .onFormSubmit()
-      .create();
+  function fillEmployees(list){
+    const sel = empSel;
+    sel.innerHTML = '';
+    const ph = document.createElement('option');
+    ph.value=''; ph.textContent='Alege angajat…'; ph.disabled = true; ph.selected = true;
+    sel.appendChild(ph);
+    list.forEach(v => { const o=document.createElement('option'); o.value=v; o.textContent=v; sel.appendChild(o); });
   }
-  Logger.log('Trigger onFormSubmit: ' + (has ? 'DEJA EXISTĂ' : 'CREAT'));
-}
 
-/*********************** TRIGGERE (OPȚIONAL) ************************/
-function createTimeTriggers(){
-  ScriptApp.newTrigger('rebuildAllReports').timeBased().everyDays(1).atHour(0).nearMinute(30).create();
-  ScriptApp.newTrigger('dailyReports').timeBased().everyDays(1).atHour(1).nearMinute(0).create();
-  ScriptApp.newTrigger('weeklyReports').timeBased().onWeekDay(ScriptApp.WeekDay.MONDAY).atHour(7).create();
-}
-// ===== EOF =====
+  async function handleEmployeeChange(){
+    STATE = blankState();
+    STATE.name = (empSel.value || '').trim();
+    saveLS();
+    await refreshServerState(); // ia starea cross-device
+    reflectState();
+  }
+
+  // ================= STATE (UI + server) =================
+  function reflectState(){
+    const running = STATE.normal.running;
+    const paused  = STATE.normal.paused;
+    const extraR  = STATE.extra.running;
+
+    btnStart.disabled       = !empSel.value || running || extraR;
+    btnPause.disabled       = !empSel.value || !running || paused;
+    btnUnpause.disabled     = !empSel.value || !running || !paused;
+    btnFinish.disabled      = !empSel.value || !running;
+
+    btnExtraStart.disabled  = !empSel.value || running || extraR;
+    btnExtraFinish.disabled = !empSel.value || !extraR;
+
+    // Status text
+    if (!empSel.value) { setEmp(''); return; }
+    if (extraR) { setEmp('EXTRA activ.', 'ok'); return; }
+    if (running && paused) { setEmp('START activ — în PAUSE.', 'warn'); return; }
+    if (running) { setEmp('START activ.', 'ok'); return; }
+    setEmp('Nicio sesiune activă.', '');
+  }
+
+  async function refreshServerState(){
+    if (!CFG.guardEndpoint || !STATE.name) return;
+    try{
+      const url = CFG.guardEndpoint + '?fn=state&name=' + encodeURIComponent(STATE.name) + '&t=' + Date.now();
+      const r = await fetch(url, {cache:'no-store'});
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      const srv = await r.json();
+      if (srv && srv.ok && srv.state){
+        STATE = Object.assign(blankState(), srv.state);
+        STATE.name = STATE.name || (empSel.value || '');
+        saveLS();
+      }
+    }catch(e){
+      console.warn('refreshServerState:', e);
+    }
+  }
+
+  async function guardActionRemote(name, action){
+    if (!window.CFG || !CFG.guardEndpoint) return {ok:true}; // fallback: nu blocăm
+    const r = await fetch(CFG.guardEndpoint + '?fn=guard', {
+      method: 'POST',
+      headers: {'Content-Type':'text/plain;charset=utf-8'},
+      body: JSON.stringify({ name, action })
+    });
+    const txt = await r.text();
+    let data; try { data = JSON.parse(txt); } catch { return {ok:true}; }
+    return data;
+  }
+  async function fetchState(name){
+    if (!window.CFG || !CFG.guardEndpoint) return null;
+    const r = await fetch(CFG.guardEndpoint + '?fn=state&name=' + encodeURIComponent(name), { cache:'no-store' });
+    const txt = await r.text();
+    try { return JSON.parse(txt).state || null; } catch { return null; }
+  }
+
+  async function guardServer(action){
+    if (!CFG.guardEndpoint || !STATE.name) return {ok:true};
+    try{
+      const r = await fetch(CFG.guardEndpoint + '?fn=guard', {
+        method:'POST',
+        headers:{'Content-Type':'text/plain;charset=utf-8'},
+        body: JSON.stringify({ name: STATE.name, action })
+      });
+      const txt = await r.text();
+      let data; try{ data = JSON.parse(txt); } catch{ data = null; }
+      if (!data || data.ok !== true) return {ok:false, msg:(data && data.msg) || 'Acțiune nepermisă (guard).'};
+      return {ok:true};
+    }catch(e){
+      console.warn('guardServer:', e);
+      return {ok:true}; // dacă guard nu răspunde, nu blocăm (validăm local)
+    }
+  }
+
+  function localGuard(action){
+    const running = STATE.normal.running;
+    const paused  = STATE.normal.paused;
+    const extraR  = STATE.extra.running;
+
+    switch(action){
+      case 'start':
+        if (running)  return 'Ai deja un START în derulare.';
+        if (extraR)   return 'Finalizează „Extra” înainte de START.';
+        return null;
+      case 'pause':
+        if (!running) return 'Nu poți PAUSE fără START.';
+        if (paused)   return 'Ești deja în PAUSE.';
+        return null;
+      case 'unpause':
+        if (!running) return 'Nu poți UNPAUSE fără START.';
+        if (!paused)  return 'Nu ești în PAUSE.';
+        return null;
+      case 'finish':
+        if (!running) return 'Nu poți FINISH fără START.';
+        return null;
+      case 'extra_start':
+        if (running)  return 'Finalizează norma înainte de EXTRA START.';
+        if (extraR)   return 'EXTRA este deja pornit.';
+        return null;
+      case 'extra_finish':
+        if (!extraR)  return 'Nu poți EXTRA FINISH fără EXTRA START.';
+        return null;
+      default:
+        return null;
+    }
+  }
+
+  // ================= ACTION SUBMIT =================
+  let busy = false;
+
+  function setFormPayload(action, ts, gps){
+    document.getElementById('f_action').value    = action;
+    document.getElementById('f_timestamp').value = ts;
+    document.getElementById('f_name').value      = empSel.value;
+    document.getElementById('f_activity').value  = actSel.value;
+    document.getElementById('f_location').value  = locInput.value.trim();
+    document.getElementById('f_lat').value       = gps.lat;
+    document.getElementById('f_lon').value       = gps.lon;
+    document.getElementById('f_acc').value       = gps.acc;
+    document.getElementById('f_device').value    = navigator.userAgent;
+    document.getElementById('f_notes').value     = (notesEl.value || '');
+    document.getElementById('f_maps').value      = `https://maps.google.com/?q=${gps.lat},${gps.lon}`;
+  }
+
+  async function submitAction(action) {
+    if (busy) return;
+    if (!empSel.value) { setStatus('Selectează angajat.', 'err'); return; }
+    if (!actSel.value) { setStatus('Alege tip de activitate.', 'err'); return; }
+    if (!locInput.value.trim()) { setStatus('Scrie o locație.', 'err'); locInput.focus(); return; }
+
+    // Pre-verificare rapidă cu guard (cross-device)
+    setStatus('Verific starea…');
+    try {
+      const g = await guardActionRemote(empSel.value.trim(), action);
+      if (!g.ok) { setStatus(g.msg || 'Acțiune blocată de regulile de pontaj.', 'warn'); return; }
+    } catch(_) {}
+
+    if (!('geolocation' in navigator)) { setStatus('Geolocație indisponibilă pe acest dispozitiv.', 'err'); return; }
+    if (LEAVE_TYPES.has((actSel.value||'').toLowerCase())) {
+      setStatus('Pentru concediu folosește „Trimite cererea de concediu”.', 'warn');
+      return;
+    }
+
+    // 1) gard local
+    const lg = localGuard(action);
+    if (lg) { setStatus(lg, 'warn'); return; }
+
+    // 2) gard server (safety)
+    const gg = await guardServer(action);
+    if (!gg.ok) { setStatus(gg.msg || 'Acțiune nepermisă (server).', 'err'); await refreshServerState(); reflectState(); return; }
+
+    busy = true; disableAllButtons(true);
+    setStatus('Se obține locația GPS…');
+
+    navigator.geolocation.getCurrentPosition(async pos => {
+      const gps = {
+        lat: pos.coords.latitude,
+        lon: pos.coords.longitude,
+        acc: Math.round(pos.coords.accuracy || 0)
+      };
+      const ts = new Date().toISOString();
+
+      // 3) trimitem către Google Form (declanșează onFormSubmit în Sheets/Apps Script)
+      setFormPayload(action, ts, gps);
+      form.submit();
+
+      // 4) actualizăm local state pentru UX
+      applyLocalTransition(action, ts);
+      saveLS();
+      reflectState();
+      setStatus(`Trimis ✓ (${action.toUpperCase()}). Verifică Google Sheet.`, 'ok');
+      lastEl.textContent = JSON.stringify({action, timestamp: ts, angajat: empSel.value, activitate: actSel.value, locatie: locInput.value.trim(), ...gps}, null, 2);
+
+      // 5) după ~1s, sincronizăm starea din server
+      setTimeout(async ()=>{
+        await refreshServerState();
+        reflectState();
+        busy=false; disableAllButtons(false);
+      }, 900);
+
+    }, err => {
+      setStatus('Eroare locație: ' + err.message, 'err');
+      busy=false; disableAllButtons(false);
+    }, { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 });
+  }
+
+  function applyLocalTransition(action, ts){
+    switch(action){
+      case 'start':
+        STATE.normal.running = true;
+        STATE.normal.paused  = false;
+        STATE.lastNormalStart = ts;
+        break;
+      case 'pause':
+        STATE.normal.paused = true;
+        break;
+      case 'unpause':
+        STATE.normal.paused = false;
+        break;
+      case 'finish':
+        STATE.normal.running = false;
+        STATE.normal.paused  = false;
+        STATE.lastNormalFinish = ts;
+        break;
+      case 'extra_start':
+        STATE.extra.running = true;
+        STATE.lastExtraStart = ts;
+        break;
+      case 'extra_finish':
+        STATE.extra.running = false;
+        STATE.lastExtraFinish = ts;
+        break;
+    }
+  }
+
+  function wireButtons(){
+    btnStart.addEventListener('click', ()=>submitAction('start'));
+    btnPause.addEventListener('click', ()=>submitAction('pause'));
+    btnUnpause.addEventListener('click', ()=>submitAction('unpause'));
+    btnFinish.addEventListener('click', ()=>submitAction('finish'));
+    btnExtraStart.addEventListener('click', ()=>submitAction('extra_start'));
+    btnExtraFinish.addEventListener('click', ()=>submitAction('extra_finish'));
+    reflectState();
+  }
+})();
+  </script>
+</body>
+</html>
