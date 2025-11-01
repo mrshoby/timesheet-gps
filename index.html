@@ -599,6 +599,24 @@ async function sendLeave(payload) {
     }
   }
 
+async function guardActionRemote(name, action){
+  if (!window.CFG || !CFG.guardEndpoint) return {ok:true}; // fallback: nu blocăm
+  const r = await fetch(CFG.guardEndpoint + '?fn=guard', {
+    method: 'POST',
+    headers: {'Content-Type':'text/plain;charset=utf-8'},
+    body: JSON.stringify({ name, action })
+  });
+  const txt = await r.text();
+  let data; try { data = JSON.parse(txt); } catch { return {ok:true}; }
+  return data;
+}
+async function fetchState(name){
+  if (!window.CFG || !CFG.guardEndpoint) return null;
+  const r = await fetch(CFG.guardEndpoint + '?fn=state&name=' + encodeURIComponent(name), { cache:'no-store' });
+  const txt = await r.text();
+  try { return JSON.parse(txt).state || null; } catch { return null; }
+}
+  
   async function guardServer(action){
     if (!CFG.guardEndpoint || !STATE.name) return {ok:true};
     try{
@@ -670,11 +688,18 @@ async function sendLeave(payload) {
     document.getElementById('f_maps').value      = `https://maps.google.com/?q=${gps.lat},${gps.lon}`;
   }
 
-  async function submitAction(action) {
-    if (busy) return;
-    if (!empSel.value) { setStatus('Selectează angajat.', 'err'); return; }
-    if (!actSel.value) { setStatus('Alege tip de activitate.', 'err'); return; }
-    if (!locInput.value.trim()) { setStatus('Scrie o locație.', 'err'); locInput.focus(); return; }
+ async function submitAction(action) {
+  if (busy) return;
+  if (!empSel.value) { setStatus('Selectează angajat.', 'err'); return; }
+  if (!actSel.value) { setStatus('Alege tip de activitate.', 'err'); return; }
+  if (!locInput.value.trim()) { setStatus('Scrie o locație.', 'err'); locInput.focus(); return; }
+
+  // 🔒 verificare cu serverul (cross-device)
+  setStatus('Verific starea…');
+  try {
+    const g = await guardActionRemote(empSel.value.trim(), action);
+    if (!g.ok) { setStatus(g.msg || 'Acțiune blocată de regulile de pontaj.', 'warn'); return; }
+  } catch(_) { /* dacă pică endpoint-ul, nu blocăm local */ }
     if (!('geolocation' in navigator)) { setStatus('Geolocație indisponibilă pe acest dispozitiv.', 'err'); return; }
     if (LEAVE_TYPES.has((actSel.value||'').toLowerCase())) {
       setStatus('Pentru concediu folosește „Trimite cererea de concediu”.', 'warn');
