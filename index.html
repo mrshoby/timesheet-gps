@@ -77,7 +77,7 @@
     .btn.pause{ --bg:#f59e0b; --fg:#111827 }
     .btn.unpause{ --bg: var(--brand); --fg:#fff }
     .btn.finish{ --bg: var(--accent); --fg:#fff }
-    .btn.extra{ --bg:#64748b; --fg:#fff }
+    .btn.extra{ --bg:#6366f1; --fg:#fff }
     .btn:disabled{opacity:.6;cursor:not-allowed;}
     .leave{ border:1px dashed #cbd5e1;border-radius:14px;padding:12px;background:#f8fafc; }
     .kicker{font-size:12px;color:var(--muted);margin-bottom:6px}
@@ -185,12 +185,10 @@
           <button class="btn pause"   id="btnPause">Pause</button>
           <button class="btn unpause" id="btnUnpause">Unpause</button>
           <button class="btn finish"  id="btnFinish">Finish</button>
-        </div>
 
-        <!-- EXTRA HOURS -->
-        <div class="btnbar" style="margin-top:6px">
-          <button class="btn extra"  id="btnXStart">Extra Start</button>
-          <button class="btn extra"  id="btnXFinish">Extra Finish</button>
+          <!-- NOU: Extra -->
+          <button class="btn extra"   id="btnExtraStart">Extra Start</button>
+          <button class="btn extra"   id="btnExtraFinish">Extra Finish</button>
         </div>
 
         <div id="status" class="status" role="status" aria-live="polite"></div>
@@ -204,11 +202,11 @@
           <h2 style="margin:0;font-size:18px">Scurt ghid</h2>
         </header>
         <div class="summary">
-          <div class="item"><b>Start</b> pornește pontajul (program normal).</div>
-          <div class="item"><b>Pause</b> / <b>Unpause</b> marchează pauzele în timpul programului normal.</div>
-          <div class="item"><b>Finish</b> încheie ziua de lucru (program normal).</div>
-          <div class="item"><b>Extra Start/Finish</b> — pentru <u>ore extra separate</u>, după ce ai terminat programul normal.</div>
-          <div class="item"><b>Concedii</b> — alege tipul și trimite cererea (trimisă la HR).</div>
+          <div class="item"><b>Start</b> pornește pontajul</div>
+          <div class="item"><b>Pause</b> / <b>Unpause</b> marchează pauzele.</div>
+          <div class="item"><b>Finish</b> încheie ziua de lucru.</div>
+          <div class="item"><b>Extra</b> se poate începe <u>doar</u> după Finish și se închide cu Extra Finish.</div>
+          <div class="item"><b>Concedii</b> — alege tipul și trimite cererea.</div>
         </div>
         <div class="footer">© <span id="year"></span> SERVELECT. Toate drepturile rezervate.</div>
       </aside>
@@ -243,8 +241,6 @@
     <input type="hidden" id="f_device" />
     <input type="hidden" id="f_notes" />
     <input type="hidden" id="f_maps" />
-    <!-- nou: flag pentru ore extra -->
-    <input type="hidden" id="f_isExtra" />
   </form>
 
   <!-- Fallback inline employees list -->
@@ -267,15 +263,25 @@ async function sendLeave(payload) {
     body: JSON.stringify(payload)
   });
   const txt = await r.text();
-  let data; try { data = JSON.parse(txt); } catch { throw new Error('Răspuns invalid: ' + txt.slice(0,200)); }
+  let data;
+  try { data = JSON.parse(txt); }
+  catch { throw new Error('Răspuns invalid: ' + txt.slice(0,200)); }
   if (!r.ok || !data.ok) throw new Error((data && data.error) || ('HTTP '+r.status));
   return data;
 }
 
-// Stare locală + cheie per angajat/zi (pentru inter-blocări locale și fallback)
-function dayKeyFor(name){ const d=new Date(); const yyyy=d.getFullYear(), mm=("0"+(d.getMonth()+1)).slice(-2), dd=("0"+d.getDate()).slice(-2); return `pontaj:${name}:${yyyy}-${mm}-${dd}`; }
-function readLocalState(name){ try{ return JSON.parse(localStorage.getItem(dayKeyFor(name)) || '{}'); }catch{ return {}; } }
-function writeLocalState(name, st){ try{ localStorage.setItem(dayKeyFor(name), JSON.stringify(st||{})); }catch(e){} }
+/** Opțional: citește starea curentă (pentru cross-device), dacă există CFG.statusEndpoint */
+async function fetchStatus(name){
+  if (!CFG.statusEndpoint) return null;
+  try{
+    const r = await fetch(CFG.statusEndpoint + '?name=' + encodeURIComponent(name) + '&d=' + Date.now(), {cache:'no-store'});
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    return await r.json(); // {running:boolean, paused:boolean, finished:boolean, extraRunning:boolean, extraFinished:boolean, lastTs:string}
+  }catch(e){
+    console.warn('fetchStatus fallback la localStorage:', e);
+    return null;
+  }
+}
 
   (async function() {
     const statusEl = document.getElementById('status');
@@ -295,13 +301,20 @@ function writeLocalState(name, st){ try{ localStorage.setItem(dayKeyFor(name), J
     const leaveNotes = document.getElementById('leaveNotes');
     const leaveStatus = document.getElementById('leaveStatus');
 
+    const btnStart = document.getElementById('btnStart');
+    const btnPause = document.getElementById('btnPause');
+    const btnUnpause = document.getElementById('btnUnpause');
+    const btnFinish = document.getElementById('btnFinish');
+    const btnExtraStart = document.getElementById('btnExtraStart');
+    const btnExtraFinish = document.getElementById('btnExtraFinish');
+
     function setStatus(msg, cls) { statusEl.className = 'status ' + (cls||''); statusEl.textContent = msg; }
     function setCfg(msg, cls) { cfgEl.className = 'chip ' + (cls||''); cfgEl.textContent = msg; }
     function setEmp(msg, cls) { empStatus.className = 'status ' + (cls||''); empStatus.textContent = msg; }
     function setLeaveStatus(msg, cls) { leaveStatus.className = 'status ' + (cls||''); leaveStatus.textContent = msg; }
 
     // --- load config.json ---
-    let CFG = null;
+    window.CFG = null; // global
     try {
       const r = await fetch('config.json?v=' + Date.now(), {cache:'no-store'});
       if (!r.ok) throw new Error('HTTP ' + r.status);
@@ -309,7 +322,6 @@ function writeLocalState(name, st){ try{ localStorage.setItem(dayKeyFor(name), J
       if (!CFG.formAction || !CFG.fields) throw new Error('Config incomplet');
       setCfg('Config încărcat', 'ok');
       try { setLeaveNames(); } catch(_) {}
-      window.CFG = CFG; // expune global pentru sendLeave()
     } catch (e) {
       setCfg('Eroare config: ' + (e.message||e), 'err');
       disableAllButtons(true); return;
@@ -350,8 +362,7 @@ function writeLocalState(name, st){ try{ localStorage.setItem(dayKeyFor(name), J
       'f_acc':      names.accuracy,
       'f_device':   names.device,
       'f_notes':    names.notes,
-      'f_maps':     names.mapsLink,
-      'f_isExtra':  names.isExtra // opțional nou
+      'f_maps':     names.mapsLink
     };
     Object.entries(idMap).forEach(([id,name]) => {
       const el = document.getElementById(id);
@@ -454,7 +465,7 @@ function writeLocalState(name, st){ try{ localStorage.setItem(dayKeyFor(name), J
     });
 
     function disableTimeButtons(disabled) {
-      ['btnStart','btnPause','btnUnpause','btnFinish','btnXStart','btnXFinish'].forEach(id=>{
+      ['btnStart','btnPause','btnUnpause','btnFinish','btnExtraStart','btnExtraFinish'].forEach(id=>{
         const el = document.getElementById(id);
         if (el) el.disabled = !!disabled;
       });
@@ -493,7 +504,9 @@ function writeLocalState(name, st){ try{ localStorage.setItem(dayKeyFor(name), J
           document.getElementById('lv_ts').value    = new Date().toISOString();
           document.getElementById('leaveForm').submit();
           formSubmitted = true;
-        } catch (e) { console.warn('Leave Form submit failed, continui cu endpoint.', e); }
+        } catch (e) {
+          console.warn('Leave Form submit failed, continui cu endpoint.', e);
+        }
       }
 
       // (B) endpoint WebApp (Apps Script)
@@ -523,78 +536,107 @@ function writeLocalState(name, st){ try{ localStorage.setItem(dayKeyFor(name), J
       }
     });
 
-    // ==================== STATE GUARDRAILS ====================
-    let state = { normalActive:false, paused:false, extraActive:false };
+    // ==================== STATE (buton logic + cross-device) ====================
+    // Structură state:
+    // baseRunning, basePaused, baseFinished, extraRunning, extraFinished
+    let STATE = { baseRunning:false, basePaused:false, baseFinished:false, extraRunning:false, extraFinished:false, lastTs:null };
 
-    async function refreshRemoteState(){
-      const name = empSel.value;
-      if (!name) return;
-      // Dacă ai un endpoint în Apps Script care răspunde cu starea curentă:
-      // CFG.statusEndpoint?name=...&date=YYYY-MM-DD  ->  {normalActive:true/false, paused:true/false, extraActive:true/false}
+    function dayKey(){
+      const d = new Date();
+      const ds = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+      return ds;
+    }
+    function lsKey(name){ return 'pontaj-state:'+name+':'+dayKey(); }
+
+    function saveLocal(name){
+      try{ localStorage.setItem(lsKey(name), JSON.stringify(STATE)); }catch(_){}
+    }
+    function loadLocal(name){
       try{
-        if (CFG.statusEndpoint){
-          const d = new Date();
-          const date = `${d.getFullYear()}-${('0'+(d.getMonth()+1)).slice(-2)}-${('0'+d.getDate()).slice(-2)}`;
-          const r = await fetch(`${CFG.statusEndpoint}?name=${encodeURIComponent(name)}&date=${date}`, {cache:'no-store'});
-          if (r.ok){
-            const js = await r.json();
-            state = Object.assign({normalActive:false, paused:false, extraActive:false}, js||{});
-            writeLocalState(name, state);
-            setEmp('Starea a fost sincronizată din server.', 'ok');
-            setButtons();
-            return;
-          }
-        }
-      }catch(e){/* ignoră, fallback local */}
-      // fallback localStorage
-      state = Object.assign({normalActive:false, paused:false, extraActive:false}, readLocalState(name));
-      setButtons();
+        const s = localStorage.getItem(lsKey(name));
+        if (s){ STATE = Object.assign({}, STATE, JSON.parse(s||'{}')); }
+      }catch(_){}
     }
 
-    function setButtons(){
-      const normOn = state.normalActive;
-      const exOn   = state.extraActive;
-      document.getElementById('btnStart').disabled   = normOn || exOn; // nu poți porni dacă e ceva în derulare
-      document.getElementById('btnPause').disabled   = !normOn || state.paused;
-      document.getElementById('btnUnpause').disabled = !normOn || !state.paused;
-      document.getElementById('btnFinish').disabled  = !normOn;
-
-      document.getElementById('btnXStart').disabled  = normOn || exOn; // Extra permis doar când NIMIC nu e pornit
-      document.getElementById('btnXFinish').disabled = !exOn;
+    async function loadStateFor(name){
+      // încearcă endpoint-ul (cross-device). Dacă lipsește, cade pe localStorage.
+      let server = await fetchStatus(name);
+      if (server && typeof server === 'object') {
+        STATE.baseRunning   = !!server.running;
+        STATE.basePaused    = !!server.paused;
+        STATE.baseFinished  = !!server.finished;
+        STATE.extraRunning  = !!server.extraRunning;
+        STATE.extraFinished = !!server.extraFinished;
+        STATE.lastTs        = server.lastTs || null;
+      } else {
+        loadLocal(name);
+      }
+      applyState();
     }
 
-    empSel.addEventListener('change', refreshRemoteState);
+    function applyState(){
+      // Reguli:
+      // - Start: activ doar dacă nu e baseRunning și nu e baseFinished
+      // - Pause: activ doar dacă e baseRunning și NU e basePaused
+      // - Unpause: activ doar dacă e baseRunning și e basePaused
+      // - Finish: activ doar dacă e baseRunning (indiferent de paused)
+      // - Extra Start: activ doar dacă baseFinished și nu e extraRunning și nu e extraFinished
+      // - Extra Finish: activ doar dacă extraRunning
+      btnStart.disabled       = STATE.baseRunning || STATE.baseFinished;
+      btnPause.disabled       = !STATE.baseRunning || STATE.basePaused;
+      btnUnpause.disabled     = !STATE.baseRunning || !STATE.basePaused;
+      btnFinish.disabled      = !STATE.baseRunning;
+
+      btnExtraStart.disabled  = !STATE.baseFinished || STATE.extraRunning || STATE.extraFinished;
+      btnExtraFinish.disabled = !STATE.extraRunning;
+    }
+
+    empSel.addEventListener('change', async ()=>{
+      setStatus('', '');
+      if (!empSel.value) return;
+      await loadStateFor(empSel.value);
+      setEmp('Stare sincronizată pentru ' + empSel.value, 'ok');
+    });
 
     // ==================== TIME ACTIONS ====================
     let busy = false;
-    function guard(action){
-      // reguli cerute
-      if (action === 'start' && state.normalActive) return 'Ai deja o sesiune activă. Încheie cu Finish.';
-      if (action === 'finish' && !state.normalActive) return 'Nu poți da Finish fără Start.';
-      if (action === 'pause' && !state.normalActive) return 'Nu poți pune Pause fără Start.';
-      if (action === 'unpause' && !state.normalActive) return 'Nu poți da Unpause fără Start.';
 
-      if (action === 'extra_start'){
-        if (state.normalActive) return 'Finalizează pontajul normal înainte de orele extra.';
-        if (state.extraActive)  return 'Sesiunea de ore extra este deja pornită.';
-      }
-      if (action === 'extra_finish' && !state.extraActive) return 'Nu poți încheia orele extra fără Extra Start.';
-      return '';
-    }
-
-    function submitAction(action, isExtra){
+    function submitAction(action) {
       if (busy) return;
       if (!empSel.value) { setStatus('Selectează angajat.', 'err'); return; }
       if (!actSel.value) { setStatus('Alege tip de activitate.', 'err'); return; }
       if (!locInput.value.trim()) { setStatus('Scrie o locație.', 'err'); locInput.focus(); return; }
-      if (!('geolocation' in navigator)) { setStatus('Geolocație indisponibilă pe acest dispozitiv.', 'err'); return; }
+
+      // Validări de ordine:
+      if (action === 'finish' && !STATE.baseRunning) {
+        setStatus('Nu poți da Finish fără Start.', 'warn'); return;
+      }
+      if (action === 'pause' && !STATE.baseRunning) {
+        setStatus('Nu poți da Pause fără Start.', 'warn'); return;
+      }
+      if (action === 'unpause' && (!STATE.baseRunning || !STATE.basePaused)) {
+        setStatus('Nu poți da Unpause fără o pauză activă.', 'warn'); return;
+      }
+      if (action === 'start' && (STATE.baseRunning || STATE.baseFinished)) {
+        setStatus('Ziua de lucru este deja pornită sau închisă.', 'warn'); return;
+      }
+
+      // Extra:
+      if (action === 'extra_start') {
+        if (!STATE.baseFinished) { setStatus('Finalizează pontajul normal (Finish) înainte de a începe orele EXTRA.', 'warn'); return; }
+        if (STATE.extraRunning || STATE.extraFinished) { setStatus('Orele EXTRA sunt deja pornite sau închise.', 'warn'); return; }
+      }
+      if (action === 'extra_finish') {
+        if (!STATE.extraRunning) { setStatus('Nu poți închide EXTRA fără Extra Start.', 'warn'); return; }
+      }
+
+      // Interzice concedii pe butoane timp:
       if (['concediu de odihna','concediu medical','concediu pentru ore suplimentare'].includes((actSel.value||'').toLowerCase())) {
         setStatus('Pentru concediu folosește „Trimite cererea de concediu”.', 'warn');
         return;
       }
 
-      const ruleMsg = guard(isExtra ? (action==='start'?'extra_start':'extra_finish') : action);
-      if (ruleMsg){ setStatus(ruleMsg, 'warn'); return; }
+      if (!('geolocation' in navigator)) { setStatus('Geolocație indisponibilă pe acest dispozitiv.', 'err'); return; }
 
       busy = true; disableAllButtons(true);
       setStatus('Se obține locația GPS…');
@@ -607,59 +649,58 @@ function writeLocalState(name, st){ try{ localStorage.setItem(dayKeyFor(name), J
           const ts = new Date().toISOString();
           const maps = `https://maps.google.com/?q=${lat},${lon}`;
 
-          document.getElementById('f_action').value    = isExtra ? (action==='start'?'extra_start':'extra_finish') : action;
-          document.getElementById('f_isExtra').value   = isExtra ? '1' : '0';
+          document.getElementById('f_action').value = action;
           document.getElementById('f_timestamp').value = ts;
-          document.getElementById('f_name').value      = empSel.value;
-          document.getElementById('f_activity').value  = actSel.value;
-          document.getElementById('f_location').value  = locInput.value.trim();
-          document.getElementById('f_lat').value       = lat;
-          document.getElementById('f_lon').value       = lon;
-          document.getElementById('f_acc').value       = acc;
-          document.getElementById('f_device').value    = navigator.userAgent;
-          document.getElementById('f_notes').value     = (notesEl.value || '');
-          document.getElementById('f_maps').value      = maps;
+          document.getElementById('f_name').value = empSel.value;
+          document.getElementById('f_activity').value = actSel.value;
+          document.getElementById('f_location').value = locInput.value.trim();
+          document.getElementById('f_lat').value = lat;
+          document.getElementById('f_lon').value = lon;
+          document.getElementById('f_acc').value = acc;
+          document.getElementById('f_device').value = navigator.userAgent;
+          document.getElementById('f_notes').value = (notesEl.value || '');
+          document.getElementById('f_maps').value = maps;
 
           form.submit();
+          // Actualizează starea local
+          if (action === 'start'){ STATE.baseRunning=true; STATE.basePaused=false; STATE.baseFinished=false; }
+          if (action === 'pause'){ STATE.basePaused=true; }
+          if (action === 'unpause'){ STATE.basePaused=false; }
+          if (action === 'finish'){ STATE.baseRunning=false; STATE.basePaused=false; STATE.baseFinished=true; }
+          if (action === 'extra_start'){ STATE.extraRunning=true; STATE.extraFinished=false; }
+          if (action === 'extra_finish'){ STATE.extraRunning=false; STATE.extraFinished=true; }
+          saveLocal(empSel.value);
+          applyState();
 
-          // update local state imediat (optimist)
-          if (!isExtra){
-            if (action==='start'){ state.normalActive = true; state.paused = false; }
-            if (action==='pause'){ state.paused = true; }
-            if (action==='unpause'){ state.paused = false; }
-            if (action==='finish'){ state.normalActive = false; state.paused = false; }
-          } else {
-            if (action==='start'){ state.extraActive = true; }
-            if (action==='finish'){ state.extraActive = false; }
-          }
-          writeLocalState(empSel.value, state);
-          setButtons();
-
-          setStatus(`Trimis ✓ (${(isExtra?('EXTRA '+action):action).toUpperCase()}). Verifică Google Sheet.`, 'ok');
+          setStatus(`Trimis ✓ (${action.toUpperCase()}). Verifică Google Sheet.`, 'ok');
           lastEl.textContent = JSON.stringify({
-            action: document.getElementById('f_action').value,
-            isExtra: isExtra,
-            timestamp: ts, angajat: empSel.value, activitate: actSel.value,
+            action, timestamp: ts, angajat: empSel.value, activitate: actSel.value,
             locatie: locInput.value.trim(), latitude: lat, longitude: lon, accuracy: acc
           }, null, 2);
 
-          setTimeout(()=>{ busy=false; disableAllButtons(false); }, 800);
+          setTimeout(async ()=>{
+            busy=false; disableAllButtons(false);
+            // după trimitere, încearcă să sincronizezi din nou starea de pe server dacă există endpoint
+            await loadStateFor(empSel.value);
+          }, 900);
         },
         err => { setStatus('Eroare locație: ' + err.message, 'err'); busy=false; disableAllButtons(false); },
         { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 }
       );
     }
 
-    document.getElementById('btnStart').addEventListener('click', ()=>submitAction('start', false));
-    document.getElementById('btnPause').addEventListener('click', ()=>submitAction('pause', false));
-    document.getElementById('btnUnpause').addEventListener('click', ()=>submitAction('unpause', false));
-    document.getElementById('btnFinish').addEventListener('click', ()=>submitAction('finish', false));
+    // Hook butoane
+    btnStart.addEventListener('click',        ()=>submitAction('start'));
+    btnPause.addEventListener('click',        ()=>submitAction('pause'));
+    btnUnpause.addEventListener('click',      ()=>submitAction('unpause'));
+    btnFinish.addEventListener('click',       ()=>submitAction('finish'));
+    btnExtraStart.addEventListener('click',   ()=>submitAction('extra_start'));
+    btnExtraFinish.addEventListener('click',  ()=>submitAction('extra_finish'));
 
-    document.getElementById('btnXStart').addEventListener('click', ()=>submitAction('start', true));
-    document.getElementById('btnXFinish').addEventListener('click', ()=>submitAction('finish', true));
+    // La inițializare: dacă există un angajat selectat, sincronizează starea
+    const pre = empSel.value;
+    if (pre) await loadStateFor(pre);
 
-    // Initializează starea pentru angajat selectat implicit (dacă e cazul)
-    setButtons();
   })();
   </script>
 </body>
