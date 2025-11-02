@@ -273,9 +273,42 @@ function _normAction(a){
 }
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 const fmt2 = (n) => Number(n || 0).toFixed(2);
+
+/** GPS OBLIGATORIU: promisiune cu timeout; NU afișăm mesaj de așteptare */
+function getGPSStrict(timeoutMs=10000){
+  return new Promise((resolve, reject)=>{
+    if (!('geolocation' in navigator)) {
+      reject(new Error('Geolocație indisponibilă pe acest dispozitiv.'));
+      return;
+    }
+    let done=false;
+    const timer = setTimeout(()=>{
+      if(done) return;
+      done=true; reject(new Error('Timeout la obținerea locației. Te rog permite accesul la locație.'));
+    }, timeoutMs);
+
+    navigator.geolocation.getCurrentPosition(pos=>{
+      if(done) return; done=true; clearTimeout(timer);
+      resolve({
+        lat: pos.coords.latitude,
+        lon: pos.coords.longitude,
+        acc: Math.round(pos.coords.accuracy || 0)
+      });
+    }, err=>{
+      if(done) return; done=true; clearTimeout(timer);
+      reject(new Error('Eroare locație: ' + (err && err.message ? err.message : 'necunoscută')));
+    }, { enableHighAccuracy: true, timeout: timeoutMs, maximumAge: 0 });
+  });
+}
+
 function announceFinish(action, totals){
-  if (!totals) { setStatus('Ziua/EXTRA s-a închis, dar nu am reușit să citesc totalurile. Verifică foaia.', 'warn'); return; }
-  if (_normAction(action) === 'finish') {
+  const a = _normAction(action);
+  if (!totals){
+    setStatus(a==='finish' ? 'Ziua închisă ✓. Rapoartele se vor actualiza în scurt timp.'
+                           : 'EXTRA închis ✓. Rapoartele se vor actualiza în scurt timp.', 'ok');
+    return;
+  }
+  if (a === 'finish') {
     setStatus(`Ziua închisă. Total ore: ${fmt2(totals.h)} • Suplimentar: ${fmt2(totals.ot)} • Extra azi: ${fmt2(totals.ex)}`, 'ok');
   } else {
     setStatus(`EXTRA închis. Extra (h) azi: ${fmt2(totals.ex)} • Total ore normale azi: ${fmt2(totals.h)} • Suplimentar: ${fmt2(totals.ot)}`, 'ok');
@@ -667,14 +700,14 @@ async function sendLeave(payload) {
     if (busy) return;
     if (!empSel.value) { setStatus('Selectează angajat.', 'err'); return; }
     if (!actSel.value) { setStatus('Alege tip de activitate.', 'err'); return; }
-    if (!document.getElementById('locationInput').value.trim()) { setStatus('Scrie o locație.', 'err'); document.getElementById('locationInput').focus(); return; }
+    if (!document.getElementById('locationInput').value.trim()) {
+      setStatus('Scrie o locație.', 'err'); document.getElementById('locationInput').focus(); return;
+    }
 
     if (['concediu de odihna','concediu medical','concediu pentru ore suplimentare'].includes((actSel.value||'').toLowerCase())){
       setStatus('Pentru concediu folosește „Trimite cererea de concediu”.', 'warn');
       return;
     }
-
-    setStatus('Verific starea…');
 
     const lg = localGuard(action);
     if (lg) { setStatus(lg, 'warn'); return; }
@@ -682,45 +715,56 @@ async function sendLeave(payload) {
     const g = await guardRemote(empSel.value.trim(), action);
     if (!g.ok) { setStatus(g.msg || 'Acțiune blocată de regulile de pontaj.', 'warn'); return; }
 
-    if (!('geolocation' in navigator)) { setStatus('Geolocație indisponibilă pe acest dispozitiv.', 'err'); return; }
-
     busy = true; disableAllButtons(true);
-    setStatus('Se obține locația GPS…');
 
-    navigator.geolocation.getCurrentPosition(async pos => {
-      const gps = { lat: pos.coords.latitude, lon: pos.coords.longitude, acc: Math.round(pos.coords.accuracy || 0) };
-      const ts = new Date().toISOString();
+    // GPS obligatoriu — fără mesaj de așteptare
+    let gps;
+    try {
+      gps = await getGPSStrict(10000);
+    } catch (err) {
+      setStatus(err.message || 'Nu am putut obține locația GPS.', 'err');
+      busy=false; disableAllButtons(false);
+      return;
+    }
 
-      setFormPayload(action, ts, gps);
-      form.submit();
+    const ts = new Date().toISOString();
 
-      applyLocalTransition(action, ts);
-      saveLS();
-      reflectState();
+    // 1) trimitem către Google Form
+    setFormPayload(action, ts, gps);
+    form.submit();
 
-      // FINISH / EXTRA_FINISH -> adu totalurile și anunță în clar
-      if (['finish','extra_finish'].includes(_normAction(action))) {
+    // 2) actualizăm local & UI
+    applyLocalTransition(action, ts);
+    saveLS();
+    reflectState();
+
+    const a = _normAction(action);
+    if (a === 'start')   setStatus('START trimis ✓', 'ok');
+    if (a === 'pause')   setStatus('PAUSE înregistrat ✓', 'ok');
+    if (a === 'unpause') setStatus('UNPAUSE înregistrat ✓', 'ok');
+
+    // FINISH / EXTRA_FINISH -> totaluri
+    if (a === 'finish' || a === 'extra_finish') {
+      const canTotals = !!((CFG && CFG.guardEndpoint) || (CFG && CFG.stateEndpoint));
+      if (canTotals){
         try {
-          setStatus('Se actualizează totalurile zilei…', '');
-          await sleep(1200); // dă timp onFormSubmit + calculelor
+          await sleep(1200);
           const t = await fetchTotalsWithRetry(empSel.value.trim());
           renderTotals(t);
-          announceFinish(action, t);
-        } catch(_) {
-          setStatus('Ziua/EXTRA s-a închis, dar nu am reușit să citesc totalurile. Verifică foaia.', 'warn');
+          announceFinish(a, t);
+        } catch(_){
+          announceFinish(a, null);
         }
+      } else {
+        announceFinish(a, null);
       }
+    }
 
-      setTimeout(async ()=>{
-        await refreshServerState();
-        reflectState();
-        busy=false; disableAllButtons(false);
-      }, 900);
-
-    }, err => {
-      setStatus('Eroare locație: ' + err.message, 'err');
+    setTimeout(async ()=>{
+      await refreshServerState();
+      reflectState();
       busy=false; disableAllButtons(false);
-    }, { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 });
+    }, 900);
   }
 
   function wireButtons(){
@@ -745,7 +789,6 @@ async function sendLeave(payload) {
     } catch (e) {
       setCfg('Eroare config: ' + (e.message||e), 'err');
       disableAllButtons(true);
-      // tot încercăm să populăm angajații din fallback
       try { await loadEmployees(); } catch {}
       return;
     }
