@@ -681,7 +681,7 @@ function renderTotals(t){
       applyLocalTransition(action, ts);
       saveLS();
       reflectState();
-      setStatus(`Trimis ✓ (${_normAction(action).toUpperCase()}). Verifică Google Sheet.`, 'ok');
+      // setStatus(`Trimis ✓ (${_normAction(action).toUpperCase()}). Verifică Google Sheet.`, 'ok');
       // lastEl.textContent = JSON.stringify({action:_normAction(action), timestamp: ts, angajat: empSel.value, activitate: actSel.value, locatie: document.getElementById('locationInput').value.trim(), ...gps}, null, 2);
 
       // Dacă acțiunea e FINISH sau EXTRA_FINISH -> adu totalurile și afișează-le
