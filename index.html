@@ -89,21 +89,6 @@
     .summary .item{ display:flex;align-items:center;gap:10px;padding:12px;border-radius:14px;background:#f8fafc;border:1px solid #e2e8f0; }
     .footer{ margin-top:18px;font-size:12px;color:var(--muted);text-align:center }
     .ok{color:#15803d} .err{color:#ef4444} .warn{color:#a16207}
-
-    /* KPI box */
-    .kpis{
-      margin-top:14px; display:grid; gap:10px;
-      grid-template-columns: repeat(3,minmax(0,1fr));
-    }
-    @media (max-width:900px){ .kpis{ grid-template-columns:1fr; } }
-    .kpi{
-      background:#f8fafc;border:1px solid #e2e8f0;border-radius:14px;padding:12px;
-      display:flex;flex-direction:column;gap:4px
-    }
-    .kpi b{font-size:13px}
-    .kpi .v{font-weight:700;font-size:18px}
-    /* Ascundem complet „last” (log JSON) */
-    #last{ display:none !important; }
   </style>
 </head>
 <body>
@@ -210,11 +195,6 @@
         </div>
 
         <div id="status" class="status" role="status" aria-live="polite"></div>
-
-        <!-- KPIs -->
-        <div id="totalsBox" class="kpis" style="display:none"></div>
-
-        <!-- (ascuns) -->
         <div id="last" class="status mono"></div>
       </div>
 
@@ -303,33 +283,15 @@ async function sendLeave(payload) {
   return data;
 }
 
-/** UI KPIs */
-function renderTotals(el, data){
-  // data: { today:{h,ot,ex}, month:{h,ot,ex} }
-  if (!data) { el.style.display='none'; el.innerHTML=''; return; }
-  const t = (data.today || {}), m = (data.month || {});
-  const fmt = v => (typeof v === 'number' ? v.toFixed(2) : (v||'0.00'));
-  el.innerHTML = `
-    <div class="kpi"><b>Astăzi — Total ore</b><div class="v">${fmt(t.h)}</div></div>
-    <div class="kpi"><b>Astăzi — Suplimentar (h)</b><div class="v">${fmt(t.ot)}</div></div>
-    <div class="kpi"><b>Astăzi — Extra (h)</b><div class="v">${fmt(t.ex)}</div></div>
-    <div class="kpi"><b>Luna — Total ore</b><div class="v">${fmt(m.h)}</div></div>
-    <div class="kpi"><b>Luna — Suplimentar (h)</b><div class="v">${fmt(m.ot)}</div></div>
-    <div class="kpi"><b>Luna — Extra (h)</b><div class="v">${fmt(m.ex)}</div></div>
-  `;
-  el.style.display='';
-}
-
 (function(){
   const statusEl = document.getElementById('status');
   const cfgEl = document.getElementById('cfg');
-  const lastEl = document.getElementById('last'); // ascuns by CSS
+  const lastEl = document.getElementById('last');
   const notesEl = document.getElementById('notes');
   const locInput = document.getElementById('locationInput');
   const empSel = document.getElementById('employeeSelect');
   const actSel = document.getElementById('activitySelect');
   const empStatus = document.getElementById('empStatus');
-  const totalsBox = document.getElementById('totalsBox');
   const form = document.getElementById('gform');
 
   const leavePanel = document.getElementById('leavePanel');
@@ -513,6 +475,7 @@ function renderTotals(el, data){
   }
 
   async function fetchState(name){
+    // preferă explicit stateEndpoint; dacă nu există, folosește guardEndpoint?fn=state
     const base = (CFG.stateEndpoint && CFG.stateEndpoint.trim()) || (CFG.guardEndpoint && (CFG.guardEndpoint.trim() + '?fn=state'));
     if (!base) return null;
     const url = base.includes('?fn=state') ? (base + '&name=' + encodeURIComponent(name)) 
@@ -522,26 +485,10 @@ function renderTotals(el, data){
     try { return JSON.parse(txt).state || null; } catch { return null; }
   }
 
-  // NEW: fetch stats (today + month) for employee
-  async function fetchStats(name){
-    try{
-      const base = (CFG.statsEndpoint && CFG.statsEndpoint.trim())
-                || (CFG.guardEndpoint && (CFG.guardEndpoint.trim()));
-      if (!base) return null;
-      const url = base + (base.includes('?')?'&':'?') + 'fn=stats&name=' + encodeURIComponent(name);
-      const r = await fetch(url, { cache:'no-store' });
-      const txt = await r.text();
-      try { 
-        const j = JSON.parse(txt);
-        if (j && j.ok && j.totals) return j.totals; // { today:{h,ot,ex}, month:{h,ot,ex} }
-      } catch {}
-      return null;
-    }catch{ return null; }
-  }
-
   async function guardRemote(name, action){
+    // TOTDEAUNA atașăm ?fn=guard !
     const base = (CFG.guardEndpoint && CFG.guardEndpoint.trim()) || (CFG.stateEndpoint && CFG.stateEndpoint.trim());
-    if (!base) return {ok:true};
+    if (!base) return {ok:true}; // fără endpoint nu blocăm
     const url = base + (base.includes('?') ? '&' : '?') + 'fn=guard';
     try{
       const r = await fetch(url, {
@@ -553,7 +500,7 @@ function renderTotals(el, data){
       let data; try { data = JSON.parse(txt); } catch { return {ok:true}; }
       return data;
     }catch{
-      return {ok:true};
+      return {ok:true}; // dacă endpoint-ul cade, nu blocăm
     }
   }
 
@@ -652,14 +599,10 @@ function renderTotals(el, data){
     STATE.name = empSel.value || '';
     saveLS();
 
+    // arată starea curentă
     setEmp('Se verifică starea...', '');
     await refreshServerState();
     reflectState();
-
-    // actualizează KPIs pentru angajatul ales
-    const totals = await fetchStats(STATE.name);
-    if (totals) renderTotals(totalsBox, totals);
-    else { totalsBox.style.display='none'; totalsBox.innerHTML=''; }
 
     if (STATE.normal.running && STATE.normal.paused) setEmp('Ești în PAUSE.', 'warn');
     else if (STATE.normal.running) setEmp('Ai START activ.', 'ok');
@@ -683,9 +626,11 @@ function renderTotals(el, data){
 
     setStatus('Verific starea…');
 
+    // 1) gard local
     const lg = localGuard(action);
     if (lg) { setStatus(lg, 'warn'); return; }
 
+    // 2) gard server — ATENȚIE: mereu ?fn=guard
     const g = await guardRemote(empSel.value.trim(), action);
     if (!g.ok) { setStatus(g.msg || 'Acțiune blocată de regulile de pontaj.', 'warn'); return; }
 
@@ -698,23 +643,16 @@ function renderTotals(el, data){
       const gps = { lat: pos.coords.latitude, lon: pos.coords.longitude, acc: Math.round(pos.coords.accuracy || 0) };
       const ts = new Date().toISOString();
 
+      // 3) trimitem către Google Form (declanșează onFormSubmit în sheet)
       setFormPayload(action, ts, gps);
       form.submit();
 
+      // 4) actualizăm local & UI
       applyLocalTransition(action, ts);
       saveLS();
       reflectState();
-      setStatus(`Trimis ✓ (${_normAction(action).toUpperCase()}).`, 'ok');
-
-      // NU mai afișăm logul JSON:
-      // lastEl.textContent = ...
-
-      // după FINISH sau EXTRA FINISH, actualizez KPIs
-      if (_normAction(action) === 'finish' || _normAction(action) === 'extra_finish'){
-        const totals = await fetchStats(empSel.value.trim());
-        if (totals) renderTotals(totalsBox, totals);
-        else { totalsBox.style.display='none'; totalsBox.innerHTML=''; }
-      }
+      setStatus(`Trimis ✓ (${_normAction(action).toUpperCase()}). Verifică Google Sheet.`, 'ok');
+      lastEl.textContent = JSON.stringify({action:_normAction(action), timestamp: ts, angajat: empSel.value, activitate: actSel.value, locatie: document.getElementById('locationInput').value.trim(), ...gps}, null, 2);
 
       setTimeout(async ()=>{
         await refreshServerState();
@@ -756,12 +694,15 @@ function renderTotals(el, data){
     bindLeaveForm();
     await loadEmployees();
 
+    // restaurăm starea locală
     const cached = loadLS();
     if (cached) STATE = Object.assign(blankState(), cached);
 
+    // hook pentru schimbare angajat
     empSel.addEventListener('change', handleEmployeeChange);
     if (empSel.value) { handleEmployeeChange(); }
 
+    // toggle concedii
     const LEAVE_TYPES = new Set(['concediu de odihna','concediu medical','concediu pentru ore suplimentare']);
     actSel.addEventListener('change', () => {
       const isLeave = LEAVE_TYPES.has((actSel.value||'').toLowerCase());
@@ -769,13 +710,64 @@ function renderTotals(el, data){
       disableTimeButtons(isLeave);
     });
 
+    // butoane acțiuni
     wireButtons();
 
-    // La încărcare: dacă avem angajat selectat, ia direct KPIs
-    if (STATE.name){
-      const totals = await fetchStats(STATE.name);
-      if (totals) renderTotals(totalsBox, totals);
-    }
+    // buton concedii
+    document.getElementById('btnLeave').addEventListener('click', async () => {
+      setLeaveStatus('', '');
+      if (!empSel.value) { setLeaveStatus('Selectează angajat.', 'err'); return; }
+      const tip = (actSel.value || '').toLowerCase();
+      if (!LEAVE_TYPES.has(tip)) { setLeaveStatus('Alege un tip de concediu.', 'err'); return; }
+      const sd = leaveStart.value;
+      const ed = leaveEnd.value;
+      if (!sd || !ed) { setLeaveStatus('Completează intervalul (start și sfârșit).', 'err'); return; }
+      if (ed < sd) { setLeaveStatus('Data de sfârșit nu poate fi înainte de start.', 'err'); return; }
+      const email = (leaveEmail.value || '').trim();
+      if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { setLeaveStatus('Email personal invalid.', 'err'); return; }
+
+      setLeaveStatus('Se trimite cererea…', '');
+
+      // optional: Google Form
+      let formSubmitted = false;
+      if (CFG.leaveFormAction && CFG.leaveFields) {
+        try {
+          document.getElementById('lv_name').value  = empSel.value;
+          document.getElementById('lv_type').value  = tip;
+          document.getElementById('lv_email').value = email;
+          document.getElementById('lv_start').value = sd;
+          document.getElementById('lv_end').value   = ed;
+          document.getElementById('lv_notes').value = (leaveNotes.value || '');
+          document.getElementById('lv_ts').value    = new Date().toISOString();
+          document.getElementById('leaveForm').submit();
+          formSubmitted = true;
+        } catch (e) { console.warn('Leave Form submit failed', e); }
+      }
+
+      // endpoint WebApp
+      let endpointOk = false, endpointMsg = '';
+      if (CFG.leaveEndpoint) {
+        try {
+          const payload = {
+            name: empSel.value,
+            activityType: tip,
+            startDate: sd,
+            endDate: ed,
+            personalEmail: email,
+            notes: (leaveNotes.value || '')
+          };
+          const res = await sendLeave(payload);
+          endpointOk = true;
+          endpointMsg = ' (înregistrată ' + res.zile + ' zile)';
+        } catch (err) { console.warn('Leave endpoint error:', err); }
+      }
+
+      if (formSubmitted || endpointOk) {
+        setLeaveStatus('Cerere trimisă' + endpointMsg + '. HR a fost notificat.', 'ok');
+      } else {
+        setLeaveStatus('Eroare: nu s-a putut trimite cererea (Form/Endpoint).', 'err');
+      }
+    });
 
   })();
 
