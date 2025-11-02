@@ -508,18 +508,20 @@ async function sendLeave(payload) {
     try { return JSON.parse(txt).state || null; } catch { return null; }
   }
 
-  // === nou: fetch stats (Azi) pentru numele curent
-  async function fetchStats(name){
-    const base = (CFG.stateEndpoint && CFG.stateEndpoint.trim()) || (CFG.guardEndpoint && CFG.guardEndpoint.trim());
-    if (!base) return null;
-    const url = base + (base.includes('?') ? '&' : '?') + 'fn=stats&name=' + encodeURIComponent(name);
-    try{
-      const r = await fetch(url, { cache:'no-store' });
-      const txt = await r.text();
-      try { const data = JSON.parse(txt); return data && data.ok ? data.stats : null; }
-      catch { return null; }
-    }catch{ return null; }
-  }
+ // === nou: fetch stats (Azi) pentru numele curent — curăță ?query din endpoint
+async function fetchStats(name){
+  const rawBase = (CFG.guardEndpoint && CFG.guardEndpoint.trim()) || (CFG.stateEndpoint && CFG.stateEndpoint.trim());
+  if (!rawBase) return null;
+  const base = rawBase.replace(/\?.*$/,''); // scoate ?fn=... deja existent
+  const url = base + '?fn=stats&name=' + encodeURIComponent(name);
+  try{
+    const r = await fetch(url, { cache:'no-store' });
+    const txt = await r.text();
+    try { const data = JSON.parse(txt); return data && data.ok ? data.stats : null; }
+    catch { return null; }
+  }catch{ return null; }
+}
+
 
   async function guardRemote(name, action){
     const base = (CFG.guardEndpoint && CFG.guardEndpoint.trim()) || (CFG.stateEndpoint && CFG.stateEndpoint.trim());
