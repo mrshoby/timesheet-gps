@@ -199,9 +199,7 @@
         <!-- NOU: totaluri pe zi pentru angajatul selectat -->
         <div id="totalsBox" class="status" style="margin-top:6px"></div>
       
-        
-        <!-- <div id="last" class="status mono"></div> -->
-         <div id="last" class="status mono" style="display:none"></div>
+        <div id="last" class="status mono" style="display:none"></div>
       </div>
 
       <!-- Right: Helper / Summary -->
@@ -413,7 +411,7 @@ async function sendLeave(payload) {
   }
   async function loadEmployees() {
     try {
-      if (CFG.employeesCsv) {
+      if (CFG && CFG.employeesCsv) {
         const url = CFG.employeesCsv + (CFG.employeesCsv.includes('?') ? '&' : '?') + 'v=' + Date.now();
         const r = await fetch(url, {cache:'no-store'});
         if (r.ok) {
@@ -422,7 +420,7 @@ async function sendLeave(payload) {
           if (list.length) { fillEmployees(list); setEmp('Angajați încărcați din employeesCsv.', 'ok'); return; }
         }
       }
-    } catch(e){}
+    } catch(e){ console.warn('employeesCsv load failed', e); }
     try {
       const raw = 'https://raw.githubusercontent.com/mrshoby/timesheet-gps/main/employees.csv?v=' + Date.now();
       const r2 = await fetch(raw, {cache:'no-store'});
@@ -431,8 +429,8 @@ async function sendLeave(payload) {
         const list2 = parseEmployeesCSV(txt2);
         if (list2.length) { fillEmployees(list2); setEmp('Angajați încărcați din RAW GitHub.', 'ok'); return; }
       }
-    } catch(e){}
-    if (Array.isArray(CFG.employees) && CFG.employees.length) {
+    } catch(e){ console.warn('RAW GitHub fallback failed', e); }
+    if (CFG && Array.isArray(CFG.employees) && CFG.employees.length) {
       fillEmployees(CFG.employees);
       setEmp('Angajați încărcați din config.json.', 'ok');
       return;
@@ -510,42 +508,44 @@ async function sendLeave(payload) {
     }
   }
 
-// --- TOTALURI ZILNICE cu retry ---
-async function fetchTotalsOnce(name, dayStr){
-  const base = (CFG.guardEndpoint && CFG.guardEndpoint.trim())
-           || (CFG.stateEndpoint && CFG.stateEndpoint.trim());
-  if (!base) return null;
-  const url = base + (base.includes('?') ? '&' : '?') +
-              'fn=totals&name=' + encodeURIComponent(name) +
-              (dayStr ? ('&date=' + encodeURIComponent(dayStr)) : '');
-  const r = await fetch(url, { cache:'no-store' });
-  const txt = await r.text();
-  try {
-    const data = JSON.parse(txt);
-    return (data && data.ok) ? (data.totals || null) : null;
-  } catch {
+  // --- TOTALURI ZILNICE ---
+  async function fetchTotalsOnce(name, dayStr){
+    const base = (CFG.guardEndpoint && CFG.guardEndpoint.trim())
+             || (CFG.stateEndpoint && CFG.stateEndpoint.trim());
+    if (!base) return null;
+    const url = base + (base.includes('?') ? '&' : '?') +
+                'fn=totals&name=' + encodeURIComponent(name) +
+                (dayStr ? ('&date=' + encodeURIComponent(dayStr)) : '');
+    const r = await fetch(url, { cache:'no-store' });
+    const txt = await r.text();
+    try {
+      const data = JSON.parse(txt);
+      return (data && data.ok) ? (data.totals || null) : null;
+    } catch {
+      return null;
+    }
+  }
+
+  async function fetchTotalsWithRetry(name, dayStr, tries=5, delayMs=1200){
+    for (let i=0; i<tries; i++){
+      const t = await fetchTotalsOnce(name, dayStr);
+      if (t && (t.h>0 || t.ot>0 || t.ex>0 || i===tries-1)) return t;
+      await new Promise(res => setTimeout(res, delayMs + i*400));
+    }
     return null;
   }
-}
 
-async function fetchTotalsWithRetry(name, dayStr, tries=5, delayMs=1200){
-  for (let i=0; i<tries; i++){
-    const t = await fetchTotalsOnce(name, dayStr);
-    if (t && (t.h>0 || t.ot>0 || t.ex>0 || i===tries-1)) return t;
-    // mic backoff
-    await new Promise(res => setTimeout(res, delayMs + i*400));
+  // ✅ wrapper care lipsea și dădea eroare
+  async function fetchTotals(name, dayStr){
+    return await fetchTotalsWithRetry(name, dayStr);
   }
-  return null;
-}
 
-function renderTotals(t){
-  const box = document.getElementById('totalsBox');
-  if (!t) { box.textContent = ''; return; }
-  box.innerHTML = `Ziua: <b>${t.day}</b> — Total ore: <b>${Number(t.h||0).toFixed(2)}</b> &nbsp; | &nbsp; Suplimentar (h): <b>${Number(t.ot||0).toFixed(2)}</b> &nbsp; | &nbsp; Extra (h): <b>${Number(t.ex||0).toFixed(2)}</b>`;
-}
+  function renderTotals(t){
+    const box = document.getElementById('totalsBox');
+    if (!t) { box.textContent = ''; return; }
+    box.innerHTML = `Ziua: <b>${t.day}</b> — Total ore: <b>${Number(t.h||0).toFixed(2)}</b> &nbsp; | &nbsp; Suplimentar (h): <b>${Number(t.ot||0).toFixed(2)}</b> &nbsp; | &nbsp; Extra (h): <b>${Number(t.ex||0).toFixed(2)}</b>`;
+  }
 
-
-  
   function localGuard(action){
     action = _normAction(action);
     const running = STATE.normal.running;
@@ -636,25 +636,24 @@ function renderTotals(t){
     } catch(e){}
   }
 
- async function handleEmployeeChange(){
-  STATE = blankState();
-  STATE.name = empSel.value || '';
-  saveLS();
+  async function handleEmployeeChange(){
+    STATE = blankState();
+    STATE.name = empSel.value || '';
+    saveLS();
 
-  setEmp('Se verifică starea...', '');
-  await refreshServerState();
-  reflectState();
+    setEmp('Se verifică starea...', '');
+    await refreshServerState();
+    reflectState();
 
-  if (STATE.normal.running && STATE.normal.paused) setEmp('Ești în PAUSE.', 'warn');
-  else if (STATE.normal.running) setEmp('Ai START activ.', 'ok');
-  else if (STATE.extra.running) setEmp('Ai EXTRA activ.', 'ok');
-  else setEmp('Nicio sesiune deschisă.', '');
+    if (STATE.normal.running && STATE.normal.paused) setEmp('Ești în PAUSE.', 'warn');
+    else if (STATE.normal.running) setEmp('Ai START activ.', 'ok');
+    else if (STATE.extra.running) setEmp('Ai EXTRA activ.', 'ok');
+    else setEmp('Nicio sesiune deschisă.', '');
 
-  // NOU: afișează totalurile pentru ziua curentă
-  const t = await fetchTotals(STATE.name);
-  renderTotals(t);
-}
-
+    // NOU: afișează totalurile pentru ziua curentă
+    const t = await fetchTotals(STATE.name);
+    renderTotals(t);
+  }
 
   // ==================== ACTION SUBMIT ====================
   let busy = false;
@@ -676,7 +675,7 @@ function renderTotals(t){
     const lg = localGuard(action);
     if (lg) { setStatus(lg, 'warn'); return; }
 
-    // 2) gard server — ATENȚIE: mereu ?fn=guard
+    // 2) gard server — mereu ?fn=guard
     const g = await guardRemote(empSel.value.trim(), action);
     if (!g.ok) { setStatus(g.msg || 'Acțiune blocată de regulile de pontaj.', 'warn'); return; }
 
@@ -697,21 +696,19 @@ function renderTotals(t){
       applyLocalTransition(action, ts);
       saveLS();
       reflectState();
-      // setStatus(`Trimis ✓ (${_normAction(action).toUpperCase()}). Verifică Google Sheet.`, 'ok');
-      // lastEl.textContent = JSON.stringify({action:_normAction(action), timestamp: ts, angajat: empSel.value, activitate: actSel.value, locatie: document.getElementById('locationInput').value.trim(), ...gps}, null, 2);
 
-      // Dacă acțiunea e FINISH sau EXTRA_FINISH -> adu totalurile și afișează-le
-if (['finish','extra_finish'].includes(_normAction(action))) {
-  try {
-    // Așteptăm un pic ca să prindem onFormSubmit + calcule
-    setStatus('Se actualizează totalurile zilei…', '');
-    setTimeout(async () => {
-      const t = await fetchTotalsWithRetry(empSel.value.trim());
-      renderTotals(t);
-      setStatus('', ''); // golește mesajul
-    }, 1200);
-  } catch(_) {}
-}
+      // dacă e FINISH sau EXTRA_FINISH -> adu totalurile și afișează-le
+      if (['finish','extra_finish'].includes(_normAction(action))) {
+        try {
+          setStatus('Se actualizează totalurile zilei…', '');
+          setTimeout(async () => {
+            const t = await fetchTotalsWithRetry(empSel.value.trim());
+            renderTotals(t);
+            setStatus('', '');
+          }, 1200);
+        } catch(_) {}
+      }
+
       setTimeout(async ()=>{
         await refreshServerState();
         reflectState();
@@ -745,7 +742,10 @@ if (['finish','extra_finish'].includes(_normAction(action))) {
       window.CFG = CFG;
     } catch (e) {
       setCfg('Eroare config: ' + (e.message||e), 'err');
-      disableAllButtons(true); return;
+      disableAllButtons(true);
+      // încercăm totuși să populăm angajații din fallback
+      try { await loadEmployees(); } catch {}
+      return;
     }
 
     bindCFGToForm();
@@ -827,6 +827,7 @@ if (['finish','extra_finish'].includes(_normAction(action))) {
       }
       
     });
+  })();
 })(); 
   </script>
 </body>
