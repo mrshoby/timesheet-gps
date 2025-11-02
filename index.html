@@ -90,17 +90,17 @@
     .footer{ margin-top:18px;font-size:12px;color:var(--muted);text-align:center }
     .ok{color:#15803d} .err{color:#ef4444} .warn{color:#a16207}
 
-    /* Card totaluri (ascuns implicit) */
-    .totals {
-      margin-top: 8px;
-      padding: 10px 12px;
-      border: 1px solid #e2e8f0;
-      border-radius: 12px;
-      background: #f8fafc;
-      font-size: 13px;
-      display: none;
+    /* ===== Toast privat ===== */
+    .toast{
+      position: fixed; left: 50%; transform: translateX(-50%);
+      bottom: 24px; z-index: 9999; min-width: 280px; max-width: 92vw;
+      background: #0f172a; color: #fff; border-radius: 14px; padding: 14px 16px;
+      box-shadow: 0 20px 50px rgba(2,6,23,.35); display:none; font-size:14px
     }
-    .totals b{ font-weight:700 }
+    .toast.ok{ background:#166534 }     /* verde */
+    .toast.warn{ background:#a16207 }   /* galben */
+    .toast.err{ background:#991b1b }    /* roșu */
+    .toast .small{opacity:.85;font-size:12px;margin-top:4px}
   </style>
 </head>
 <body>
@@ -208,10 +208,8 @@
 
         <div id="status" class="status" role="status" aria-live="polite"></div>
 
-        <!-- Rezumat ore (ascuns; se arată DOAR după Finish / Extra Finish) -->
-        <div id="totalsCard" class="totals">
-          <div><b>Total azi:</b> <span id="tHours">0.00</span> h &nbsp;•&nbsp; <b>Suplimentar:</b> <span id="tOT">0.00</span> h &nbsp;•&nbsp; <b>Extra:</b> <span id="tEX">0.00</span> h</div>
-        </div>
+        <!-- Ascuns: blocul de debug JSON NU mai e folosit -->
+        <div id="last" class="status mono" style="display:none"></div>
       </div>
 
       <!-- Right: Helper / Summary -->
@@ -231,6 +229,9 @@
       </aside>
     </section>
   </div>
+
+  <!-- Toast privat -->
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
   <iframe name="hidden_iframe" style="display:none;"></iframe>
   <iframe name="hidden_iframe_leave" style="display:none;"></iframe>
@@ -283,6 +284,14 @@ function _normAction(a){
   if (s === 'extra finish') s='extra_finish';
   return s;
 }
+function showToast(msg, type){
+  const t = document.getElementById('toast');
+  t.className = 'toast' + (type ? ' ' + type : '');
+  t.innerHTML = msg;
+  t.style.display = 'block';
+  clearTimeout(showToast._h);
+  showToast._h = setTimeout(()=>{ t.style.display='none'; }, 7000);
+}
 
 /** Trimite cererea de concediu la WebApp (fără preflight CORS) */
 async function sendLeave(payload) {
@@ -322,12 +331,6 @@ async function sendLeave(payload) {
   const btnFinish = document.getElementById('btnFinish');
   const btnExtraStart = document.getElementById('btnExtraStart');
   const btnExtraFinish = document.getElementById('btnExtraFinish');
-
-  // Elemente pentru totaluri
-  const totalsCard = document.getElementById('totalsCard');
-  const tHours = document.getElementById('tHours');
-  const tOT = document.getElementById('tOT');
-  const tEX = document.getElementById('tEX');
 
   function setStatus(m, c){ setText(statusEl, m, c); }
   function setCfg(m, c){ setText(cfgEl, m, c); }
@@ -443,8 +446,8 @@ async function sendLeave(payload) {
       const r2 = await fetch(raw, {cache:'no-store'});
       if (r2.ok) {
         const txt2 = await r2.text();
-        const theList = parseEmployeesCSV(txt2);
-        if (theList.length) { fillEmployees(theList); setEmp('Angajați încărcați din RAW GitHub.', 'ok'); return; }
+        const list2 = parseEmployeesCSV(txt2);
+        if (list2.length) { fillEmployees(list2); setEmp('Angajați încărcați din RAW GitHub.', 'ok'); return; }
       }
     } catch(e){}
     if (Array.isArray(CFG.employees) && CFG.employees.length) {
@@ -505,24 +508,17 @@ async function sendLeave(payload) {
     try { return JSON.parse(txt).state || null; } catch { return null; }
   }
 
-  // Endpoint pentru statistici azi: ?fn=stats&name=...
+  // === nou: fetch stats (Azi) pentru numele curent
   async function fetchStats(name){
-    const base = (CFG.guardEndpoint && CFG.guardEndpoint.trim()) || (CFG.stateEndpoint && CFG.stateEndpoint.trim());
+    const base = (CFG.stateEndpoint && CFG.stateEndpoint.trim()) || (CFG.guardEndpoint && CFG.guardEndpoint.trim());
     if (!base) return null;
     const url = base + (base.includes('?') ? '&' : '?') + 'fn=stats&name=' + encodeURIComponent(name);
     try{
       const r = await fetch(url, { cache:'no-store' });
       const txt = await r.text();
-      const j = JSON.parse(txt);
-      return (j && j.ok && j.stats) ? j.stats : null;
+      try { const data = JSON.parse(txt); return data && data.ok ? data.stats : null; }
+      catch { return null; }
     }catch{ return null; }
-  }
-  function showTotals(stats){
-    if (!stats){ totalsCard.style.display='none'; return; }
-    tHours.textContent = (stats.totalHours ?? 0).toFixed(2);
-    tOT.textContent    = (stats.overtime ?? 0).toFixed(2);
-    tEX.textContent    = (stats.extra ?? 0).toFixed(2);
-    totalsCard.style.display = '';
   }
 
   async function guardRemote(name, action){
@@ -633,15 +629,12 @@ async function sendLeave(payload) {
     } catch(e){}
   }
 
-  // NU mai chemăm refreshTotals() din schimbarea angajatului
   async function handleEmployeeChange(){
     STATE = blankState();
     STATE.name = empSel.value || '';
     saveLS();
 
-    // ascund explicit cardul de totaluri când se schimbă angajatul
-    totalsCard.style.display = 'none';
-
+    // arată doar starea, FĂRĂ rezumat ore
     setEmp('Se verifică starea...', '');
     await refreshServerState();
     reflectState();
@@ -668,9 +661,11 @@ async function sendLeave(payload) {
 
     setStatus('Verific starea…');
 
+    // 1) gard local
     const lg = localGuard(action);
     if (lg) { setStatus(lg, 'warn'); return; }
 
+    // 2) gard server
     const g = await guardRemote(empSel.value.trim(), action);
     if (!g.ok) { setStatus(g.msg || 'Acțiune blocată de regulile de pontaj.', 'warn'); return; }
 
@@ -682,32 +677,41 @@ async function sendLeave(payload) {
     navigator.geolocation.getCurrentPosition(async pos => {
       const gps = { lat: pos.coords.latitude, lon: pos.coords.longitude, acc: Math.round(pos.coords.accuracy || 0) };
       const ts = new Date().toISOString();
-      const act = _normAction(action);
 
-      // Google Form
-      setFormPayload(act, ts, gps);
+      // 3) submit către Google Form
+      setFormPayload(action, ts, gps);
       form.submit();
 
-      // Local + UI
-      applyLocalTransition(act, ts);
+      // 4) actualizăm local & UI
+      applyLocalTransition(action, ts);
       saveLS();
       reflectState();
-      setStatus(`Trimis ✓ (${act.toUpperCase()}).`, 'ok');
+      setStatus(`Trimis ✓ (${_normAction(action).toUpperCase()}).`, 'ok');
+      // NU mai afișăm JSON-ul
+      // document.getElementById('last').textContent = ...
 
-      // După puțin timp: revalidăm starea și — DOAR pentru finish/extra_finish — afișăm totalurile
+      // 5) după ce calculele din Sheet se refac (buildDailySummary),
+      // cerem stats DOAR pentru userul curent și Afișăm toast privat
+      const act = _normAction(action);
       setTimeout(async ()=>{
         await refreshServerState();
-        reflectState();
-
-        if (act === 'finish' || act === 'extra_finish') {
-          const stats = await fetchStats(STATE.name);
-          showTotals(stats);        // afișează cardul DOAR acum
-        } else {
-          totalsCard.style.display = 'none'; // ascuns pentru celelalte acțiuni
+        let stats = null;
+        try { stats = await fetchStats(empSel.value.trim()); } catch {}
+        if (stats){
+          if (act === 'finish'){
+            showToast(
+              `<b>${empSel.value}</b><div class="small">Azi — Ore: <b>${stats.totalHours}</b> h • Suplimentar: <b>${stats.overtime}</b> h</div>`,
+              'ok'
+            );
+          } else if (act === 'extra_finish'){
+            showToast(
+              `<b>${empSel.value}</b><div class="small">Azi — Extra: <b>${stats.extra}</b> h</div>`,
+              'ok'
+            );
+          }
         }
-
         busy=false; disableAllButtons(false);
-      }, 1000);
+      }, 1200);
 
     }, err => {
       setStatus('Eroare locație: ' + err.message, 'err');
@@ -743,12 +747,15 @@ async function sendLeave(payload) {
     bindLeaveForm();
     await loadEmployees();
 
+    // restaurăm starea locală
     const cached = loadLS();
     if (cached) STATE = Object.assign(blankState(), cached);
 
+    // hook pentru schimbare angajat — fără rezumat!
     empSel.addEventListener('change', handleEmployeeChange);
     if (empSel.value) { handleEmployeeChange(); }
 
+    // toggle concedii
     const LEAVE_TYPES = new Set(['concediu de odihna','concediu medical','concediu pentru ore suplimentare']);
     actSel.addEventListener('change', () => {
       const isLeave = LEAVE_TYPES.has((actSel.value||'').toLowerCase());
@@ -756,10 +763,65 @@ async function sendLeave(payload) {
       disableTimeButtons(isLeave);
     });
 
+    // butoane acțiuni
     wireButtons();
 
-    // NU afișăm totaluri la inițializare
-    totalsCard.style.display = 'none';
+    // buton concedii
+    document.getElementById('btnLeave').addEventListener('click', async () => {
+      setLeaveStatus('', '');
+      if (!empSel.value) { setLeaveStatus('Selectează angajat.', 'err'); return; }
+      const tip = (actSel.value || '').toLowerCase();
+      if (!LEAVE_TYPES.has(tip)) { setLeaveStatus('Alege un tip de concediu.', 'err'); return; }
+      const sd = leaveStart.value;
+      const ed = leaveEnd.value;
+      if (!sd || !ed) { setLeaveStatus('Completează intervalul (start și sfârșit).', 'err'); return; }
+      if (ed < sd) { setLeaveStatus('Data de sfârșit nu poate fi înainte de start.', 'err'); return; }
+      const email = (leaveEmail.value || '').trim();
+      if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { setLeaveStatus('Email personal invalid.', 'err'); return; }
+
+      setLeaveStatus('Se trimite cererea…', '');
+
+      // optional: Google Form
+      let formSubmitted = false;
+      if (CFG.leaveFormAction && CFG.leaveFields) {
+        try {
+          document.getElementById('lv_name').value  = empSel.value;
+          document.getElementById('lv_type').value  = tip;
+          document.getElementById('lv_email').value = email;
+          document.getElementById('lv_start').value = sd;
+          document.getElementById('lv_end').value   = ed;
+          document.getElementById('lv_notes').value = (leaveNotes.value || '');
+          document.getElementById('lv_ts').value    = new Date().toISOString();
+          document.getElementById('leaveForm').submit();
+          formSubmitted = true;
+        } catch (e) { console.warn('Leave Form submit failed', e); }
+      }
+
+      // endpoint WebApp
+      let endpointOk = false, endpointMsg = '';
+      if (CFG.leaveEndpoint) {
+        try {
+          const payload = {
+            name: empSel.value,
+            activityType: tip,
+            startDate: sd,
+            endDate: ed,
+            personalEmail: email,
+            notes: (leaveNotes.value || '')
+          };
+          const res = await sendLeave(payload);
+          endpointOk = true;
+          endpointMsg = ' (înregistrată ' + res.zile + ' zile)';
+        } catch (err) { console.warn('Leave endpoint error:', err); }
+      }
+
+      if (formSubmitted || endpointOk) {
+        setLeaveStatus('Cerere trimisă' + endpointMsg + '. HR a fost notificat.', 'ok');
+      } else {
+        setLeaveStatus('Eroare: nu s-a putut trimite cererea (Form/Endpoint).', 'err');
+      }
+    });
+
   })();
 
 })(); // IIFE
