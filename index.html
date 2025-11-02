@@ -195,7 +195,13 @@
         </div>
 
         <div id="status" class="status" role="status" aria-live="polite"></div>
-        <div id="last" class="status mono"></div>
+
+        <!-- NOU: totaluri pe zi pentru angajatul selectat -->
+        <div id="totalsBox" class="status" style="margin-top:6px"></div>
+      
+        
+        <!-- <div id="last" class="status mono"></div> -->
+         <div id="last" class="status mono" style="display:none"></div>
       </div>
 
       <!-- Right: Helper / Summary -->
@@ -504,6 +510,26 @@ async function sendLeave(payload) {
     }
   }
 
+// --- TOTALURI ZILNICE (din backend: doGet?fn=totals&name=...&date=YYYY-MM-DD) ---
+async function fetchTotals(name, dayStr){
+  const base = (CFG.guardEndpoint && CFG.guardEndpoint.trim()) || (CFG.stateEndpoint && CFG.stateEndpoint.trim());
+  if (!base) return null;
+  const url = base + (base.includes('?') ? '&' : '?') + 'fn=totals&name=' + encodeURIComponent(name) + (dayStr ? ('&date='+encodeURIComponent(dayStr)) : '');
+  try{
+    const r = await fetch(url, { cache:'no-store' });
+    const txt = await r.text();
+    const data = JSON.parse(txt);
+    if (data && data.ok && data.totals) return data.totals;
+  }catch(e){}
+  return null;
+}
+function renderTotals(t){
+  const box = document.getElementById('totalsBox');
+  if (!t) { box.textContent = ''; return; }
+  box.innerHTML = `Ziua: <b>${t.day}</b> — Total ore: <b>${Number(t.h||0).toFixed(2)}</b> &nbsp; | &nbsp; Suplimentar (h): <b>${Number(t.ot||0).toFixed(2)}</b> &nbsp; | &nbsp; Extra (h): <b>${Number(t.ex||0).toFixed(2)}</b>`;
+}
+
+  
   function localGuard(action){
     action = _normAction(action);
     const running = STATE.normal.running;
@@ -594,21 +620,25 @@ async function sendLeave(payload) {
     } catch(e){}
   }
 
-  async function handleEmployeeChange(){
-    STATE = blankState();
-    STATE.name = empSel.value || '';
-    saveLS();
+ async function handleEmployeeChange(){
+  STATE = blankState();
+  STATE.name = empSel.value || '';
+  saveLS();
 
-    // arată starea curentă
-    setEmp('Se verifică starea...', '');
-    await refreshServerState();
-    reflectState();
+  setEmp('Se verifică starea...', '');
+  await refreshServerState();
+  reflectState();
 
-    if (STATE.normal.running && STATE.normal.paused) setEmp('Ești în PAUSE.', 'warn');
-    else if (STATE.normal.running) setEmp('Ai START activ.', 'ok');
-    else if (STATE.extra.running) setEmp('Ai EXTRA activ.', 'ok');
-    else setEmp('Nicio sesiune deschisă.', '');
-  }
+  if (STATE.normal.running && STATE.normal.paused) setEmp('Ești în PAUSE.', 'warn');
+  else if (STATE.normal.running) setEmp('Ai START activ.', 'ok');
+  else if (STATE.extra.running) setEmp('Ai EXTRA activ.', 'ok');
+  else setEmp('Nicio sesiune deschisă.', '');
+
+  // NOU: afișează totalurile pentru ziua curentă
+  const t = await fetchTotals(STATE.name);
+  renderTotals(t);
+}
+
 
   // ==================== ACTION SUBMIT ====================
   let busy = false;
@@ -652,8 +682,15 @@ async function sendLeave(payload) {
       saveLS();
       reflectState();
       setStatus(`Trimis ✓ (${_normAction(action).toUpperCase()}). Verifică Google Sheet.`, 'ok');
-      lastEl.textContent = JSON.stringify({action:_normAction(action), timestamp: ts, angajat: empSel.value, activitate: actSel.value, locatie: document.getElementById('locationInput').value.trim(), ...gps}, null, 2);
+      // lastEl.textContent = JSON.stringify({action:_normAction(action), timestamp: ts, angajat: empSel.value, activitate: actSel.value, locatie: document.getElementById('locationInput').value.trim(), ...gps}, null, 2);
 
+      // Dacă acțiunea e FINISH sau EXTRA_FINISH -> adu totalurile și afișează-le
+if (['finish','extra_finish'].includes(_normAction(action))) {
+  try {
+    const t = await fetchTotals(empSel.value.trim());
+    renderTotals(t);
+  } catch(_) {}
+}
       setTimeout(async ()=>{
         await refreshServerState();
         reflectState();
