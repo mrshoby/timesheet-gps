@@ -18,7 +18,7 @@
   "stateEndpoint": "https://script.google.com/macros/s/AKfycbzEbPv1oQ31Ge9KNL5w-XH6vUyg3q4BRSuial5Vwz6_Gnj86dZcTRzzYxfcc-X5NgBP/exec?fn=state",
   "guardEndpoint": "https://script.google.com/macros/s/AKfycbzEbPv1oQ31Ge9KNL5w-XH6vUyg3q4BRSuial5Vwz6_Gnj86dZcTRzzYxfcc-X5NgBP/exec?fn=guard",
   "departmentsCsv": "https://raw.githubusercontent.com/mrshoby/timesheet-gps/main/departments.csv",
-  "employeesCsv": "https://raw.githubusercontent.com/mrshoby/timesheet-gps/main/employees.csv",
+  
   "employees": [
     "Ion Popescu",
     "Maria Ionescu",
