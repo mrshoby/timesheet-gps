@@ -97,9 +97,9 @@
       background: #0f172a; color: #fff; border-radius: 14px; padding: 14px 16px;
       box-shadow: 0 20px 50px rgba(2,6,23,.35); display:none; font-size:14px
     }
-    .toast.ok{ background:#166534 }     /* verde */
-    .toast.warn{ background:#a16207 }   /* galben */
-    .toast.err{ background:#991b1b }    /* roșu */
+    .toast.ok{ background:#166534 }
+    .toast.warn{ background:#a16207 }
+    .toast.err{ background:#991b1b }
     .toast .small{opacity:.85;font-size:12px;margin-top:4px}
   </style>
 </head>
@@ -121,9 +121,14 @@
           <span class="dot" aria-hidden="true"></span>
           <h2>Înregistrare activitate</h2>
         </header>
-        <p class="sub">Alege <b>Angajat</b>, <b>Tip de activitate</b>, completează <b>Locația</b> și (opțional) o <b>Notă</b>. Apoi folosește butoanele de mai jos.</p>
+        <p class="sub">Alege <b>Departament</b> → <b>Angajat</b>, apoi <b>Tip de activitate</b>, completează <b>Locația</b> și (opțional) o <b>Notă</b>. Apoi folosește butoanele de mai jos.</p>
 
         <div class="grid cols-3">
+          <div>
+            <label for="deptSelect">Departament</label>
+            <select id="deptSelect"><option value="" selected disabled>Alege departamentul...</option></select>
+          </div>
+
           <div>
             <label for="employeeSelect">Angajat</label>
             <select id="employeeSelect"><option>Se încarcă...</option></select>
@@ -260,6 +265,8 @@
     <input type="hidden" id="f_device" />
     <input type="hidden" id="f_notes" />
     <input type="hidden" id="f_maps" />
+    <!-- nou: departament -->
+    <input type="hidden" id="f_department" />
   </form>
 
   <!-- Fallback inline employees list -->
@@ -313,6 +320,7 @@ async function sendLeave(payload) {
   const cfgEl = document.getElementById('cfg');
   const notesEl = document.getElementById('notes');
   const locInput = document.getElementById('locationInput');
+  const deptSel = document.getElementById('deptSelect');
   const empSel = document.getElementById('employeeSelect');
   const actSel = document.getElementById('activitySelect');
   const empStatus = document.getElementById('empStatus');
@@ -369,7 +377,9 @@ async function sendLeave(payload) {
       'f_acc':      names.accuracy,
       'f_device':   names.device,
       'f_notes':    names.notes,
-      'f_maps':     names.mapsLink
+      'f_maps':     names.mapsLink,
+      // nou: dacă există în config.json -> fields.department
+      'f_department': names.department || ''
     };
     Object.entries(idMap).forEach(([id,name]) => {
       const el = document.getElementById(id);
@@ -397,7 +407,9 @@ async function sendLeave(payload) {
     return true;
   }
 
-  /** ===== EMPLOYAȚI ===== */
+  /** ===== EMPLOYAȚI & DEPARTAMENTE ===== */
+
+  // Employees CSV (folosit doar ca fallback)
   function parseEmployeesCSV(text){
     if (text && text.charCodeAt && text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
     text = (text || '').replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim();
@@ -429,48 +441,105 @@ async function sendLeave(payload) {
     if (!el) return [];
     return el.textContent.split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
   }
-  async function loadEmployees() {
-    try {
-      if (CFG.employeesCsv) {
-        const url = CFG.employeesCsv + (CFG.employeesCsv.includes('?') ? '&' : '?') + 'v=' + Date.now();
-        const r = await fetch(url, {cache:'no-store'});
-        if (r.ok) {
-          const txt = await r.text();
-          const list = parseEmployeesCSV(txt);
-          if (list.length) { fillEmployees(list); setEmp('Angajați încărcați din employeesCsv.', 'ok'); return; }
-        }
-      }
-    } catch(e){}
-    try {
-      const raw = 'https://raw.githubusercontent.com/mrshoby/timesheet-gps/main/employees.csv?v=' + Date.now();
-      const r2 = await fetch(raw, {cache:'no-store'});
-      if (r2.ok) {
-        const txt2 = await r2.text();
-        const list2 = parseEmployeesCSV(txt2);
-        if (list2.length) { fillEmployees(list2); setEmp('Angajați încărcați din RAW GitHub.', 'ok'); return; }
-      }
-    } catch(e){}
-    if (Array.isArray(CFG.employees) && CFG.employees.length) {
-      fillEmployees(CFG.employees);
-      setEmp('Angajați încărcați din config.json.', 'ok');
-      return;
+
+  // Departments CSV (sursa principală)
+  function parseDepartmentsCSV(text){
+    if (text && text.charCodeAt && text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
+    text = (text || '').replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim();
+    if (!text) return { byDept:new Map(), byName:new Map(), deptList:[] };
+
+    const lines = text.split('\n').filter(Boolean);
+    // suportă , sau ;
+    const sep = (text.indexOf(';') > -1 && (text.indexOf(';') < text.indexOf(','))) ? ';' : ',';
+
+    let start = 0, depCol = 0, nameCol = 1;
+    const hdr = lines[0].split(sep).map(s=>s.trim().replace(/^"|"$/g,'').toLowerCase());
+    if (hdr.some(h => /depart|dept/.test(h)) || hdr.some(h => /angajat|nume|employee|name/.test(h))) {
+      const d = hdr.findIndex(h => /depart|dept/.test(h));
+      const n = hdr.findIndex(h => /angajat|nume|employee|name/.test(h));
+      if (d >= 0) depCol = d;
+      if (n >= 0) nameCol = n;
+      start = 1;
     }
-    const inline = getInlineEmployees();
-    if (inline.length) {
-      fillEmployees(inline);
-      setEmp('Angajați încărcați din fallback inline.', 'ok');
-      return;
+
+    const byDept = new Map();
+    const byName = new Map();
+
+    for (let i=start;i<lines.length;i++){
+      const cells = lines[i].split(sep).map(s=>s.trim().replace(/^"|"$/g,''));
+      const dep = (cells[depCol]||'').trim();
+      const nm  = (cells[nameCol]||'').trim();
+      if (!dep || !nm) continue;
+      if (!byDept.has(dep)) byDept.set(dep, []);
+      byDept.get(dep).push(nm);
+      byName.set(nm, dep);
     }
-    fillEmployees([]);
-    setEmp('Nu am putut încărca lista de angajați.', 'err');
+
+    const deptList = Array.from(byDept.keys()).sort((a,b)=>a.localeCompare(b,'ro'));
+    for (const d of byDept.keys()) byDept.get(d).sort((a,b)=>a.localeCompare(b,'ro'));
+    return { byDept, byName, deptList };
   }
-  function fillEmployees(list){
+
+  // State pentru departamente
+  let DEPTMAP = { byDept:new Map(), byName:new Map(), deptList:[] };
+
+  function fillDepartments(deptList){
+    deptSel.innerHTML = '';
+    const ph = document.createElement('option');
+    ph.value=''; ph.textContent='Alege departamentul...'; ph.disabled = true; ph.selected = true;
+    deptSel.appendChild(ph);
+    deptList.forEach(d => { const o=document.createElement('option'); o.value=d; o.textContent=d; deptSel.appendChild(o); });
+  }
+
+  function fillEmployeesFromDept(dept){
     const sel = empSel;
     sel.innerHTML = '';
     const ph = document.createElement('option');
-    ph.value=''; ph.textContent='Alege angajat…'; ph.disabled = true; ph.selected = true;
+    ph.value=''; ph.textContent= dept ? 'Alege angajat…' : 'Alege departamentul mai întâi…';
+    ph.disabled = true; ph.selected = true;
     sel.appendChild(ph);
+    if (!dept) return;
+    const list = (DEPTMAP.byDept.get(dept) || []);
     list.forEach(v => { const o=document.createElement('option'); o.value=v; o.textContent=v; sel.appendChild(o); });
+  }
+
+  async function loadDepartments(){
+    // 1) Încearcă departmentsCsv din config
+    try{
+      if (CFG.departmentsCsv){
+        const url = CFG.departmentsCsv + (CFG.departmentsCsv.includes('?') ? '&' : '?') + 'v=' + Date.now();
+        const r = await fetch(url, {cache:'no-store'});
+        if (r.ok){
+          const txt = await r.text();
+          const map = parseDepartmentsCSV(txt);
+          if (map.deptList.length){
+            DEPTMAP = map;
+            fillDepartments(map.deptList);
+            setEmp('Departamente încărcate din departmentsCsv.', 'ok');
+            return;
+          }
+        }
+      }
+    }catch(e){}
+
+    // 2) Fallback: dacă nu există departments.csv, construim “productie” din employeesCsv/config/inline
+    let fallbackEmployees = [];
+    try {
+      if (CFG.employeesCsv){
+        const url = CFG.employeesCsv + (CFG.employeesCsv.includes('?') ? '&' : '?') + 'v=' + Date.now();
+        const r = await fetch(url, {cache:'no-store'});
+        if (r.ok) fallbackEmployees = parseEmployeesCSV(await r.text());
+      }
+    } catch(e){}
+    if (!fallbackEmployees.length && Array.isArray(CFG.employees)) fallbackEmployees = CFG.employees.slice();
+    if (!fallbackEmployees.length) fallbackEmployees = getInlineEmployees();
+
+    const byDept = new Map([['productie', fallbackEmployees]]);
+    const byName = new Map(fallbackEmployees.map(nm => [nm, 'productie']));
+    const deptList = ['productie'];
+    DEPTMAP = { byDept, byName, deptList };
+    fillDepartments(deptList);
+    setEmp('Nu există departmentsCsv — folosesc „productie”.', 'warn');
   }
 
   /** ===== STATE (UI + server) ===== */
@@ -479,13 +548,14 @@ async function sendLeave(payload) {
     const paused  = STATE.normal.paused;
     const extraR  = STATE.extra.running;
 
-    btnStart.disabled       = !empSel.value || running || extraR;
-    btnPause.disabled       = !empSel.value || !running || paused;
-    btnUnpause.disabled     = !empSel.value || !running || !paused;
-    btnFinish.disabled      = !empSel.value || !running;
+    const hasSel = !!empSel.value;
+    btnStart.disabled       = !hasSel || running || extraR;
+    btnPause.disabled       = !hasSel || !running || paused;
+    btnUnpause.disabled     = !hasSel || !running || !paused;
+    btnFinish.disabled      = !hasSel || !running;
 
-    btnExtraStart.disabled  = !empSel.value || running || extraR;
-    btnExtraFinish.disabled = !empSel.value || !extraR;
+    btnExtraStart.disabled  = !hasSel || running || extraR;
+    btnExtraFinish.disabled = !hasSel || !extraR;
   }
   function disableTimeButtons(disabled) {
     [btnStart,btnPause,btnUnpause,btnFinish,btnExtraStart,btnExtraFinish].forEach(el=>{
@@ -508,20 +578,19 @@ async function sendLeave(payload) {
     try { return JSON.parse(txt).state || null; } catch { return null; }
   }
 
- // === nou: fetch stats (Azi) pentru numele curent — curăță ?query din endpoint
-async function fetchStats(name){
-  const rawBase = (CFG.guardEndpoint && CFG.guardEndpoint.trim()) || (CFG.stateEndpoint && CFG.stateEndpoint.trim());
-  if (!rawBase) return null;
-  const base = rawBase.replace(/\?.*$/,''); // scoate ?fn=... deja existent
-  const url = base + '?fn=stats&name=' + encodeURIComponent(name);
-  try{
-    const r = await fetch(url, { cache:'no-store' });
-    const txt = await r.text();
-    try { const data = JSON.parse(txt); return data && data.ok ? data.stats : null; }
-    catch { return null; }
-  }catch{ return null; }
-}
-
+  // Stats (Azi)
+  async function fetchStats(name){
+    const rawBase = (CFG.guardEndpoint && CFG.guardEndpoint.trim()) || (CFG.stateEndpoint && CFG.stateEndpoint.trim());
+    if (!rawBase) return null;
+    const base = rawBase.replace(/\?.*$/,'');
+    const url = base + '?fn=stats&name=' + encodeURIComponent(name);
+    try{
+      const r = await fetch(url, { cache:'no-store' });
+      const txt = await r.text();
+      try { const data = JSON.parse(txt); return data && data.ok ? data.stats : null; }
+      catch { return null; }
+    }catch{ return null; }
+  }
 
   async function guardRemote(name, action){
     const base = (CFG.guardEndpoint && CFG.guardEndpoint.trim()) || (CFG.stateEndpoint && CFG.stateEndpoint.trim());
@@ -617,6 +686,10 @@ async function fetchStats(name){
     document.getElementById('f_device').value    = navigator.userAgent;
     document.getElementById('f_notes').value     = (document.getElementById('notes').value || '');
     document.getElementById('f_maps').value      = `https://maps.google.com/?q=${gps.lat},${gps.lon}`;
+
+    // nou: trimitem și departamentul (din select sau din mapare byName)
+    const deptFromMap = DEPTMAP.byName.get(empSel.value) || '';
+    document.getElementById('f_department').value = (deptSel.value || deptFromMap || '');
   }
 
   async function refreshServerState(){ 
@@ -636,7 +709,6 @@ async function fetchStats(name){
     STATE.name = empSel.value || '';
     saveLS();
 
-    // arată doar starea, FĂRĂ rezumat ore
     setEmp('Se verifică starea...', '');
     await refreshServerState();
     reflectState();
@@ -652,8 +724,9 @@ async function fetchStats(name){
 
   async function submitAction(action) {
     if (busy) return;
-    if (!empSel.value) { setStatus('Selectează angajat.', 'err'); return; }
-    if (!actSel.value) { setStatus('Alege tip de activitate.', 'err'); return; }
+    if (!deptSel.value) { setStatus('Alege departamentul.', 'err'); return; }
+    if (!empSel.value)  { setStatus('Selectează angajat.', 'err'); return; }
+    if (!actSel.value)  { setStatus('Alege tip de activitate.', 'err'); return; }
     if (!document.getElementById('locationInput').value.trim()) { setStatus('Scrie o locație.', 'err'); document.getElementById('locationInput').focus(); return; }
 
     if (['concediu de odihna','concediu medical','concediu pentru ore suplimentare'].includes((actSel.value||'').toLowerCase())){
@@ -663,11 +736,9 @@ async function fetchStats(name){
 
     setStatus('Verific starea…');
 
-    // 1) gard local
     const lg = localGuard(action);
     if (lg) { setStatus(lg, 'warn'); return; }
 
-    // 2) gard server
     const g = await guardRemote(empSel.value.trim(), action);
     if (!g.ok) { setStatus(g.msg || 'Acțiune blocată de regulile de pontaj.', 'warn'); return; }
 
@@ -680,20 +751,14 @@ async function fetchStats(name){
       const gps = { lat: pos.coords.latitude, lon: pos.coords.longitude, acc: Math.round(pos.coords.accuracy || 0) };
       const ts = new Date().toISOString();
 
-      // 3) submit către Google Form
       setFormPayload(action, ts, gps);
       form.submit();
 
-      // 4) actualizăm local & UI
       applyLocalTransition(action, ts);
       saveLS();
       reflectState();
       setStatus(`Trimis ✓ (${_normAction(action).toUpperCase()}).`, 'ok');
-      // NU mai afișăm JSON-ul
-      // document.getElementById('last').textContent = ...
 
-      // 5) după ce calculele din Sheet se refac (buildDailySummary),
-      // cerem stats DOAR pentru userul curent și Afișăm toast privat
       const act = _normAction(action);
       setTimeout(async ()=>{
         await refreshServerState();
@@ -747,15 +812,27 @@ async function fetchStats(name){
 
     bindCFGToForm();
     bindLeaveForm();
-    await loadEmployees();
+
+    // Încarcă departamentele (sursa primară) + populează employees după departament
+    await loadDepartments();
+    fillEmployeesFromDept(''); // placeholder până alegi departamentul
 
     // restaurăm starea locală
     const cached = loadLS();
     if (cached) STATE = Object.assign(blankState(), cached);
 
-    // hook pentru schimbare angajat — fără rezumat!
+    // când schimb departamentul, re-populez angajații și resetez starea selectată
+    deptSel.addEventListener('change', () => {
+      fillEmployeesFromDept(deptSel.value);
+      if (empSel.value && (DEPTMAP.byName.get(empSel.value) !== deptSel.value)) {
+        empSel.value = '';
+      }
+      STATE = blankState(); STATE.name = '';
+      reflectState(); setEmp('', '');
+    });
+
+    // schimbare angajat — doar starea
     empSel.addEventListener('change', handleEmployeeChange);
-    if (empSel.value) { handleEmployeeChange(); }
 
     // toggle concedii
     const LEAVE_TYPES = new Set(['concediu de odihna','concediu medical','concediu pentru ore suplimentare']);
@@ -771,7 +848,8 @@ async function fetchStats(name){
     // buton concedii
     document.getElementById('btnLeave').addEventListener('click', async () => {
       setLeaveStatus('', '');
-      if (!empSel.value) { setLeaveStatus('Selectează angajat.', 'err'); return; }
+      if (!deptSel.value) { setLeaveStatus('Alege departamentul.', 'err'); return; }
+      if (!empSel.value)  { setLeaveStatus('Selectează angajat.', 'err'); return; }
       const tip = (actSel.value || '').toLowerCase();
       if (!LEAVE_TYPES.has(tip)) { setLeaveStatus('Alege un tip de concediu.', 'err'); return; }
       const sd = leaveStart.value;
