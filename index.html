@@ -170,7 +170,22 @@
 
         <!-- Leave panel -->
         <div id="leavePanel" class="leave" style="display:none;margin-top:16px">
-          <div class="kicker"><b>Cerere concediu</b> — completează intervalul de zile, emailul personal și o notă. Se trimite automat la HR.</div>
+          <div class="kicker"><b>Cerere concediu</b> — adaugă <b>zile individuale</b> de concediu, apoi completează emailul personal și (opțional) o notă. Se trimite automat la HR.</div>
+
+  <div class="grid cols-3" id="leaveDaysBlock">
+    <div>
+      <label for="leaveDay">Zi concediu</label>
+      <input type="date" id="leaveDay" />
+    </div>
+    <div>
+      <label>&nbsp;</label>
+      <button id="btnAddDay" class="btn extra" type="button" style="width:100%">Adaugă zi</button>
+    </div>
+    <div>
+      <label>Zile selectate</label>
+      <div id="leaveDaysList" class="status" style="min-height:44px"></div>
+    </div>
+  </div>
           <div class="grid cols-3">
             <div>
               <label for="leaveStart">Data start</label>
@@ -332,6 +347,40 @@ async function sendLeave(payload) {
   const leaveEmail = document.getElementById('leaveEmail');
   const leaveNotes = document.getElementById('leaveNotes');
   const leaveStatus = document.getElementById('leaveStatus');
+  // Per-day leave selection
+  const leaveDay = document.getElementById('leaveDay');
+  const leaveDaysList = document.getElementById('leaveDaysList');
+  const btnAddDay = document.getElementById('btnAddDay');
+  let LEAVE_DAYS = [];
+
+  function renderLeaveDays() {
+    if (!leaveDaysList) return;
+    leaveDaysList.innerHTML = '';
+    if (!LEAVE_DAYS.length) { leaveDaysList.textContent = 'Nicio zi adăugată.'; return; }
+    // sort and deduplicate
+    LEAVE_DAYS = Array.from(new Set(LEAVE_DAYS)).sort();
+    LEAVE_DAYS.forEach((d, idx) => {
+      const chip = document.createElement('span');
+      chip.className = 'chip';
+      chip.style.marginRight = '6px';
+      chip.innerHTML = d + ' <button type="button" data-idx="'+idx+'" style="all:unset;cursor:pointer;font-weight:700">×</button>';
+      leaveDaysList.appendChild(chip);
+    });
+  }
+  if (btnAddDay) btnAddDay.addEventListener('click', () => {
+    const d = (leaveDay && leaveDay.value || '').trim();
+    if (!d) { setLeaveStatus('Alege o zi.', 'err'); return; }
+    if (!LEAVE_DAYS.includes(d)) LEAVE_DAYS.push(d);
+    setLeaveStatus('', '');
+    renderLeaveDays();
+  });
+  if (leaveDaysList) leaveDaysList.addEventListener('click', (ev) => {
+    const b = ev.target && ev.target.closest && ev.target.closest('button[data-idx]');
+    if (!b) return;
+    const i = +b.getAttribute('data-idx');
+    if (!isNaN(i)) { LEAVE_DAYS.splice(i,1); renderLeaveDays(); }
+  });
+
 
   const btnStart = document.getElementById('btnStart');
   const btnPause = document.getElementById('btnPause');
@@ -840,6 +889,7 @@ async function sendLeave(payload) {
       const isLeave = LEAVE_TYPES.has((actSel.value||'').toLowerCase());
       leavePanel.style.display = isLeave ? '' : 'none';
       disableTimeButtons(isLeave);
+      if (isLeave) { LEAVE_DAYS = []; renderLeaveDays(); setLeaveStatus('', ''); }
     });
 
     // butoane acțiuni
@@ -854,8 +904,11 @@ async function sendLeave(payload) {
       if (!LEAVE_TYPES.has(tip)) { setLeaveStatus('Alege un tip de concediu.', 'err'); return; }
       const sd = leaveStart.value;
       const ed = leaveEnd.value;
-      if (!sd || !ed) { setLeaveStatus('Completează intervalul (start și sfârșit).', 'err'); return; }
-      if (ed < sd) { setLeaveStatus('Data de sfârșit nu poate fi înainte de start.', 'err'); return; }
+      const hasDays = Array.isArray(LEAVE_DAYS) && LEAVE_DAYS.length > 0;
+      if (!hasDays) {
+        if (!sd || !ed) { setLeaveStatus('Adaugă cel puțin o zi de concediu sau completează intervalul (start–sfârșit).', 'err'); return; }
+        if (ed < sd) { setLeaveStatus('Data de sfârșit nu poate fi înainte de start.', 'err'); return; }
+      }
       const email = (leaveEmail.value || '').trim();
       if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { setLeaveStatus('Email personal invalid.', 'err'); return; }
 
@@ -868,8 +921,11 @@ async function sendLeave(payload) {
           document.getElementById('lv_name').value  = empSel.value;
           document.getElementById('lv_type').value  = tip;
           document.getElementById('lv_email').value = email;
-          document.getElementById('lv_start').value = sd;
-          document.getElementById('lv_end').value   = ed;
+          const _daysSorted = hasDays ? LEAVE_DAYS.slice().sort() : [];
+          const _first = hasDays ? _daysSorted[0] : sd;
+          const _last  = hasDays ? _daysSorted[_daysSorted.length-1] : ed;
+          document.getElementById('lv_start').value = _first;
+          document.getElementById('lv_end').value   = _last;
           document.getElementById('lv_notes').value = (leaveNotes.value || '');
           document.getElementById('lv_ts').value    = new Date().toISOString();
           document.getElementById('leaveForm').submit();
@@ -881,11 +937,15 @@ async function sendLeave(payload) {
       let endpointOk = false, endpointMsg = '';
       if (CFG.leaveEndpoint) {
         try {
+          const _daysSorted = hasDays ? LEAVE_DAYS.slice().sort() : [];
+          const _first = hasDays ? _daysSorted[0] : sd;
+          const _last  = hasDays ? _daysSorted[_daysSorted.length-1] : ed;
           const payload = {
             name: empSel.value,
             activityType: tip,
-            startDate: sd,
-            endDate: ed,
+            startDate: _first,
+            endDate: _last,
+            days: hasDays ? _daysSorted : undefined,
             personalEmail: email,
             notes: (leaveNotes.value || '')
           };
@@ -897,6 +957,7 @@ async function sendLeave(payload) {
 
       if (formSubmitted || endpointOk) {
         setLeaveStatus('Cerere trimisă' + endpointMsg + '. HR a fost notificat.', 'ok');
+        LEAVE_DAYS = []; renderLeaveDays();
       } else {
         setLeaveStatus('Eroare: nu s-a putut trimite cererea (Form/Endpoint).', 'err');
       }
