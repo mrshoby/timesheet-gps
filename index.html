@@ -121,7 +121,8 @@
           <span class="dot" aria-hidden="true"></span>
           <h2>Înregistrare activitate</h2>
         </header>
-        <p class="sub">Alege <b>Departament</b> → <b>Angajat</b>, apoi <b>Tip de activitate</b>, completează <b>Locația</b> și (opțional) o <b>Notă</b>. Apoi folosește butoanele de mai jos.</p>
+        <!-- text actualizat ca să reflecte faptul că locația poate fi opțională -->
+        <p class="sub">Alege <b>Departament</b> → <b>Angajat</b>, apoi <b>Tip de activitate</b>, completează (dacă e cazul) <b>Locația</b> și (opțional) o <b>Notă</b>. Apoi folosește butoanele de mai jos.</p>
 
         <div class="grid cols-3">
           <div>
@@ -221,7 +222,8 @@
         </div>
 
         <!-- EXTRA time buttons -->
-        <div class="btnbar" style="margin-top:8px">
+        <!-- ID NOU PENTRU A PUTEA ASCUNDE BARA LA COMERCIAL -->
+        <div class="btnbar" id="extraBar" style="margin-top:8px">
           <button class="btn extra" id="btnExtraStart" title="Pornește orele extra (separate de suplimentare)">Extra Start</button>
           <button class="btn extra" id="btnExtraFinish" title="Încheie orele extra">Extra Finish</button>
         </div>
@@ -388,6 +390,7 @@ async function sendLeave(payload) {
   const btnFinish = document.getElementById('btnFinish');
   const btnExtraStart = document.getElementById('btnExtraStart');
   const btnExtraFinish = document.getElementById('btnExtraFinish');
+  const extraBar = document.getElementById('extraBar'); // NOU
 
   function setStatus(m, c){ setText(statusEl, m, c); }
   function setCfg(m, c){ setText(cfgEl, m, c); }
@@ -728,12 +731,12 @@ async function sendLeave(payload) {
     document.getElementById('f_timestamp').value = ts;
     document.getElementById('f_name').value      = empSel.value;
     document.getElementById('f_activity').value  = actSel.value;
-    document.getElementById('f_location').value  = (document.getElementById('locationInput').value||'').trim();
+    document.getElementById('f_location').value  = (locInput.value||'').trim();
     document.getElementById('f_lat').value       = gps.lat;
     document.getElementById('f_lon').value       = gps.lon;
     document.getElementById('f_acc').value       = gps.acc;
     document.getElementById('f_device').value    = navigator.userAgent;
-    document.getElementById('f_notes').value     = (document.getElementById('notes').value || '');
+    document.getElementById('f_notes').value     = (notesEl.value || '');
     document.getElementById('f_maps').value      = `https://maps.google.com/?q=${gps.lat},${gps.lon}`;
 
     // nou: trimitem și departamentul (din select sau din mapare byName)
@@ -776,7 +779,23 @@ async function sendLeave(payload) {
     if (!deptSel.value) { setStatus('Alege departamentul.', 'err'); return; }
     if (!empSel.value)  { setStatus('Selectează angajat.', 'err'); return; }
     if (!actSel.value)  { setStatus('Alege tip de activitate.', 'err'); return; }
-    if (!document.getElementById('locationInput').value.trim()) { setStatus('Scrie o locație.', 'err'); document.getElementById('locationInput').focus(); return; }
+
+    const depVal = (deptSel.value || '').toLowerCase();
+    const isComercial = (depVal === 'coemercial' || depVal === 'comercial');
+    const actNorm = _normAction(action);
+
+    // blocăm explicit extra_start/extra_finish pentru departamentul Comercial
+    if (isComercial && (actNorm === 'extra_start' || actNorm === 'extra_finish')) {
+      setStatus('Departamentul Comercial nu poate folosi ore EXTRA.', 'warn');
+      return;
+    }
+
+    // locația este obligatorie doar pentru departamentele non-Comercial
+    if (!isComercial && !locInput.value.trim()) {
+      setStatus('Scrie o locație.', 'err');
+      locInput.focus();
+      return;
+    }
 
     if (['concediu de odihna','concediu medical','concediu pentru ore suplimentare'].includes((actSel.value||'').toLowerCase())){
       setStatus('Pentru concediu folosește „Trimite cererea de concediu”.', 'warn');
@@ -878,7 +897,15 @@ async function sendLeave(payload) {
       }
       STATE = blankState(); STATE.name = '';
       reflectState(); setEmp('', '');
+
+      // NOU: ascund/arat bara EXTRA pentru Comercial
+      const depVal = (deptSel.value || '').toLowerCase();
+      const isComercial = (depVal === 'coemercial' || depVal === 'comercial');
+      if (extraBar) extraBar.style.display = isComercial ? 'none' : '';
     });
+
+    // inițial: extraBar vizibil (nu e ales încă Comercial)
+    if (extraBar) extraBar.style.display = '';
 
     // schimbare angajat — doar starea
     empSel.addEventListener('change', handleEmployeeChange);
