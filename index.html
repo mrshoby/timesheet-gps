@@ -28,7 +28,7 @@
       font-family: Montserrat, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
       color:var(--text);
       background:
-        linear-gradient(90deg,rgba(42, 106, 155, 1) 0%, rgba(87, 87, 199, 1) 50%, rgba(230, 220, 85, 1) 98%, rgba(237, 221, 83, 1) 100%),
+        linear-gradient(180deg, rgba(149, 202, 75, 0.91) 0%, rgba(81, 106, 117, 0.88) 66%),
         url('background.jpg');
       background-size: cover;
       background-position: center center;
@@ -102,7 +102,7 @@
     .toast.err{ background:#991b1b }
     .toast .small{opacity:.85;font-size:12px;margin-top:4px}
 
-    /* >>> ANTI-SPAM/LOCK: cât timp e activ lock-ul, ignorează click-urile pe barele de butoane */
+    /* >>> ANTI-SPAM/LOCK: cât timp e activ lock-ul, barele de butoane ignoră click-urile */
     body.action-lock .btnbar { pointer-events: none; }
     body.action-lock .btnbar .btn { opacity:.6; cursor:not-allowed; }
   </style>
@@ -125,7 +125,7 @@
           <span class="dot" aria-hidden="true"></span>
           <h2>Înregistrare activitate</h2>
         </header>
-        <p class="sub">Alege <b>Departament</b> → <b>Angajat</b>, apoi <b>Tip de activitate</b>, completează (dacă e cazul) <b>Locația</b> și (opțional) o <b>Notă</b>. Apoi folosește butoanele de mai jos.</p>
+        <p class="sub">Alege <b>Departament</b> → <b>Angajat</b>, apoi <b>Tip de activitate</b>, completează <b>Client</b> și (opțional) o <b>Notă</b>. Apoi folosește butoanele de mai jos.</p>
 
         <div class="grid cols-3">
           <div>
@@ -160,7 +160,7 @@
           </div>
 
           <div>
-            <label for="locationInput">Locație</label>
+            <label for="locationInput">Client</label>
             <input id="locationInput" type="text" placeholder="ex: Șantier B – Poartă 2" />
           </div>
         </div>
@@ -225,16 +225,16 @@
         </div>
 
         <!-- EXTRA time buttons -->
-        <div class="btnbar" id="extraBar" style="margin-top:8px">
+        <div class="btnbar" style="margin-top:8px">
           <button class="btn extra" id="btnExtraStart" title="Pornește orele extra (separate de suplimentare)">Extra Start</button>
           <button class="btn extra" id="btnExtraFinish" title="Încheie orele extra">Extra Finish</button>
         </div>
 
         <div id="status" class="status" role="status" aria-live="polite"></div>
+
         <div id="last" class="status mono" style="display:none"></div>
       </div>
 
-      <!-- Right: Helper / Summary -->
       <aside class="card rail">
         <header style="display:flex;align-items:center;gap:10px;margin:4px 0 10px">
           <span class="dot" aria-hidden="true"></span>
@@ -252,7 +252,6 @@
     </section>
   </div>
 
-  <!-- Toast privat -->
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
   <iframe name="hidden_iframe" style="display:none;"></iframe>
@@ -283,10 +282,11 @@
     <input type="hidden" id="f_notes" />
     <input type="hidden" id="f_maps" />
     <input type="hidden" id="f_department" />
-    <!-- opțional: idempotency nonce (nu e folosit în backend, dar nu deranjează) -->
+    <!-- opțional: nonce pentru idempotency -->
     <input type="hidden" id="f_nonce" />
   </form>
 
+  <!-- Fallback inline employees list -->
   <script type="text/plain" id="employees-inline">
 Ion Popescu
 Maria Ionescu
@@ -333,18 +333,15 @@ async function sendLeave(payload) {
 }
 
 /* >>> ANTI-SPAM/LOCK utils */
-const CLICK_COOLDOWN_MS = 1200;      // după o acțiune reactivăm butoanele cu un mic cooldown
-const GUARD_MIN_LOCK_MS = 600;       // ne asigurăm că lock-ul stă măcar atât (vizual & pentru double-tap iOS)
+const CLICK_COOLDOWN_MS = 1200;
+const GUARD_MIN_LOCK_MS = 600;
 let busy = false;
 let lastActionAt = 0;
-function setUILock(on){
-  if (on) document.body.classList.add('action-lock');
-  else document.body.classList.remove('action-lock');
-}
+function setUILock(on){ document.body.classList.toggle('action-lock', !!on); }
 function sleep(ms){ return new Promise(res => setTimeout(res, ms)); }
 function geolocateOnce(){
   return new Promise((resolve, reject) => {
-    if (!('geolocation' in navigator)) return reject(new Error('Geolocație indisponibilă.'));
+    if (!('geolocation' in navigator)) return reject(new Error('Geolocație indisponibilă pe acest dispozitiv.'));
     navigator.geolocation.getCurrentPosition(
       pos => resolve({
         lat: pos.coords.latitude,
@@ -577,6 +574,13 @@ function randomNonce(){ return Math.random().toString(36).slice(2) + Date.now().
   }
 
   /** ===== STATE (UI + server) ===== */
+  const btnStart = document.getElementById('btnStart');
+  const btnPause = document.getElementById('btnPause');
+  const btnUnpause = document.getElementById('btnUnpause');
+  const btnFinish = document.getElementById('btnFinish');
+  const btnExtraStart = document.getElementById('btnExtraStart');
+  const btnExtraFinish = document.getElementById('btnExtraFinish');
+
   function reflectState(){
     const running = STATE.normal.running;
     const paused  = STATE.normal.paused;
@@ -721,7 +725,7 @@ function randomNonce(){ return Math.random().toString(36).slice(2) + Date.now().
     document.getElementById('f_maps').value      = `https://maps.google.com/?q=${gps.lat},${gps.lon}`;
     const deptFromMap = DEPTMAP.byName.get(empSel.value) || '';
     document.getElementById('f_department').value = (deptSel.value || deptFromMap || '');
-    document.getElementById('f_nonce').value      = randomNonce(); // idempotency helper (opțional)
+    document.getElementById('f_nonce').value      = randomNonce();
   }
 
   async function refreshServerState(){ 
@@ -751,30 +755,16 @@ function randomNonce(){ return Math.random().toString(36).slice(2) + Date.now().
     else setEmp('Nicio sesiune deschisă.', '');
   }
 
-  // ==================== ACTION SUBMIT (cu LOCK anti-spam) ====================
+  // ==================== ACTION SUBMIT cu LOCK ====================
   async function submitAction(action) {
     const now = Date.now();
-    if (busy) return;                                           // deja rulează ceva
-    if (now - lastActionAt < CLICK_COOLDOWN_MS) return;         // cooldown anti-spam
+    if (busy) return;
+    if (now - lastActionAt < CLICK_COOLDOWN_MS) return;
 
-    // Validări rapide (sincrone)
     if (!deptSel.value) { setStatus('Alege departamentul.', 'err'); return; }
     if (!empSel.value)  { setStatus('Selectează angajat.', 'err'); return; }
     if (!actSel.value)  { setStatus('Alege tip de activitate.', 'err'); return; }
-
-    const depVal = (deptSel.value || '').toLowerCase();
-    const isComercial = (depVal === 'coemercial' || depVal === 'comercial');
-    const actNorm = _normAction(action);
-
-    if (isComercial && (actNorm === 'extra_start' || actNorm === 'extra_finish')) {
-      setStatus('Departamentul Comercial nu poate folosi ore EXTRA.', 'warn');
-      return;
-    }
-    if (!isComercial && !document.getElementById('locationInput').value.trim()) {
-      setStatus('Scrie o locație.', 'err');
-      document.getElementById('locationInput').focus();
-      return;
-    }
+    if (!locInput.value.trim()) { setStatus('Scrie clientul.', 'err'); locInput.focus(); return; }
     if (['concediu de odihna','concediu medical','concediu pentru ore suplimentare'].includes((actSel.value||'').toLowerCase())){
       setStatus('Pentru concediu folosește „Trimite cererea de concediu”.', 'warn');
       return;
@@ -783,7 +773,7 @@ function randomNonce(){ return Math.random().toString(36).slice(2) + Date.now().
     const lg = localGuard(action);
     if (lg) { setStatus(lg, 'warn'); return; }
 
-    // >>> ANTI-SPAM/LOCK: activăm lock-ul ÎNAINTE de primul await
+    // pornim LOCK-ul înainte de primul await
     busy = true;
     setUILock(true);
     disableAllButtons(true);
@@ -791,12 +781,8 @@ function randomNonce(){ return Math.random().toString(36).slice(2) + Date.now().
     setStatus('Verific starea…', '');
 
     try {
-      // Guard la server (idempotent logic)
       const g = await guardRemote(empSel.value.trim(), action);
-      if (!g.ok) {
-        setStatus(g.msg || 'Acțiune blocată de regulile de pontaj.', 'warn');
-        return;
-      }
+      if (!g.ok) { setStatus(g.msg || 'Acțiune blocată de regulile de pontaj.', 'warn'); return; }
 
       setStatus('Se obține locația GPS…', '');
       const gps = await geolocateOnce();
@@ -810,85 +796,40 @@ function randomNonce(){ return Math.random().toString(36).slice(2) + Date.now().
       reflectState();
       setStatus(`Trimis ✓ (${_normAction(action).toUpperCase()}).`, 'ok');
 
-      // mică pauză pentru a permite Apps Script-ului să proceseze
       await sleep(1200);
       await refreshServerState();
 
       try {
         const stats = await fetchStats(empSel.value.trim());
+        const act = _normAction(action);
         if (stats){
-          if (actNorm === 'finish'){
-            showToast(
-              `<b>${empSel.value}</b><div class="small">Azi — Ore: <b>${stats.totalHours}</b> h • Suplimentar: <b>${stats.overtime}</b> h</div>`,
-              'ok'
-            );
-          } else if (actNorm === 'extra_finish'){
-            showToast(
-              `<b>${empSel.value}</b><div class="small">Azi — Extra: <b>${stats.extra}</b> h</div>`,
-              'ok'
-            );
+          if (act === 'finish'){
+            showToast(`<b>${empSel.value}</b><div class="small">Azi — Ore: <b>${stats.totalHours}</b> h • Suplimentar: <b>${stats.overtime}</b> h</div>`, 'ok');
+          } else if (act === 'extra_finish'){
+            showToast(`<b>${empSel.value}</b><div class="small">Azi — Extra: <b>${stats.extra}</b> h</div>`, 'ok');
           }
         }
       } catch {}
-
     } catch (err) {
       setStatus(String(err && err.message ? err.message : err), 'err');
     } finally {
-      // menținem lock-ul măcar GUARD_MIN_LOCK_MS pentru a prinde double-tap iOS
       const elapsed = Date.now() - lockStart;
       if (elapsed < GUARD_MIN_LOCK_MS) await sleep(GUARD_MIN_LOCK_MS - elapsed);
       lastActionAt = Date.now();
-      await sleep(CLICK_COOLDOWN_MS); // cooldown scurt înainte de a permite o altă acțiune
+      await sleep(CLICK_COOLDOWN_MS);
       busy = false;
       setUILock(false);
       disableAllButtons(false);
     }
   }
 
-  // ===== Leave (UI mic pentru zile individuale)
-  function renderLeaveDays() {
-    if (!leaveDaysList) return;
-    leaveDaysList.innerHTML = '';
-    if (!LEAVE_DAYS.length) { leaveDaysList.textContent = 'Nicio zi adăugată.'; return; }
-    LEAVE_DAYS = Array.from(new Set(LEAVE_DAYS)).sort();
-    LEAVE_DAYS.forEach((d, idx) => {
-      const chip = document.createElement('span');
-      chip.className = 'chip';
-      chip.style.marginRight = '6px';
-      chip.innerHTML = d + ' <button type="button" data-idx="'+idx+'" style="all:unset;cursor:pointer;font-weight:700">×</button>';
-      leaveDaysList.appendChild(chip);
-    });
-  }
-  if (btnAddDay) btnAddDay.addEventListener('click', () => {
-    const d = (leaveDay && leaveDay.value || '').trim();
-    if (!d) { setLeaveStatus('Alege o zi.', 'err'); return; }
-    if (!LEAVE_DAYS.includes(d)) LEAVE_DAYS.push(d);
-    setLeaveStatus('', '');
-    renderLeaveDays();
-  });
-  if (leaveDaysList) leaveDaysList.addEventListener('click', (ev) => {
-    const b = ev.target && ev.target.closest && ev.target.closest('button[data-idx]');
-    if (!b) return;
-    const i = +b.getAttribute('data-idx');
-    if (!isNaN(i)) { LEAVE_DAYS.splice(i,1); renderLeaveDays(); }
-  });
-
-  const btnStart = document.getElementById('btnStart');
-  const btnPause = document.getElementById('btnPause');
-  const btnUnpause = document.getElementById('btnUnpause');
-  const btnFinish = document.getElementById('btnFinish');
-  const btnExtraStart = document.getElementById('btnExtraStart');
-  const btnExtraFinish = document.getElementById('btnExtraFinish');
-  const extraBar = document.getElementById('extraBar');
-
   function wireButtons(){
-    // folosim click; lock-ul previne orice dubluri, inclusiv apăsări foarte rapide
-    btnStart.addEventListener('click', ()=>submitAction('start'));
-    btnPause.addEventListener('click', ()=>submitAction('pause'));
-    btnUnpause.addEventListener('click', ()=>submitAction('unpause'));
-    btnFinish.addEventListener('click', ()=>submitAction('finish'));
-    btnExtraStart.addEventListener('click', ()=>submitAction('extra_start'));
-    btnExtraFinish.addEventListener('click', ()=>submitAction('extra_finish'));
+    document.getElementById('btnStart').addEventListener('click', ()=>submitAction('start'));
+    document.getElementById('btnPause').addEventListener('click', ()=>submitAction('pause'));
+    document.getElementById('btnUnpause').addEventListener('click', ()=>submitAction('unpause'));
+    document.getElementById('btnFinish').addEventListener('click', ()=>submitAction('finish'));
+    document.getElementById('btnExtraStart').addEventListener('click', ()=>submitAction('extra_start'));
+    document.getElementById('btnExtraFinish').addEventListener('click', ()=>submitAction('extra_finish'));
     reflectState();
   }
 
@@ -922,13 +863,7 @@ function randomNonce(){ return Math.random().toString(36).slice(2) + Date.now().
       }
       STATE = blankState(); STATE.name = '';
       reflectState(); setEmp('', '');
-
-      const depVal = (deptSel.value || '').toLowerCase();
-      const isComercial = (depVal === 'coemercial' || depVal === 'comercial');
-      if (extraBar) extraBar.style.display = isComercial ? 'none' : '';
     });
-
-    if (extraBar) extraBar.style.display = '';
 
     empSel.addEventListener('change', handleEmployeeChange);
 
