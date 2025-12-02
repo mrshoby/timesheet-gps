@@ -125,7 +125,11 @@
           <span class="dot" aria-hidden="true"></span>
           <h2>Înregistrare activitate</h2>
         </header>
-        <p class="sub">Alege <b>Departament</b> → <b>Angajat</b>, apoi <b>Tip de activitate</b>, completează <b>Client</b> și (opțional) o <b>Notă</b>. Apoi folosește butoanele de mai jos.</p>
+        <p class="sub">
+          Alege <b>Departament</b> → <b>Angajat</b>, apoi <b>Tip de activitate</b>,
+          completează <b>Client</b> <i>(opțional pentru Comercial)</i> și (opțional) o <b>Notă</b>.
+          Apoi folosește butoanele de mai jos.
+        </p>
 
         <div class="grid cols-3">
           <div>
@@ -224,8 +228,8 @@
           <button class="btn finish"  id="btnFinish">Finish</button>
         </div>
 
-        <!-- EXTRA time buttons -->
-        <div class="btnbar" style="margin-top:8px">
+        <!-- EXTRA time buttons (ascunse pentru Comercial) -->
+        <div class="btnbar" id="extraBar" style="margin-top:8px">
           <button class="btn extra" id="btnExtraStart" title="Pornește orele extra (separate de suplimentare)">Extra Start</button>
           <button class="btn extra" id="btnExtraFinish" title="Încheie orele extra">Extra Finish</button>
         </div>
@@ -282,7 +286,6 @@
     <input type="hidden" id="f_notes" />
     <input type="hidden" id="f_maps" />
     <input type="hidden" id="f_department" />
-    <!-- opțional: nonce pentru idempotency -->
     <input type="hidden" id="f_nonce" />
   </form>
 
@@ -375,6 +378,7 @@ function randomNonce(){ return Math.random().toString(36).slice(2) + Date.now().
   const leaveDay = document.getElementById('leaveDay');
   const leaveDaysList = document.getElementById('leaveDaysList');
   const btnAddDay = document.getElementById('btnAddDay');
+  const extraBar = document.getElementById('extraBar'); // << nou
   let LEAVE_DAYS = [];
 
   function setStatus(m, c){ setText(statusEl, m, c); }
@@ -755,6 +759,12 @@ function randomNonce(){ return Math.random().toString(36).slice(2) + Date.now().
     else setEmp('Nicio sesiune deschisă.', '');
   }
 
+  // ===== util: detectează dacă e departamentul Comercial (acceptă și greșeala "coemercial")
+  function isComercialDept(){
+    const v = (deptSel.value || '').toLowerCase();
+    return v === 'comercial' || v === 'coemercial';
+  }
+
   // ==================== ACTION SUBMIT cu LOCK ====================
   async function submitAction(action) {
     const now = Date.now();
@@ -764,7 +774,23 @@ function randomNonce(){ return Math.random().toString(36).slice(2) + Date.now().
     if (!deptSel.value) { setStatus('Alege departamentul.', 'err'); return; }
     if (!empSel.value)  { setStatus('Selectează angajat.', 'err'); return; }
     if (!actSel.value)  { setStatus('Alege tip de activitate.', 'err'); return; }
-    if (!locInput.value.trim()) { setStatus('Scrie clientul.', 'err'); locInput.focus(); return; }
+
+    const actNorm = _normAction(action);
+    const isCom = isComercialDept();
+
+    // Extra interzis pentru Comercial (și dacă e ascuns în UI)
+    if (isCom && (actNorm === 'extra_start' || actNorm === 'extra_finish')) {
+      setStatus('Departamentul Comercial nu poate folosi ore EXTRA.', 'warn');
+      return;
+    }
+
+    // Client/Locație obligatoriu doar pentru NON-Comercial
+    if (!isCom && !locInput.value.trim()) {
+      setStatus('Scrie clientul/locația.', 'err');
+      locInput.focus();
+      return;
+    }
+
     if (['concediu de odihna','concediu medical','concediu pentru ore suplimentare'].includes((actSel.value||'').toLowerCase())){
       setStatus('Pentru concediu folosește „Trimite cererea de concediu”.', 'warn');
       return;
@@ -773,7 +799,7 @@ function randomNonce(){ return Math.random().toString(36).slice(2) + Date.now().
     const lg = localGuard(action);
     if (lg) { setStatus(lg, 'warn'); return; }
 
-    // pornim LOCK-ul înainte de primul await
+    // LOCK înainte de primul await
     busy = true;
     setUILock(true);
     disableAllButtons(true);
@@ -794,18 +820,17 @@ function randomNonce(){ return Math.random().toString(36).slice(2) + Date.now().
       applyLocalTransition(action, ts);
       saveLS();
       reflectState();
-      setStatus(`Trimis ✓ (${_normAction(action).toUpperCase()}).`, 'ok');
+      setStatus(`Trimis ✓ (${actNorm.toUpperCase()}).`, 'ok');
 
       await sleep(1200);
       await refreshServerState();
 
       try {
         const stats = await fetchStats(empSel.value.trim());
-        const act = _normAction(action);
         if (stats){
-          if (act === 'finish'){
+          if (actNorm === 'finish'){
             showToast(`<b>${empSel.value}</b><div class="small">Azi — Ore: <b>${stats.totalHours}</b> h • Suplimentar: <b>${stats.overtime}</b> h</div>`, 'ok');
-          } else if (act === 'extra_finish'){
+          } else if (actNorm === 'extra_finish'){
             showToast(`<b>${empSel.value}</b><div class="small">Azi — Extra: <b>${stats.extra}</b> h</div>`, 'ok');
           }
         }
@@ -861,9 +886,15 @@ function randomNonce(){ return Math.random().toString(36).slice(2) + Date.now().
       if (empSel.value && (DEPTMAP.byName.get(empSel.value) !== deptSel.value)) {
         empSel.value = '';
       }
+      // Afișare/ascundere Extra pentru Comercial
+      if (extraBar) extraBar.style.display = isComercialDept() ? 'none' : '';
+
       STATE = blankState(); STATE.name = '';
       reflectState(); setEmp('', '');
     });
+
+    // Inițial: arată bara Extra (până alegi Comercial)
+    if (extraBar) extraBar.style.display = '';
 
     empSel.addEventListener('change', handleEmployeeChange);
 
