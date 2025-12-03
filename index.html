@@ -9,11 +9,14 @@
   <link rel="icon" href="favicon.png" />
   <meta name="theme-color" content="#516A75"/>
 
-  <!-- Preload audio (aceeași origine / GitHub Pages) -->
-  <link rel="preload" as="audio" href="./audio/stage1.mp3">
-  <link rel="preload" as="audio" href="./audio/stage2.mp3">
-  <link rel="preload" as="audio" href="./audio/stage3.mp3">
-  <link rel="preload" as="audio" href="./audio/chime.mp3">
+
+
+<!-- Variante compatibile (sau poți chiar să le elimini complet) -->
+<link rel="preload" href="audio/stage1.mp3" as="fetch" type="audio/mpeg" crossorigin>
+<link rel="preload" href="audio/stage2.mp3" as="fetch" type="audio/mpeg" crossorigin>
+<link rel="preload" href="audio/stage3.mp3" as="fetch" type="audio/mpeg" crossorigin>
+<link rel="preload" href="audio/chime.mp3"  as="fetch" type="audio/mpeg" crossorigin>
+
 
   <style>
     :root{
@@ -370,149 +373,72 @@ Ana Radu
 
   <script>document.getElementById('year').textContent = new Date().getFullYear();</script>
 
-  <!-- ================== SPLASH: AUDIO FILES + FALLBACK SYNTH, SINCRONIZARE PE AUDIOCONTEXT ================== -->
-  <script>
-/* === Fallback synth: zero rețea, pornește instant === */
-const SynthAudio = (() => {
-  let ctx;
-  function ensure(){ return ctx || (ctx = new (window.AudioContext||window.webkitAudioContext)()); }
-  function blip(freq=600, dur=0.16, type='sine', gain=0.9){
+  <!-- ================== SPLASH: AUDIO HTML + SINCRONIZARE ================== -->
+  <!-- ================== SPLASH: AUDIO HTML + BYPASS AUTOPLAY ================== -->
+<script>
+const HtmlAudio = (() => {
+  // Creez elementele și le pre-încarc
+  const a1 = new Audio('audio/stage1.mp3');
+  const a2 = new Audio('audio/stage2.mp3');
+  const a3 = new Audio('audio/stage3.mp3');
+  const ch = new Audio('audio/chime.mp3');
+  [a1,a2,a3,ch].forEach(a => { a.preload='auto'; a.loop=false; a.playsInline=true; a.load(); });
+
+  // Truc: pornesc pe MUTED (autoplay permis), apoi demutez imediat
+  function playStage(a){
     try{
-      const c = ensure(), t0 = c.currentTime;
-      const o = c.createOscillator(); o.type = type; o.frequency.setValueAtTime(freq, t0);
-      const g = c.createGain(); g.gain.setValueAtTime(0, t0);
-      g.gain.linearRampToValueAtTime(gain, t0 + 0.02);
-      g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
-      o.connect(g); g.connect(c.destination); o.start(t0); o.stop(t0 + dur);
-    }catch{}
+      a.currentTime = 0;
+      a.muted = true;                 // 1) muted -> play permis
+      const p = a.play();
+      if (p && typeof p.then === 'function') {
+        p.then(() => { setTimeout(() => { a.muted = false; }, 0); })
+         .catch(err => console.warn('[autoplay blocat sau eroare audio]', err));
+      } else {
+        // Unele browsere nu întorc promisiuni — încerc oricum demute imediat
+        setTimeout(() => { a.muted = false; }, 0);
+      }
+    }catch(e){ console.warn('[audio play error]', e); }
   }
-  function stage(n){
-    if (n===1){ blip(420,.17,'sine',0.9); }
-    else if (n===2){ blip(620,.16,'sine',0.9); setTimeout(()=>blip(760,.18,'sine',0.9), 90); }
-    else { blip(780,.14,'triangle',0.85); setTimeout(()=>blip(900,.14,'triangle',0.85), 70); setTimeout(()=>blip(1020,.16,'triangle',0.9), 140); }
-  }
-  function chime(){ blip(880,.22,'triangle',0.9); setTimeout(()=>blip(1109,.24,'triangle',0.9), 70); setTimeout(()=>blip(1319,.28,'triangle',0.9), 140); }
-  return { ensure, stage, chime };
-})();
 
-/* === Player pentru fișiere audio preîncărcate === */
-const FileAudio = (() => {
-  const urls = { s1:'audio/stage1.mp3', s2:'audio/stage2.mp3', s3:'audio/stage3.mp3', ch:'audio/chime.mp3' };
-  let ctx, bufs = {}, readyPromise;
-  function ensure(){ return ctx || (ctx = new (window.AudioContext||window.webkitAudioContext)()); }
-  async function loadOne(key){
-    const r = await fetch(urls[key], { cache:'force-cache' });
-    const ab = await r.arrayBuffer();
-    return new Promise((res, rej)=> ensure().decodeAudioData(ab, b=>{ bufs[key]=b; res(); }, e=>rej(e)));
-  }
-  function ready(){
-    if (!readyPromise){ readyPromise = Promise.all(Object.keys(urls).map(loadOne)); }
-    return readyPromise;
-  }
-  function playAt(bufKey, when, gain=0.9){
-    const c = ensure();
-    const src = c.createBufferSource(); src.buffer = bufs[bufKey];
-    const g = c.createGain(); g.gain.value = gain;
-    src.connect(g); g.connect(c.destination);
-    src.start(when);
-  }
-  function schedule(t0){
-    playAt('s1', t0 + 0.00);
-    playAt('s2', t0 + 0.60);
-    playAt('s3', t0 + 1.20);
-    playAt('ch', t0 + 1.50); // chime pornește înainte de hide
-  }
-  return { ensure, ready, schedule };
-})();
+  function startTimeline(){
+    const splash  = document.getElementById('splash');
+    const battery = document.getElementById('battery');
+    const bars    = [document.getElementById('bar1'), document.getElementById('bar2'), document.getElementById('bar3')];
 
-/* === SPLASH + sincronizare UI/Audio pe timeline-ul AudioContext === */
-(function splashInit(){
-  document.documentElement.classList.add('splash-open');
-  document.body.classList.add('splash-open');
+    const STAGE1=0, STAGE2=600, STAGE3=1200, CHIME=1500, HIDE=1900;
 
-  const splash = document.getElementById('splash');
-  const battery= document.getElementById('battery');
-  const bars   = [document.getElementById('bar1'), document.getElementById('bar2'), document.getElementById('bar3')];
+    function resetBars(){ bars.forEach(b => b.className = 'bar'); battery.classList.remove('active'); }
+    function stageUI(n){
+      resetBars();
+      if (n>=1){ bars[0].classList.add('on','stage-red'); }
+      if (n>=2){ bars[0].classList.remove('stage-red'); bars[0].classList.add('stage-yellow'); bars[1].classList.add('on','stage-yellow'); }
+      if (n>=3){ bars.forEach(b=>{ b.classList.remove('stage-red','stage-yellow'); b.classList.add('on','stage-green'); }); battery.classList.add('active'); }
+    }
+    function hideSplash(){
+      splash.classList.add('hide');
+      setTimeout(()=>{ document.documentElement.classList.remove('splash-open'); document.body.classList.remove('splash-open'); }, 460);
+    }
 
-  function resetBars(){ bars.forEach(b => b.className = 'bar'); battery.classList.remove('active'); }
-  function stageUI(n){
+    document.documentElement.classList.add('splash-open');
+    document.body.classList.add('splash-open');
+
     resetBars();
-    if (n>=1){ bars[0].classList.add('on','stage-red'); }
-    if (n>=2){ bars[0].classList.remove('stage-red'); bars[0].classList.add('stage-yellow'); bars[1].classList.add('on','stage-yellow'); }
-    if (n>=3){ bars.forEach(b=>{ b.classList.remove('stage-red','stage-yellow'); b.classList.add('on','stage-green'); }); battery.classList.add('active'); }
-  }
-  function hideSplash(){
-    splash.classList.add('hide');
-    setTimeout(()=>{ document.documentElement.classList.remove('splash-open'); document.body.classList.remove('splash-open'); }, 460);
+    setTimeout(()=>{ stageUI(1); playStage(a1); }, STAGE1);
+    setTimeout(()=>{ stageUI(2); playStage(a2); }, STAGE2);
+    setTimeout(()=>{ stageUI(3); playStage(a3); }, STAGE3);
+    setTimeout(()=>{ playStage(ch); }, CHIME);   // chime înainte de închiderea overlay-ului
+    setTimeout(hideSplash, HIDE);
   }
 
-  // Offsets (secunde față de t0 audio)
-  const OFF_S1=0.00, OFF_S2=0.60, OFF_S3=1.20, OFF_CH=1.50, OFF_HIDE=1.90;
-
-  async function startWithFiles(){
-    await FileAudio.ready().catch(()=>{});
-    const c = FileAudio.ensure();
-    try{ await c.resume(); }catch{}
-    const basePerf = performance.now();
-    const baseAud  = c.currentTime;
-    const t0 = baseAud + 0.06; // mic lead pentru programare stabilă
-
-    // Sune
-    FileAudio.schedule(t0);
-
-    // Helper: programează funcții pe timp AudioContext
-    function atAudio(fn, whenSec){
-      const delay = Math.max(0, (whenSec - (baseAud + (performance.now()-basePerf)/1000)) * 1000);
-      setTimeout(fn, delay);
-    }
-
-    // UI fix sincron cu audio
-    atAudio(()=>stageUI(1), t0 + OFF_S1);
-    atAudio(()=>stageUI(2), t0 + OFF_S2);
-    atAudio(()=>stageUI(3), t0 + OFF_S3);
-    atAudio(()=>hideSplash(), t0 + OFF_HIDE);
-  }
-
-  function startWithSynth(){
-    const c = SynthAudio.ensure();
-    try{ c.resume && c.resume(); }catch{}
-    const basePerf = performance.now();
-    const baseAud  = c.currentTime;
-    const t0 = baseAud + 0.04;
-
-    function atAudio(fn, whenSec){
-      const delay = Math.max(0, (whenSec - (baseAud + (performance.now()-basePerf)/1000)) * 1000);
-      setTimeout(fn, delay);
-    }
-
-    // Audio synth
-    atAudio(()=>SynthAudio.stage(1), t0 + OFF_S1);
-    atAudio(()=>SynthAudio.stage(2), t0 + OFF_S2);
-    atAudio(()=>SynthAudio.stage(3), t0 + OFF_S3);
-    atAudio(()=>SynthAudio.chime(),  t0 + OFF_CH);
-
-    // UI sincron
-    atAudio(()=>stageUI(1), t0 + OFF_S1);
-    atAudio(()=>stageUI(2), t0 + OFF_S2);
-    atAudio(()=>stageUI(3), t0 + OFF_S3);
-    atAudio(()=>hideSplash(), t0 + OFF_HIDE);
-  }
-
-  // Kick imediat UI reset (în caz de întârzieri rețea)
-  resetBars();
-
-  // Pornim rapid: dacă fișierele nu sunt gata în 300ms -> synth
-  (async () => {
-    let readyFast = false;
-    try{
-      readyFast = await Promise.race([ FileAudio.ready().then(()=>true), new Promise(r=>setTimeout(()=>r(false),300)) ]);
-    }catch{ readyFast = false; }
-    if (readyFast) startWithFiles();
-    else           startWithSynth();
-  })();
+  return { start: startTimeline };
 })();
-  </script>
-  <!-- ================== END SPLASH ================== -->
+
+(function splashInit(){
+  HtmlAudio.start();  // rulează imediat
+})();
+</script>
+<!-- ================== END SPLASH ================== -->
+
 
   <script>
 /** ================== Helpers & Config ================== */
@@ -1153,6 +1079,10 @@ function randomNonce(){ return Math.random().toString(36).slice(2) + Date.now().
           const _daysSorted = hasDays ? LEAVE_DAYS.slice().sort() : [];
           const _first = hasDays ? _daysSorted[0] : sd;
           const _last  = hasDays ? _daysSorted[_daysSorted.length-1] : ed;
+
+          // (BUGFIX) setăm lv_ts separat, NU în interiorul obiectului payload
+          document.getElementById('lv_ts').value = new Date().toISOString();
+
           const payload = {
             name: empSel.value,
             activityType: tip,
