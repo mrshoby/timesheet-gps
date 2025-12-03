@@ -8,11 +8,18 @@
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&display=swap" rel="stylesheet">
   <link rel="icon" href="favicon.png" />
   <meta name="theme-color" content="#516A75"/>
+
+  <!-- Preload audio (aceeași origine / GitHub Pages) -->
+  <link rel="preload" as="audio" href="audio/stage1.mp3">
+  <link rel="preload" as="audio" href="audio/stage2.mp3">
+  <link rel="preload" as="audio" href="audio/stage3.mp3">
+  <link rel="preload" as="audio" href="audio/chime.mp3">
+
   <style>
     :root{
-      --brand:#516B74;          /* SERV, contur baterie, 'We save both.' */
+      --brand:#516B74;
       --brand-weak:rgba(81,106,117,0.88);
-      --accent:#95CA4B;         /* LECT, 'Energy is money!' */
+      --accent:#95CA4B;
       --text:#0f172a;
       --muted:#5b6b73;
       --bg:#f4f7f9;
@@ -23,7 +30,6 @@
     }
     *{box-sizing:border-box}
     html,body{height:100%; width:100%}
-    html.splash-open, body.splash-open{ overflow:hidden } /* blochează scroll pe durata splash-ului */
     body{
       margin:0;
       font-family: Montserrat, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
@@ -106,11 +112,12 @@
     body.action-lock .btnbar .btn { opacity:.6; cursor:not-allowed; }
 
     /* ===== SPLASH ===== */
+    html.splash-open, body.splash-open{ overflow:hidden; }
     .splash{
       position:fixed; inset:0; z-index:2000;
       display:grid; place-items:center;
       background: radial-gradient(1200px 800px at 50% 20%, #e8f2e0, #d9e6df);
-      opacity:1; transform:scale(1); transition: opacity .45s ease, transform .45s ease;
+      opacity:1; transform:scale(1); transition: opacity .6s ease, transform .6s ease;
     }
     .splash.hide{ opacity:0; transform:scale(1.01); pointer-events:none }
 
@@ -123,17 +130,16 @@
     .serv{ color:var(--brand) }
     .lect{ color:var(--accent) }
 
-    /* baterie verticală (litera E) */
     .battery{ height: clamp(110px, 20vw, 190px); width:auto; display:block;
               filter: drop-shadow(0 8px 24px rgba(0,0,0,.08)); }
     .bat-outline{ stroke:var(--brand); stroke-width:10; fill:none; stroke-linejoin:round }
     .bat-cap{ fill:var(--brand) }
-    .bar{ opacity:.18; fill:transparent; stroke:var(--brand); stroke-width:2; transition: opacity .18s ease }
+    .bar{ opacity:.18; fill:transparent; stroke:var(--brand); stroke-width:2; transition: opacity .2s ease }
     .bar.on{ opacity:1; fill:currentColor; stroke:transparent }
     .bar.stage-red{ color:#ef4444 }
     .bar.stage-yellow{ color:#f59e0b }
     .bar.stage-green{ color:var(--accent) }
-    .glow{ filter: drop-shadow(0 0 0 rgba(149,202,75,0)); transition: filter .4s ease }
+    .glow{ filter: drop-shadow(0 0 0 rgba(149,202,75,0)); transition: filter .5s ease }
     .glow.active{
       filter: drop-shadow(0 0 14px rgba(149,202,75,.75)) drop-shadow(0 0 28px rgba(149,202,75,.45));
     }
@@ -146,7 +152,7 @@
     }
   </style>
 </head>
-<body class="splash-open">
+<body>
   <!-- ===== SPLASH OVERLAY ===== -->
   <div id="splash" class="splash" role="dialog" aria-label="Ecran de întâmpinare">
     <div class="s-wrap">
@@ -155,11 +161,8 @@
 
         <!-- Bateria (vertical) ca litera „E” stilizată -->
         <svg class="battery glow" id="battery" viewBox="0 0 150 240" role="img" aria-label="Baterie">
-          <!-- corp -->
           <rect x="20" y="40" width="110" height="180" rx="14" class="bat-outline"/>
-          <!-- căpăcel sus -->
           <rect x="57" y="10" width="36" height="20" rx="6" class="bat-cap"/>
-          <!-- bare (de jos în sus) -->
           <rect id="bar1" class="bar" x="32" y="174" width="86" height="32" rx="8"/>
           <rect id="bar2" class="bar" x="32" y="130" width="86" height="32" rx="8"/>
           <rect id="bar3" class="bar" x="32" y="86"  width="86" height="32" rx="8"/>
@@ -367,103 +370,115 @@ Ana Radu
 
   <script>document.getElementById('year').textContent = new Date().getFullYear();</script>
 
+  <!-- ================== SPLASH: AUDIO FILES + FALLBACK SYNTH, CU SINCRONIZARE ================== -->
   <script>
-/* ================== SPLASH AUDIO & ANIM — autoplay imediat ================== */
-const ServelectAudio = (() => {
-  let ctx = null;
-  function ensureCtx(){
-    if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)();
-    // încercăm să pornim imediat; ignorăm erorile
-    try { if (ctx.state === 'suspended') ctx.resume(); } catch(e){}
-    return ctx;
-  }
-  function beep(freq=600, duration=0.16, type='sine', gain=0.9){
+/* === Fallback synth: zero rețea, pornește instant === */
+const SynthAudio = (() => {
+  let ctx;
+  function ensure(){ return ctx || (ctx = new (window.AudioContext||window.webkitAudioContext)()); }
+  function blip(freq=600, dur=0.16, type='sine', gain=0.9){
     try{
-      const c = ensureCtx();
-      const t0 = c.currentTime;
-      const o = c.createOscillator();
-      o.type = type;
-      o.frequency.setValueAtTime(freq, t0);
-      const g = c.createGain();
-      g.gain.setValueAtTime(0, t0);
+      const c = ensure(), t0 = c.currentTime;
+      const o = c.createOscillator(); o.type = type; o.frequency.setValueAtTime(freq, t0);
+      const g = c.createGain(); g.gain.setValueAtTime(0, t0);
       g.gain.linearRampToValueAtTime(gain, t0 + 0.02);
-      g.gain.exponentialRampToValueAtTime(0.0001, t0 + duration);
-      o.connect(g); g.connect(c.destination);
-      o.start(t0); o.stop(t0 + duration);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+      o.connect(g); g.connect(c.destination); o.start(t0); o.stop(t0 + dur);
     }catch{}
   }
-  function stageSound(stage){
-    if (stage===1){ beep(420,.17,'sine',0.9); return; }
-    if (stage===2){ beep(620,.16,'sine',0.9); setTimeout(()=>beep(760,.18,'sine',0.9), 90); return; }
-    // stage 3: trei beep-uri rapide
-    beep(780,.14,'triangle',0.85);
-    setTimeout(()=>beep(900,.14,'triangle',0.85), 70);
-    setTimeout(()=>beep(1020,.16,'triangle',0.9), 140);
+  function stage(n){
+    if (n===1){ blip(420,.17,'sine',0.9); }
+    else if (n===2){ blip(620,.16,'sine',0.9); setTimeout(()=>blip(760,.18,'sine',0.9), 90); }
+    else { blip(780,.14,'triangle',0.85); setTimeout(()=>blip(900,.14,'triangle',0.85), 70); setTimeout(()=>blip(1020,.16,'triangle',0.9), 140); }
   }
-  function fullChime(){
-    // acord final
-    beep(880,.22,'triangle',0.9);
-    setTimeout(()=>beep(1108.7,.24,'triangle',0.9), 70);
-    setTimeout(()=>beep(1318.5,.28,'triangle',0.9), 140);
-  }
-  return { stageSound, fullChime, ensureCtx };
+  function chime(){ blip(880,.22,'triangle',0.9); setTimeout(()=>blip(1109,.24,'triangle',0.9), 70); setTimeout(()=>blip(1319,.28,'triangle',0.9), 140); }
+  return { ensure, stage, chime };
 })();
 
+/* === Player pentru fișiere audio preîncărcate === */
+const FileAudio = (() => {
+  const urls = { s1:'audio/stage1.mp3', s2:'audio/stage2.mp3', s3:'audio/stage3.mp3', ch:'audio/chime.mp3' };
+  let ctx, bufs = {}, readyPromise;
+  function ensure(){ return ctx || (ctx = new (window.AudioContext||window.webkitAudioContext)()); }
+  async function loadOne(key){
+    const r = await fetch(urls[key], { cache:'force-cache' });
+    const ab = await r.arrayBuffer();
+    // decodeAudioData (callback) are cea mai bună compatibilitate
+    return new Promise((res, rej)=> ensure().decodeAudioData(ab, b=>{ bufs[key]=b; res(); }, e=>rej(e)));
+  }
+  function ready(){
+    if (!readyPromise){ readyPromise = Promise.all(Object.keys(urls).map(loadOne)); }
+    return readyPromise;
+  }
+  function playAt(bufKey, when, gain=0.9){
+    const c = ensure();
+    const src = c.createBufferSource(); src.buffer = bufs[bufKey];
+    const g = c.createGain(); g.gain.value = gain;
+    src.connect(g); g.connect(c.destination);
+    src.start(when);
+  }
+  function schedule(t0){
+    playAt('s1', t0 + 0.00);
+    playAt('s2', t0 + 0.60);
+    playAt('s3', t0 + 1.20);
+    playAt('ch', t0 + 1.50);
+  }
+  return { ensure, ready, schedule };
+})();
+
+/* === SPLASH + sincronizare UI/Audio === */
 (function splashInit(){
-  // marchează că splash-ul e deschis (blochează scroll)
   document.documentElement.classList.add('splash-open');
   document.body.classList.add('splash-open');
 
-  const splash   = document.getElementById('splash');
-  const battery  = document.getElementById('battery');
-  const bars = [
-    document.getElementById('bar1'),
-    document.getElementById('bar2'),
-    document.getElementById('bar3')
-  ];
+  const splash = document.getElementById('splash');
+  const battery= document.getElementById('battery');
+  const bars   = [document.getElementById('bar1'), document.getElementById('bar2'), document.getElementById('bar3')];
+
   function resetBars(){ bars.forEach(b => b.className = 'bar'); battery.classList.remove('active'); }
-  function stageToClasses(stage){
+  function stageUI(n){
     resetBars();
-    if (stage >= 1){ bars[0].classList.add('on','stage-red'); }
-    if (stage >= 2){
-      bars[0].classList.remove('stage-red'); bars[0].classList.add('stage-yellow');
-      bars[1].classList.add('on','stage-yellow');
-    }
-    if (stage >= 3){
-      bars.forEach(b => { b.classList.remove('stage-red','stage-yellow'); b.classList.add('on','stage-green'); });
-      battery.classList.add('active');
-    }
+    if (n>=1){ bars[0].classList.add('on','stage-red'); }
+    if (n>=2){ bars[0].classList.remove('stage-red'); bars[0].classList.add('stage-yellow'); bars[1].classList.add('on','stage-yellow'); }
+    if (n>=3){ bars.forEach(b=>{ b.classList.remove('stage-red','stage-yellow'); b.classList.add('on','stage-green'); }); battery.classList.add('active'); }
   }
   function hideSplash(){
     splash.classList.add('hide');
-    // reactivăm scroll după animația de fade
-    setTimeout(()=>{
-      document.documentElement.classList.remove('splash-open');
-      document.body.classList.remove('splash-open');
-    }, 460);
+    setTimeout(()=>{ document.documentElement.classList.remove('splash-open'); document.body.classList.remove('splash-open'); }, 460);
   }
 
-  // TIMELINE STRICT (ms)
-  const STAGE1_AT = 0;      // bară roșie
-  const STAGE2_AT = 600;    // + galben
-  const STAGE3_AT = 1200;   // + verde
-  const CHIME_AT  = 1500;   // acord final
-  const HIDE_AT   = 1650;   // ascundem imediat după ce pornește acordul
+  // Timeline (ms pentru UI) – chime pornește înainte de hide.
+  const STAGE1=0, STAGE2=600, STAGE3=1200, CHIME=1500, HIDE=1900;
 
-  // sincronizare: actualizăm UI și pornim sunetul în ACELAȘI tick
-  function tick(fn, delay){ setTimeout(fn, delay); }
-
-  // start imediat
-  try { ServelectAudio.ensureCtx(); } catch(e){}
-
+  // UI: pornește instant (nu așteptăm rețeaua)
   resetBars();
-  tick(()=>{ stageToClasses(1); ServelectAudio.stageSound(1); }, STAGE1_AT);
-  tick(()=>{ stageToClasses(2); ServelectAudio.stageSound(2); }, STAGE2_AT);
-  tick(()=>{ stageToClasses(3); ServelectAudio.stageSound(3); }, STAGE3_AT);
-  tick(()=>{ ServelectAudio.fullChime(); }, CHIME_AT);
-  tick(()=>{ hideSplash(); }, HIDE_AT);
+  setTimeout(()=>stageUI(1), STAGE1);
+  setTimeout(()=>stageUI(2), STAGE2);
+  setTimeout(()=>stageUI(3), STAGE3);
+  setTimeout(()=>hideSplash(), HIDE);
+
+  // AUDIO: încearcă fișierele; dacă nu-s gata în ≤300ms, fallback synth imediat
+  (async () => {
+    let useFiles = false;
+    try{
+      useFiles = await Promise.race([ FileAudio.ready().then(()=>true), new Promise(r=>setTimeout(()=>r(false),300)) ]);
+    }catch{ useFiles = false; }
+
+    if (useFiles){
+      const c = FileAudio.ensure();
+      const t0 = c.currentTime + 0.06; // mic lead pentru scheduling stabil
+      FileAudio.schedule(t0);
+    }else{
+      SynthAudio.ensure();
+      setTimeout(()=>SynthAudio.stage(1), STAGE1);
+      setTimeout(()=>SynthAudio.stage(2), STAGE2);
+      setTimeout(()=>SynthAudio.stage(3), STAGE3);
+      setTimeout(()=>SynthAudio.chime(),  CHIME);
+    }
+  })();
 })();
   </script>
+  <!-- ================== END SPLASH ================== -->
 
   <script>
 /** ================== Helpers & Config ================== */
@@ -512,11 +527,7 @@ function geolocateOnce(){
   return new Promise((resolve, reject) => {
     if (!('geolocation' in navigator)) return reject(new Error('Geolocație indisponibilă pe acest dispozitiv.'));
     navigator.geolocation.getCurrentPosition(
-      pos => resolve({
-        lat: pos.coords.latitude,
-        lon: pos.coords.longitude,
-        acc: Math.round(pos.coords.accuracy || 0)
-      }),
+      pos => resolve({ lat: pos.coords.latitude, lon: pos.coords.longitude, acc: Math.round(pos.coords.accuracy || 0) }),
       err => reject(new Error('Eroare locație: ' + err.message)),
       { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 }
     );
@@ -613,8 +624,6 @@ function randomNonce(){ return Math.random().toString(36).slice(2) + Date.now().
     return true;
   }
 
-  /** ===== EMPLOYAȚI & DEPARTAMENTE ===== */
-
   function parseEmployeesCSV(text){
     if (text && text.charCodeAt && text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
     text = (text || '').replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim();
@@ -690,7 +699,7 @@ function randomNonce(){ return Math.random().toString(36).slice(2) + Date.now().
     const ph = document.createElement('option');
     ph.value=''; ph.textContent='Alege departamentul...'; ph.disabled = true; ph.selected = true;
     deptSel.appendChild(ph);
-    deptList.forEach(d => { const o=document.createElement('option'); o.value=d; o.textContent=d; deptSel.appendChild(o); });
+    deptList.forEach(d => { const o=document.createElement('option'); o.value=d; o.textContent=d; sel=deptSel.appendChild(o); });
   }
 
   function fillEmployeesFromDept(dept){
@@ -1063,7 +1072,7 @@ function randomNonce(){ return Math.random().toString(36).slice(2) + Date.now().
       const isLeave = LEAVE_TYPES.has((actSel.value||'').toLowerCase());
       leavePanel.style.display = isLeave ? '' : 'none';
       disableTimeButtons(isLeave);
-      if (isLeave) { LEAVE_DAYS = []; renderLeaveDays(); setLeaveStatus('', ''); }
+      if (isLeave) { LEAVE_DAYS = []; setLeaveStatus('', ''); }
     });
 
     wireButtons();
@@ -1127,7 +1136,7 @@ function randomNonce(){ return Math.random().toString(36).slice(2) + Date.now().
 
       if (formSubmitted || endpointOk) {
         setLeaveStatus('Cerere trimisă' + endpointMsg + '. HR a fost notificat.', 'ok');
-        LEAVE_DAYS = []; renderLeaveDays();
+        LEAVE_DAYS = [];
       } else {
         setLeaveStatus('Eroare: nu s-a putut trimite cererea (Form/Endpoint).', 'err');
       }
