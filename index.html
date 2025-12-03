@@ -5,21 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>SERVELECT • Pontaj & Concedii</title>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
   <link rel="icon" href="favicon.png" />
   <meta name="theme-color" content="#516A75"/>
-
-  <!-- Preload audio compat (poți și elimina dacă vrei) -->
-  <link rel="preload" href="./audio/stage1.mp3" as="fetch" type="audio/mpeg" crossorigin>
-  <link rel="preload" href="./audio/stage2.mp3" as="fetch" type="audio/mpeg" crossorigin>
-  <link rel="preload" href="./audio/stage3.mp3" as="fetch" type="audio/mpeg" crossorigin>
-  <link rel="preload" href="./audio/chime.mp3"  as="fetch" type="audio/mpeg" crossorigin>
-
   <style>
     :root{
-      --brand:#516B74;
-      --brand-weak:rgba(81,106,117,0.88);
-      --accent:#95CA4B;
+      --brand: rgba(81,106,117,0.88);
+      --brand-dark:#2f3e45;
+      --accent: rgba(149,202,75,0.91);
       --text:#0f172a;
       --muted:#5b6b73;
       --bg:#f4f7f9;
@@ -35,7 +28,7 @@
       font-family: Montserrat, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
       color:var(--text);
       background:
-        linear-gradient(180deg, rgba(149, 202, 75, 0.91) 0%, rgba(81, 106, 117, 0.88) 66%),
+        linear-gradient(90deg,rgba(42, 106, 155, 1) 0%, rgba(87, 87, 199, 1) 50%, rgba(230, 220, 85, 1) 98%, rgba(237, 221, 83, 1) 100%),
         url('background.jpg');
       background-size: cover;
       background-position: center center;
@@ -108,98 +101,72 @@
     .toast.err{ background:#991b1b }
     .toast .small{opacity:.85;font-size:12px;margin-top:4px}
 
-    body.action-lock .btnbar { pointer-events: none; }
-    body.action-lock .btnbar .btn { opacity:.6; cursor:not-allowed; }
-
-    /* ===== SPLASH ===== */
-    html.splash-open, body.splash-open{ overflow:hidden; }
-    .splash{
+    /* ===== SV-SPLASH: stiluri izolate ===== */
+    html.sv-splash-open, body.sv-splash-open{ overflow:hidden; }
+    .sv-splash{
       position:fixed; inset:0; z-index:2000;
       display:grid; place-items:center;
       background: radial-gradient(1200px 800px at 50% 20%, #e8f2e0, #d9e6df);
       opacity:1; transform:scale(1); transition: opacity .6s ease, transform .6s ease;
     }
-    .splash.hide{ opacity:0; transform:scale(1.01); pointer-events:none }
-
-    .s-wrap{ width:min(1100px, 92vw); text-align:center; user-select:none }
-    .brand-line{
+    .sv-splash.hide{ opacity:0; transform:scale(1.01); pointer-events:none }
+    .sv-s-wrap{ width:min(1100px, 92vw); text-align:center; user-select:none }
+    .sv-brand-line{
       display:flex; align-items:center; justify-content:center; gap: clamp(10px, 2vw, 22px);
       line-height:1; flex-wrap:wrap;
     }
-    .brand-word{ font-weight:800; letter-spacing:.5px; font-size: clamp(44px, 9vw, 96px); }
-    .serv{ color:var(--brand) }
-    .lect{ color:var(--accent) }
+    .sv-brand-word{ font-weight:800; letter-spacing:.5px; font-size: clamp(44px, 9vw, 96px); }
+    .sv-serv{ color:#516B74 }
+    .sv-lect{ color:#95CA4B }
 
-    .battery{ height: clamp(110px, 20vw, 190px); width:auto; display:block;
-              filter: drop-shadow(0 8px 24px rgba(0,0,0,.08)); }
-    .bat-outline{ stroke:var(--brand); stroke-width:10; fill:none; stroke-linejoin:round }
-    .bat-cap{ fill:var(--brand) }
-    .bar{ opacity:.18; fill:transparent; stroke:var(--brand); stroke-width:2; transition: opacity .2s ease }
-    .bar.on{ opacity:1; fill:currentColor; stroke:transparent }
-    .bar.stage-red{ color:#ef4444 }
-    .bar.stage-yellow{ color:#f59e0b }
-    .bar.stage-green{ color:var(--accent) }
-    .glow{ filter: drop-shadow(0 0 0 rgba(149,202,75,0)); transition: filter .5s ease }
-    .glow.active{
+    .sv-battery{ height: clamp(110px, 20vw, 190px); width:auto; display:block;
+                 filter: drop-shadow(0 8px 24px rgba(0,0,0,.08)); }
+    .sv-bat-outline{ stroke:#516B74; stroke-width:10; fill:none; stroke-linejoin:round }
+    .sv-bat-cap{ fill:#516B74 }
+    .sv-bar{ opacity:.18; fill:transparent; stroke:#516B74; stroke-width:2; transition: opacity .2s ease }
+    .sv-bar.on{ opacity:1; fill:currentColor; stroke:transparent }
+    .sv-bar.sv-red{ color:#ef4444 }
+    .sv-bar.sv-yellow{ color:#f59e0b }
+    .sv-bar.sv-green{ color:#95CA4B }
+    .sv-glow{ filter: drop-shadow(0 0 0 rgba(149,202,75,0)); transition: filter .5s ease }
+    .sv-glow.active{
       filter: drop-shadow(0 0 14px rgba(149,202,75,.75)) drop-shadow(0 0 28px rgba(149,202,75,.45));
     }
-    .tag{ margin-top: clamp(10px, 2.2vw, 18px); font-weight:700; font-size: clamp(18px, 3.6vw, 34px); line-height:1.15; }
-    .tag .money{ color:var(--accent) }
-    .tag .save{ color:var(--brand) }
+    .sv-tag{ margin-top: clamp(10px, 2.2vw, 18px); font-weight:700; font-size: clamp(18px, 3.6vw, 34px); line-height:1.15; }
+    .sv-tag .money{ color:#95CA4B }
+    .sv-tag .save{ color:#516B74 }
 
     @media (prefers-reduced-motion: reduce){
-      .glow, .bar, .splash{ transition:none }
+      .sv-glow, .sv-bar, .sv-splash{ transition:none }
     }
-
-    /* ===== Overlay “Pornește sunetul” (doar dacă e nevoie) ===== */
-    .audio-unlock{
-      position:fixed; inset:0; z-index:2200; display:none; place-items:center;
-      background:rgba(0,0,0,.35); -webkit-backdrop-filter: blur(2px); backdrop-filter: blur(2px);
-      text-align:center; font-family: Montserrat, ui-sans-serif, system-ui;
-    }
-    .audio-unlock.show{ display:grid }
-    .audio-unlock button{
-      appearance:none; border:0; border-radius:14px; padding:14px 18px; cursor:pointer;
-      background:#95CA4B; color:#fff; font-weight:800; font-size:16px;
-      box-shadow:0 10px 30px rgba(0,0,0,.2);
-    }
-    .audio-unlock small{display:block; color:#fff; opacity:.9; margin-top:10px; font-weight:600}
   </style>
 </head>
 <body>
-  <!-- ===== SPLASH OVERLAY ===== -->
-  <div id="splash" class="splash" role="dialog" aria-label="Ecran de întâmpinare">
-    <div class="s-wrap">
-      <div class="brand-line">
-        <div class="brand-word serv">SERV</div>
 
-        <!-- Bateria (vertical) ca litera „E” stilizată -->
-        <svg class="battery glow" id="battery" viewBox="0 0 150 240" role="img" aria-label="Baterie">
-          <rect x="20" y="40" width="110" height="180" rx="14" class="bat-outline"/>
-          <rect x="57" y="10" width="36" height="20" rx="6" class="bat-cap"/>
-          <rect id="bar1" class="bar" x="32" y="174" width="86" height="32" rx="8"/>
-          <rect id="bar2" class="bar" x="32" y="130" width="86" height="32" rx="8"/>
-          <rect id="bar3" class="bar" x="32" y="86"  width="86" height="32" rx="8"/>
+  <!-- ===== SV-SPLASH (nou, izolat) ===== -->
+  <div id="sv-splash" class="sv-splash" role="dialog" aria-label="Ecran de întâmpinare">
+    <div class="sv-s-wrap">
+      <div class="sv-brand-line">
+        <div class="sv-brand-word sv-serv">SERV</div>
+
+        <svg class="sv-battery sv-glow" id="sv-battery" viewBox="0 0 150 240" role="img" aria-label="Baterie">
+          <rect x="20" y="40" width="110" height="180" rx="14" class="sv-bat-outline"/>
+          <rect x="57" y="10" width="36" height="20" rx="6" class="sv-bat-cap"/>
+          <rect id="sv-bar1" class="sv-bar" x="32" y="174" width="86" height="32" rx="8"/>
+          <rect id="sv-bar2" class="sv-bar" x="32" y="130" width="86" height="32" rx="8"/>
+          <rect id="sv-bar3" class="sv-bar" x="32" y="86"  width="86" height="32" rx="8"/>
         </svg>
 
-        <div class="brand-word lect">LECT</div>
+        <div class="sv-brand-word sv-lect">LECT</div>
       </div>
 
-      <div class="tag">
+      <div class="sv-tag">
         <span class="money">Energy is money!</span>
         &nbsp;<span class="save">We save both.</span>
       </div>
     </div>
   </div>
-  <!-- ===== END SPLASH ===== -->
-
-  <!-- Overlay “Pornește sunetul” (apare doar dacă e necesar) -->
-  <div id="audioUnlock" class="audio-unlock" aria-live="polite" aria-label="Pornește sunetul">
-    <div>
-      <button id="unlockBtn">🔊 Pornește sunetul</button>
-      <small>Doar prima dată pe acest site (autoplay blocat de browser)</small>
-    </div>
-  </div>
+  <!-- ===== END SV-SPLASH ===== -->
 
   <div class="shell">
     <nav class="nav card">
@@ -218,11 +185,7 @@
           <span class="dot" aria-hidden="true"></span>
           <h2>Înregistrare activitate</h2>
         </header>
-        <p class="sub">
-          Alege <b>Departament</b> → <b>Angajat</b>, apoi <b>Tip de activitate</b>,
-          completează <b>Client</b> <i>(opțional pentru Comercial)</i> și (opțional) o <b>Notă</b>.
-          Apoi folosește butoanele de mai jos.
-        </p>
+        <p class="sub">Alege <b>Departament</b> → <b>Angajat</b>, apoi <b>Tip de activitate</b>, completează (dacă e cazul) <b>Locația</b> și (opțional) o <b>Notă</b>. Apoi folosește butoanele de mai jos.</p>
 
         <div class="grid cols-3">
           <div>
@@ -257,7 +220,7 @@
           </div>
 
           <div>
-            <label for="locationInput">Client</label>
+            <label for="locationInput">Locație</label>
             <input id="locationInput" type="text" placeholder="ex: Șantier B – Poartă 2" />
           </div>
         </div>
@@ -321,7 +284,7 @@
           <button class="btn finish"  id="btnFinish">Finish</button>
         </div>
 
-        <!-- EXTRA time buttons (ascunse pentru Comercial) -->
+        <!-- EXTRA time buttons -->
         <div class="btnbar" id="extraBar" style="margin-top:8px">
           <button class="btn extra" id="btnExtraStart" title="Pornește orele extra (separate de suplimentare)">Extra Start</button>
           <button class="btn extra" id="btnExtraFinish" title="Încheie orele extra">Extra Finish</button>
@@ -332,6 +295,7 @@
         <div id="last" class="status mono" style="display:none"></div>
       </div>
 
+      <!-- Right: Helper / Summary -->
       <aside class="card rail">
         <header style="display:flex;align-items:center;gap:10px;margin:4px 0 10px">
           <span class="dot" aria-hidden="true"></span>
@@ -349,6 +313,7 @@
     </section>
   </div>
 
+  <!-- Toast -->
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
   <iframe name="hidden_iframe" style="display:none;"></iframe>
@@ -379,7 +344,6 @@
     <input type="hidden" id="f_notes" />
     <input type="hidden" id="f_maps" />
     <input type="hidden" id="f_department" />
-    <input type="hidden" id="f_nonce" />
   </form>
 
   <!-- Fallback inline employees list -->
@@ -392,882 +356,788 @@ Ana Radu
 
   <script>document.getElementById('year').textContent = new Date().getFullYear();</script>
 
-<!-- ================== SPLASH: UI + AUDIO DIN ACELAȘI CEAS (SYNC PERFECT) ================== -->
-<script>
-(() => {
-  // Întârziere inițială ca să prindă primul sunet în siguranță
-  const BASE_MS = 500; // 0.5s
-  // Timeline (secunde, relative la start)
-  const TL = { s1: 0.00, s2: 0.60, s3: 1.20, chime: 1.50, hide: 1.90 };
+  <!-- ===== SV-SPLASH: AUDIO + SINCRONIZARE (izolat, nu atinge pontajul) ===== -->
+  <script>
+  (function(){
+    const BASE_DELAY_MS = 500;   // întârziere cerută, 0.5s
+    const UI_OFFSET = 0.03;      // UI aprinde bara la ~30ms după startul beep-ului
+    const PRIME_LEAD = 0.12;     // priming aproape mut înainte de primul beep
 
-  // Elemente UI
-  const splash  = document.getElementById('splash');
-  const battery = document.getElementById('battery');
-  const bars    = [document.getElementById('bar1'), document.getElementById('bar2'), document.getElementById('bar3')];
+    const TL = { s1:0.00, s2:0.60, s3:1.20, chime:1.50, hide:1.90 };
 
-  document.documentElement.classList.add('splash-open');
-  document.body.classList.add('splash-open');
+    const splash  = document.getElementById('sv-splash');
+    const battery = document.getElementById('sv-battery');
+    const bars    = [document.getElementById('sv-bar1'), document.getElementById('sv-bar2'), document.getElementById('sv-bar3')];
 
-  function resetBars(){ bars.forEach(b => b.className = 'bar'); battery.classList.remove('active'); }
-  function stageUI(n){
-    resetBars();
-    if (n>=1){ bars[0].classList.add('on','stage-red'); }
-    if (n>=2){ bars[0].classList.remove('stage-red'); bars[0].classList.add('stage-yellow'); bars[1].classList.add('on','stage-yellow'); }
-    if (n>=3){ bars.forEach(b=>{ b.classList.remove('stage-red','stage-yellow'); b.classList.add('on','stage-green'); }); battery.classList.add('active'); }
-  }
-  function hideSplash(){
-    splash.classList.add('hide');
-    setTimeout(()=>{ document.documentElement.classList.remove('splash-open'); document.body.classList.remove('splash-open'); }, 460);
-  }
+    document.documentElement.classList.add('sv-splash-open');
+    document.body.classList.add('sv-splash-open');
 
-  // ====== AUDIO: WebAudio (synth) — ceas precis și fără rețea ======
-  const AudioSync = (() => {
-    let ctx = null;
-    function ensureCtx(){
-      if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)({ latencyHint:'interactive' });
-      return ctx;
+    function resetBars(){ bars.forEach(b => b.className = 'sv-bar'); battery.classList.remove('active'); }
+    function stageUI(n){
+      resetBars();
+      if (n>=1){ bars[0].classList.add('on','sv-red'); }
+      if (n>=2){ bars[0].classList.remove('sv-red'); bars[0].classList.add('sv-yellow'); bars[1].classList.add('on','sv-yellow'); }
+      if (n>=3){ bars.forEach(b=>{ b.classList.remove('sv-red','sv-yellow'); b.classList.add('on','sv-green'); }); battery.classList.add('active'); }
     }
-    function blipAt(absTimeSec, freq, dur=0.14, type='sine', gain=0.95){
-      const c = ensureCtx();
-      const o = c.createOscillator(); o.type = type; o.frequency.setValueAtTime(freq, absTimeSec);
-      const g = c.createGain();
-      g.gain.setValueAtTime(0, absTimeSec);
-      g.gain.linearRampToValueAtTime(gain, absTimeSec + 0.02);
-      g.gain.exponentialRampToValueAtTime(0.0001, absTimeSec + dur);
-      o.connect(g); g.connect(c.destination);
-      o.start(absTimeSec); o.stop(absTimeSec + dur);
+    function hideSplash(){
+      splash.classList.add('hide');
+      setTimeout(()=>{ 
+        document.documentElement.classList.remove('sv-splash-open');
+        document.body.classList.remove('sv-splash-open');
+        splash.style.display='none';
+      }, 460);
     }
-    function schedule(t0){
-      // pings pentru bare
-      blipAt(t0 + TL.s1, 420,.17,'sine',0.95);
-      blipAt(t0 + TL.s2, 620,.16,'sine',0.95);
-      blipAt(t0 + TL.s2 + 0.09, 760,.18,'sine',0.95);
-      blipAt(t0 + TL.s3, 780,.14,'triangle',0.90);
-      blipAt(t0 + TL.s3 + 0.07, 900,.14,'triangle',0.90);
-      blipAt(t0 + TL.s3 + 0.14,1020,.16,'triangle',0.92);
-      // chime final (acord)
-      blipAt(t0 + TL.chime, 880,.22,'triangle',0.95);
-      blipAt(t0 + TL.chime + 0.07,1109,.24,'triangle',0.95);
-      blipAt(t0 + TL.chime + 0.14,1319,.28,'triangle',0.95);
-    }
-    async function start(){
-      const c = ensureCtx();
-      // calculăm t0 din ceasul audio + întârzierea inițială
-      const t0 = c.currentTime + BASE_MS/1000;
-      schedule(t0);
 
-      // UI condusă de același ceas — fără setTimeout, fără drift
+    const AudioSync = (() => {
+      let ctx=null;
+      function ensure(){
+        if (!ctx) ctx = new (window.AudioContext||window.webkitAudioContext)({latencyHint:'interactive'});
+        return ctx;
+      }
+      function blipAt(t, freq, dur=0.16, type='sine', gain=0.95){
+        const c = ensure();
+        const o = c.createOscillator(); o.type = type; o.frequency.setValueAtTime(freq, t);
+        const g = c.createGain();
+        g.gain.setValueAtTime(0, t);
+        g.gain.linearRampToValueAtTime(gain, t + 0.01);
+        g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+        o.connect(g); g.connect(c.destination);
+        o.start(t); o.stop(t + dur);
+      }
+      async function tryResume(){ try{ const c=ensure(); if (c.state==='suspended') await c.resume(); }catch{} }
+
+      function schedule(t0){
+        const c = ensure();
+        const primeAt = Math.max(c.currentTime + 0.01, t0 + TL.s1 - PRIME_LEAD);
+        blipAt(primeAt, 220, 0.02, 'sine', 0.001); // aproape mut (deblochează ieșirea audio)
+
+        // bare (primul puțin mai lung/mai tare)
+        blipAt(t0 + TL.s1, 460, .20, 'sine', 0.98);
+        blipAt(t0 + TL.s2, 620, .16, 'sine', 0.95);
+        blipAt(t0 + TL.s2 + 0.09, 760, .18, 'sine', 0.95);
+        blipAt(t0 + TL.s3, 780, .14, 'triangle', 0.92);
+        blipAt(t0 + TL.s3 + 0.07, 900, .14, 'triangle', 0.92);
+        blipAt(t0 + TL.s3 + 0.14,1020, .16, 'triangle', 0.94);
+
+        // chime final
+        blipAt(t0 + TL.chime,         880, .22, 'triangle', 0.96);
+        blipAt(t0 + TL.chime + 0.07, 1109, .24, 'triangle', 0.96);
+        blipAt(t0 + TL.chime + 0.14, 1319, .28, 'triangle', 0.96);
+      }
+
+      async function start(){
+        const c = ensure();
+        const t0 = c.currentTime + BASE_DELAY_MS/1000;
+        schedule(t0);
+
+        // UI condusă de același ceas
+        let done1=false, done2=false, done3=false, doneHide=false;
+        function tick(){
+          const now = c.currentTime;
+          const t = now - t0;
+          if (!done1 && t >= TL.s1 + UI_OFFSET){ stageUI(1); done1=true; }
+          if (!done2 && t >= TL.s2 + UI_OFFSET){ stageUI(2); done2=true; }
+          if (!done3 && t >= TL.s3 + UI_OFFSET){ stageUI(3); done3=true; }
+          if (!doneHide && t >= TL.hide + UI_OFFSET){ hideSplash(); doneHide=true; }
+          if (!doneHide) requestAnimationFrame(tick);
+        }
+        requestAnimationFrame(tick);
+        return true;
+      }
+      return { tryResume, start, ensure };
+    })();
+
+    function fallbackNoAudio(){
+      const startAt = performance.now() + BASE_DELAY_MS;
       let done1=false, done2=false, done3=false, doneHide=false;
       function tick(){
-        const now = c.currentTime;
-        const t = now - t0;
-        if (!done1 && t >= TL.s1){ stageUI(1); done1=true; }
-        if (!done2 && t >= TL.s2){ stageUI(2); done2=true; }
-        if (!done3 && t >= TL.s3){ stageUI(3); done3=true; }
-        if (!doneHide && t >= TL.hide){ hideSplash(); doneHide=true; }
+        const t = (performance.now() - startAt)/1000;
+        if (!done1 && t >= TL.s1 + UI_OFFSET){ stageUI(1); done1=true; }
+        if (!done2 && t >= TL.s2 + UI_OFFSET){ stageUI(2); done2=true; }
+        if (!done3 && t >= TL.s3 + UI_OFFSET){ stageUI(3); done3=true; }
+        if (!doneHide && t >= TL.hide + UI_OFFSET){ hideSplash(); doneHide=true; }
         if (!doneHide) requestAnimationFrame(tick);
       }
       requestAnimationFrame(tick);
-      return true;
     }
-    async function tryResume(){ try{ const c = ensureCtx(); if (c.state==='suspended') await c.resume(); }catch{} }
-    return { start, tryResume, ensureCtx };
-  })();
 
-  // ====== FALLBACK când autoplay e blocat: folosim performance.now (UI) ======
-  function fallbackNoAudio(){
-    // dacă browserul nu lasă să pornească AudioContext, măcar UI e corectă temporal
-    const t0ms = performance.now() + BASE_MS;
-    let done1=false, done2=false, done3=false, doneHide=false;
-    function tick(){
-      const t = (performance.now() - t0ms)/1000;
-      if (!done1 && t >= TL.s1){ stageUI(1); done1=true; }
-      if (!done2 && t >= TL.s2){ stageUI(2); done2=true; }
-      if (!done3 && t >= TL.s3){ stageUI(3); done3=true; }
-      if (!doneHide && t >= TL.hide){ hideSplash(); doneHide=true; }
-      if (!doneHide) requestAnimationFrame(tick);
-    }
-    requestAnimationFrame(tick);
-  }
-
-  // ====== RUN ======
-  (async () => {
     resetBars();
-    let started = false;
-    try {
-      // Unele browsere permit creare + start fără gest dacă sunetul nu e file audio
+    (async ()=>{
       await AudioSync.tryResume();
-      started = await AudioSync.start();
-    } catch { started = false; }
-
-    // Dacă AudioContext rămâne suspendat (GitHub Pages, policy strictă), facem măcar UI sincron cu propriul ceas.
-    if (!started || (AudioSync.ensureCtx().state !== 'running')) {
-      fallbackNoAudio();
-    }
-  })();
-
-})();
-</script>
-<!-- ================== END SPLASH ================== -->
-
-
-
-  <script>
-  /** ================== Helpers & Config ================== */
-  function setText(el, msg, cls){ el.className = (el.className.split(' ')[0] || 'status') + (cls?(' '+cls):''); el.textContent = msg; }
-  function _norm(s){ return String(s==null?'':s).trim(); }
-  function _normAction(a){
-    let s = _norm(a).toLowerCase().replace(/[-\s]+/g,'_');
-    if (s === 'resume') s='unpause';
-    if (s === 'stop') s='finish';
-    if (s === 'extra start') s='extra_start';
-    if (s === 'extra finish') s='extra_finish';
-    return s;
-  }
-  function showToast(msg, type){
-    const t = document.getElementById('toast');
-    t.className = 'toast' + (type ? ' ' + type : '');
-    t.innerHTML = msg;
-    t.style.display = 'block';
-    clearTimeout(showToast._h);
-    showToast._h = setTimeout(()=>{ t.style.display='none'; }, 7000);
-  }
-
-  /** Trimite cererea de concediu la WebApp (fără preflight CORS) */
-  async function sendLeave(payload) {
-    const r = await fetch(CFG.leaveEndpoint, {
-      method: 'POST',
-      headers: {'Content-Type':'text/plain;charset=utf-8'},
-      body: JSON.stringify(payload)
-    });
-    const txt = await r.text();
-    let data;
-    try { data = JSON.parse(txt); }
-    catch { throw new Error('Răspuns invalid: ' + txt.slice(0,200)); }
-    if (!r.ok || !data.ok) throw new Error((data && data.error) || ('HTTP '+r.status));
-    return data;
-  }
-
-  /* >>> ANTI-SPAM/LOCK utils */
-  const CLICK_COOLDOWN_MS = 1200;
-  const GUARD_MIN_LOCK_MS = 600;
-  let busy = false;
-  let lastActionAt = 0;
-  function setUILock(on){ document.body.classList.toggle('action-lock', !!on); }
-  function sleep(ms){ return new Promise(res => setTimeout(res, ms)); }
-  function geolocateOnce(){
-    return new Promise((resolve, reject) => {
-      if (!('geolocation' in navigator)) return reject(new Error('Geolocație indisponibilă pe acest dispozitiv.'));
-      navigator.geolocation.getCurrentPosition(
-        pos => resolve({ lat: pos.coords.latitude, lon: pos.coords.longitude, acc: Math.round(pos.coords.accuracy || 0) }),
-        err => reject(new Error('Eroare locație: ' + err.message)),
-        { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 }
-      );
-    });
-  }
-  function randomNonce(){ return Math.random().toString(36).slice(2) + Date.now().toString(36); }
-
-  (function(){
-    const statusEl = document.getElementById('status');
-    const cfgEl = document.getElementById('cfg');
-    const notesEl = document.getElementById('notes');
-    const locInput = document.getElementById('locationInput');
-    const deptSel = document.getElementById('deptSelect');
-    const empSel = document.getElementById('employeeSelect');
-    const actSel = document.getElementById('activitySelect');
-    const empStatus = document.getElementById('empStatus');
-    const form = document.getElementById('gform');
-
-    const leavePanel = document.getElementById('leavePanel');
-    const leaveStart = document.getElementById('leaveStart');
-    const leaveEnd = document.getElementById('leaveEnd');
-    const leaveEmail = document.getElementById('leaveEmail');
-    const leaveNotes = document.getElementById('leaveNotes');
-    const leaveStatus = document.getElementById('leaveStatus');
-    const leaveDay = document.getElementById('leaveDay');
-    const leaveDaysList = document.getElementById('leaveDaysList');
-    const btnAddDay = document.getElementById('btnAddDay');
-    const extraBar = document.getElementById('extraBar');
-    let LEAVE_DAYS = [];
-
-    function setStatus(m, c){ setText(statusEl, m, c); }
-    function setCfg(m, c){ setText(cfgEl, m, c); }
-    function setEmp(m, c){ setText(empStatus, m, c); }
-    function setLeaveStatus(m, c){ setText(leaveStatus, m, c); }
-
-    let CFG = null;
-    let STATE = blankState();
-    const LS_KEY = 'pontaj/state/v1';
-
-    function blankState(){
-      return {
-        name: '',
-        normal: { running:false, paused:false },
-        extra:  { running:false },
-        lastNormalStart: null,
-        lastNormalFinish: null,
-        lastExtraStart: null,
-        lastExtraFinish: null
-      };
-    }
-    function loadLS(){ try { return JSON.parse(localStorage.getItem(LS_KEY) || 'null'); } catch{return null;} }
-    function saveLS(){ try { localStorage.setItem(LS_KEY, JSON.stringify(STATE)); } catch{} }
-
-    function bindCFGToForm() {
-      form.action = CFG.formAction;
-      const names = CFG.fields;
-      const idMap = {
-        'f_action':   names.action,
-        'f_timestamp':names.timestamp,
-        'f_name':     names.name,
-        'f_activity': names.activityType,
-        'f_location': names.location,
-        'f_lat':      names.latitude,
-        'f_lon':      names.longitude,
-        'f_acc':      names.accuracy,
-        'f_device':   names.device,
-        'f_notes':    names.notes,
-        'f_maps':     names.mapsLink,
-        'f_department': names.department || ''
-      };
-      Object.entries(idMap).forEach(([id,name]) => {
-        const el = document.getElementById(id);
-        if (name) el.setAttribute('name', name);
-      });
-    }
-
-    function bindLeaveForm() {
-      if (!CFG.leaveFormAction || !CFG.leaveFields) return false;
-      const m = CFG.leaveFields;
-      const map = {
-        'lv_name':  m.name,
-        'lv_type':  m.activityType,
-        'lv_email': m.personalEmail,
-        'lv_start': m.startDate,
-        'lv_end':   m.endDate,
-        'lv_notes': m.notes,
-        'lv_ts':    m.timestamp
-      };
-      Object.entries(map).forEach(([id, name]) => {
-        const el = document.getElementById(id);
-        if (el && name) el.setAttribute('name', name);
-      });
-      document.getElementById('leaveForm').action = CFG.leaveFormAction;
-      return true;
-    }
-
-    function parseEmployeesCSV(text){
-      if (text && text.charCodeAt && text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
-      text = (text || '').replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim();
-      if (!text) return [];
-      if (!/,|;/.test(text)) {
-        return text.split('\n').map(s => s.trim()).filter(Boolean);
-      }
-      const comma = (text.match(/,/g) || []).length;
-      const semiCount = (text.match(/;/g) || []).length;
-      const delim = semiCount > comma ? ';' : ',';
-      const rows = text.split('\n')
-        .map(line => line.split(delim).map(c => c.trim().replace(/^"|"$/g,'')))
-        .filter(r => r.length && r.join('').length);
-      const header = rows[0].map(h => (h||'').toLowerCase());
-      let startIdx = 0, nameCol = 0;
-      if (header.some(h => /angajat|nume|employee|name/.test(h))) {
-        nameCol = Math.max(0, header.findIndex(h => /angajat|nume|employee|name/.test(h)));
-        startIdx = 1;
-      }
-      const list = [];
-      for (let i=startIdx;i<rows.length;i++){
-        const v = (rows[i][nameCol] || '').trim();
-        if (v) list.push(v);
-      }
-      return list;
-    }
-    function getInlineEmployees(){
-      const el = document.getElementById('employees-inline');
-      if (!el) return [];
-      return el.textContent.split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
-    }
-
-    function parseDepartmentsCSV(text){
-      if (text && text.charCodeAt && text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
-      text = (text || '').replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim();
-      if (!text) return { byDept:new Map(), byName:new Map(), deptList:[] };
-
-      const lines = text.split('\n').filter(Boolean);
-      const sep = (text.indexOf(';') > -1 && (text.indexOf(';') < text.indexOf(','))) ? ';' : ',';
-
-      let start = 0, depCol = 0, nameCol = 1;
-      const hdr = lines[0].split(sep).map(s=>s.trim().replace(/^"|"$/g,'').toLowerCase());
-      if (hdr.some(h => /depart|dept/.test(h)) || hdr.some(h => /angajat|nume|employee|name/.test(h))) {
-        const d = hdr.findIndex(h => /depart|dept/.test(h));
-        const n = hdr.findIndex(h => /angajat|nume|employee|name/.test(h));
-        if (d >= 0) depCol = d;
-        if (n >= 0) nameCol = n;
-        start = 1;
-      }
-
-      const byDept = new Map();
-      const byName = new Map();
-
-      for (let i=start;i<lines.length;i++){
-        const cells = lines[i].split(sep).map(s=>s.trim().replace(/^"|"$/g,''));
-        const dep = (cells[depCol]||'').trim();
-        const nm  = (cells[nameCol]||'').trim();
-        if (!dep || !nm) continue;
-        if (!byDept.has(dep)) byDept.set(dep, []);
-        byDept.get(dep).push(nm);
-        byName.set(nm, dep);
-      }
-
-      const deptList = Array.from(byDept.keys()).sort((a,b)=>a.localeCompare(b,'ro'));
-      for (const d of byDept.keys()) byDept.get(d).sort((a,b)=>a.localeCompare(b,'ro'));
-      return { byDept, byName, deptList };
-    }
-
-    let DEPTMAP = { byDept:new Map(), byName:new Map(), deptList:[] };
-
-    function fillDepartments(deptList){
-      deptSel.innerHTML = '';
-      const ph = document.createElement('option');
-      ph.value=''; ph.textContent='Alege departamentul...'; ph.disabled = true; ph.selected = true;
-      deptSel.appendChild(ph);
-      deptList.forEach(d => { const o=document.createElement('option'); o.value=d; o.textContent=d; deptSel.appendChild(o); });
-    }
-
-    function fillEmployeesFromDept(dept){
-      const sel = empSel;
-      sel.innerHTML = '';
-      const ph = document.createElement('option');
-      ph.value=''; ph.textContent= dept ? 'Alege angajat…' : 'Alege departamentul mai întâi…';
-      ph.disabled = true; ph.selected = true;
-      sel.appendChild(ph);
-      if (!dept) return;
-      const list = (DEPTMAP.byDept.get(dept) || []);
-      list.forEach(v => { const o=document.createElement('option'); o.value=v; o.textContent=v; sel.appendChild(o); });
-    }
-
-    async function loadDepartments(){
-      try{
-        if (CFG.departmentsCsv){
-          const url = CFG.departmentsCsv + (CFG.departmentsCsv.includes('?') ? '&' : '?') + 'v=' + Date.now();
-          const r = await fetch(url, {cache:'no-store'});
-          if (r.ok){
-            const txt = await r.text();
-            const map = parseDepartmentsCSV(txt);
-            if (map.deptList.length){
-              DEPTMAP = map;
-              fillDepartments(map.deptList);
-              setEmp('Departamente încărcate din departmentsCsv.', 'ok');
-              return;
-            }
-          }
-        }
-      }catch(e){}
-
-      // Fallback
-      let fallbackEmployees = [];
-      try {
-        if (CFG.employeesCsv){
-          const url = CFG.employeesCsv + (CFG.employeesCsv.includes('?') ? '&' : '?') + 'v=' + Date.now();
-          const r = await fetch(url, {cache:'no-store'});
-          if (r.ok) fallbackEmployees = parseEmployeesCSV(await r.text());
-        }
-      } catch(e){}
-      if (!fallbackEmployees.length && Array.isArray(CFG.employees)) fallbackEmployees = CFG.employees.slice();
-      if (!fallbackEmployees.length) fallbackEmployees = getInlineEmployees();
-
-      const byDept = new Map([['productie', fallbackEmployees]]);
-      const byName = new Map(fallbackEmployees.map(nm => [nm, 'productie']));
-      const deptList = ['productie'];
-      DEPTMAP = { byDept, byName, deptList };
-      fillDepartments(deptList);
-      setEmp('Nu există departmentsCsv — folosesc „productie”.', 'warn');
-    }
-
-    /** ===== STATE (UI + server) ===== */
-    const btnStart = document.getElementById('btnStart');
-    const btnPause = document.getElementById('btnPause');
-    const btnUnpause = document.getElementById('btnUnpause');
-    const btnFinish = document.getElementById('btnFinish');
-    const btnExtraStart = document.getElementById('btnExtraStart');
-    const btnExtraFinish = document.getElementById('btnExtraFinish');
-
-    function reflectState(){
-      const running = STATE.normal.running;
-      the_paused  = STATE.normal.paused; // minor typo fixed below
-    }
-  })();
-  </script>
-
-  <script>
-  // Reintroduc reflectState corect (am separat pentru claritate, fără să stric ordinea ta):
-  (function(){
-    const btnStart = document.getElementById('btnStart');
-    const btnPause = document.getElementById('btnPause');
-    const btnUnpause = document.getElementById('btnUnpause');
-    const btnFinish = document.getElementById('btnFinish');
-    const btnExtraStart = document.getElementById('btnExtraStart');
-    const btnExtraFinish = document.getElementById('btnExtraFinish');
-
-    let STATE = (function(){ try{return JSON.parse(localStorage.getItem('pontaj/state/v1')||'null')}catch{return null} })() || {
-      name:'', normal:{running:false,paused:false}, extra:{running:false}
-    };
-
-    function reflectState(){
-      const running = STATE.normal.running;
-      const paused  = STATE.normal.paused;
-      const extraR  = STATE.extra.running;
-
-      const hasSel = !!document.getElementById('employeeSelect').value;
-      btnStart.disabled       = !hasSel || running || extraR;
-      btnPause.disabled       = !hasSel || !running || paused;
-      btnUnpause.disabled     = !hasSel || !running || !paused;
-      btnFinish.disabled      = !hasSel || !running;
-
-      btnExtraStart.disabled  = !hasSel || running || extraR;
-      btnExtraFinish.disabled = !hasSel || !extraR;
-    }
-
-    window.addEventListener('storage', reflectState);
-    reflectState();
-  })();
-  </script>
-
-  <script>
-  (function(){
-    // Mut restul init-ului tău aici, neschimbat, cu un mic bugfix lv_ts.
-    const statusEl = document.getElementById('status');
-    const cfgEl = document.getElementById('cfg');
-    const notesEl = document.getElementById('notes');
-    const locInput = document.getElementById('locationInput');
-    const deptSel = document.getElementById('deptSelect');
-    const empSel = document.getElementById('employeeSelect');
-    const actSel = document.getElementById('activitySelect');
-    const empStatus = document.getElementById('empStatus');
-    const form = document.getElementById('gform');
-    const extraBar = document.getElementById('extraBar');
-
-    let CFG=null;
-
-    function setText(el, msg, cls){ el.className = (el.className.split(' ')[0] || 'status') + (cls?(' '+cls):''); el.textContent = msg; }
-
-    function isComercialDept(){
-      const v = (deptSel.value || '').toLowerCase();
-      return v === 'comercial' || v === 'coemercial';
-    }
-
-    function disableTimeButtons(disabled) {
-      [document.getElementById('btnStart'),document.getElementById('btnPause'),
-       document.getElementById('btnUnpause'),document.getElementById('btnFinish'),
-       document.getElementById('btnExtraStart'),document.getElementById('btnExtraFinish')].forEach(el=>{
-        if (el) el.disabled = !!disabled;
-      });
-    }
-    function disableAllButtons(disabled){
-      disableTimeButtons(disabled);
-      const lbtn = document.getElementById('btnLeave');
-      if (lbtn) lbtn.disabled = !!disabled;
-    }
-
-    async function fetchState(name){
-      const base = (CFG.stateEndpoint && CFG.stateEndpoint.trim()) || (CFG.guardEndpoint && (CFG.guardEndpoint.trim() + '?fn=state'));
-      if (!base) return null;
-      const url = base.includes('?fn=state') ? (base + '&name=' + encodeURIComponent(name))
-                                             : (base + (base.includes('?')?'&':'?') + 'name=' + encodeURIComponent(name));
-      const r = await fetch(url, { cache:'no-store' });
-      const txt = await r.text();
-      try { return JSON.parse(txt).state || null; } catch { return null; }
-    }
-
-    async function fetchStats(name){
-      const rawBase = (CFG.guardEndpoint && CFG.guardEndpoint.trim()) || (CFG.stateEndpoint && CFG.stateEndpoint.trim());
-      if (!rawBase) return null;
-      const base = rawBase.replace(/\?.*$/,'');
-      const url = base + '?fn=stats&name=' + encodeURIComponent(name);
-      try{
-        const r = await fetch(url, { cache:'no-store' });
-        const txt = await r.text();
-        try { const data = JSON.parse(txt); return data && data.ok ? data.stats : null; }
-        catch { return null; }
-      }catch{ return null; }
-    }
-
-    async function guardRemote(name, action){
-      const base = (CFG.guardEndpoint && CFG.guardEndpoint.trim()) || (CFG.stateEndpoint && CFG.stateEndpoint.trim());
-      if (!base) return {ok:true};
-      const url = base + (base.includes('?') ? '&' : '?') + 'fn=guard';
-      try{
-        const r = await fetch(url, {
-          method: 'POST',
-          headers: {'Content-Type':'text/plain;charset=utf-8'},
-          body: JSON.stringify({ name, action: (String(action).toLowerCase().replace(/[-\s]+/g,'_')) })
-        });
-        const txt = await r.text();
-        let data; try { data = JSON.parse(txt); } catch { return {ok:true}; }
-        return data;
-      }catch{
-        return {ok:true};
-      }
-    }
-
-    function showToast(msg, type){
-      const t = document.getElementById('toast');
-      t.className = 'toast' + (type ? ' ' + type : '');
-      t.innerHTML = msg;
-      t.style.display = 'block';
-      clearTimeout(showToast._h);
-      showToast._h = setTimeout(()=>{ t.style.display='none'; }, 7000);
-    }
-
-    const CLICK_COOLDOWN_MS = 1200;
-    const GUARD_MIN_LOCK_MS = 600;
-    let busy = false;
-    let lastActionAt = 0;
-    function setUILock(on){ document.body.classList.toggle('action-lock', !!on); }
-    function sleep(ms){ return new Promise(res => setTimeout(res, ms)); }
-    function geolocateOnce(){
-      return new Promise((resolve, reject) => {
-        if (!('geolocation' in navigator)) return reject(new Error('Geolocație indisponibilă pe acest dispozitiv.'));
-        navigator.geolocation.getCurrentPosition(
-          pos => resolve({ lat: pos.coords.latitude, lon: pos.coords.longitude, acc: Math.round(pos.coords.accuracy || 0) }),
-          err => reject(new Error('Eroare locație: ' + err.message)),
-          { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 }
-        );
-      });
-    }
-    function randomNonce(){ return Math.random().toString(36).slice(2) + Date.now().toString(36); }
-
-    function setFormPayload(action, ts, gps){
-      document.getElementById('f_action').value    = String(action).toLowerCase().replace(/[-\s]+/g,'_');
-      document.getElementById('f_timestamp').value = ts;
-      document.getElementById('f_name').value      = document.getElementById('employeeSelect').value;
-      document.getElementById('f_activity').value  = document.getElementById('activitySelect').value;
-      document.getElementById('f_location').value  = (document.getElementById('locationInput').value||'').trim();
-      document.getElementById('f_lat').value       = gps.lat;
-      document.getElementById('f_lon').value       = gps.lon;
-      document.getElementById('f_acc').value       = gps.acc;
-      document.getElementById('f_device').value    = navigator.userAgent;
-      document.getElementById('f_notes').value     = (document.getElementById('notes').value || '');
-      document.getElementById('f_maps').value      = `https://maps.google.com/?q=${gps.lat},${gps.lon}`;
-      const nm = document.getElementById('employeeSelect').value;
-      document.getElementById('f_department').value = (document.getElementById('deptSelect').value || '' );
-      document.getElementById('f_nonce').value      = randomNonce();
-    }
-
-    async function submitAction(action) {
-      const now = Date.now();
-      if (busy) return;
-      if (now - lastActionAt < CLICK_COOLDOWN_MS) return;
-
-      if (!deptSel.value){ setText(statusEl,'Alege departamentul.','err'); return; }
-      if (!empSel.value){ setText(statusEl,'Selectează angajat.','err'); return; }
-      if (!actSel.value){ setText(statusEl,'Alege tip de activitate.','err'); return; }
-
-      const actNorm = String(action).toLowerCase().replace(/[-\s]+/g,'_');
-      const isCom = isComercialDept();
-
-      if (isCom && (actNorm==='extra_start' || actNorm==='extra_finish')){
-        setText(statusEl,'Departamentul Comercial nu poate folosi ore EXTRA.','warn'); return;
-      }
-      if (!isCom && !locInput.value.trim()){
-        setText(statusEl,'Scrie clientul/locația.','err'); locInput.focus(); return;
-      }
-      if (['concediu de odihna','concediu medical','concediu pentru ore suplimentare'].includes((actSel.value||'').toLowerCase())){
-        setText(statusEl,'Pentru concediu folosește „Trimite cererea de concediu”.','warn'); return;
-      }
-
-      busy = true; setUILock(true); disableAllButtons(true);
-      const lockStart = Date.now();
-      setText(statusEl,'Verific starea…','');
-
-      try{
-        const g = await guardRemote(empSel.value.trim(), action);
-        if (!g.ok){ setText(statusEl, g.msg || 'Acțiune blocată de regulile de pontaj.','warn'); return; }
-
-        setText(statusEl,'Se obține locația GPS…','');
-        const gps = await geolocateOnce();
-
-        const ts = new Date().toISOString();
-        setFormPayload(action, ts, gps);
-        document.getElementById('gform').submit();
-
-        setText(statusEl,`Trimis ✓ (${actNorm.toUpperCase()}).`,'ok');
-
-        await sleep(1200);
-        try{
-          const stats = await fetchStats(empSel.value.trim());
-          if (stats){
-            if (actNorm==='finish'){
-              showToast(`<b>${empSel.value}</b><div class="small">Azi — Ore: <b>${stats.totalHours}</b> h • Suplimentar: <b>${stats.overtime}</b> h</div>`, 'ok');
-            } else if (actNorm==='extra_finish'){
-              showToast(`<b>${empSel.value}</b><div class="small">Azi — Extra: <b>${stats.extra}</b> h</div>`, 'ok');
-            }
-          }
-        }catch{}
-      }catch(err){
-        setText(statusEl, String(err && err.message ? err.message : err), 'err');
-      }finally{
-        const elapsed = Date.now() - lockStart;
-        if (elapsed < GUARD_MIN_LOCK_MS) await sleep(GUARD_MIN_LOCK_MS - elapsed);
-        lastActionAt = Date.now();
-        await sleep(CLICK_COOLDOWN_MS);
-        busy = false; setUILock(false); disableAllButtons(false);
-      }
-    }
-
-    function wireButtons(){
-      document.getElementById('btnStart').addEventListener('click', ()=>submitAction('start'));
-      document.getElementById('btnPause').addEventListener('click', ()=>submitAction('pause'));
-      document.getElementById('btnUnpause').addEventListener('click', ()=>submitAction('unpause'));
-      document.getElementById('btnFinish').addEventListener('click', ()=>submitAction('finish'));
-      document.getElementById('btnExtraStart').addEventListener('click', ()=>submitAction('extra_start'));
-      document.getElementById('btnExtraFinish').addEventListener('click', ()=>submitAction('extra_finish'));
-    }
-
-    (async function init(){
-      try {
-        const r = await fetch('config.json?v=' + Date.now(), {cache:'no-store'});
-        if (!r.ok) throw new Error('HTTP ' + r.status);
-        CFG = await r.json();
-        if (!CFG.formAction || !CFG.fields) throw new Error('Config incomplet');
-        setText(cfgEl,'Config încărcat','ok');
-        window.CFG = CFG;
-      } catch (e) {
-        setText(cfgEl,'Eroare config: ' + (e.message||e),'err');
-        disableAllButtons(true); return;
-      }
-
-      // mapare câmpuri
-      (function bindCFGToForm(){
-        const names = CFG.fields;
-        const idMap = {
-          'f_action':   names.action,
-          'f_timestamp':names.timestamp,
-          'f_name':     names.name,
-          'f_activity': names.activityType,
-          'f_location': names.location,
-          'f_lat':      names.latitude,
-          'f_lon':      names.longitude,
-          'f_acc':      names.accuracy,
-          'f_device':   names.device,
-          'f_notes':    names.notes,
-          'f_maps':     names.mapsLink,
-          'f_department': names.department || ''
-        };
-        Object.entries(idMap).forEach(([id,name]) => {
-          const el = document.getElementById(id);
-          if (name) el.setAttribute('name', name);
-        });
-        // leave form
-        if (CFG.leaveFormAction && CFG.leaveFields) {
-          const m = CFG.leaveFields;
-          const map = {
-            'lv_name':  m.name,
-            'lv_type':  m.activityType,
-            'lv_email': m.personalEmail,
-            'lv_start': m.startDate,
-            'lv_end':   m.endDate,
-            'lv_notes': m.notes,
-            'lv_ts':    m.timestamp
-          };
-          Object.entries(map).forEach(([id, name]) => {
-            const el = document.getElementById(id);
-            if (el && name) el.setAttribute('name', name);
-          });
-          document.getElementById('leaveForm').action = CFG.leaveFormAction;
-        }
-      })();
-
-      // load departamente + angajați
-      async function parseDepartmentsCSV(text){
-        if (text && text.charCodeAt && text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
-        text = (text || '').replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim();
-        if (!text) return { byDept:new Map(), byName:new Map(), deptList:[] };
-
-        const lines = text.split('\n').filter(Boolean);
-        const sep = (text.indexOf(';') > -1 && (text.indexOf(';') < text.indexOf(','))) ? ';' : ',';
-
-        let start = 0, depCol = 0, nameCol = 1;
-        const hdr = lines[0].split(sep).map(s=>s.trim().replace(/^"|"$/g,'').toLowerCase());
-        if (hdr.some(h => /depart|dept/.test(h)) || hdr.some(h => /angajat|nume|employee|name/.test(h))) {
-          const d = hdr.findIndex(h => /depart|dept/.test(h));
-          const n = hdr.findIndex(h => /angajat|nume|employee|name/.test(h));
-          if (d >= 0) depCol = d;
-          if (n >= 0) nameCol = n;
-          start = 1;
-        }
-
-        const byDept = new Map();
-        const byName = new Map();
-
-        for (let i=start;i<lines.length;i++){
-          const cells = lines[i].split(sep).map(s=>s.trim().replace(/^"|"$/g,''));
-          const dep = (cells[depCol]||'').trim();
-          const nm  = (cells[nameCol]||'').trim();
-          if (!dep || !nm) continue;
-          if (!byDept.has(dep)) byDept.set(dep, []);
-          byDept.get(dep).push(nm);
-          byName.set(nm, dep);
-        }
-
-        const deptList = Array.from(byDept.keys()).sort((a,b)=>a.localeCompare(b,'ro'));
-        for (const d of byDept.keys()) byDept.get(d).sort((a,b)=>a.localeCompare(b,'ro'));
-        return { byDept, byName, deptList };
-      }
-
-      async function loadDepartments(){
-        try{
-          if (CFG.departmentsCsv){
-            const url = CFG.departmentsCsv + (CFG.departmentsCsv.includes('?') ? '&' : '?') + 'v=' + Date.now();
-            const r = await fetch(url, {cache:'no-store'});
-            if (r.ok){
-              const txt = await r.text();
-              const map = await parseDepartmentsCSV(txt);
-              if (map.deptList.length){
-                DEPTMAP = map;
-                fillDepartments(map.deptList);
-                setText(empStatus,'Departamente încărcate din departmentsCsv.','ok');
-                return;
-              }
-            }
-          }
-        }catch(e){}
-
-        let fallbackEmployees = [];
-        try {
-          if (CFG.employeesCsv){
-            const url = CFG.employeesCsv + (CFG.employeesCsv.includes('?') ? '&' : '?') + 'v=' + Date.now();
-            const r = await fetch(url, {cache:'no-store'});
-            if (r.ok) fallbackEmployees = parseEmployeesCSV(await r.text());
-          }
-        } catch(e){}
-        if (!fallbackEmployees.length && Array.isArray(CFG.employees)) fallbackEmployees = CFG.employees.slice();
-        if (!fallbackEmployees.length) fallbackEmployees = document.getElementById('employees-inline').textContent.split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
-
-        const byDept = new Map([['productie', fallbackEmployees]]);
-        const byName = new Map(fallbackEmployees.map(nm => [nm, 'productie']));
-        const deptList = ['productie'];
-        DEPTMAP = { byDept, byName, deptList };
-        fillDepartments(deptList);
-        setText(empStatus,'Nu există departmentsCsv — folosesc „productie”.','warn');
-      }
-
-      function fillDepartments(deptList){
-        const sel = document.getElementById('deptSelect');
-        sel.innerHTML = '';
-        const ph = document.createElement('option');
-        ph.value=''; ph.textContent='Alege departamentul...'; ph.disabled = true; ph.selected = true;
-        sel.appendChild(ph);
-        deptList.forEach(d => { const o=document.createElement('option'); o.value=d; o.textContent=d; sel.appendChild(o); });
-      }
-      function fillEmployeesFromDept(dept){
-        const sel = document.getElementById('employeeSelect');
-        sel.innerHTML = '';
-        const ph = document.createElement('option');
-        ph.value=''; ph.textContent= dept ? 'Alege angajat…' : 'Alege departamentul mai întâi…';
-        ph.disabled = true; ph.selected = true;
-        sel.appendChild(ph);
-        if (!dept) return;
-        const list = (DEPTMAP.byDept.get(dept) || []);
-        list.forEach(v => { const o=document.createElement('option'); o.value=v; o.textContent=v; sel.appendChild(o); });
-      }
-
-      await loadDepartments();
-      fillEmployeesFromDept('');
-
-      // evenimente UI
-      document.getElementById('deptSelect').addEventListener('change', () => {
-        fillEmployeesFromDept(document.getElementById('deptSelect').value);
-        if (extraBar) extraBar.style.display = isComercialDept() ? 'none' : '';
-      });
-
-      const LEAVE_TYPES = new Set(['concediu de odihna','concediu medical','concediu pentru ore suplimentare']);
-      document.getElementById('activitySelect').addEventListener('change', () => {
-        const isLeave = LEAVE_TYPES.has((document.getElementById('activitySelect').value||'').toLowerCase());
-        document.getElementById('leavePanel').style.display = isLeave ? '' : 'none';
-        disableTimeButtons(isLeave);
-      });
-
-      // Butoane
-      function submitActionProxy(type){
-        return ()=>submitAction(type);
-      }
-      document.getElementById('btnStart').addEventListener('click', submitActionProxy('start'));
-      document.getElementById('btnPause').addEventListener('click', submitActionProxy('pause'));
-      document.getElementById('btnUnpause').addEventListener('click', submitActionProxy('unpause'));
-      document.getElementById('btnFinish').addEventListener('click', submitActionProxy('finish'));
-      document.getElementById('btnExtraStart').addEventListener('click', submitActionProxy('extra_start'));
-      document.getElementById('btnExtraFinish').addEventListener('click', submitActionProxy('extra_finish'));
-
-      // Leave submit
-      document.getElementById('btnLeave').addEventListener('click', async () => {
-        const deptSel = document.getElementById('deptSelect');
-        const empSel  = document.getElementById('employeeSelect');
-        const actSel  = document.getElementById('activitySelect');
-        const leaveStart = document.getElementById('leaveStart');
-        const leaveEnd   = document.getElementById('leaveEnd');
-        const leaveEmail = document.getElementById('leaveEmail');
-        const leaveNotes = document.getElementById('leaveNotes');
-        const leaveStatus = document.getElementById('leaveStatus');
-
-        function setLeaveStatus(m, c){ setText(leaveStatus, m, c); }
-
-        setLeaveStatus('', '');
-        if (!deptSel.value) { setLeaveStatus('Alege departamentul.', 'err'); return; }
-        if (!empSel.value)  { setLeaveStatus('Selectează angajat.', 'err'); return; }
-        const tip = (actSel.value || '').toLowerCase();
-        if (!LEAVE_TYPES.has(tip)) { setLeaveStatus('Alege un tip de concediu.', 'err'); return; }
-        const sd = leaveStart.value;
-        const ed = leaveEnd.value;
-        if (!sd || !ed) { setLeaveStatus('Completează intervalul (start–sfârșit).', 'err'); return; }
-        if (ed < sd) { setLeaveStatus('Data de sfârșit nu poate fi înainte de start.', 'err'); return; }
-        const email = (leaveEmail.value || '').trim();
-        if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { setLeaveStatus('Email personal invalid.', 'err'); return; }
-
-        setLeaveStatus('Se trimite cererea…', '');
-
-        let formSubmitted = false;
-        if (CFG.leaveFormAction && CFG.leaveFields) {
-          try {
-            document.getElementById('lv_name').value  = empSel.value;
-            document.getElementById('lv_type').value  = tip;
-            document.getElementById('lv_email').value = email;
-            document.getElementById('lv_start').value = sd;
-            document.getElementById('lv_end').value   = ed;
-            document.getElementById('lv_notes').value = (leaveNotes.value || '');
-            document.getElementById('lv_ts').value    = new Date().toISOString();
-            document.getElementById('leaveForm').submit();
-            formSubmitted = true;
-          } catch (e) { console.warn('Leave Form submit failed', e); }
-        }
-
-        let endpointOk = false, endpointMsg = '';
-        if (CFG.leaveEndpoint) {
-          try {
-            document.getElementById('lv_ts').value = new Date().toISOString();
-            const payload = {
-              name: empSel.value,
-              activityType: tip,
-              startDate: sd,
-              endDate: ed,
-              personalEmail: email,
-              notes: (leaveNotes.value || '')
-            };
-            const res = await sendLeave(payload);
-            endpointOk = true;
-            endpointMsg = res && res.zile ? (' (înregistrată ' + res.zile + ' zile)') : '';
-          } catch (err) { console.warn('Leave endpoint error:', err); }
-        }
-
-        if (formSubmitted || endpointOk) {
-          setLeaveStatus('Cerere trimisă' + endpointMsg + '. HR a fost notificat.', 'ok');
-        } else {
-          setLeaveStatus('Eroare: nu s-a putut trimite cererea (Form/Endpoint).', 'err');
-        }
-      });
-
+      let ok=false;
+      try { ok = await AudioSync.start(); } catch { ok=false; }
+      if (!ok || (AudioSync.ensure().state!=='running')) fallbackNoAudio();
     })();
   })();
+  </script>
+  <!-- ===== END SV-SPLASH ===== -->
+
+  <script>
+/** ================== Helpers & Config ================== */
+function setText(el, msg, cls){ el.className = (el.className.split(' ')[0] || 'status') + (cls?(' '+cls):''); el.textContent = msg; }
+function _norm(s){ return String(s==null?'':s).trim(); }
+function _normAction(a){
+  let s = _norm(a).toLowerCase().replace(/[-\s]+/g,'_');
+  if (s === 'resume') s='unpause';
+  if (s === 'stop') s='finish';
+  if (s === 'extra start') s='extra_start';
+  if (s === 'extra finish') s='extra_finish';
+  return s;
+}
+function showToast(msg, type){
+  const t = document.getElementById('toast');
+  t.className = 'toast' + (type ? ' ' + type : '');
+  t.innerHTML = msg;
+  t.style.display = 'block';
+  clearTimeout(showToast._h);
+  showToast._h = setTimeout(()=>{ t.style.display='none'; }, 7000);
+}
+
+/** Trimite cererea de concediu la WebApp (fără preflight CORS) */
+async function sendLeave(payload) {
+  const r = await fetch(CFG.leaveEndpoint, {
+    method: 'POST',
+    headers: {'Content-Type':'text/plain;charset=utf-8'},
+    body: JSON.stringify(payload)
+  });
+  const txt = await r.text();
+  let data;
+  try { data = JSON.parse(txt); }
+  catch { throw new Error('Răspuns invalid: ' + txt.slice(0,200)); }
+  if (!r.ok || !data.ok) throw new Error((data && data.error) || ('HTTP '+r.status));
+  return data;
+}
+
+(function(){
+  const statusEl = document.getElementById('status');
+  const cfgEl = document.getElementById('cfg');
+  const notesEl = document.getElementById('notes');
+  const locInput = document.getElementById('locationInput');
+  const deptSel = document.getElementById('deptSelect');
+  const empSel = document.getElementById('employeeSelect');
+  const actSel = document.getElementById('activitySelect');
+  const empStatus = document.getElementById('empStatus');
+  const form = document.getElementById('gform');
+
+  const leavePanel = document.getElementById('leavePanel');
+  const leaveStart = document.getElementById('leaveStart');
+  const leaveEnd = document.getElementById('leaveEnd');
+  const leaveEmail = document.getElementById('leaveEmail');
+  const leaveNotes = document.getElementById('leaveNotes');
+  const leaveStatus = document.getElementById('leaveStatus');
+  const leaveDay = document.getElementById('leaveDay');
+  const leaveDaysList = document.getElementById('leaveDaysList');
+  const btnAddDay = document.getElementById('btnAddDay');
+  let LEAVE_DAYS = [];
+
+  function renderLeaveDays() {
+    if (!leaveDaysList) return;
+    leaveDaysList.innerHTML = '';
+    if (!LEAVE_DAYS.length) { leaveDaysList.textContent = 'Nicio zi adăugată.'; return; }
+    LEAVE_DAYS = Array.from(new Set(LEAVE_DAYS)).sort();
+    LEAVE_DAYS.forEach((d, idx) => {
+      const chip = document.createElement('span');
+      chip.className = 'chip';
+      chip.style.marginRight = '6px';
+      chip.innerHTML = d + ' <button type="button" data-idx="'+idx+'" style="all:unset;cursor:pointer;font-weight:700">×</button>';
+      leaveDaysList.appendChild(chip);
+    });
+  }
+  if (btnAddDay) btnAddDay.addEventListener('click', () => {
+    const d = (leaveDay && leaveDay.value || '').trim();
+    if (!d) { setLeaveStatus('Alege o zi.', 'err'); return; }
+    if (!LEAVE_DAYS.includes(d)) LEAVE_DAYS.push(d);
+    setLeaveStatus('', '');
+    renderLeaveDays();
+  });
+  if (leaveDaysList) leaveDaysList.addEventListener('click', (ev) => {
+    const b = ev.target && ev.target.closest && ev.target.closest('button[data-idx]');
+    if (!b) return;
+    const i = +b.getAttribute('data-idx');
+    if (!isNaN(i)) { LEAVE_DAYS.splice(i,1); renderLeaveDays(); }
+  });
+
+  const btnStart = document.getElementById('btnStart');
+  const btnPause = document.getElementById('btnPause');
+  const btnUnpause = document.getElementById('btnUnpause');
+  const btnFinish = document.getElementById('btnFinish');
+  const btnExtraStart = document.getElementById('btnExtraStart');
+  const btnExtraFinish = document.getElementById('btnExtraFinish');
+  const extraBar = document.getElementById('extraBar');
+
+  function setStatus(m, c){ setText(statusEl, m, c); }
+  function setCfg(m, c){ setText(cfgEl, m, c); }
+  function setEmp(m, c){ setText(empStatus, m, c); }
+  function setLeaveStatus(m, c){ setText(leaveStatus, m, c); }
+
+  let CFG = null;
+  let STATE = blankState();
+  const LS_KEY = 'pontaj/state/v1';
+
+  function blankState(){
+    return {
+      name: '',
+      normal: { running:false, paused:false },
+      extra:  { running:false },
+      lastNormalStart: null,
+      lastNormalFinish: null,
+      lastExtraStart: null,
+      lastExtraFinish: null
+    };
+  }
+  function loadLS(){ try { return JSON.parse(localStorage.getItem(LS_KEY) || 'null'); } catch{return null;} }
+  function saveLS(){ try { localStorage.setItem(LS_KEY, JSON.stringify(STATE)); } catch{} }
+
+  function bindCFGToForm() {
+    form.action = CFG.formAction;
+    const names = CFG.fields;
+    const idMap = {
+      'f_action':   names.action,
+      'f_timestamp':names.timestamp,
+      'f_name':     names.name,
+      'f_activity': names.activityType,
+      'f_location': names.location,
+      'f_lat':      names.latitude,
+      'f_lon':      names.longitude,
+      'f_acc':      names.accuracy,
+      'f_device':   names.device,
+      'f_notes':    names.notes,
+      'f_maps':     names.mapsLink,
+      'f_department': names.department || ''
+    };
+    Object.entries(idMap).forEach(([id,name]) => {
+      const el = document.getElementById(id);
+      if (name) el.setAttribute('name', name);
+    });
+  }
+
+  function bindLeaveForm() {
+    if (!CFG.leaveFormAction || !CFG.leaveFields) return false;
+    const m = CFG.leaveFields;
+    const map = {
+      'lv_name':  m.name,
+      'lv_type':  m.activityType,
+      'lv_email': m.personalEmail,
+      'lv_start': m.startDate,
+      'lv_end':   m.endDate,
+      'lv_notes': m.notes,
+      'lv_ts':    m.timestamp
+    };
+    Object.entries(map).forEach(([id, name]) => {
+      const el = document.getElementById(id);
+      if (el && name) el.setAttribute('name', name);
+    });
+    document.getElementById('leaveForm').action = CFG.leaveFormAction;
+    return true;
+  }
+
+  function parseEmployeesCSV(text){
+    if (text && text.charCodeAt && text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
+    text = (text || '').replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim();
+    if (!text) return [];
+    if (!/,|;/.test(text)) {
+      return text.split('\n').map(s => s.trim()).filter(Boolean);
+    }
+    const comma = (text.match(/,/g) || []).length;
+    const semiCount = (text.match(/;/g) || []).length;
+    const delim = semiCount > comma ? ';' : ',';
+    const rows = text.split('\n')
+      .map(line => line.split(delim).map(c => c.trim().replace(/^"|"$/g,'')))
+      .filter(r => r.length && r.join('').length);
+    const header = rows[0].map(h => (h||'').toLowerCase());
+    let startIdx = 0, nameCol = 0;
+    if (header.some(h => /angajat|nume|employee|name/.test(h))) {
+      nameCol = Math.max(0, header.findIndex(h => /angajat|nume|employee|name/.test(h)));
+      startIdx = 1;
+    }
+    const list = [];
+    for (let i=startIdx;i<rows.length;i++){
+      const v = (rows[i][nameCol] || '').trim();
+      if (v) list.push(v);
+    }
+    return list;
+  }
+  function getInlineEmployees(){
+    const el = document.getElementById('employees-inline');
+    if (!el) return [];
+    return el.textContent.split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
+  }
+
+  function parseDepartmentsCSV(text){
+    if (text && text.charCodeAt && text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
+    text = (text || '').replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim();
+    if (!text) return { byDept:new Map(), byName:new Map(), deptList:[] };
+
+    const lines = text.split('\n').filter(Boolean);
+    const sep = (text.indexOf(';') > -1 && (text.indexOf(';') < text.indexOf(','))) ? ';' : ',';
+
+    let start = 0, depCol = 0, nameCol = 1;
+    const hdr = lines[0].split(sep).map(s=>s.trim().replace(/^"|"$/g,'').toLowerCase());
+    if (hdr.some(h => /depart|dept/.test(h)) || hdr.some(h => /angajat|nume|employee|name/.test(h))) {
+      const d = hdr.findIndex(h => /depart|dept/.test(h));
+      const n = hdr.findIndex(h => /angajat|nume|employee|name/.test(h));
+      if (d >= 0) depCol = d;
+      if (n >= 0) nameCol = n;
+      start = 1;
+    }
+
+    const byDept = new Map();
+    const byName = new Map();
+
+    for (let i=start;i<lines.length;i++){
+      const cells = lines[i].split(sep).map(s=>s.trim().replace(/^"|"$/g,''));
+      const dep = (cells[depCol]||'').trim();
+      const nm  = (cells[nameCol]||'').trim();
+      if (!dep || !nm) continue;
+      if (!byDept.has(dep)) byDept.set(dep, []);
+      byDept.get(dep).push(nm);
+      byName.set(nm, dep);
+    }
+
+    const deptList = Array.from(byDept.keys()).sort((a,b)=>a.localeCompare(b,'ro'));
+    for (const d of byDept.keys()) byDept.get(d).sort((a,b)=>a.localeCompare(b,'ro'));
+    return { byDept, byName, deptList };
+  }
+
+  let DEPTMAP = { byDept:new Map(), byName:new Map(), deptList:[] };
+
+  function fillDepartments(deptList){
+    deptSel.innerHTML = '';
+    const ph = document.createElement('option');
+    ph.value=''; ph.textContent='Alege departamentul...'; ph.disabled = true; ph.selected = true;
+    deptSel.appendChild(ph);
+    deptList.forEach(d => { const o=document.createElement('option'); o.value=d; o.textContent=d; deptSel.appendChild(o); });
+  }
+
+  function fillEmployeesFromDept(dept){
+    const sel = empSel;
+    sel.innerHTML = '';
+    const ph = document.createElement('option');
+    ph.value=''; ph.textContent= dept ? 'Alege angajat…' : 'Alege departamentul mai întâi…';
+    ph.disabled = true; ph.selected = true;
+    sel.appendChild(ph);
+    if (!dept) return;
+    const list = (DEPTMAP.byDept.get(dept) || []);
+    list.forEach(v => { const o=document.createElement('option'); o.value=v; o.textContent=v; sel.appendChild(o); });
+  }
+
+  async function loadDepartments(){
+    try{
+      if (CFG.departmentsCsv){
+        const url = CFG.departmentsCsv + (CFG.departmentsCsv.includes('?') ? '&' : '?') + 'v=' + Date.now();
+        const r = await fetch(url, {cache:'no-store'});
+        if (r.ok){
+          const txt = await r.text();
+          const map = parseDepartmentsCSV(txt);
+          if (map.deptList.length){
+            DEPTMAP = map;
+            fillDepartments(map.deptList);
+            setEmp('Departamente încărcate din departmentsCsv.', 'ok');
+            return;
+          }
+        }
+      }
+    }catch(e){}
+
+    let fallbackEmployees = [];
+    try {
+      if (CFG.employeesCsv){
+        const url = CFG.employeesCsv + (CFG.employeesCsv.includes('?') ? '&' : '?') + 'v=' + Date.now();
+        const r = await fetch(url, {cache:'no-store'});
+        if (r.ok) fallbackEmployees = parseEmployeesCSV(await r.text());
+      }
+    } catch(e){}
+    if (!fallbackEmployees.length && Array.isArray(CFG.employees)) fallbackEmployees = CFG.employees.slice();
+    if (!fallbackEmployees.length) fallbackEmployees = getInlineEmployees();
+
+    const byDept = new Map([['productie', fallbackEmployees]]);
+    const byName = new Map(fallbackEmployees.map(nm => [nm, 'productie']));
+    const deptList = ['productie'];
+    DEPTMAP = { byDept, byName, deptList };
+    fillDepartments(deptList);
+    setEmp('Nu există departmentsCsv — folosesc „productie”.', 'warn');
+  }
+
+  function reflectState(){
+    const running = STATE.normal.running;
+    const paused  = STATE.normal.paused;
+    const extraR  = STATE.extra.running;
+
+    const hasSel = !!empSel.value;
+    btnStart.disabled       = !hasSel || running || extraR;
+    btnPause.disabled       = !hasSel || !running || paused;
+    btnUnpause.disabled     = !hasSel || !running || !paused;
+    btnFinish.disabled      = !hasSel || !running;
+
+    btnExtraStart.disabled  = !hasSel || running || extraR;
+    btnExtraFinish.disabled = !hasSel || !extraR;
+  }
+  function disableTimeButtons(disabled) {
+    [btnStart,btnPause,btnUnpause,btnFinish,btnExtraStart,btnExtraFinish].forEach(el=>{
+      if (el) el.disabled = !!disabled;
+    });
+  }
+  function disableAllButtons(disabled){
+    disableTimeButtons(disabled);
+    const lbtn = document.getElementById('btnLeave');
+    if (lbtn) lbtn.disabled = !!disabled;
+  }
+
+  async function fetchState(name){
+    const base = (CFG.stateEndpoint && CFG.stateEndpoint.trim()) || (CFG.guardEndpoint && (CFG.guardEndpoint.trim() + '?fn=state'));
+    if (!base) return null;
+    const url = base.includes('?fn=state') ? (base + '&name=' + encodeURIComponent(name)) 
+                                           : (base + (base.includes('?')?'&':'?') + 'name=' + encodeURIComponent(name));
+    const r = await fetch(url, { cache:'no-store' });
+    const txt = await r.text();
+    try { return JSON.parse(txt).state || null; } catch { return null; }
+  }
+
+  async function fetchStats(name){
+    const rawBase = (CFG.guardEndpoint && CFG.guardEndpoint.trim()) || (CFG.stateEndpoint && CFG.stateEndpoint.trim());
+    if (!rawBase) return null;
+    const base = rawBase.replace(/\?.*$/,'');
+    const url = base + '?fn=stats&name=' + encodeURIComponent(name);
+    try{
+      const r = await fetch(url, { cache:'no-store' });
+      const txt = await r.text();
+      try { const data = JSON.parse(txt); return data && data.ok ? data.stats : null; }
+      catch { return null; }
+    }catch{ return null; }
+  }
+
+  async function guardRemote(name, action){
+    const base = (CFG.guardEndpoint && CFG.guardEndpoint.trim()) || (CFG.stateEndpoint && CFG.stateEndpoint.trim());
+    if (!base) return {ok:true};
+    const url = base + (base.includes('?') ? '&' : '?') + 'fn=guard';
+    try{
+      const r = await fetch(url, {
+        method: 'POST',
+        headers: {'Content-Type':'text/plain;charset=utf-8'},
+        body: JSON.stringify({ name, action: _normAction(action) })
+      });
+      const txt = await r.text();
+      let data; try { data = JSON.parse(txt); } catch { return {ok:true}; }
+      return data;
+    }catch{
+      return {ok:true};
+    }
+  }
+
+  function localGuard(action){
+    action = _normAction(action);
+    const running = STATE.normal.running;
+    const paused  = STATE.normal.paused;
+    const extraR  = STATE.extra.running;
+
+    switch(action){
+      case 'start':
+        if (running)  return 'Ai deja un START în derulare.';
+        if (extraR)   return 'Finalizează mai întâi „Extra” înainte de a porni norma.';
+        return null;
+      case 'pause':
+        if (!running) return 'Nu poți da PAUSE fără START.';
+        if (paused)   return 'Ești deja pe PAUSE.';
+        return null;
+      case 'unpause':
+        if (!running) return 'Nu poți da UNPAUSE fără START.';
+        if (!paused)  return 'Nu ești în PAUSE.';
+        return null;
+      case 'finish':
+        if (!running) return 'Nu poți da FINISH fără START.';
+        return null;
+      case 'extra_start':
+        if (running)  return 'Finalizează norma înainte de „EXTRA START”.';
+        if (extraR)   return 'Ai deja EXTRA pornit.';
+        return null;
+      case 'extra_finish':
+        if (!extraR)  return 'Nu poți da „EXTRA FINISH” fără „EXTRA START”.';
+        return null;
+      default:
+        return null;
+    }
+  }
+
+  function applyLocalTransition(action, ts){
+    action = _normAction(action);
+    switch(action){
+      case 'start':
+        STATE.normal.running = true;
+        STATE.normal.paused  = false;
+        STATE.lastNormalStart = ts;
+        break;
+      case 'pause':
+        STATE.normal.paused = true;
+        break;
+      case 'unpause':
+        STATE.normal.paused = false;
+        break;
+      case 'finish':
+        STATE.normal.running = false;
+        STATE.normal.paused  = false;
+        STATE.lastNormalFinish = ts;
+        break;
+      case 'extra_start':
+        STATE.extra.running = true;
+        STATE.lastExtraStart = ts;
+        break;
+      case 'extra_finish':
+        STATE.extra.running = false;
+        STATE.lastExtraFinish = ts;
+        break;
+    }
+  }
+
+  function setFormPayload(action, ts, gps){
+    document.getElementById('f_action').value    = _normAction(action);
+    document.getElementById('f_timestamp').value = ts;
+    document.getElementById('f_name').value      = empSel.value;
+    document.getElementById('f_activity').value  = actSel.value;
+    document.getElementById('f_location').value  = (locInput.value||'').trim();
+    document.getElementById('f_lat').value       = gps.lat;
+    document.getElementById('f_lon').value       = gps.lon;
+    document.getElementById('f_acc').value       = gps.acc;
+    document.getElementById('f_device').value    = navigator.userAgent;
+    document.getElementById('f_notes').value     = (notesEl.value || '');
+    document.getElementById('f_maps').value      = `https://maps.google.com/?q=${gps.lat},${gps.lon}`;
+    const deptFromMap = DEPTMAP.byName.get(empSel.value) || '';
+    document.getElementById('f_department').value = (deptSel.value || deptFromMap || '');
+  }
+
+  async function refreshServerState(){ 
+    if (!STATE.name) return;
+    try {
+      const remote = await fetchState(STATE.name);
+      if (remote) {
+        STATE = Object.assign(blankState(), remote);
+        STATE.name = empSel.value || STATE.name || '';
+        saveLS();
+      }
+    } catch(e){}
+  }
+
+  async function handleEmployeeChange(){
+    STATE = blankState();
+    STATE.name = empSel.value || '';
+    saveLS();
+
+    setEmp('Se verifică starea...', '');
+    await refreshServerState();
+    reflectState();
+
+    if (STATE.normal.running && STATE.normal.paused) setEmp('Ești în PAUSE.', 'warn');
+    else if (STATE.normal.running) setEmp('Ai START activ.', 'ok');
+    else if (STATE.extra.running) setEmp('Ai EXTRA activ.', 'ok');
+    else setEmp('Nicio sesiune deschisă.', '');
+  }
+
+  let busy = false;
+
+  async function submitAction(action) {
+    if (busy) return;
+    if (!deptSel.value) { setStatus('Alege departamentul.', 'err'); return; }
+    if (!empSel.value)  { setStatus('Selectează angajat.', 'err'); return; }
+    if (!actSel.value)  { setStatus('Alege tip de activitate.', 'err'); return; }
+
+    const depVal = (deptSel.value || '').toLowerCase();
+    const isComercial = (depVal === 'coemercial' || depVal === 'comercial');
+    const actNorm = _normAction(action);
+
+    if (isComercial && (actNorm === 'extra_start' || actNorm === 'extra_finish')) {
+      setStatus('Departamentul Comercial nu poate folosi ore EXTRA.', 'warn');
+      return;
+    }
+
+    if (!isComercial && !locInput.value.trim()) {
+      setStatus('Scrie o locație.', 'err');
+      locInput.focus();
+      return;
+    }
+
+    if (['concediu de odihna','concediu medical','concediu pentru ore suplimentare'].includes((actSel.value||'').toLowerCase())){
+      setStatus('Pentru concediu folosește „Trimite cererea de concediu”.', 'warn');
+      return;
+    }
+
+    setStatus('Verific starea…');
+
+    const lg = localGuard(action);
+    if (lg) { setStatus(lg, 'warn'); return; }
+
+    const g = await guardRemote(empSel.value.trim(), action);
+    if (!g.ok) { setStatus(g.msg || 'Acțiune blocată de regulile de pontaj.', 'warn'); return; }
+
+    if (!('geolocation' in navigator)) { setStatus('Geolocație indisponibilă pe acest dispozitiv.', 'err'); return; }
+
+    busy = true; disableAllButtons(true);
+    setStatus('Se obține locația GPS…');
+
+    navigator.geolocation.getCurrentPosition(async pos => {
+      const gps = { lat: pos.coords.latitude, lon: pos.coords.longitude, acc: Math.round(pos.coords.accuracy || 0) };
+      const ts = new Date().toISOString();
+
+      setFormPayload(action, ts, gps);
+      form.submit();
+
+      applyLocalTransition(action, ts);
+      saveLS();
+      reflectState();
+      setStatus(`Trimis ✓ (${_normAction(action).toUpperCase()}).`, 'ok');
+
+      const act = _normAction(action);
+      setTimeout(async ()=>{
+        await refreshServerState();
+        let stats = null;
+        try { stats = await fetchStats(empSel.value.trim()); } catch {}
+        if (stats){
+          if (act === 'finish'){
+            showToast(
+              `<b>${empSel.value}</b><div class="small">Azi — Ore: <b>${stats.totalHours}</b> h • Suplimentar: <b>${stats.overtime}</b> h</div>`,
+              'ok'
+            );
+          } else if (act === 'extra_finish'){
+            showToast(
+              `<b>${empSel.value}</b><div class="small">Azi — Extra: <b>${stats.extra}</b> h</div>`,
+              'ok'
+            );
+          }
+        }
+        busy=false; disableAllButtons(false);
+      }, 1200);
+
+    }, err => {
+      setStatus('Eroare locație: ' + err.message, 'err');
+      busy=false; disableAllButtons(false);
+    }, { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 });
+  }
+
+  function wireButtons(){
+    document.getElementById('btnStart').addEventListener('click', ()=>submitAction('start'));
+    document.getElementById('btnPause').addEventListener('click', ()=>submitAction('pause'));
+    document.getElementById('btnUnpause').addEventListener('click', ()=>submitAction('unpause'));
+    document.getElementById('btnFinish').addEventListener('click', ()=>submitAction('finish'));
+    document.getElementById('btnExtraStart').addEventListener('click', ()=>submitAction('extra_start'));
+    document.getElementById('btnExtraFinish').addEventListener('click', ()=>submitAction('extra_finish'));
+    reflectState();
+  }
+
+  (async function init(){
+    try {
+      const r = await fetch('config.json?v=' + Date.now(), {cache:'no-store'});
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      CFG = await r.json();
+      if (!CFG.formAction || !CFG.fields) throw new Error('Config incomplet');
+      setCfg('Config încărcat', 'ok');
+      window.CFG = CFG;
+    } catch (e) {
+      setCfg('Eroare config: ' + (e.message||e), 'err');
+      disableAllButtons(true); return;
+    }
+
+    bindCFGToForm();
+    bindLeaveForm();
+
+    await loadDepartments();
+    fillEmployeesFromDept('');
+
+    const cached = loadLS();
+    if (cached) STATE = Object.assign(blankState(), cached);
+
+    deptSel.addEventListener('change', () => {
+      fillEmployeesFromDept(deptSel.value);
+      if (empSel.value && (DEPTMAP.byName.get(empSel.value) !== deptSel.value)) {
+        empSel.value = '';
+      }
+      STATE = blankState(); STATE.name = '';
+      reflectState(); setEmp('', '');
+
+      const depVal = (deptSel.value || '').toLowerCase();
+      const isComercial = (depVal === 'coemercial' || depVal === 'comercial');
+      if (extraBar) extraBar.style.display = isComercial ? 'none' : '';
+    });
+
+    if (extraBar) extraBar.style.display = '';
+
+    empSel.addEventListener('change', handleEmployeeChange);
+
+    const LEAVE_TYPES = new Set(['concediu de odihna','concediu medical','concediu pentru ore suplimentare']);
+    actSel.addEventListener('change', () => {
+      const isLeave = LEAVE_TYPES.has((actSel.value||'').toLowerCase());
+      leavePanel.style.display = isLeave ? '' : 'none';
+      disableTimeButtons(isLeave);
+      if (isLeave) { LEAVE_DAYS = []; renderLeaveDays(); setLeaveStatus('', ''); }
+    });
+
+    wireButtons();
+
+    document.getElementById('btnLeave').addEventListener('click', async () => {
+      setLeaveStatus('', '');
+      if (!deptSel.value) { setLeaveStatus('Alege departamentul.', 'err'); return; }
+      if (!empSel.value)  { setLeaveStatus('Selectează angajat.', 'err'); return; }
+      const tip = (actSel.value || '').toLowerCase();
+      if (!LEAVE_TYPES.has(tip)) { setLeaveStatus('Alege un tip de concediu.', 'err'); return; }
+      const sd = leaveStart.value;
+      const ed = leaveEnd.value;
+      const hasDays = Array.isArray(LEAVE_DAYS) && LEAVE_DAYS.length > 0;
+      if (!hasDays) {
+        if (!sd || !ed) { setLeaveStatus('Adaugă cel puțin o zi de concediu sau completează intervalul (start–sfârșit).', 'err'); return; }
+        if (ed < sd) { setLeaveStatus('Data de sfârșit nu poate fi înainte de start.', 'err'); return; }
+      }
+      const email = (leaveEmail.value || '').trim();
+      if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { setLeaveStatus('Email personal invalid.', 'err'); return; }
+
+      setLeaveStatus('Se trimite cererea…', '');
+
+      let formSubmitted = false;
+      if (CFG.leaveFormAction && CFG.leaveFields) {
+        try {
+          document.getElementById('lv_name').value  = empSel.value;
+          document.getElementById('lv_type').value  = tip;
+          document.getElementById('lv_email').value = email;
+          const _daysSorted = hasDays ? LEAVE_DAYS.slice().sort() : [];
+          const _first = hasDays ? _daysSorted[0] : sd;
+          const _last  = hasDays ? _daysSorted[_daysSorted.length-1] : ed;
+          document.getElementById('lv_start').value = _first;
+          document.getElementById('lv_end').value   = _last;
+          document.getElementById('lv_notes').value = (leaveNotes.value || '');
+          document.getElementById('lv_ts').value    = new Date().toISOString();
+          document.getElementById('leaveForm').submit();
+          formSubmitted = true;
+        } catch (e) { console.warn('Leave Form submit failed', e); }
+      }
+
+      let endpointOk = false, endpointMsg = '';
+      if (CFG.leaveEndpoint) {
+        try {
+          const _daysSorted = hasDays ? LEAVE_DAYS.slice().sort() : [];
+          const _first = hasDays ? _daysSorted[0] : sd;
+          const _last  = hasDays ? _daysSorted[_daysSorted.length-1] : ed;
+          const payload = {
+            name: empSel.value,
+            activityType: tip,
+            startDate: _first,
+            endDate: _last,
+            days: hasDays ? _daysSorted : undefined,
+            personalEmail: email,
+            notes: (leaveNotes.value || '')
+          };
+          const res = await sendLeave(payload);
+          endpointOk = true;
+          endpointMsg = ' (înregistrată ' + res.zile + ' zile)';
+        } catch (err) { console.warn('Leave endpoint error:', err); }
+      }
+
+      if (formSubmitted || endpointOk) {
+        setLeaveStatus('Cerere trimisă' + endpointMsg + '. HR a fost notificat.', 'ok');
+        LEAVE_DAYS = []; renderLeaveDays();
+      } else {
+        setLeaveStatus('Eroare: nu s-a putut trimite cererea (Form/Endpoint).', 'err');
+      }
+    });
+
+  })();
+
+})(); // IIFE
   </script>
 </body>
 </html>
