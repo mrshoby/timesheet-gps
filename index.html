@@ -1107,7 +1107,6 @@ function randomNonce(){ return Math.random().toString(36).slice(2) + Date.now().
           document.getElementById('lv_start').value = _first;
           document.getElementById('lv_end').value   = _last;
           document.getElementById('lv_notes').value = (leaveNotes.value || '');
-          document.getElementById('lv_ts').value    = new Date().toISOString();
           document.getElementById('leaveForm').submit();
           formSubmitted = true;
         } catch (e) { console.warn('Leave Form submit failed', e); }
@@ -1120,6 +1119,7 @@ function randomNonce(){ return Math.random().toString(36).slice(2) + Date.now().
           const _first = hasDays ? _daysSorted[0] : sd;
           const _last  = hasDays ? _daysSorted[_daysSorted.length-1] : ed;
           const payload = {
+          document.getElementById('lv_ts').value    = new Date().toISOString();
             name: empSel.value,
             activityType: tip,
             startDate: _first,
