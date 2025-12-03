@@ -12,10 +12,10 @@
 
 
 <!-- Variante compatibile (sau poți chiar să le elimini complet) -->
-<link rel="preload" href="audio/stage1.mp3" as="fetch" type="audio/mpeg" crossorigin>
-<link rel="preload" href="audio/stage2.mp3" as="fetch" type="audio/mpeg" crossorigin>
-<link rel="preload" href="audio/stage3.mp3" as="fetch" type="audio/mpeg" crossorigin>
-<link rel="preload" href="audio/chime.mp3"  as="fetch" type="audio/mpeg" crossorigin>
+<link rel="preload" href="./audio/stage1.mp3" as="fetch" type="audio/mpeg" crossorigin>
+<link rel="preload" href="./audio/stage2.mp3" as="fetch" type="audio/mpeg" crossorigin>
+<link rel="preload" href="./audio/stage3.mp3" as="fetch" type="audio/mpeg" crossorigin>
+<link rel="preload" href="./audio/chime.mp3"  as="fetch" type="audio/mpeg" crossorigin>
 
 
   <style>
@@ -378,10 +378,10 @@ Ana Radu
 <script>
 const HtmlAudio = (() => {
   // Creez elementele și le pre-încarc
-  const a1 = new Audio('audio/stage1.mp3');
-  const a2 = new Audio('audio/stage2.mp3');
-  const a3 = new Audio('audio/stage3.mp3');
-  const ch = new Audio('audio/chime.mp3');
+  const a1 = new Audio('./audio/stage1.mp3');
+  const a2 = new Audio('./audio/stage2.mp3');
+  const a3 = new Audio('./audio/stage3.mp3');
+  const ch = new Audio('./audio/chime.mp3');
   [a1,a2,a3,ch].forEach(a => { a.preload='auto'; a.loop=false; a.playsInline=true; a.load(); });
 
   // Truc: pornesc pe MUTED (autoplay permis), apoi demutez imediat
