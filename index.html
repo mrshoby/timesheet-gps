@@ -370,7 +370,7 @@ Ana Radu
 
   <script>document.getElementById('year').textContent = new Date().getFullYear();</script>
 
-  <!-- ================== SPLASH: AUDIO FILES + FALLBACK SYNTH, CU SINCRONIZARE ================== -->
+  <!-- ================== SPLASH: AUDIO FILES + FALLBACK SYNTH, SINCRONIZARE PE AUDIOCONTEXT ================== -->
   <script>
 /* === Fallback synth: zero rețea, pornește instant === */
 const SynthAudio = (() => {
@@ -403,7 +403,6 @@ const FileAudio = (() => {
   async function loadOne(key){
     const r = await fetch(urls[key], { cache:'force-cache' });
     const ab = await r.arrayBuffer();
-    // decodeAudioData (callback) are cea mai bună compatibilitate
     return new Promise((res, rej)=> ensure().decodeAudioData(ab, b=>{ bufs[key]=b; res(); }, e=>rej(e)));
   }
   function ready(){
@@ -421,12 +420,12 @@ const FileAudio = (() => {
     playAt('s1', t0 + 0.00);
     playAt('s2', t0 + 0.60);
     playAt('s3', t0 + 1.20);
-    playAt('ch', t0 + 1.50);
+    playAt('ch', t0 + 1.50); // chime pornește înainte de hide
   }
   return { ensure, ready, schedule };
 })();
 
-/* === SPLASH + sincronizare UI/Audio === */
+/* === SPLASH + sincronizare UI/Audio pe timeline-ul AudioContext === */
 (function splashInit(){
   document.documentElement.classList.add('splash-open');
   document.body.classList.add('splash-open');
@@ -447,34 +446,69 @@ const FileAudio = (() => {
     setTimeout(()=>{ document.documentElement.classList.remove('splash-open'); document.body.classList.remove('splash-open'); }, 460);
   }
 
-  // Timeline (ms pentru UI) – chime pornește înainte de hide.
-  const STAGE1=0, STAGE2=600, STAGE3=1200, CHIME=1500, HIDE=1900;
+  // Offsets (secunde față de t0 audio)
+  const OFF_S1=0.00, OFF_S2=0.60, OFF_S3=1.20, OFF_CH=1.50, OFF_HIDE=1.90;
 
-  // UI: pornește instant (nu așteptăm rețeaua)
-  resetBars();
-  setTimeout(()=>stageUI(1), STAGE1);
-  setTimeout(()=>stageUI(2), STAGE2);
-  setTimeout(()=>stageUI(3), STAGE3);
-  setTimeout(()=>hideSplash(), HIDE);
+  async function startWithFiles(){
+    await FileAudio.ready().catch(()=>{});
+    const c = FileAudio.ensure();
+    try{ await c.resume(); }catch{}
+    const basePerf = performance.now();
+    const baseAud  = c.currentTime;
+    const t0 = baseAud + 0.06; // mic lead pentru programare stabilă
 
-  // AUDIO: încearcă fișierele; dacă nu-s gata în ≤300ms, fallback synth imediat
-  (async () => {
-    let useFiles = false;
-    try{
-      useFiles = await Promise.race([ FileAudio.ready().then(()=>true), new Promise(r=>setTimeout(()=>r(false),300)) ]);
-    }catch{ useFiles = false; }
+    // Sune
+    FileAudio.schedule(t0);
 
-    if (useFiles){
-      const c = FileAudio.ensure();
-      const t0 = c.currentTime + 0.06; // mic lead pentru scheduling stabil
-      FileAudio.schedule(t0);
-    }else{
-      SynthAudio.ensure();
-      setTimeout(()=>SynthAudio.stage(1), STAGE1);
-      setTimeout(()=>SynthAudio.stage(2), STAGE2);
-      setTimeout(()=>SynthAudio.stage(3), STAGE3);
-      setTimeout(()=>SynthAudio.chime(),  CHIME);
+    // Helper: programează funcții pe timp AudioContext
+    function atAudio(fn, whenSec){
+      const delay = Math.max(0, (whenSec - (baseAud + (performance.now()-basePerf)/1000)) * 1000);
+      setTimeout(fn, delay);
     }
+
+    // UI fix sincron cu audio
+    atAudio(()=>stageUI(1), t0 + OFF_S1);
+    atAudio(()=>stageUI(2), t0 + OFF_S2);
+    atAudio(()=>stageUI(3), t0 + OFF_S3);
+    atAudio(()=>hideSplash(), t0 + OFF_HIDE);
+  }
+
+  function startWithSynth(){
+    const c = SynthAudio.ensure();
+    try{ c.resume && c.resume(); }catch{}
+    const basePerf = performance.now();
+    const baseAud  = c.currentTime;
+    const t0 = baseAud + 0.04;
+
+    function atAudio(fn, whenSec){
+      const delay = Math.max(0, (whenSec - (baseAud + (performance.now()-basePerf)/1000)) * 1000);
+      setTimeout(fn, delay);
+    }
+
+    // Audio synth
+    atAudio(()=>SynthAudio.stage(1), t0 + OFF_S1);
+    atAudio(()=>SynthAudio.stage(2), t0 + OFF_S2);
+    atAudio(()=>SynthAudio.stage(3), t0 + OFF_S3);
+    atAudio(()=>SynthAudio.chime(),  t0 + OFF_CH);
+
+    // UI sincron
+    atAudio(()=>stageUI(1), t0 + OFF_S1);
+    atAudio(()=>stageUI(2), t0 + OFF_S2);
+    atAudio(()=>stageUI(3), t0 + OFF_S3);
+    atAudio(()=>hideSplash(), t0 + OFF_HIDE);
+  }
+
+  // Kick imediat UI reset (în caz de întârzieri rețea)
+  resetBars();
+
+  // Pornim rapid: dacă fișierele nu sunt gata în 300ms -> synth
+  (async () => {
+    let readyFast = false;
+    try{
+      readyFast = await Promise.race([ FileAudio.ready().then(()=>true), new Promise(r=>setTimeout(()=>r(false),300)) ]);
+    }catch{ readyFast = false; }
+    if (readyFast) startWithFiles();
+    else           startWithSynth();
   })();
 })();
   </script>
@@ -699,7 +733,7 @@ function randomNonce(){ return Math.random().toString(36).slice(2) + Date.now().
     const ph = document.createElement('option');
     ph.value=''; ph.textContent='Alege departamentul...'; ph.disabled = true; ph.selected = true;
     deptSel.appendChild(ph);
-    deptList.forEach(d => { const o=document.createElement('option'); o.value=d; o.textContent=d; sel=deptSel.appendChild(o); });
+    deptList.forEach(d => { const o=document.createElement('option'); o.value=d; o.textContent=d; deptSel.appendChild(o); });
   }
 
   function fillEmployeesFromDept(dept){
@@ -1107,6 +1141,7 @@ function randomNonce(){ return Math.random().toString(36).slice(2) + Date.now().
           document.getElementById('lv_start').value = _first;
           document.getElementById('lv_end').value   = _last;
           document.getElementById('lv_notes').value = (leaveNotes.value || '');
+          document.getElementById('lv_ts').value    = new Date().toISOString();
           document.getElementById('leaveForm').submit();
           formSubmitted = true;
         } catch (e) { console.warn('Leave Form submit failed', e); }
@@ -1119,7 +1154,6 @@ function randomNonce(){ return Math.random().toString(36).slice(2) + Date.now().
           const _first = hasDays ? _daysSorted[0] : sd;
           const _last  = hasDays ? _daysSorted[_daysSorted.length-1] : ed;
           const payload = {
-          document.getElementById('lv_ts').value    = new Date().toISOString();
             name: empSel.value,
             activityType: tip,
             startDate: _first,
