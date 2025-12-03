@@ -101,161 +101,49 @@
     .toast.err{ background:#991b1b }
     .toast .small{opacity:.85;font-size:12px;margin-top:4px}
 
-   <!-- ===== SV-SPLASH: AUDIO + SINCRONIZARE (fix primul beep) ===== -->
-<script>
-(function(){
-  const BASE_DELAY_MS = 500;   // întârzierea cerută
-  const START_PAD_MS  = 180;   // mic buffer ca să nu pierdem primul beep
-  const UI_OFFSET     = 0.02;  // UI aprinde bara la ~20ms după startul beep-ului
-  const PRIME_LEAD    = 0.12;  // priming aproape mut înainte de primul beep
-
-  const TL = { s1:0.00, s2:0.60, s3:1.20, chime:1.50, hide:1.95 };
-
-  const splash  = document.getElementById('sv-splash');
-  const battery = document.getElementById('sv-battery');
-  const bars    = [document.getElementById('sv-bar1'), document.getElementById('sv-bar2'), document.getElementById('sv-bar3')];
-
-  document.documentElement.classList.add('sv-splash-open');
-  document.body.classList.add('sv-splash-open');
-
-  function resetBars(){ bars.forEach(b => b.className = 'sv-bar'); battery.classList.remove('active'); }
-  function stageUI(n){
-    resetBars();
-    if (n>=1){ bars[0].classList.add('on','sv-red'); }
-    if (n>=2){ bars[0].classList.remove('sv-red'); bars[0].classList.add('sv-yellow'); bars[1].classList.add('on','sv-yellow'); }
-    if (n>=3){ bars.forEach(b=>{ b.classList.remove('sv-red','sv-yellow'); b.classList.add('on','sv-green'); }); battery.classList.add('active'); }
-  }
-  function hideSplash(){
-    splash.classList.add('hide');
-    setTimeout(()=>{ 
-      document.documentElement.classList.remove('sv-splash-open');
-      document.body.classList.remove('sv-splash-open');
-      splash.style.display='none';
-    }, 460);
-  }
-
-  const AudioSync = (() => {
-    let ctx=null;
-    function ensure(){
-      if (!ctx) ctx = new (window.AudioContext||window.webkitAudioContext)({latencyHint:'interactive'});
-      return ctx;
+    /* ===== SV-SPLASH: stiluri izolate ===== */
+    html.sv-splash-open, body.sv-splash-open{ overflow:hidden; }
+    .sv-splash{
+      position:fixed; inset:0; z-index:2000;
+      display:grid; place-items:center;
+      background: radial-gradient(1200px 800px at 50% 20%, #e8f2e0, #d9e6df);
+      opacity:1; transform:scale(1); transition: opacity .6s ease, transform .6s ease;
     }
-    function envBeep(t, freq, {dur=0.2, attack=0.01, hold=0.08, release=0.11, type='sine', gain=0.95}={}){
-      const c = ensure();
-      const o = c.createOscillator(); o.type = type; o.frequency.setValueAtTime(freq, t);
-      const g = c.createGain();
-      const tA = t, tH = tA + attack + hold, tR = tH + release;
-      g.gain.setValueAtTime(0.0003, tA);
-      g.gain.linearRampToValueAtTime(gain, tA + attack);
-      g.gain.setTargetAtTime(0.0003, tH, Math.max(0.03, release/3));
-      o.connect(g); g.connect(c.destination);
-      o.start(tA); o.stop(tA + Math.max(dur, release + attack + 0.02));
+    .sv-splash.hide{ opacity:0; transform:scale(1.01); pointer-events:none }
+    .sv-s-wrap{ width:min(1100px, 92vw); text-align:center; user-select:none }
+    .sv-brand-line{
+      display:flex; align-items:center; justify-content:center; gap: clamp(10px, 2vw, 22px);
+      line-height:1; flex-wrap:wrap;
     }
-    function prime(t){
-      // beep aproape mut înainte de primul pentru a „trezi” audio
-      envBeep(t, 220, {dur:0.03, attack:0.005, hold:0.01, release:0.01, type:'sine', gain:0.001});
+    .sv-brand-word{ font-weight:800; letter-spacing:.5px; font-size: clamp(44px, 9vw, 96px); }
+    .sv-serv{ color:#516B74 }
+    .sv-lect{ color:#95CA4B }
+
+    .sv-battery{ height: clamp(110px, 20vw, 190px); width:auto; display:block;
+                 filter: drop-shadow(0 8px 24px rgba(0,0,0,.08)); }
+    .sv-bat-outline{ stroke:#516B74; stroke-width:10; fill:none; stroke-linejoin:round }
+    .sv-bat-cap{ fill:#516B74 }
+    .sv-bar{ opacity:.18; fill:transparent; stroke:#516B74; stroke-width:2; transition: opacity .2s ease }
+    .sv-bar.on{ opacity:1; fill:currentColor; stroke:transparent }
+    .sv-bar.sv-red{ color:#ef4444 }
+    .sv-bar.sv-yellow{ color:#f59e0b }
+    .sv-bar.sv-green{ color:#95CA4B }
+    .sv-glow{ filter: drop-shadow(0 0 0 rgba(149,202,75,0)); transition: filter .5s ease }
+    .sv-glow.active{
+      filter: drop-shadow(0 0 14px rgba(149,202,75,.75)) drop-shadow(0 0 28px rgba(149,202,75,.45));
     }
-    async function resume(){
-      const c = ensure();
-      try { await c.resume(); } catch {}
-      return c.state === 'running';
+    .sv-tag{ margin-top: clamp(10px, 2.2vw, 18px); font-weight:700; font-size: clamp(18px, 3.6vw, 34px); line-height:1.15; }
+    .sv-tag .money{ color:#95CA4B }
+    .sv-tag .save{ color:#516B74 }
+
+    @media (prefers-reduced-motion: reduce){
+      .sv-glow, .sv-bar, .sv-splash{ transition:none }
     }
-    function waitRunning(ms=500){
-      const c = ensure();
-      return new Promise(res=>{
-        const t0 = performance.now();
-        (function loop(){
-          if (c.state === 'running') return res(true);
-          if (performance.now() - t0 >= ms) return res(false);
-          setTimeout(loop, 40);
-        })();
-      });
-    }
-    function scheduleAudio(t0){
-      const c = ensure();
-      // prime înainte de primul beep
-      prime(Math.max(c.currentTime + 0.01, t0 + TL.s1 - PRIME_LEAD));
+  </style>
+</head>
+<body>
 
-      // primul beep (mai clar/mai tare/mai lung)
-      envBeep(t0 + TL.s1, 520, {dur:0.26, attack:0.012, hold:0.12, release:0.12, type:'sine', gain:1.00});
-
-      // a doua bară – dublu beep
-      envBeep(t0 + TL.s2,          640, {dur:0.18, attack:0.01, hold:0.07, release:0.1, type:'sine', gain:0.95});
-      envBeep(t0 + TL.s2 + 0.09,   760, {dur:0.18, attack:0.01, hold:0.06, release:0.1, type:'sine', gain:0.95});
-
-      // a treia bară – treptei (triunghi)
-      envBeep(t0 + TL.s3,          780, {dur:0.16, attack:0.008, hold:0.05, release:0.1, type:'triangle', gain:0.92});
-      envBeep(t0 + TL.s3 + 0.07,   900, {dur:0.16, attack:0.008, hold:0.05, release:0.1, type:'triangle', gain:0.92});
-      envBeep(t0 + TL.s3 + 0.14,  1020, {dur:0.18, attack:0.008, hold:0.06, release:0.1, type:'triangle', gain:0.94});
-
-      // chime final
-      envBeep(t0 + TL.chime,         880, {dur:0.22, attack:0.01,  hold:0.07, release:0.12, type:'triangle', gain:0.96});
-      envBeep(t0 + TL.chime + 0.07, 1109, {dur:0.24, attack:0.01,  hold:0.07, release:0.14, type:'triangle', gain:0.96});
-      envBeep(t0 + TL.chime + 0.14, 1319, {dur:0.26, attack:0.01,  hold:0.08, release:0.16, type:'triangle', gain:0.96});
-    }
-    function driveUI(t0){
-      const c = ensure();
-      let d1=false,d2=false,d3=false,dH=false;
-      function tick(){
-        const t = (c.currentTime - t0);
-        if (!d1 && t >= TL.s1 + UI_OFFSET){ stageUI(1); d1=true; }
-        if (!d2 && t >= TL.s2 + UI_OFFSET){ stageUI(2); d2=true; }
-        if (!d3 && t >= TL.s3 + UI_OFFSET){ stageUI(3); d3=true; }
-        if (!dH && t >= TL.hide + UI_OFFSET){ hideSplash(); dH=true; }
-        if (!dH) requestAnimationFrame(tick);
-      }
-      requestAnimationFrame(tick);
-    }
-    return { ensure, resume, waitRunning, scheduleAudio, driveUI };
-  })();
-
-  function driveUI_noAudio(){
-    const startAt = performance.now() + BASE_DELAY_MS + START_PAD_MS;
-    let d1=false,d2=false,d3=false,dH=false;
-    function tick(){
-      const t = (performance.now() - startAt)/1000;
-      if (!d1 && t >= TL.s1 + UI_OFFSET){ stageUI(1); d1=true; }
-      if (!d2 && t >= TL.s2 + UI_OFFSET){ stageUI(2); d2=true; }
-      if (!d3 && t >= TL.s3 + UI_OFFSET){ stageUI(3); d3=true; }
-      if (!dH && t >= TL.hide + UI_OFFSET){ hideSplash(); dH=true; }
-      if (!dH) requestAnimationFrame(tick);
-    }
-    requestAnimationFrame(tick);
-  }
-
-  async function startSplash(){
-    resetBars();
-    const okResume = await AudioSync.resume();
-    const okRun = okResume || await AudioSync.waitRunning(500);
-
-    if (!okRun){
-      // Politica de autoplay a blocat audio: rulez UI și deblochez la primul tap
-      driveUI_noAudio();
-      const unlock = async () => {
-        document.removeEventListener('pointerdown', unlock);
-        const c = AudioSync.ensure();
-        try{ await c.resume(); }catch{}
-        // Re-pornez cu audio acum
-        const t0 = c.currentTime + (BASE_DELAY_MS + START_PAD_MS)/1000;
-        AudioSync.scheduleAudio(t0);
-        AudioSync.driveUI(t0);
-      };
-      document.addEventListener('pointerdown', unlock, {once:true, passive:true});
-      return;
-    }
-
-    const c = AudioSync.ensure();
-    const t0 = c.currentTime + (BASE_DELAY_MS + START_PAD_MS)/1000;
-    AudioSync.scheduleAudio(t0);
-    AudioSync.driveUI(t0);
-  }
-
-  startSplash();
-})();
-</script>
-
-<!-- ===== END SV-SPLASH ===== -->
-
+  <!-- ===== SV-SPLASH (nou, izolat) ===== -->
   <div id="sv-splash" class="sv-splash" role="dialog" aria-label="Ecran de întâmpinare">
     <div class="sv-s-wrap">
       <div class="sv-brand-line">
