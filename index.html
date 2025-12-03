@@ -104,11 +104,12 @@
    <!-- ===== SV-SPLASH: AUDIO + SINCRONIZARE (fix primul beep) ===== -->
 <script>
 (function(){
-  const BASE_DELAY_MS = 600;   // +100ms buffer
-  const UI_OFFSET = 0.03;      // UI puțin după sunet
-  const PRIME_LEAD = 0.35;     // priming cu mai mult avans și puțin mai „audibil”
+  const BASE_DELAY_MS = 500;   // întârzierea cerută
+  const START_PAD_MS  = 180;   // mic buffer ca să nu pierdem primul beep
+  const UI_OFFSET     = 0.02;  // UI aprinde bara la ~20ms după startul beep-ului
+  const PRIME_LEAD    = 0.12;  // priming aproape mut înainte de primul beep
 
-  const TL = { s1:0.00, s2:0.60, s3:1.20, chime:1.50, hide:1.90 };
+  const TL = { s1:0.00, s2:0.60, s3:1.20, chime:1.50, hide:1.95 };
 
   const splash  = document.getElementById('sv-splash');
   const battery = document.getElementById('sv-battery');
@@ -139,80 +140,120 @@
       if (!ctx) ctx = new (window.AudioContext||window.webkitAudioContext)({latencyHint:'interactive'});
       return ctx;
     }
-
-    function blipAt(t, freq, dur=0.16, type='sine', gain=0.95){
+    function envBeep(t, freq, {dur=0.2, attack=0.01, hold=0.08, release=0.11, type='sine', gain=0.95}={}){
       const c = ensure();
       const o = c.createOscillator(); o.type = type; o.frequency.setValueAtTime(freq, t);
       const g = c.createGain();
-      g.gain.setValueAtTime(0.0001, t);
-      g.gain.exponentialRampToValueAtTime(gain, t + 0.012);
-      g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      const tA = t, tH = tA + attack + hold, tR = tH + release;
+      g.gain.setValueAtTime(0.0003, tA);
+      g.gain.linearRampToValueAtTime(gain, tA + attack);
+      g.gain.setTargetAtTime(0.0003, tH, Math.max(0.03, release/3));
       o.connect(g); g.connect(c.destination);
-      o.start(t); o.stop(t + dur);
+      o.start(tA); o.stop(tA + Math.max(dur, release + attack + 0.02));
     }
-
-    async function ensureRunning(){
+    function prime(t){
+      // beep aproape mut înainte de primul pentru a „trezi” audio
+      envBeep(t, 220, {dur:0.03, attack:0.005, hold:0.01, release:0.01, type:'sine', gain:0.001});
+    }
+    async function resume(){
       const c = ensure();
       try { await c.resume(); } catch {}
-      // Dacă tot e suspendat (ex: iOS fără gest), renunțăm la sunet dar păstrăm animația
       return c.state === 'running';
     }
-
-    function schedule(t0){
+    function waitRunning(ms=500){
       const c = ensure();
-
-      // Priming — mic, dar suficient să „trezească” audio hardware-ul cu avans
-      const primeAt = Math.max(c.currentTime + 0.01, t0 + TL.s1 - PRIME_LEAD);
-      blipAt(primeAt, 220, 0.04, 'sine', 0.06);
-
-      // BARA 1 (roșu) — ușor mai lungă/mai puternică ca să fie clară
-      blipAt(t0 + TL.s1, 460, .22, 'sine', 0.99);
-
-      // BARA 2 (galben) — două accente
-      blipAt(t0 + TL.s2,         620, .16, 'sine', 0.95);
-      blipAt(t0 + TL.s2 + 0.09,  760, .18, 'sine', 0.95);
-
-      // BARA 3 (verde) — trei accente
-      blipAt(t0 + TL.s3,         780, .14, 'triangle', 0.92);
-      blipAt(t0 + TL.s3 + 0.07,  900, .14, 'triangle', 0.92);
-      blipAt(t0 + TL.s3 + 0.14, 1020, .16, 'triangle', 0.94);
-
-      // CHIME final
-      blipAt(t0 + TL.chime,         880, .22, 'triangle', 0.96);
-      blipAt(t0 + TL.chime + 0.07, 1109, .24, 'triangle', 0.96);
-      blipAt(t0 + TL.chime + 0.14, 1319, .28, 'triangle', 0.96);
+      return new Promise(res=>{
+        const t0 = performance.now();
+        (function loop(){
+          if (c.state === 'running') return res(true);
+          if (performance.now() - t0 >= ms) return res(false);
+          setTimeout(loop, 40);
+        })();
+      });
     }
-
-    async function start(){
-      const okAudio = await ensureRunning();  // ⬅️ forțăm running înainte de programare
+    function scheduleAudio(t0){
       const c = ensure();
-      const t0 = c.currentTime + BASE_DELAY_MS/1000;
-      if (okAudio) schedule(t0);
+      // prime înainte de primul beep
+      prime(Math.max(c.currentTime + 0.01, t0 + TL.s1 - PRIME_LEAD));
 
-      // UI condusă de ceasul audio (sau timpul perf dacă audio indisponibil)
-      let done1=false, done2=false, done3=false, doneHide=false;
-      const nowFn = okAudio ? (()=>ensure().currentTime) 
-                            : (()=>performance.now()/1000);
+      // primul beep (mai clar/mai tare/mai lung)
+      envBeep(t0 + TL.s1, 520, {dur:0.26, attack:0.012, hold:0.12, release:0.12, type:'sine', gain:1.00});
 
-      const base = okAudio ? c.currentTime : performance.now()/1000;
+      // a doua bară – dublu beep
+      envBeep(t0 + TL.s2,          640, {dur:0.18, attack:0.01, hold:0.07, release:0.1, type:'sine', gain:0.95});
+      envBeep(t0 + TL.s2 + 0.09,   760, {dur:0.18, attack:0.01, hold:0.06, release:0.1, type:'sine', gain:0.95});
+
+      // a treia bară – treptei (triunghi)
+      envBeep(t0 + TL.s3,          780, {dur:0.16, attack:0.008, hold:0.05, release:0.1, type:'triangle', gain:0.92});
+      envBeep(t0 + TL.s3 + 0.07,   900, {dur:0.16, attack:0.008, hold:0.05, release:0.1, type:'triangle', gain:0.92});
+      envBeep(t0 + TL.s3 + 0.14,  1020, {dur:0.18, attack:0.008, hold:0.06, release:0.1, type:'triangle', gain:0.94});
+
+      // chime final
+      envBeep(t0 + TL.chime,         880, {dur:0.22, attack:0.01,  hold:0.07, release:0.12, type:'triangle', gain:0.96});
+      envBeep(t0 + TL.chime + 0.07, 1109, {dur:0.24, attack:0.01,  hold:0.07, release:0.14, type:'triangle', gain:0.96});
+      envBeep(t0 + TL.chime + 0.14, 1319, {dur:0.26, attack:0.01,  hold:0.08, release:0.16, type:'triangle', gain:0.96});
+    }
+    function driveUI(t0){
+      const c = ensure();
+      let d1=false,d2=false,d3=false,dH=false;
       function tick(){
-        const t = nowFn() - base - (BASE_DELAY_MS/1000);
-        if (!done1 && t >= TL.s1 + UI_OFFSET){ stageUI(1); done1=true; }
-        if (!done2 && t >= TL.s2 + UI_OFFSET){ stageUI(2); done2=true; }
-        if (!done3 && t >= TL.s3 + UI_OFFSET){ stageUI(3); done3=true; }
-        if (!doneHide && t >= TL.hide + UI_OFFSET){ hideSplash(); doneHide=true; }
-        if (!doneHide) requestAnimationFrame(tick);
+        const t = (c.currentTime - t0);
+        if (!d1 && t >= TL.s1 + UI_OFFSET){ stageUI(1); d1=true; }
+        if (!d2 && t >= TL.s2 + UI_OFFSET){ stageUI(2); d2=true; }
+        if (!d3 && t >= TL.s3 + UI_OFFSET){ stageUI(3); d3=true; }
+        if (!dH && t >= TL.hide + UI_OFFSET){ hideSplash(); dH=true; }
+        if (!dH) requestAnimationFrame(tick);
       }
       requestAnimationFrame(tick);
     }
-
-    return { start };
+    return { ensure, resume, waitRunning, scheduleAudio, driveUI };
   })();
 
-  resetBars();
-  AudioSync.start();
+  function driveUI_noAudio(){
+    const startAt = performance.now() + BASE_DELAY_MS + START_PAD_MS;
+    let d1=false,d2=false,d3=false,dH=false;
+    function tick(){
+      const t = (performance.now() - startAt)/1000;
+      if (!d1 && t >= TL.s1 + UI_OFFSET){ stageUI(1); d1=true; }
+      if (!d2 && t >= TL.s2 + UI_OFFSET){ stageUI(2); d2=true; }
+      if (!d3 && t >= TL.s3 + UI_OFFSET){ stageUI(3); d3=true; }
+      if (!dH && t >= TL.hide + UI_OFFSET){ hideSplash(); dH=true; }
+      if (!dH) requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
+  }
+
+  async function startSplash(){
+    resetBars();
+    const okResume = await AudioSync.resume();
+    const okRun = okResume || await AudioSync.waitRunning(500);
+
+    if (!okRun){
+      // Politica de autoplay a blocat audio: rulez UI și deblochez la primul tap
+      driveUI_noAudio();
+      const unlock = async () => {
+        document.removeEventListener('pointerdown', unlock);
+        const c = AudioSync.ensure();
+        try{ await c.resume(); }catch{}
+        // Re-pornez cu audio acum
+        const t0 = c.currentTime + (BASE_DELAY_MS + START_PAD_MS)/1000;
+        AudioSync.scheduleAudio(t0);
+        AudioSync.driveUI(t0);
+      };
+      document.addEventListener('pointerdown', unlock, {once:true, passive:true});
+      return;
+    }
+
+    const c = AudioSync.ensure();
+    const t0 = c.currentTime + (BASE_DELAY_MS + START_PAD_MS)/1000;
+    AudioSync.scheduleAudio(t0);
+    AudioSync.driveUI(t0);
+  }
+
+  startSplash();
 })();
 </script>
+
 <!-- ===== END SV-SPLASH ===== -->
 
   <div id="sv-splash" class="sv-splash" role="dialog" aria-label="Ecran de întâmpinare">
