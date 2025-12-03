@@ -101,49 +101,120 @@
     .toast.err{ background:#991b1b }
     .toast .small{opacity:.85;font-size:12px;margin-top:4px}
 
-    /* ===== SV-SPLASH: stiluri izolate ===== */
-    html.sv-splash-open, body.sv-splash-open{ overflow:hidden; }
-    .sv-splash{
-      position:fixed; inset:0; z-index:2000;
-      display:grid; place-items:center;
-      background: radial-gradient(1200px 800px at 50% 20%, #e8f2e0, #d9e6df);
-      opacity:1; transform:scale(1); transition: opacity .6s ease, transform .6s ease;
-    }
-    .sv-splash.hide{ opacity:0; transform:scale(1.01); pointer-events:none }
-    .sv-s-wrap{ width:min(1100px, 92vw); text-align:center; user-select:none }
-    .sv-brand-line{
-      display:flex; align-items:center; justify-content:center; gap: clamp(10px, 2vw, 22px);
-      line-height:1; flex-wrap:wrap;
-    }
-    .sv-brand-word{ font-weight:800; letter-spacing:.5px; font-size: clamp(44px, 9vw, 96px); }
-    .sv-serv{ color:#516B74 }
-    .sv-lect{ color:#95CA4B }
+   <!-- ===== SV-SPLASH: AUDIO + SINCRONIZARE (fix primul beep) ===== -->
+<script>
+(function(){
+  const BASE_DELAY_MS = 600;   // +100ms buffer
+  const UI_OFFSET = 0.03;      // UI puțin după sunet
+  const PRIME_LEAD = 0.35;     // priming cu mai mult avans și puțin mai „audibil”
 
-    .sv-battery{ height: clamp(110px, 20vw, 190px); width:auto; display:block;
-                 filter: drop-shadow(0 8px 24px rgba(0,0,0,.08)); }
-    .sv-bat-outline{ stroke:#516B74; stroke-width:10; fill:none; stroke-linejoin:round }
-    .sv-bat-cap{ fill:#516B74 }
-    .sv-bar{ opacity:.18; fill:transparent; stroke:#516B74; stroke-width:2; transition: opacity .2s ease }
-    .sv-bar.on{ opacity:1; fill:currentColor; stroke:transparent }
-    .sv-bar.sv-red{ color:#ef4444 }
-    .sv-bar.sv-yellow{ color:#f59e0b }
-    .sv-bar.sv-green{ color:#95CA4B }
-    .sv-glow{ filter: drop-shadow(0 0 0 rgba(149,202,75,0)); transition: filter .5s ease }
-    .sv-glow.active{
-      filter: drop-shadow(0 0 14px rgba(149,202,75,.75)) drop-shadow(0 0 28px rgba(149,202,75,.45));
-    }
-    .sv-tag{ margin-top: clamp(10px, 2.2vw, 18px); font-weight:700; font-size: clamp(18px, 3.6vw, 34px); line-height:1.15; }
-    .sv-tag .money{ color:#95CA4B }
-    .sv-tag .save{ color:#516B74 }
+  const TL = { s1:0.00, s2:0.60, s3:1.20, chime:1.50, hide:1.90 };
 
-    @media (prefers-reduced-motion: reduce){
-      .sv-glow, .sv-bar, .sv-splash{ transition:none }
-    }
-  </style>
-</head>
-<body>
+  const splash  = document.getElementById('sv-splash');
+  const battery = document.getElementById('sv-battery');
+  const bars    = [document.getElementById('sv-bar1'), document.getElementById('sv-bar2'), document.getElementById('sv-bar3')];
 
-  <!-- ===== SV-SPLASH (nou, izolat) ===== -->
+  document.documentElement.classList.add('sv-splash-open');
+  document.body.classList.add('sv-splash-open');
+
+  function resetBars(){ bars.forEach(b => b.className = 'sv-bar'); battery.classList.remove('active'); }
+  function stageUI(n){
+    resetBars();
+    if (n>=1){ bars[0].classList.add('on','sv-red'); }
+    if (n>=2){ bars[0].classList.remove('sv-red'); bars[0].classList.add('sv-yellow'); bars[1].classList.add('on','sv-yellow'); }
+    if (n>=3){ bars.forEach(b=>{ b.classList.remove('sv-red','sv-yellow'); b.classList.add('on','sv-green'); }); battery.classList.add('active'); }
+  }
+  function hideSplash(){
+    splash.classList.add('hide');
+    setTimeout(()=>{ 
+      document.documentElement.classList.remove('sv-splash-open');
+      document.body.classList.remove('sv-splash-open');
+      splash.style.display='none';
+    }, 460);
+  }
+
+  const AudioSync = (() => {
+    let ctx=null;
+    function ensure(){
+      if (!ctx) ctx = new (window.AudioContext||window.webkitAudioContext)({latencyHint:'interactive'});
+      return ctx;
+    }
+
+    function blipAt(t, freq, dur=0.16, type='sine', gain=0.95){
+      const c = ensure();
+      const o = c.createOscillator(); o.type = type; o.frequency.setValueAtTime(freq, t);
+      const g = c.createGain();
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(gain, t + 0.012);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      o.connect(g); g.connect(c.destination);
+      o.start(t); o.stop(t + dur);
+    }
+
+    async function ensureRunning(){
+      const c = ensure();
+      try { await c.resume(); } catch {}
+      // Dacă tot e suspendat (ex: iOS fără gest), renunțăm la sunet dar păstrăm animația
+      return c.state === 'running';
+    }
+
+    function schedule(t0){
+      const c = ensure();
+
+      // Priming — mic, dar suficient să „trezească” audio hardware-ul cu avans
+      const primeAt = Math.max(c.currentTime + 0.01, t0 + TL.s1 - PRIME_LEAD);
+      blipAt(primeAt, 220, 0.04, 'sine', 0.06);
+
+      // BARA 1 (roșu) — ușor mai lungă/mai puternică ca să fie clară
+      blipAt(t0 + TL.s1, 460, .22, 'sine', 0.99);
+
+      // BARA 2 (galben) — două accente
+      blipAt(t0 + TL.s2,         620, .16, 'sine', 0.95);
+      blipAt(t0 + TL.s2 + 0.09,  760, .18, 'sine', 0.95);
+
+      // BARA 3 (verde) — trei accente
+      blipAt(t0 + TL.s3,         780, .14, 'triangle', 0.92);
+      blipAt(t0 + TL.s3 + 0.07,  900, .14, 'triangle', 0.92);
+      blipAt(t0 + TL.s3 + 0.14, 1020, .16, 'triangle', 0.94);
+
+      // CHIME final
+      blipAt(t0 + TL.chime,         880, .22, 'triangle', 0.96);
+      blipAt(t0 + TL.chime + 0.07, 1109, .24, 'triangle', 0.96);
+      blipAt(t0 + TL.chime + 0.14, 1319, .28, 'triangle', 0.96);
+    }
+
+    async function start(){
+      const okAudio = await ensureRunning();  // ⬅️ forțăm running înainte de programare
+      const c = ensure();
+      const t0 = c.currentTime + BASE_DELAY_MS/1000;
+      if (okAudio) schedule(t0);
+
+      // UI condusă de ceasul audio (sau timpul perf dacă audio indisponibil)
+      let done1=false, done2=false, done3=false, doneHide=false;
+      const nowFn = okAudio ? (()=>ensure().currentTime) 
+                            : (()=>performance.now()/1000);
+
+      const base = okAudio ? c.currentTime : performance.now()/1000;
+      function tick(){
+        const t = nowFn() - base - (BASE_DELAY_MS/1000);
+        if (!done1 && t >= TL.s1 + UI_OFFSET){ stageUI(1); done1=true; }
+        if (!done2 && t >= TL.s2 + UI_OFFSET){ stageUI(2); done2=true; }
+        if (!done3 && t >= TL.s3 + UI_OFFSET){ stageUI(3); done3=true; }
+        if (!doneHide && t >= TL.hide + UI_OFFSET){ hideSplash(); doneHide=true; }
+        if (!doneHide) requestAnimationFrame(tick);
+      }
+      requestAnimationFrame(tick);
+    }
+
+    return { start };
+  })();
+
+  resetBars();
+  AudioSync.start();
+})();
+</script>
+<!-- ===== END SV-SPLASH ===== -->
+
   <div id="sv-splash" class="sv-splash" role="dialog" aria-label="Ecran de întâmpinare">
     <div class="sv-s-wrap">
       <div class="sv-brand-line">
