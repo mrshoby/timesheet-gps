@@ -392,148 +392,139 @@ Ana Radu
 
   <script>document.getElementById('year').textContent = new Date().getFullYear();</script>
 
- <!-- ================== SPLASH: AUDIO CROSS-DESKTOP (autoplay detect + unlock) ================== -->
-<script>
-(() => {
-  // Timings (ms)
-  const STAGE1=0, STAGE2=600, STAGE3=1200, CHIME=1500, HIDE=1900;
+  <!-- ================== SPLASH: AUDIO ROBUST + SYNC (GitHub Pages safe) ================== -->
+  <script>
+  (() => {
+    // Timeline (ms): chime se aude înainte de hide
+    const STAGE1=0, STAGE2=600, STAGE3=1200, CHIME=1500, HIDE=1900;
 
-  // UI refs
-  const splash  = document.getElementById('splash');
-  const battery = document.getElementById('battery');
-  const bars    = [document.getElementById('bar1'), document.getElementById('bar2'), document.getElementById('bar3')];
+    // Elemente UI
+    const splash  = document.getElementById('splash');
+    const battery = document.getElementById('battery');
+    const bars    = [document.getElementById('bar1'), document.getElementById('bar2'), document.getElementById('bar3')];
 
-  // Unlock overlay (o arătăm doar dacă e nevoie)
-  let unlock = document.getElementById('audioUnlock');
-  if (!unlock){
-    const div = document.createElement('div');
-    div.id = 'audioUnlock';
-    div.className = 'audio-unlock';
-    div.innerHTML = `<div>
-      <button id="unlockBtn">🔊 Pornește sunetul</button>
-      <small>Browserul a blocat autoplay cu sunet. Un singur click și e gata.</small>
-    </div>`;
-    document.body.appendChild(div);
-    unlock = div;
-  }
-  const unlockBtn = () => document.getElementById('unlockBtn');
+    function resetBars(){ bars.forEach(b => b.className = 'bar'); battery.classList.remove('active'); }
+    function stageUI(n){
+      resetBars();
+      if (n>=1){ bars[0].classList.add('on','stage-red'); }
+      if (n>=2){ bars[0].classList.remove('stage-red'); bars[0].classList.add('stage-yellow'); bars[1].classList.add('on','stage-yellow'); }
+      if (n>=3){ bars.forEach(b=>{ b.classList.remove('stage-red','stage-yellow'); b.classList.add('on','stage-green'); }); battery.classList.add('active'); }
+    }
+    function hideSplash(){
+      splash.classList.add('hide');
+      setTimeout(()=>{ document.documentElement.classList.remove('splash-open'); document.body.classList.remove('splash-open'); }, 460);
+    }
 
-  // ========== UI helpers ==========
-  function resetBars(){ bars.forEach(b => b.className = 'bar'); battery.classList.remove('active'); }
-  function stageUI(n){
-    resetBars();
-    if (n>=1){ bars[0].classList.add('on','stage-red'); }
-    if (n>=2){ bars[0].classList.remove('stage-red'); bars[0].classList.add('stage-yellow'); bars[1].classList.add('on','stage-yellow'); }
-    if (n>=3){ bars.forEach(b=>{ b.classList.remove('stage-red','stage-yellow'); b.classList.add('on','stage-green'); }); battery.classList.add('active'); }
-  }
-  function openSplash(){
     document.documentElement.classList.add('splash-open');
     document.body.classList.add('splash-open');
-    splash.classList.remove('hide');
-  }
-  function closeSplash(){
-    splash.classList.add('hide');
-    setTimeout(()=>{ document.documentElement.classList.remove('splash-open'); document.body.classList.remove('splash-open'); }, 460);
-  }
 
-  // ========== Audio setup ==========
-  const a1 = new Audio('./audio/stage1.mp3');
-  const a2 = new Audio('./audio/stage2.mp3');
-  const a3 = new Audio('./audio/stage3.mp3');
-  const ch = new Audio('./audio/chime.mp3');
-  [a1,a2,a3,ch].forEach(a => { a.preload='auto'; a.loop=false; a.playsInline=true; a.load(); });
-
-  function playUnmuted(a){
-    try{
-      a.currentTime = 0;
-      a.muted = false; // important: testăm AUTOPLAY CU SUNET
-      return a.play(); // dacă e blocat, promisiunea rejectează cu NotAllowedError
-    }catch(e){
-      return Promise.reject(e);
-    }
-  }
-  function stopAll(){ [a1,a2,a3,ch].forEach(a=>{ try{ a.pause(); a.currentTime = 0; }catch{} }); }
-
-  // Timeline sincron UI + AUDIO
-  function runTimelineWithHtmlAudio(){
-    resetBars();
-    setTimeout(()=>{ stageUI(1); playUnmuted(a1).catch(()=>{}); }, STAGE1);
-    setTimeout(()=>{ stageUI(2); playUnmuted(a2).catch(()=>{}); }, STAGE2);
-    setTimeout(()=>{ stageUI(3); playUnmuted(a3).catch(()=>{}); }, STAGE3);
-    setTimeout(()=>{ playUnmuted(ch).catch(()=>{}); }, CHIME);
-    setTimeout(closeSplash, HIDE);
-  }
-
-  // Fallback super-rapid (WebAudio synth) – după gest e garantat
-  const Synth = (() => {
-    let ctx;
-    function ensure(){ return ctx || (ctx = new (window.AudioContext||window.webkitAudioContext)()); }
-    function blip(f=600, dur=0.14, type='sine', gain=0.95, at=0){
-      const c = ensure(), t0 = c.currentTime + at/1000;
-      const o = c.createOscillator(); o.type = type; o.frequency.value = f;
-      const g = c.createGain(); g.gain.setValueAtTime(0, t0);
-      g.gain.linearRampToValueAtTime(gain, t0 + 0.02);
-      g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
-      o.connect(g); g.connect(c.destination); o.start(t0); o.stop(t0 + dur);
-    }
-    async function run(){
-      ensure();
-      resetBars();
-      setTimeout(()=>stageUI(1), STAGE1);
-      setTimeout(()=>stageUI(2), STAGE2);
-      setTimeout(()=>stageUI(3), STAGE3);
-      // sunete
-      blip(420,.17,'sine',0.95, STAGE1);
-      blip(620,.16,'sine',0.95, STAGE2);
-      blip(760,.18,'sine',0.95, STAGE2+90);
-      blip(780,.14,'triangle',.9, STAGE3);
-      blip(900,.14,'triangle',.9, STAGE3+70);
-      blip(1020,.16,'triangle',.9, STAGE3+140);
-      blip(880,.22,'triangle',.95, CHIME);
-      blip(1109,.24,'triangle',.95, CHIME+70);
-      blip(1319,.28,'triangle',.95, CHIME+140);
-      setTimeout(closeSplash, HIDE);
-    }
-    async function resume(){ try{ if (ctx && ctx.state==='suspended') await ctx.resume(); }catch{} }
-    return { run, resume };
-  })();
-
-  // ===== Start logic =====
-  openSplash();
-  resetBars();
-
-  (async () => {
-    // Încercăm autoplay CU SUNET pe desktop:
-    try{
-      // testăm rapid cu primul sunet; dacă e permis, rulăm tot timeline-ul
-      await playUnmuted(a1);
-      stopAll(); // nu vrem să îl auzim de două ori; rulăm timeline-ul curat
-      runTimelineWithHtmlAudio();
-    } catch {
-      // blocat => cerem un singur click (overlay)
-      unlock.classList.add('show');
-      const btn = unlockBtn();
-      if (btn){
-        btn.addEventListener('click', async () => {
-          unlock.classList.remove('show');
-          stopAll();
-          // după gest: încerc HTMLAudio normal (unmuted). Dacă tot nu, folosesc synth.
+    // Strategy A: HTMLAudio muted -> play -> unmute
+    const A = {
+      a1: new Audio('./audio/stage1.mp3'),
+      a2: new Audio('./audio/stage2.mp3'),
+      a3: new Audio('./audio/stage3.mp3'),
+      ch: new Audio('./audio/chime.mp3'),
+      playOne(a){
+        return new Promise((res, rej) => {
           try{
-            await playUnmuted(a1);
-            stopAll();
-            runTimelineWithHtmlAudio();
-          }catch{
-            await Synth.resume();
-            await Synth.run();
-          }
-        }, { once:true });
+            a.preload='auto'; a.loop=false; a.playsInline=true; a.load();
+            a.currentTime = 0; a.muted = true;
+            const p = a.play();
+            const ok = () => { setTimeout(()=>{ a.muted = false; res(true); }, 0); };
+            if (p && typeof p.then==='function') p.then(ok).catch(rej); else ok();
+          }catch(e){ rej(e); }
+        });
+      },
+      schedule(){
+        setTimeout(()=>{ stageUI(1); this.playOne(this.a1).catch(()=>{}); }, STAGE1);
+        setTimeout(()=>{ stageUI(2); this.playOne(this.a2).catch(()=>{}); }, STAGE2);
+        setTimeout(()=>{ stageUI(3); this.playOne(this.a3).catch(()=>{}); }, STAGE3);
+        setTimeout(()=>{ this.playOne(this.ch).catch(()=>{}); }, CHIME);
+        setTimeout(hideSplash, HIDE);
       }
-    }
-  })();
-})();
-</script>
-<!-- ================== END SPLASH ================== -->
+    };
 
+    // Strategy B: WebAudio synth (latency minim) — necesită gesture pe iOS, dar încercăm
+    const B = (() => {
+      let ctx;
+      function ensure(){ return ctx || (ctx = new (window.AudioContext||window.webkitAudioContext)()); }
+      function blip(f=600, dur=0.14, type='sine', gain=0.95, at=0){
+        const c = ensure(), t0 = c.currentTime + at;
+        const o = c.createOscillator(); o.type = type; o.frequency.setValueAtTime(f, t0);
+        const g = c.createGain(); g.gain.setValueAtTime(0, t0);
+        g.gain.linearRampToValueAtTime(gain, t0 + 0.02);
+        g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+        o.connect(g); g.connect(c.destination); o.start(t0); o.stop(t0 + dur);
+      }
+      async function play(){
+        try{
+          const c = ensure();
+          const t0 = c.currentTime;
+          // UI
+          setTimeout(()=>stageUI(1), STAGE1);
+          setTimeout(()=>stageUI(2), STAGE2);
+          setTimeout(()=>stageUI(3), STAGE3);
+          // Audio sync
+          blip(420,.17,'sine',0.95, (STAGE1)/1000);
+          blip(620,.16,'sine',0.95, (STAGE2)/1000);
+          blip(760,.18,'sine',0.95, (STAGE2+90)/1000);
+          blip(780,.14,'triangle',.9, (STAGE3)/1000);
+          blip(900,.14,'triangle',.9, (STAGE3+70)/1000);
+          blip(1020,.16,'triangle',.9,(STAGE3+140)/1000);
+          blip(880,.22,'triangle',.95, (CHIME)/1000);
+          blip(1109,.24,'triangle',.95,(CHIME+70)/1000);
+          blip(1319,.28,'triangle',.95,(CHIME+140)/1000);
+          setTimeout(hideSplash, HIDE);
+          return true;
+        }catch(e){ return false; }
+      }
+      async function resume(){ try{ if (ctx && ctx.state==='suspended') await ctx.resume(); }catch{} }
+      return { play, resume };
+    })();
+
+    // Strategy C: HTMLAudio simplu
+    function strategyC(){
+      const s1=new Audio('./audio/stage1.mp3'), s2=new Audio('./audio/stage2.mp3'),
+            s3=new Audio('./audio/stage3.mp3'), ch=new Audio('./audio/chime.mp3');
+      [s1,s2,s3,ch].forEach(a=>{ a.preload='auto'; a.playsInline=true; a.load(); });
+      const tryPlay = (a)=>a.play().then(()=>true).catch(()=>false);
+      setTimeout(()=>{ stageUI(1); tryPlay(s1); }, STAGE1);
+      setTimeout(()=>{ stageUI(2); tryPlay(s2); }, STAGE2);
+      setTimeout(()=>{ stageUI(3); tryPlay(s3); }, STAGE3);
+      setTimeout(()=>{ tryPlay(ch); }, CHIME);
+      setTimeout(hideSplash, HIDE);
+      return true;
+    }
+
+    // Rulare + fallback
+    const unlock = document.getElementById('audioUnlock');
+    const unlockBtn = document.getElementById('unlockBtn');
+
+    (async function run(){
+      resetBars();
+      try { A.schedule(); } catch {}
+
+      // watchdog: dacă politicile blochează, încearcă synth/altceva; altfel arată butonul
+      const watchdog = setTimeout(async () => {
+        const okB = await B.play();
+        if (okB) return;
+        const okC = await strategyC();
+        if (okC) return;
+        unlock.classList.add('show');
+      }, 250);
+
+      setTimeout(()=>clearTimeout(watchdog), HIDE + 120);
+    })();
+
+    unlockBtn.addEventListener('click', async () => {
+      unlock.classList.remove('show');
+      await B.resume();
+      resetBars();
+      await B.play();
+    }, { once:true });
+  })();
+  </script>
+  <!-- ================== END SPLASH ================== -->
 
   <script>
   /** ================== Helpers & Config ================== */
