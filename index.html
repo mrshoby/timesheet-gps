@@ -28,7 +28,7 @@
       font-family: Montserrat, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
       color:var(--text);
       background:
-        linear-gradient(90deg,rgba(42, 106, 155, 1) 0%, rgba(87, 87, 199, 1) 50%, rgba(230, 220, 85, 1) 98%, rgba(237, 221, 83, 1) 100%),
+        linear-gradient(180deg, rgba(149, 202, 75, 0.91) 0%, rgba(81, 106, 117, 0.88) 66%),
         url('background.jpg');
       background-size: cover;
       background-position: center center;
@@ -101,6 +101,10 @@
     .toast.warn{ background:#a16207 }
     .toast.err{ background:#991b1b }
     .toast .small{opacity:.85;font-size:12px;margin-top:4px}
+
+    /* >>> ANTI-SPAM/LOCK: cât timp e activ lock-ul, barele de butoane ignoră click-urile */
+    body.action-lock .btnbar { pointer-events: none; }
+    body.action-lock .btnbar .btn { opacity:.6; cursor:not-allowed; }
   </style>
 </head>
 <body>
@@ -121,8 +125,11 @@
           <span class="dot" aria-hidden="true"></span>
           <h2>Înregistrare activitate</h2>
         </header>
-        <!-- text actualizat ca să reflecte faptul că locația poate fi opțională -->
-        <p class="sub">Alege <b>Departament</b> → <b>Angajat</b>, apoi <b>Tip de activitate</b>, completează (dacă e cazul) <b>Locația</b> și (opțional) o <b>Notă</b>. Apoi folosește butoanele de mai jos.</p>
+        <p class="sub">
+          Alege <b>Departament</b> → <b>Angajat</b>, apoi <b>Tip de activitate</b>,
+          completează <b>Client</b> <i>(opțional pentru Comercial)</i> și (opțional) o <b>Notă</b>.
+          Apoi folosește butoanele de mai jos.
+        </p>
 
         <div class="grid cols-3">
           <div>
@@ -157,7 +164,7 @@
           </div>
 
           <div>
-            <label for="locationInput">Locație</label>
+            <label for="locationInput">Client</label>
             <input id="locationInput" type="text" placeholder="ex: Șantier B – Poartă 2" />
           </div>
         </div>
@@ -173,20 +180,20 @@
         <div id="leavePanel" class="leave" style="display:none;margin-top:16px">
           <div class="kicker"><b>Cerere concediu</b> — adaugă <b>zile individuale</b> de concediu, apoi completează emailul personal și (opțional) o notă. Se trimite automat la HR.</div>
 
-  <div class="grid cols-3" id="leaveDaysBlock">
-    <div>
-      <label for="leaveDay">Zi concediu</label>
-      <input type="date" id="leaveDay" />
-    </div>
-    <div>
-      <label>&nbsp;</label>
-      <button id="btnAddDay" class="btn extra" type="button" style="width:100%">Adaugă zi</button>
-    </div>
-    <div>
-      <label>Zile selectate</label>
-      <div id="leaveDaysList" class="status" style="min-height:44px"></div>
-    </div>
-  </div>
+          <div class="grid cols-3" id="leaveDaysBlock">
+            <div>
+              <label for="leaveDay">Zi concediu</label>
+              <input type="date" id="leaveDay" />
+            </div>
+            <div>
+              <label>&nbsp;</label>
+              <button id="btnAddDay" class="btn extra" type="button" style="width:100%">Adaugă zi</button>
+            </div>
+            <div>
+              <label>Zile selectate</label>
+              <div id="leaveDaysList" class="status" style="min-height:44px"></div>
+            </div>
+          </div>
           <div class="grid cols-3">
             <div>
               <label for="leaveStart">Data start</label>
@@ -221,8 +228,7 @@
           <button class="btn finish"  id="btnFinish">Finish</button>
         </div>
 
-        <!-- EXTRA time buttons -->
-        <!-- ID NOU PENTRU A PUTEA ASCUNDE BARA LA COMERCIAL -->
+        <!-- EXTRA time buttons (ascunse pentru Comercial) -->
         <div class="btnbar" id="extraBar" style="margin-top:8px">
           <button class="btn extra" id="btnExtraStart" title="Pornește orele extra (separate de suplimentare)">Extra Start</button>
           <button class="btn extra" id="btnExtraFinish" title="Încheie orele extra">Extra Finish</button>
@@ -230,11 +236,9 @@
 
         <div id="status" class="status" role="status" aria-live="polite"></div>
 
-        <!-- Ascuns: blocul de debug JSON NU mai e folosit -->
         <div id="last" class="status mono" style="display:none"></div>
       </div>
 
-      <!-- Right: Helper / Summary -->
       <aside class="card rail">
         <header style="display:flex;align-items:center;gap:10px;margin:4px 0 10px">
           <span class="dot" aria-hidden="true"></span>
@@ -252,7 +256,6 @@
     </section>
   </div>
 
-  <!-- Toast privat -->
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
   <iframe name="hidden_iframe" style="display:none;"></iframe>
@@ -282,8 +285,8 @@
     <input type="hidden" id="f_device" />
     <input type="hidden" id="f_notes" />
     <input type="hidden" id="f_maps" />
-    <!-- nou: departament -->
     <input type="hidden" id="f_department" />
+    <input type="hidden" id="f_nonce" />
   </form>
 
   <!-- Fallback inline employees list -->
@@ -332,6 +335,29 @@ async function sendLeave(payload) {
   return data;
 }
 
+/* >>> ANTI-SPAM/LOCK utils */
+const CLICK_COOLDOWN_MS = 1200;
+const GUARD_MIN_LOCK_MS = 600;
+let busy = false;
+let lastActionAt = 0;
+function setUILock(on){ document.body.classList.toggle('action-lock', !!on); }
+function sleep(ms){ return new Promise(res => setTimeout(res, ms)); }
+function geolocateOnce(){
+  return new Promise((resolve, reject) => {
+    if (!('geolocation' in navigator)) return reject(new Error('Geolocație indisponibilă pe acest dispozitiv.'));
+    navigator.geolocation.getCurrentPosition(
+      pos => resolve({
+        lat: pos.coords.latitude,
+        lon: pos.coords.longitude,
+        acc: Math.round(pos.coords.accuracy || 0)
+      }),
+      err => reject(new Error('Eroare locație: ' + err.message)),
+      { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 }
+    );
+  });
+}
+function randomNonce(){ return Math.random().toString(36).slice(2) + Date.now().toString(36); }
+
 (function(){
   const statusEl = document.getElementById('status');
   const cfgEl = document.getElementById('cfg');
@@ -349,48 +375,11 @@ async function sendLeave(payload) {
   const leaveEmail = document.getElementById('leaveEmail');
   const leaveNotes = document.getElementById('leaveNotes');
   const leaveStatus = document.getElementById('leaveStatus');
-  // Per-day leave selection
   const leaveDay = document.getElementById('leaveDay');
   const leaveDaysList = document.getElementById('leaveDaysList');
   const btnAddDay = document.getElementById('btnAddDay');
+  const extraBar = document.getElementById('extraBar'); // << nou
   let LEAVE_DAYS = [];
-
-  function renderLeaveDays() {
-    if (!leaveDaysList) return;
-    leaveDaysList.innerHTML = '';
-    if (!LEAVE_DAYS.length) { leaveDaysList.textContent = 'Nicio zi adăugată.'; return; }
-    // sort and deduplicate
-    LEAVE_DAYS = Array.from(new Set(LEAVE_DAYS)).sort();
-    LEAVE_DAYS.forEach((d, idx) => {
-      const chip = document.createElement('span');
-      chip.className = 'chip';
-      chip.style.marginRight = '6px';
-      chip.innerHTML = d + ' <button type="button" data-idx="'+idx+'" style="all:unset;cursor:pointer;font-weight:700">×</button>';
-      leaveDaysList.appendChild(chip);
-    });
-  }
-  if (btnAddDay) btnAddDay.addEventListener('click', () => {
-    const d = (leaveDay && leaveDay.value || '').trim();
-    if (!d) { setLeaveStatus('Alege o zi.', 'err'); return; }
-    if (!LEAVE_DAYS.includes(d)) LEAVE_DAYS.push(d);
-    setLeaveStatus('', '');
-    renderLeaveDays();
-  });
-  if (leaveDaysList) leaveDaysList.addEventListener('click', (ev) => {
-    const b = ev.target && ev.target.closest && ev.target.closest('button[data-idx]');
-    if (!b) return;
-    const i = +b.getAttribute('data-idx');
-    if (!isNaN(i)) { LEAVE_DAYS.splice(i,1); renderLeaveDays(); }
-  });
-
-
-  const btnStart = document.getElementById('btnStart');
-  const btnPause = document.getElementById('btnPause');
-  const btnUnpause = document.getElementById('btnUnpause');
-  const btnFinish = document.getElementById('btnFinish');
-  const btnExtraStart = document.getElementById('btnExtraStart');
-  const btnExtraFinish = document.getElementById('btnExtraFinish');
-  const extraBar = document.getElementById('extraBar'); // NOU
 
   function setStatus(m, c){ setText(statusEl, m, c); }
   function setCfg(m, c){ setText(cfgEl, m, c); }
@@ -430,7 +419,6 @@ async function sendLeave(payload) {
       'f_device':   names.device,
       'f_notes':    names.notes,
       'f_maps':     names.mapsLink,
-      // nou: dacă există în config.json -> fields.department
       'f_department': names.department || ''
     };
     Object.entries(idMap).forEach(([id,name]) => {
@@ -461,7 +449,6 @@ async function sendLeave(payload) {
 
   /** ===== EMPLOYAȚI & DEPARTAMENTE ===== */
 
-  // Employees CSV (folosit doar ca fallback)
   function parseEmployeesCSV(text){
     if (text && text.charCodeAt && text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
     text = (text || '').replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim();
@@ -494,14 +481,12 @@ async function sendLeave(payload) {
     return el.textContent.split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
   }
 
-  // Departments CSV (sursa principală)
   function parseDepartmentsCSV(text){
     if (text && text.charCodeAt && text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
     text = (text || '').replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim();
     if (!text) return { byDept:new Map(), byName:new Map(), deptList:[] };
 
     const lines = text.split('\n').filter(Boolean);
-    // suportă , sau ;
     const sep = (text.indexOf(';') > -1 && (text.indexOf(';') < text.indexOf(','))) ? ';' : ',';
 
     let start = 0, depCol = 0, nameCol = 1;
@@ -532,7 +517,6 @@ async function sendLeave(payload) {
     return { byDept, byName, deptList };
   }
 
-  // State pentru departamente
   let DEPTMAP = { byDept:new Map(), byName:new Map(), deptList:[] };
 
   function fillDepartments(deptList){
@@ -556,7 +540,6 @@ async function sendLeave(payload) {
   }
 
   async function loadDepartments(){
-    // 1) Încearcă departmentsCsv din config
     try{
       if (CFG.departmentsCsv){
         const url = CFG.departmentsCsv + (CFG.departmentsCsv.includes('?') ? '&' : '?') + 'v=' + Date.now();
@@ -574,7 +557,7 @@ async function sendLeave(payload) {
       }
     }catch(e){}
 
-    // 2) Fallback: dacă nu există departments.csv, construim “productie” din employeesCsv/config/inline
+    // Fallback
     let fallbackEmployees = [];
     try {
       if (CFG.employeesCsv){
@@ -595,6 +578,13 @@ async function sendLeave(payload) {
   }
 
   /** ===== STATE (UI + server) ===== */
+  const btnStart = document.getElementById('btnStart');
+  const btnPause = document.getElementById('btnPause');
+  const btnUnpause = document.getElementById('btnUnpause');
+  const btnFinish = document.getElementById('btnFinish');
+  const btnExtraStart = document.getElementById('btnExtraStart');
+  const btnExtraFinish = document.getElementById('btnExtraFinish');
+
   function reflectState(){
     const running = STATE.normal.running;
     const paused  = STATE.normal.paused;
@@ -630,7 +620,6 @@ async function sendLeave(payload) {
     try { return JSON.parse(txt).state || null; } catch { return null; }
   }
 
-  // Stats (Azi)
   async function fetchStats(name){
     const rawBase = (CFG.guardEndpoint && CFG.guardEndpoint.trim()) || (CFG.stateEndpoint && CFG.stateEndpoint.trim());
     if (!rawBase) return null;
@@ -738,10 +727,9 @@ async function sendLeave(payload) {
     document.getElementById('f_device').value    = navigator.userAgent;
     document.getElementById('f_notes').value     = (notesEl.value || '');
     document.getElementById('f_maps').value      = `https://maps.google.com/?q=${gps.lat},${gps.lon}`;
-
-    // nou: trimitem și departamentul (din select sau din mapare byName)
     const deptFromMap = DEPTMAP.byName.get(empSel.value) || '';
     document.getElementById('f_department').value = (deptSel.value || deptFromMap || '');
+    document.getElementById('f_nonce').value      = randomNonce();
   }
 
   async function refreshServerState(){ 
@@ -771,28 +759,34 @@ async function sendLeave(payload) {
     else setEmp('Nicio sesiune deschisă.', '');
   }
 
-  // ==================== ACTION SUBMIT ====================
-  let busy = false;
+  // ===== util: detectează dacă e departamentul Comercial (acceptă și greșeala "coemercial")
+  function isComercialDept(){
+    const v = (deptSel.value || '').toLowerCase();
+    return v === 'comercial' || v === 'coemercial';
+  }
 
+  // ==================== ACTION SUBMIT cu LOCK ====================
   async function submitAction(action) {
+    const now = Date.now();
     if (busy) return;
+    if (now - lastActionAt < CLICK_COOLDOWN_MS) return;
+
     if (!deptSel.value) { setStatus('Alege departamentul.', 'err'); return; }
     if (!empSel.value)  { setStatus('Selectează angajat.', 'err'); return; }
     if (!actSel.value)  { setStatus('Alege tip de activitate.', 'err'); return; }
 
-    const depVal = (deptSel.value || '').toLowerCase();
-    const isComercial = (depVal === 'coemercial' || depVal === 'comercial');
     const actNorm = _normAction(action);
+    const isCom = isComercialDept();
 
-    // blocăm explicit extra_start/extra_finish pentru departamentul Comercial
-    if (isComercial && (actNorm === 'extra_start' || actNorm === 'extra_finish')) {
+    // Extra interzis pentru Comercial (și dacă e ascuns în UI)
+    if (isCom && (actNorm === 'extra_start' || actNorm === 'extra_finish')) {
       setStatus('Departamentul Comercial nu poate folosi ore EXTRA.', 'warn');
       return;
     }
 
-    // locația este obligatorie doar pentru departamentele non-Comercial
-    if (!isComercial && !locInput.value.trim()) {
-      setStatus('Scrie o locație.', 'err');
+    // Client/Locație obligatoriu doar pentru NON-Comercial
+    if (!isCom && !locInput.value.trim()) {
+      setStatus('Scrie clientul/locația.', 'err');
       locInput.focus();
       return;
     }
@@ -802,56 +796,56 @@ async function sendLeave(payload) {
       return;
     }
 
-    setStatus('Verific starea…');
-
     const lg = localGuard(action);
     if (lg) { setStatus(lg, 'warn'); return; }
 
-    const g = await guardRemote(empSel.value.trim(), action);
-    if (!g.ok) { setStatus(g.msg || 'Acțiune blocată de regulile de pontaj.', 'warn'); return; }
+    // LOCK înainte de primul await
+    busy = true;
+    setUILock(true);
+    disableAllButtons(true);
+    const lockStart = Date.now();
+    setStatus('Verific starea…', '');
 
-    if (!('geolocation' in navigator)) { setStatus('Geolocație indisponibilă pe acest dispozitiv.', 'err'); return; }
+    try {
+      const g = await guardRemote(empSel.value.trim(), action);
+      if (!g.ok) { setStatus(g.msg || 'Acțiune blocată de regulile de pontaj.', 'warn'); return; }
 
-    busy = true; disableAllButtons(true);
-    setStatus('Se obține locația GPS…');
+      setStatus('Se obține locația GPS…', '');
+      const gps = await geolocateOnce();
 
-    navigator.geolocation.getCurrentPosition(async pos => {
-      const gps = { lat: pos.coords.latitude, lon: pos.coords.longitude, acc: Math.round(pos.coords.accuracy || 0) };
       const ts = new Date().toISOString();
-
       setFormPayload(action, ts, gps);
       form.submit();
 
       applyLocalTransition(action, ts);
       saveLS();
       reflectState();
-      setStatus(`Trimis ✓ (${_normAction(action).toUpperCase()}).`, 'ok');
+      setStatus(`Trimis ✓ (${actNorm.toUpperCase()}).`, 'ok');
 
-      const act = _normAction(action);
-      setTimeout(async ()=>{
-        await refreshServerState();
-        let stats = null;
-        try { stats = await fetchStats(empSel.value.trim()); } catch {}
+      await sleep(1200);
+      await refreshServerState();
+
+      try {
+        const stats = await fetchStats(empSel.value.trim());
         if (stats){
-          if (act === 'finish'){
-            showToast(
-              `<b>${empSel.value}</b><div class="small">Azi — Ore: <b>${stats.totalHours}</b> h • Suplimentar: <b>${stats.overtime}</b> h</div>`,
-              'ok'
-            );
-          } else if (act === 'extra_finish'){
-            showToast(
-              `<b>${empSel.value}</b><div class="small">Azi — Extra: <b>${stats.extra}</b> h</div>`,
-              'ok'
-            );
+          if (actNorm === 'finish'){
+            showToast(`<b>${empSel.value}</b><div class="small">Azi — Ore: <b>${stats.totalHours}</b> h • Suplimentar: <b>${stats.overtime}</b> h</div>`, 'ok');
+          } else if (actNorm === 'extra_finish'){
+            showToast(`<b>${empSel.value}</b><div class="small">Azi — Extra: <b>${stats.extra}</b> h</div>`, 'ok');
           }
         }
-        busy=false; disableAllButtons(false);
-      }, 1200);
-
-    }, err => {
-      setStatus('Eroare locație: ' + err.message, 'err');
-      busy=false; disableAllButtons(false);
-    }, { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 });
+      } catch {}
+    } catch (err) {
+      setStatus(String(err && err.message ? err.message : err), 'err');
+    } finally {
+      const elapsed = Date.now() - lockStart;
+      if (elapsed < GUARD_MIN_LOCK_MS) await sleep(GUARD_MIN_LOCK_MS - elapsed);
+      lastActionAt = Date.now();
+      await sleep(CLICK_COOLDOWN_MS);
+      busy = false;
+      setUILock(false);
+      disableAllButtons(false);
+    }
   }
 
   function wireButtons(){
@@ -881,36 +875,29 @@ async function sendLeave(payload) {
     bindCFGToForm();
     bindLeaveForm();
 
-    // Încarcă departamentele (sursa primară) + populează employees după departament
     await loadDepartments();
-    fillEmployeesFromDept(''); // placeholder până alegi departamentul
+    fillEmployeesFromDept('');
 
-    // restaurăm starea locală
     const cached = loadLS();
     if (cached) STATE = Object.assign(blankState(), cached);
 
-    // când schimb departamentul, re-populez angajații și resetez starea selectată
     deptSel.addEventListener('change', () => {
       fillEmployeesFromDept(deptSel.value);
       if (empSel.value && (DEPTMAP.byName.get(empSel.value) !== deptSel.value)) {
         empSel.value = '';
       }
+      // Afișare/ascundere Extra pentru Comercial
+      if (extraBar) extraBar.style.display = isComercialDept() ? 'none' : '';
+
       STATE = blankState(); STATE.name = '';
       reflectState(); setEmp('', '');
-
-      // NOU: ascund/arat bara EXTRA pentru Comercial
-      const depVal = (deptSel.value || '').toLowerCase();
-      const isComercial = (depVal === 'coemercial' || depVal === 'comercial');
-      if (extraBar) extraBar.style.display = isComercial ? 'none' : '';
     });
 
-    // inițial: extraBar vizibil (nu e ales încă Comercial)
+    // Inițial: arată bara Extra (până alegi Comercial)
     if (extraBar) extraBar.style.display = '';
 
-    // schimbare angajat — doar starea
     empSel.addEventListener('change', handleEmployeeChange);
 
-    // toggle concedii
     const LEAVE_TYPES = new Set(['concediu de odihna','concediu medical','concediu pentru ore suplimentare']);
     actSel.addEventListener('change', () => {
       const isLeave = LEAVE_TYPES.has((actSel.value||'').toLowerCase());
@@ -919,10 +906,8 @@ async function sendLeave(payload) {
       if (isLeave) { LEAVE_DAYS = []; renderLeaveDays(); setLeaveStatus('', ''); }
     });
 
-    // butoane acțiuni
     wireButtons();
 
-    // buton concedii
     document.getElementById('btnLeave').addEventListener('click', async () => {
       setLeaveStatus('', '');
       if (!deptSel.value) { setLeaveStatus('Alege departamentul.', 'err'); return; }
@@ -941,7 +926,6 @@ async function sendLeave(payload) {
 
       setLeaveStatus('Se trimite cererea…', '');
 
-      // optional: Google Form
       let formSubmitted = false;
       if (CFG.leaveFormAction && CFG.leaveFields) {
         try {
@@ -960,7 +944,6 @@ async function sendLeave(payload) {
         } catch (e) { console.warn('Leave Form submit failed', e); }
       }
 
-      // endpoint WebApp
       let endpointOk = false, endpointMsg = '';
       if (CFG.leaveEndpoint) {
         try {
