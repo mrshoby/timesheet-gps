@@ -869,18 +869,19 @@ function sumPausesFromEvents(events, fallbackPair){
     try { return JSON.parse(txt).state || null; } catch { return null; }
   }
 
-  async function fetchStats(name){
-    const rawBase = (CFG.guardEndpoint && CFG.guardEndpoint.trim()) || (CFG.stateEndpoint && CFG.stateEndpoint.trim());
-    if (!rawBase) return null;
-    const base = rawBase.replace(/\?.*$/,'');
-    const url = base + '?fn=stats&name=' + encodeURIComponent(name);
-    try{
-      const r = await fetch(url, { cache:'no-store' });
-      const txt = await r.text();
-      try { const data = JSON.parse(txt); return data && data.ok ? data.stats : null; }
-      catch { return null; }
-    }catch{ return null; }
-  }
+async function fetchStats(name, untilIso){
+  const rawBase = (CFG.guardEndpoint && CFG.guardEndpoint.trim()) || (CFG.stateEndpoint && CFG.stateEndpoint.trim());
+  if (!rawBase) return null;
+  const base = rawBase.replace(/\?.*$/,''); // scoatem ce e după ? ca să punem fn=stats
+  const url = base + '?fn=stats&name=' + encodeURIComponent(name) + (untilIso ? ('&until=' + encodeURIComponent(untilIso)) : '');
+  try{
+    const r = await fetch(url, { cache:'no-store' });
+    const txt = await r.text();
+    const data = JSON.parse(txt);
+    return (data && data.ok) ? data.stats : null;
+  }catch{ return null; }
+}
+
 
   async function guardRemote(name, action){
     const base = (CFG.guardEndpoint && CFG.guardEndpoint.trim()) || (CFG.stateEndpoint && CFG.stateEndpoint.trim());
@@ -1032,33 +1033,37 @@ function sumPausesFromEvents(events, fallbackPair){
   }
 
   // ---- Calculează pauzele din Google Sheet după UNPAUSE (zi locală RO) ----
-  async function computePauseFromSheetAndShow(name, lastPauseStartIso, unpauseTsIso){
+async function computePauseFromSheetAndShow(name, lastPauseStartIso, unpauseTsIso){
+  // 1) curent (din perechea tocmai închisă)
+  const curMin = Math.max(0, Math.round(msBetween(lastPauseStartIso, unpauseTsIso) / 60000));
+
+  // 2) total din server (până la 'unpauseTsIso')
+  let totMin = 0;
+  try{
+    const s = await fetchStats(name, unpauseTsIso);
+    if (s && typeof s.pauseMinutes === 'number') totMin = s.pauseMinutes;
+  }catch{}
+
+  // fallback dacă serverul nu a reușit din vreun motiv
+  if (!totMin || totMin < curMin){
     const keyLocal = dayKeyLocal(lastPauseStartIso);
-    let events = [], hasCurrent = false;
-    for (let i=0;i<4;i++){
-      try{
-        const r = await getSheetEventsForDay(name, keyLocal, unpauseTsIso);
-        events = r.events; hasCurrent = r.hasCurrentUnpause;
-        if (hasCurrent || events.length) break;
-      }catch(e){}
-      await sleep(500);
+    try{
+      const r = await getSheetEventsForDay(name, keyLocal, unpauseTsIso);
+      const sums = sumPausesFromEvents(r.events, { startIso:lastPauseStartIso, endIso:unpauseTsIso });
+      totMin = Math.max(Math.round(sums.totalMs/60000), curMin);
+    }catch{
+      const key = dayKeyLocal(lastPauseStartIso);
+      totMin = Math.max((STATE.pauseMsByDay[key]||0)/60000|0, curMin);
     }
-    const fallbackPair = hasCurrent ? null : { startIso: lastPauseStartIso, endIso: unpauseTsIso };
-    const sums = sumPausesFromEvents(events, fallbackPair);
-
-    // safety: nu lăsăm curent/total sub perechea tocmai închisă
-    const curMs = Math.max(sums.curMs || 0, msBetween(lastPauseStartIso, unpauseTsIso));
-    const totMs = Math.max(sums.totalMs || 0, curMs);
-
-    const curMin = minutesFromMs(curMs);
-    const totMin = minutesFromMs(totMs);
-
-    setStatus(`Pauză încheiată — interval curent: ${curMin} min • total azi (din Google Sheet): ${totMin} min.`, 'ok');
-    showToast(
-      `<b>Pauză încheiată</b><div class="small">Curent: <b>${curMin}</b> min • Total azi (Sheet): <b>${totMin}</b> min</div>`,
-      'ok'
-    );
   }
+
+  setStatus(`Pauză încheiată — interval curent: ${curMin} min • total azi: ${totMin} min.`, 'ok');
+  showToast(
+    `<b>Pauză încheiată</b><div class="small">Curent: <b>${curMin}</b> min • Total azi: <b>${totMin}</b> min</div>`,
+    'ok'
+  );
+}
+
 
   // ==================== ACTION SUBMIT cu LOCK ====================
   async function submitAction(action) {
