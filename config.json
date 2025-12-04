@@ -4,7 +4,7 @@
     "action": "entry.1158543984",
     "timestamp": "entry.378594324",
     "name": "entry.791295803",
-    "personalEmail": "entry.808541296",        // <- nu e folosit la pontaj; ok să rămână
+    "personalEmail": "entry.808541296",
     "activityType": "entry.1445395292",
     "location": "entry.583138862",
     "latitude": "entry.1909899821",
@@ -12,12 +12,12 @@
     "accuracy": "entry.544486631",
     "device": "entry.81942735",
     "notes": "entry.1485036348",
-    "mapsLink": "entry.692020218",
-    "department": ""                           // TODO: pune entry.* al întrebării „Departament” din Form (dacă vrei să fie logat)
+    "mapsLink": "entry.692020218"
   },
 
   "leaveEndpoint": "https://script.google.com/macros/s/AKfycbzEbPv1oQ31Ge9KNL5w-XH6vUyg3q4BRSuial5Vwz6_Gnj86dZcTRzzYxfcc-X5NgBP/exec",
 
+  /* IMPORTANT: fără ?fn=... aici; codul adaugă singur fn=state/guard */
   "stateEndpoint": "https://script.google.com/macros/s/AKfycbzEbPv1oQ31Ge9KNL5w-XH6vUyg3q4BRSuial5Vwz6_Gnj86dZcTRzzYxfcc-X5NgBP/exec",
   "guardEndpoint": "https://script.google.com/macros/s/AKfycbzEbPv1oQ31Ge9KNL5w-XH6vUyg3q4BRSuial5Vwz6_Gnj86dZcTRzzYxfcc-X5NgBP/exec",
 
@@ -30,20 +30,14 @@
     "Ana Radu"
   ],
 
+  /* NOU: setările foii din care calculăm pauzele zilnice */
   "sheet": {
-    "gvizUrl": "https://docs.google.com/spreadsheets/d/SPREADSHEET_ID/gviz/tq?sheet=Responses", 
+    "gvizUrl": "https://docs.google.com/spreadsheets/d/SPREADSHEET_ID/gviz/tq?sheet=SHEET_TAB_NAME",
     "csvUrl": "",
-    "cols": { "timestamp": "Timestamp", "name": "Nume", "action": "Action" }
-  },
-
-  "leaveFormAction": "",
-  "leaveFields": {
-    "name": "",
-    "activityType": "",
-    "personalEmail": "",
-    "startDate": "",
-    "endDate": "",
-    "notes": "",
-    "timestamp": ""
+    "cols": {
+      "timestamp": "Marcaj de timp",
+      "name": "Nume",
+      "action": "Acțiune"
+    }
   }
 }
