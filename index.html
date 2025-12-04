@@ -5,14 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>SERVELECT • Pontaj & Concedii</title>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&display=swap" rel="stylesheet">
   <link rel="icon" href="favicon.png" />
   <meta name="theme-color" content="#516A75"/>
   <style>
     :root{
-      --brand: rgba(81,106,117,0.88);
-      --brand-dark:#2f3e45;
-      --accent: rgba(149,202,75,0.91);
+      --brand:#516B74;
+      --brand-weak:rgba(81,106,117,0.88);
+      --accent:#95CA4B;
       --text:#0f172a;
       --muted:#5b6b73;
       --bg:#f4f7f9;
@@ -90,7 +90,6 @@
     .footer{ margin-top:18px;font-size:12px;color:var(--muted);text-align:center }
     .ok{color:#15803d} .err{color:#ef4444} .warn{color:#a16207}
 
-    /* ===== Toast privat ===== */
     .toast{
       position: fixed; left: 50%; transform: translateX(-50%);
       bottom: 24px; z-index: 9999; min-width: 280px; max-width: 92vw;
@@ -102,12 +101,55 @@
     .toast.err{ background:#991b1b }
     .toast .small{opacity:.85;font-size:12px;margin-top:4px}
 
-    /* >>> ANTI-SPAM/LOCK: cât timp e activ lock-ul, barele de butoane ignoră click-urile */
     body.action-lock .btnbar { pointer-events: none; }
     body.action-lock .btnbar .btn { opacity:.6; cursor:not-allowed; }
+
+    /* ===== SPLASH ===== */
+    .splash{ position:fixed; inset:0; z-index:2000; display:grid; place-items:center;
+      background: radial-gradient(1200px 800px at 50% 20%, #e8f2e0, #d9e6df);
+      opacity:1; transform:scale(1); transition: opacity .6s ease, transform .6s ease; }
+    .splash.hide{ opacity:0; transform:scale(1.01); pointer-events:none }
+    .s-wrap{ width:min(1100px, 92vw); text-align:center; user-select:none }
+    .brand-line{ display:flex; align-items:center; justify-content:center; gap: clamp(10px, 2vw, 22px);
+      line-height:1; flex-wrap:wrap; }
+    .brand-word{ font-weight:800; letter-spacing:.5px; font-size: clamp(44px, 9vw, 96px); }
+    .serv{ color:var(--brand) } .lect{ color:var(--accent) }
+    .battery{ height: clamp(110px, 20vw, 190px); width:auto; display:block;
+              filter: drop-shadow(0 8px 24px rgba(0,0,0,.08)); }
+    .bat-outline{ stroke:var(--brand); stroke-width:10; fill:none; stroke-linejoin:round }
+    .bat-cap{ fill:var(--brand) }
+    .bar{ opacity:.18; fill:transparent; stroke:var(--brand); stroke-width:2; transition: opacity .2s ease }
+    .bar.on{ opacity:1; fill:currentColor; stroke:transparent }
+    .bar.stage-red{ color:#ef4444 } .bar.stage-yellow{ color:#f59e0b } .bar.stage-green{ color:var(--accent) }
+    .glow{ filter: drop-shadow(0 0 0 rgba(149,202,75,0)); transition: filter .5s ease }
+    .glow.active{ filter: drop-shadow(0 0 14px rgba(149,202,75,.75)) drop-shadow(0 0 28px rgba(149,202,75,.45)); }
+    .tag{ margin-top: clamp(10px, 2.2vw, 18px); font-weight:700; font-size: clamp(18px, 3.6vw, 34px); line-height:1.15; }
+    @media (prefers-reduced-motion: reduce){ .glow, .bar, .splash{ transition:none } }
   </style>
 </head>
 <body>
+  <!-- ===== SPLASH OVERLAY ===== -->
+  <div id="splash" class="splash" role="dialog" aria-label="Ecran de întâmpinare">
+    <div class="s-wrap">
+      <div class="brand-line">
+        <div class="brand-word serv">SERV</div>
+        <svg class="battery glow" id="battery" viewBox="0 0 150 240" role="img" aria-label="Baterie">
+          <rect x="20" y="40" width="110" height="180" rx="14" class="bat-outline"/>
+          <rect x="57" y="10" width="36" height="20" rx="6" class="bat-cap"/>
+          <rect id="bar1" class="bar" x="32" y="174" width="86" height="32" rx="8"/>
+          <rect id="bar2" class="bar" x="32" y="130" width="86" height="32" rx="8"/>
+          <rect id="bar3" class="bar" x="32" y="86"  width="86" height="32" rx="8"/>
+        </svg>
+        <div class="brand-word lect">LECT</div>
+      </div>
+      <div class="tag">
+        <span class="money">Energy is money!</span>
+        &nbsp;<span class="save">We save both.</span>
+      </div>
+    </div>
+  </div>
+  <!-- ===== END SPLASH ===== -->
+
   <div class="shell">
     <nav class="nav card">
       <a class="brand" href="#" aria-label="Spre început">
@@ -125,7 +167,11 @@
           <span class="dot" aria-hidden="true"></span>
           <h2>Înregistrare activitate</h2>
         </header>
-        <p class="sub">Alege <b>Departament</b> → <b>Angajat</b>, apoi <b>Tip de activitate</b>, completează <b>Client</b> și (opțional) o <b>Notă</b>. Apoi folosește butoanele de mai jos.</p>
+        <p class="sub">
+          Alege <b>Departament</b> → <b>Angajat</b>, apoi <b>Tip de activitate</b>,
+          completează <b>Client</b> <i>(opțional pentru Comercial)</i> și (opțional) o <b>Notă</b>.
+          Apoi folosește butoanele de mai jos.
+        </p>
 
         <div class="grid cols-3">
           <div>
@@ -224,8 +270,8 @@
           <button class="btn finish"  id="btnFinish">Finish</button>
         </div>
 
-        <!-- EXTRA time buttons -->
-        <div class="btnbar" style="margin-top:8px">
+        <!-- EXTRA time buttons (ascunse pentru Comercial) -->
+        <div class="btnbar" id="extraBar" style="margin-top:8px">
           <button class="btn extra" id="btnExtraStart" title="Pornește orele extra (separate de suplimentare)">Extra Start</button>
           <button class="btn extra" id="btnExtraFinish" title="Încheie orele extra">Extra Finish</button>
         </div>
@@ -282,7 +328,6 @@
     <input type="hidden" id="f_notes" />
     <input type="hidden" id="f_maps" />
     <input type="hidden" id="f_department" />
-    <!-- opțional: nonce pentru idempotency -->
     <input type="hidden" id="f_nonce" />
   </form>
 
@@ -295,6 +340,74 @@ Ana Radu
   </script>
 
   <script>document.getElementById('year').textContent = new Date().getFullYear();</script>
+
+  <!-- ================== SPLASH AUDIO & ANIM ================== -->
+  <script>
+const ServelectAudio = (() => {
+  let ctx = null;
+  function ensureCtx(){
+    if (ctx) return ctx;
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return null;
+    try { ctx = new AC(); } catch { ctx = null; }
+    return ctx;
+  }
+  function playBeepAt(freq, dur=0.16, type='sine', gain=0.9, whenSec=0){
+    const c = ensureCtx(); if (!c) return;
+    const o = c.createOscillator(); const g = c.createGain();
+    o.type = type; o.frequency.setValueAtTime(freq, whenSec);
+    g.gain.setValueAtTime(0.0001, whenSec);
+    g.gain.linearRampToValueAtTime(gain, whenSec + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, whenSec + dur);
+    o.connect(g); g.connect(c.destination);
+    try { o.start(whenSec); o.stop(whenSec + dur); } catch {}
+  }
+  function playSequence(events){
+    const c = ensureCtx(); let start = c && c.currentTime ? c.currentTime : 0; let t = start;
+    for (const e of events){ const [f,d=0.16,gp=0.08,tp='sine',gn=0.9]=e; playBeepAt(f,d,tp,gn,t); t+=d+gp; }
+    const totalMs = Math.round(((t - start) || events.reduce((s,[,d=0.16,g=0.08])=>s+d+g,0)) * 1000) + 30;
+    return new Promise(res => setTimeout(res, totalMs));
+  }
+  function chargingStage(stage){
+    if (stage === 1) return playSequence([[420, .18, 0.00, 'sine', 0.9]]);
+    if (stage === 2) return playSequence([[620, .16, .08, 'sine', 0.9],[760, .18, 0.00, 'sine', 0.9]]);
+    return playSequence([[780,.14,.06,'triangle',0.85],[900,.14,.06,'triangle',0.85],[1020,.16,0,'triangle',0.9]]);
+  }
+  function fullChime(){ return playSequence([[880,.22,.06,'triangle',0.9],[1108.7,.24,.06,'triangle',0.9],[1318.5,.28,0,'triangle',0.9]]); }
+  async function resumeIfSuspended(){ const c = ensureCtx(); if (c && c.state === 'suspended') { try { await c.resume(); } catch {} } }
+  return { chargingStage, fullChime, resumeIfSuspended, ensureCtx };
+})();
+
+(function splashInit(){
+  const splash = document.getElementById('splash');
+  const battery  = document.getElementById('battery');
+  const bars = [document.getElementById('bar1'),document.getElementById('bar2'),document.getElementById('bar3')];
+  function resetBars(){ bars.forEach(b => b.className = 'bar'); battery.classList.remove('active'); }
+  function stageToClasses(stage){
+    resetBars();
+    if (stage >= 1){ bars[0].classList.add('on','stage-red'); }
+    if (stage >= 2){ bars[0].classList.remove('stage-red'); bars[0].classList.add('stage-yellow'); bars[1].classList.add('on','stage-yellow'); }
+    if (stage >= 3){ bars.forEach(b => { b.classList.remove('stage-red','stage-yellow'); b.classList.add('on','stage-green'); }); battery.classList.add('active'); }
+  }
+  const wait = (ms)=>new Promise(r=>setTimeout(r,ms));
+  function hideSplash(){ splash.classList.add('hide'); }
+
+  // Failsafe: ascunde splash și dacă orice se blochează
+  setTimeout(hideSplash, 3200);
+
+  window.addEventListener('pointerdown', () => ServelectAudio.resumeIfSuspended(), { once:true, passive:true });
+  window.addEventListener('keydown', () => ServelectAudio.resumeIfSuspended(), { once:true });
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') ServelectAudio.resumeIfSuspended(); });
+  (async () => {
+    resetBars(); try { ServelectAudio.ensureCtx(); } catch {}
+    await wait(60); stageToClasses(1);
+    await Promise.all([ServelectAudio.chargingStage(1), wait(350)]);
+    stageToClasses(2); await Promise.all([ServelectAudio.chargingStage(2), wait(300)]);
+    stageToClasses(3); await ServelectAudio.chargingStage(3);
+    await ServelectAudio.fullChime(); hideSplash();
+  })();
+})();
+  </script>
 
   <script>
 /** ================== Helpers & Config ================== */
@@ -317,17 +430,34 @@ function showToast(msg, type){
   showToast._h = setTimeout(()=>{ t.style.display='none'; }, 7000);
 }
 
-/** Trimite cererea de concediu la WebApp (fără preflight CORS) */
+/* Normalizări utile */
+function normalizeName(s){
+  return String(s||'')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g,'')
+    .toLowerCase()
+    .trim();
+}
+function dayKeyLocal(iso){
+  const d = new Date(iso);
+  const y = d.getFullYear();
+  const m = String(d.getMonth()+1).padStart(2,'0');
+  const dd = String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${dd}`;
+}
+
+/** Leave endpoint */
 async function sendLeave(payload) {
+  if (!(window.CFG && CFG.leaveEndpoint)) {
+    throw new Error('Endpoint concedii indisponibil în config.');
+  }
   const r = await fetch(CFG.leaveEndpoint, {
     method: 'POST',
     headers: {'Content-Type':'text/plain;charset=utf-8'},
     body: JSON.stringify(payload)
   });
   const txt = await r.text();
-  let data;
-  try { data = JSON.parse(txt); }
-  catch { throw new Error('Răspuns invalid: ' + txt.slice(0,200)); }
+  let data; try { data = JSON.parse(txt); } catch { throw new Error('Răspuns invalid: ' + txt.slice(0,200)); }
   if (!r.ok || !data.ok) throw new Error((data && data.error) || ('HTTP '+r.status));
   return data;
 }
@@ -343,11 +473,7 @@ function geolocateOnce(){
   return new Promise((resolve, reject) => {
     if (!('geolocation' in navigator)) return reject(new Error('Geolocație indisponibilă pe acest dispozitiv.'));
     navigator.geolocation.getCurrentPosition(
-      pos => resolve({
-        lat: pos.coords.latitude,
-        lon: pos.coords.longitude,
-        acc: Math.round(pos.coords.accuracy || 0)
-      }),
+      pos => resolve({ lat: pos.coords.latitude, lon: pos.coords.longitude, acc: Math.round(pos.coords.accuracy || 0) }),
       err => reject(new Error('Eroare locație: ' + err.message)),
       { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 }
     );
@@ -355,6 +481,138 @@ function geolocateOnce(){
 }
 function randomNonce(){ return Math.random().toString(36).slice(2) + Date.now().toString(36); }
 
+/* ============ READ Google Sheet (CSV / GViz) + calc pauze ============ */
+function parseGvizDateStr(s){
+  const m = /^Date\((\d+),(\d+),(\d+)(?:,(\d+),(\d+),(\d+))?\)$/.exec(String(s).trim());
+  if (!m) return null;
+  const Y = +m[1], M = +m[2], D = +m[3], h = +(m[4]||0), mi = +(m[5]||0), se = +(m[6]||0);
+  const d = new Date(Y, M, D, h, mi, se);
+  return isNaN(d.getTime()) ? null : d.toISOString();
+}
+async function fetchGvizRows(url){
+  const r = await fetch(url + (url.includes('?') ? '&' : '?') + 'tqx=out:json&rand=' + Date.now(), {cache:'no-store'});
+  const txt = await r.text();
+  const m = txt.match(/google\.visualization\.Query\.setResponse\(([\s\S]*)\);?/);
+  if (!m) throw new Error('GViz format necunoscut');
+  const data = JSON.parse(m[1]);
+  if (!data.table || !data.table.rows) return [];
+  const cols = data.table.cols.map(c => ({ label:(c.label||c.id||'').trim(), type:(c.type||'').trim() }));
+  return data.table.rows.map(row => {
+    const obj = {};
+    row.c.forEach((cell, i) => {
+      const label = cols[i].label || ('C'+i);
+      const type  = cols[i].type;
+      let v = (cell && 'v' in cell) ? cell.v : null;
+      if (type === 'datetime' || type === 'date' || type === 'timeofday') {
+        let iso = null;
+        if (typeof v === 'string' && /^Date\(/.test(v)) iso = parseGvizDateStr(v);
+        if (!iso && cell && typeof cell.f === 'string' && cell.f.trim()){
+          const d = new Date(cell.f); if (!isNaN(d.getTime())) iso = d.toISOString();
+        }
+        v = iso || (typeof v === 'string' ? v : (cell && cell.f) || v);
+      }
+      obj[label] = v; obj[label.toLowerCase()] = v;
+    });
+    return obj;
+  });
+}
+function parseCSV(text){
+  if (text && text.charCodeAt && text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
+  text = (text || '').replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim();
+  const lines = text.split('\n').filter(Boolean);
+  if (!lines.length) return [];
+  const sep = (text.indexOf(';') > -1 && text.indexOf(';') < text.indexOf(',')) ? ';' : ',';
+  const hdr = lines[0].split(sep).map(s=>s.trim().replace(/^"|"$/g,''));
+  return lines.slice(1).map(line=>{
+    const cells = line.split(sep).map(s=>s.trim().replace(/^"|"$/g,''));
+    const o = {};
+    hdr.forEach((h,i)=>{ o[h]=cells[i]??''; o[h.toLowerCase()]=cells[i]??''; });
+    return o;
+  });
+}
+async function fetchCsvRows(url){
+  const r = await fetch(url + (url.includes('?') ? '&' : '?') + 'rand=' + Date.now(), {cache:'no-store'});
+  const txt = await r.text();
+  return parseCSV(txt);
+}
+function isoFromAny(x){
+  if (!x) return null;
+  if (typeof x === 'string'){
+    if (/^Date\(/.test(x)) return parseGvizDateStr(x);
+    if (/^\d{4}-\d{2}-\d{2}T/.test(x)) return x;
+    const d = new Date(x); if (!isNaN(d.getTime())) return d.toISOString();
+    return null;
+  }
+  if (x && typeof x === 'object' && typeof x.getTime === 'function'){ return x.toISOString(); }
+  return null;
+}
+function msBetween(isoA, isoB){ const a = new Date(isoA).getTime(); const b = new Date(isoB).getTime(); return Math.max(0, b - a); }
+function closeIso(a, b, ms=120000){ return Math.abs(new Date(a).getTime() - new Date(b).getTime()) <= ms; }
+
+async function getSheetEventsForDay(name, dayKeyLocalWanted, unpauseTsIso){
+  const S = (window.CFG && CFG.sheet) || {};
+  const cols = (S.cols || { timestamp:'f_timestamp', name:'f_name', action:'f_action' });
+
+  let rows = [];
+  if (S.gvizUrl){
+    try {
+      const raw = await fetchGvizRows(S.gvizUrl);
+      rows = raw.map(r => {
+        const ts = isoFromAny(r[cols.timestamp] ?? r['timestamp'] ?? r['Timestamp'] ?? r['data'] ?? r['dată'] ?? r['date']);
+        const nm = String(r[cols.name] ?? r['name'] ?? r['Nume'] ?? r['nume'] ?? '').trim();
+        const act = String(
+          r[cols.action] ?? r['action'] ?? r['Actiune'] ?? r['Acțiune'] ?? r['Acţiune'] ?? r['actiune'] ?? r['acțiune'] ?? r['acţiune'] ?? ''
+        ).trim();
+        return { ts, name:nm, nameKey:normalizeName(nm), action:_normAction(act) };
+      }).filter(x => x.ts);
+    } catch(e){ rows = []; }
+  }
+  if (!rows.length && S.csvUrl){
+    try {
+      const raw = await fetchCsvRows(S.csvUrl);
+      rows = raw.map(r => {
+        const ts = isoFromAny(r[cols.timestamp] ?? r['timestamp'] ?? r['Timestamp'] ?? r['data'] ?? r['dată'] ?? r['date']);
+        const nm = String(r[cols.name] ?? r['name'] ?? r['Nume'] ?? r['nume'] ?? '').trim();
+        const act = String(
+          r[cols.action] ?? r['action'] ?? r['Actiune'] ?? r['Acțiune'] ?? r['Acţiune'] ?? r['actiune'] ?? r['acțiune'] ?? r['acţiune'] ?? ''
+        ).trim();
+        return { ts, name:nm, nameKey:normalizeName(nm), action:_normAction(act) };
+      }).filter(x => x.ts);
+    } catch(e){ rows = []; }
+  }
+
+  if (!rows.length) return { events: [], hasCurrentUnpause:false };
+
+  const target = normalizeName(name);
+  const filtered = rows
+    .filter(r =>
+      r.nameKey === target &&
+      dayKeyLocal(r.ts) === dayKeyLocalWanted &&
+      (r.action==='pause' || r.action==='unpause'))
+    .sort((a,b)=> new Date(a.ts) - new Date(b.ts));
+
+  const hasCurrentUnpause = filtered.some(r => r.action==='unpause' && closeIso(r.ts, unpauseTsIso));
+  return { events: filtered, hasCurrentUnpause };
+}
+
+function sumPausesFromEvents(events, fallbackPair){
+  let totalMs = 0, curMs = 0, lastPause = null;
+  for (const e of events){
+    if (e.action === 'pause') {
+      lastPause = e.ts;
+    } else if (e.action === 'unpause' && lastPause){
+      const seg = msBetween(lastPause, e.ts);
+      totalMs += seg; curMs = seg; lastPause = null;
+    }
+  }
+  if (lastPause && fallbackPair && fallbackPair.endIso){
+    const seg = msBetween(lastPause, fallbackPair.endIso);
+    totalMs += seg; curMs = seg;
+  }
+  return { totalMs, curMs };
+}
+
+/* ================== App logic ================== */
 (function(){
   const statusEl = document.getElementById('status');
   const cfgEl = document.getElementById('cfg');
@@ -375,6 +633,7 @@ function randomNonce(){ return Math.random().toString(36).slice(2) + Date.now().
   const leaveDay = document.getElementById('leaveDay');
   const leaveDaysList = document.getElementById('leaveDaysList');
   const btnAddDay = document.getElementById('btnAddDay');
+  const extraBar = document.getElementById('extraBar');
   let LEAVE_DAYS = [];
 
   function setStatus(m, c){ setText(statusEl, m, c); }
@@ -394,13 +653,16 @@ function randomNonce(){ return Math.random().toString(36).slice(2) + Date.now().
       lastNormalStart: null,
       lastNormalFinish: null,
       lastExtraStart: null,
-      lastExtraFinish: null
+      lastExtraFinish: null,
+      lastPauseStart: null,
+      pauseMsByDay: {}
     };
   }
   function loadLS(){ try { return JSON.parse(localStorage.getItem(LS_KEY) || 'null'); } catch{return null;} }
   function saveLS(){ try { localStorage.setItem(LS_KEY, JSON.stringify(STATE)); } catch{} }
 
   function bindCFGToForm() {
+    if (!(CFG && CFG.formAction && CFG.fields)) return false;
     form.action = CFG.formAction;
     const names = CFG.fields;
     const idMap = {
@@ -419,12 +681,13 @@ function randomNonce(){ return Math.random().toString(36).slice(2) + Date.now().
     };
     Object.entries(idMap).forEach(([id,name]) => {
       const el = document.getElementById(id);
-      if (name) el.setAttribute('name', name);
+      if (el && name) el.setAttribute('name', name);
     });
+    return true;
   }
 
   function bindLeaveForm() {
-    if (!CFG.leaveFormAction || !CFG.leaveFields) return false;
+    if (!(CFG && CFG.leaveFormAction && CFG.leaveFields)) return false;
     const m = CFG.leaveFields;
     const map = {
       'lv_name':  m.name,
@@ -449,15 +712,11 @@ function randomNonce(){ return Math.random().toString(36).slice(2) + Date.now().
     if (text && text.charCodeAt && text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
     text = (text || '').replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim();
     if (!text) return [];
-    if (!/,|;/.test(text)) {
-      return text.split('\n').map(s => s.trim()).filter(Boolean);
-    }
+    if (!/,|;/.test(text)) return text.split('\n').map(s => s.trim()).filter(Boolean);
     const comma = (text.match(/,/g) || []).length;
     const semiCount = (text.match(/;/g) || []).length;
     const delim = semiCount > comma ? ';' : ',';
-    const rows = text.split('\n')
-      .map(line => line.split(delim).map(c => c.trim().replace(/^"|"$/g,'')))
-      .filter(r => r.length && r.join('').length);
+    const rows = text.split('\n').map(line => line.split(delim).map(c => c.trim().replace(/^"|"$/g,''))).filter(r => r.length && r.join('').length);
     const header = rows[0].map(h => (h||'').toLowerCase());
     let startIdx = 0, nameCol = 0;
     if (header.some(h => /angajat|nume|employee|name/.test(h))) {
@@ -537,7 +796,7 @@ function randomNonce(){ return Math.random().toString(36).slice(2) + Date.now().
 
   async function loadDepartments(){
     try{
-      if (CFG.departmentsCsv){
+      if (window.CFG && CFG.departmentsCsv){
         const url = CFG.departmentsCsv + (CFG.departmentsCsv.includes('?') ? '&' : '?') + 'v=' + Date.now();
         const r = await fetch(url, {cache:'no-store'});
         if (r.ok){
@@ -556,13 +815,13 @@ function randomNonce(){ return Math.random().toString(36).slice(2) + Date.now().
     // Fallback
     let fallbackEmployees = [];
     try {
-      if (CFG.employeesCsv){
+      if (window.CFG && CFG.employeesCsv){
         const url = CFG.employeesCsv + (CFG.employeesCsv.includes('?') ? '&' : '?') + 'v=' + Date.now();
         const r = await fetch(url, {cache:'no-store'});
         if (r.ok) fallbackEmployees = parseEmployeesCSV(await r.text());
       }
     } catch(e){}
-    if (!fallbackEmployees.length && Array.isArray(CFG.employees)) fallbackEmployees = CFG.employees.slice();
+    if (!fallbackEmployees.length && window.CFG && Array.isArray(CFG.employees)) fallbackEmployees = CFG.employees.slice();
     if (!fallbackEmployees.length) fallbackEmployees = getInlineEmployees();
 
     const byDept = new Map([['productie', fallbackEmployees]]);
@@ -583,6 +842,7 @@ function randomNonce(){ return Math.random().toString(36).slice(2) + Date.now().
 
   function reflectState(){
     const running = STATE.normal.running;
+    if (!btnStart) return;
     const paused  = STATE.normal.paused;
     const extraR  = STATE.extra.running;
 
@@ -590,7 +850,7 @@ function randomNonce(){ return Math.random().toString(36).slice(2) + Date.now().
     btnStart.disabled       = !hasSel || running || extraR;
     btnPause.disabled       = !hasSel || !running || paused;
     btnUnpause.disabled     = !hasSel || !running || !paused;
-    btnFinish.disabled      = !hasSel || !running;
+    btnFinish.disabled      = !hasSel || !running || paused;
 
     btnExtraStart.disabled  = !hasSel || running || extraR;
     btnExtraFinish.disabled = !hasSel || !extraR;
@@ -606,33 +866,40 @@ function randomNonce(){ return Math.random().toString(36).slice(2) + Date.now().
     if (lbtn) lbtn.disabled = !!disabled;
   }
 
-  async function fetchState(name){
-    const base = (CFG.stateEndpoint && CFG.stateEndpoint.trim()) || (CFG.guardEndpoint && (CFG.guardEndpoint.trim() + '?fn=state'));
-    if (!base) return null;
-    const url = base.includes('?fn=state') ? (base + '&name=' + encodeURIComponent(name)) 
-                                           : (base + (base.includes('?')?'&':'?') + 'name=' + encodeURIComponent(name));
-    const r = await fetch(url, { cache:'no-store' });
-    const txt = await r.text();
-    try { return JSON.parse(txt).state || null; } catch { return null; }
+  // ==== STATE & STATS API HELPERS ====
+  function baseEndpoint(){
+    const fromCfg = (window.CFG && (CFG.guardEndpoint || CFG.stateEndpoint)) || '';
+    const base = (fromCfg || location.href).replace(/\?.*$/,'');
+    return base;
   }
-
-  async function fetchStats(name){
-    const rawBase = (CFG.guardEndpoint && CFG.guardEndpoint.trim()) || (CFG.stateEndpoint && CFG.stateEndpoint.trim());
-    if (!rawBase) return null;
-    const base = rawBase.replace(/\?.*$/,'');
-    const url = base + '?fn=stats&name=' + encodeURIComponent(name);
+  async function fetchState(name){
+    const url = baseEndpoint() + '?fn=state&name=' + encodeURIComponent(name);
     try{
       const r = await fetch(url, { cache:'no-store' });
       const txt = await r.text();
-      try { const data = JSON.parse(txt); return data && data.ok ? data.stats : null; }
-      catch { return null; }
+      return JSON.parse(txt).state || null;
     }catch{ return null; }
   }
-
+  async function fetchStats(name){
+    const url = baseEndpoint() + '?fn=stats&name=' + encodeURIComponent(name);
+    try{
+      const r = await fetch(url, { cache:'no-store' });
+      const txt = await r.text();
+      const data = JSON.parse(txt);
+      return (data && data.ok) ? data.stats : null;
+    }catch{ return null; }
+  }
+  async function fetchPauseTotals(name, untilIso){
+    const url = baseEndpoint() + '?fn=pausetotals&name=' + encodeURIComponent(name) + (untilIso ? ('&until=' + encodeURIComponent(untilIso)) : '');
+    try{
+      const r = await fetch(url, { cache:'no-store' });
+      const txt = await r.text();
+      const data = JSON.parse(txt);
+      return (data && data.ok) ? data : null;
+    }catch{ return null; }
+  }
   async function guardRemote(name, action){
-    const base = (CFG.guardEndpoint && CFG.guardEndpoint.trim()) || (CFG.stateEndpoint && CFG.stateEndpoint.trim());
-    if (!base) return {ok:true};
-    const url = base + (base.includes('?') ? '&' : '?') + 'fn=guard';
+    const url = baseEndpoint() + '?fn=guard';
     try{
       const r = await fetch(url, {
         method: 'POST',
@@ -647,39 +914,7 @@ function randomNonce(){ return Math.random().toString(36).slice(2) + Date.now().
     }
   }
 
-  function localGuard(action){
-    action = _normAction(action);
-    const running = STATE.normal.running;
-    const paused  = STATE.normal.paused;
-    const extraR  = STATE.extra.running;
-
-    switch(action){
-      case 'start':
-        if (running)  return 'Ai deja un START în derulare.';
-        if (extraR)   return 'Finalizează mai întâi „Extra” înainte de a porni norma.';
-        return null;
-      case 'pause':
-        if (!running) return 'Nu poți da PAUSE fără START.';
-        if (paused)   return 'Ești deja pe PAUSE.';
-        return null;
-      case 'unpause':
-        if (!running) return 'Nu poți da UNPAUSE fără START.';
-        if (!paused)  return 'Nu ești în PAUSE.';
-        return null;
-      case 'finish':
-        if (!running) return 'Nu poți da FINISH fără START.';
-        return null;
-      case 'extra_start':
-        if (running)  return 'Finalizează norma înainte de „EXTRA START”.';
-        if (extraR)   return 'Ai deja EXTRA pornit.';
-        return null;
-      case 'extra_finish':
-        if (!extraR)  return 'Nu poți da „EXTRA FINISH” fără „EXTRA START”.';
-        return null;
-      default:
-        return null;
-    }
-  }
+  const minutesFromMs = (ms)=> Math.round(ms / 60000);
 
   function applyLocalTransition(action, ts){
     action = _normAction(action);
@@ -691,10 +926,20 @@ function randomNonce(){ return Math.random().toString(36).slice(2) + Date.now().
         break;
       case 'pause':
         STATE.normal.paused = true;
+        STATE.lastPauseStart = ts;
         break;
-      case 'unpause':
+      case 'unpause': {
         STATE.normal.paused = false;
+        if (STATE.lastPauseStart){
+          const start = STATE.lastPauseStart;
+          const end = ts;
+          const ms = Math.max(0, new Date(end) - new Date(start));
+          const key = dayKeyLocal(start);
+          STATE.pauseMsByDay[key] = (STATE.pauseMsByDay[key]||0) + ms;
+          STATE.lastPauseStart = null;
+        }
         break;
+      }
       case 'finish':
         STATE.normal.running = false;
         STATE.normal.paused  = false;
@@ -723,7 +968,7 @@ function randomNonce(){ return Math.random().toString(36).slice(2) + Date.now().
     document.getElementById('f_device').value    = navigator.userAgent;
     document.getElementById('f_notes').value     = (notesEl.value || '');
     document.getElementById('f_maps').value      = `https://maps.google.com/?q=${gps.lat},${gps.lon}`;
-    const deptFromMap = DEPTMAP.byName.get(empSel.value) || '';
+    const deptFromMap = (DEPTMAP.byName && DEPTMAP.byName.get) ? (DEPTMAP.byName.get(empSel.value) || '') : '';
     document.getElementById('f_department').value = (deptSel.value || deptFromMap || '');
     document.getElementById('f_nonce').value      = randomNonce();
   }
@@ -731,9 +976,13 @@ function randomNonce(){ return Math.random().toString(36).slice(2) + Date.now().
   async function refreshServerState(){ 
     if (!STATE.name) return;
     try {
+      const keepPauseFields = {
+        lastPauseStart: STATE.lastPauseStart,
+        pauseMsByDay: Object.assign({}, STATE.pauseMsByDay)
+      };
       const remote = await fetchState(STATE.name);
       if (remote) {
-        STATE = Object.assign(blankState(), remote);
+        STATE = Object.assign(blankState(), keepPauseFields, remote);
         STATE.name = empSel.value || STATE.name || '';
         saveLS();
       }
@@ -755,6 +1004,40 @@ function randomNonce(){ return Math.random().toString(36).slice(2) + Date.now().
     else setEmp('Nicio sesiune deschisă.', '');
   }
 
+  function isComercialDept(){
+    const v = (deptSel.value || '').toLowerCase();
+    return v === 'comercial' || v === 'coemercial';
+  }
+
+  /* === NOU: calculează pauza doar din server/foaie, merge și după refresh === */
+  async function computePauseFromSheetAndShow(name, untilIso){
+    let totMin = 0, curMin = 0;
+
+    try{
+      const s = await fetchPauseTotals(name, untilIso);
+      if (s && s.ok){
+        totMin = Number(s.totalMin) || 0;
+        curMin = Number(s.curMin)   || 0;
+      }
+    }catch{}
+
+    if (!totMin && !curMin){
+      try{
+        const keyLocal = dayKeyLocal(untilIso);
+        const r = await getSheetEventsForDay(name, keyLocal, untilIso);
+        const sums = sumPausesFromEvents(r.events, { endIso: untilIso });
+        totMin = Math.round(sums.totalMs/60000);
+        curMin = Math.round(sums.curMs/60000);
+      }catch{}
+    }
+
+    setStatus(`Pauză încheiată — interval curent: ${curMin} min • total azi: ${totMin} min.`, 'ok');
+    showToast(
+      `<b>Pauză încheiată</b><div class="small">Curent: <b>${curMin}</b> min • Total azi: <b>${totMin}</b> min</div>`,
+      'ok'
+    );
+  }
+
   // ==================== ACTION SUBMIT cu LOCK ====================
   async function submitAction(action) {
     const now = Date.now();
@@ -764,16 +1047,50 @@ function randomNonce(){ return Math.random().toString(36).slice(2) + Date.now().
     if (!deptSel.value) { setStatus('Alege departamentul.', 'err'); return; }
     if (!empSel.value)  { setStatus('Selectează angajat.', 'err'); return; }
     if (!actSel.value)  { setStatus('Alege tip de activitate.', 'err'); return; }
-    if (!locInput.value.trim()) { setStatus('Scrie clientul.', 'err'); locInput.focus(); return; }
+
+    const actNorm = _normAction(action);
+    const isCom = isComercialDept();
+
+    if (isCom && (actNorm === 'extra_start' || actNorm === 'extra_finish')) {
+      setStatus('Departamentul Comercial nu poate folosi ore EXTRA.', 'warn');
+      return;
+    }
+
+    if (!isCom && !locInput.value.trim()) {
+      setStatus('Scrie clientul/locația.', 'err');
+      locInput.focus();
+      return;
+    }
+
     if (['concediu de odihna','concediu medical','concediu pentru ore suplimentare'].includes((actSel.value||'').toLowerCase())){
       setStatus('Pentru concediu folosește „Trimite cererea de concediu”.', 'warn');
       return;
     }
 
-    const lg = localGuard(action);
-    if (lg) { setStatus(lg, 'warn'); return; }
+    /* NOU: sincronizare cu serverul înainte de guard-ul local */
+    setStatus('Sincronizez starea…', '');
+    await refreshServerState();
+    reflectState();
 
-    // pornim LOCK-ul înainte de primul await
+    // local guard
+    {
+      const running = STATE.normal.running;
+      const paused  = STATE.normal.paused;
+      const extraR  = STATE.extra.running;
+      const e = (()=>{
+        switch(actNorm){
+          case 'start':        if (running) return 'Ai deja START activ.'; if (extraR) return 'Finalizează „EXTRA” înainte de START.'; break;
+          case 'pause':        if (!running) return 'Nu poți PAUSE fără START.'; if (paused) return 'Ești deja în PAUSE.'; break;
+          case 'unpause':      if (!running) return 'Nu poți UNPAUSE fără START.'; if (!paused) return 'Nu ești în PAUSE.'; break;
+          case 'finish':       if (!running) return 'Nu poți FINISH fără START.'; if (paused) return 'Nu poți FINISH în PAUSE — apasă UNPAUSE mai întâi.'; break;
+          case 'extra_start':  if (running) return 'Închide norma (FINISH) înainte de EXTRA START.'; if (extraR) return 'EXTRA este deja pornit.'; break;
+          case 'extra_finish': if (!extraR) return 'Nu poți EXTRA FINISH fără EXTRA START.'; break;
+        }
+        return null;
+      })();
+      if (e) { setStatus(e, 'warn'); return; }
+    }
+
     busy = true;
     setUILock(true);
     disableAllButtons(true);
@@ -788,24 +1105,38 @@ function randomNonce(){ return Math.random().toString(36).slice(2) + Date.now().
       const gps = await geolocateOnce();
 
       const ts = new Date().toISOString();
+
       setFormPayload(action, ts, gps);
-      form.submit();
+
+      if (form.action && form.action.trim().length && form.querySelector('[name]')) {
+        form.submit(); // avem config pentru Google Form
+      } else {
+        setStatus('Atenție: nu există config de formular — acțiunea se înregistrează doar local/UI.', 'warn');
+      }
 
       applyLocalTransition(action, ts);
       saveLS();
       reflectState();
-      setStatus(`Trimis ✓ (${_normAction(action).toUpperCase()}).`, 'ok');
+
+      if (actNorm === 'unpause'){
+        try{
+          await computePauseFromSheetAndShow(empSel.value.trim(), ts);
+        } catch(e){
+          setStatus(`UNPAUSE trimis ✓ (nu am putut calcula pauza din server/foaie)`, 'warn');
+        }
+      } else {
+        setStatus(`Trimis ✓ (${actNorm.toUpperCase()}).`, 'ok');
+      }
 
       await sleep(1200);
       await refreshServerState();
 
       try {
         const stats = await fetchStats(empSel.value.trim());
-        const act = _normAction(action);
         if (stats){
-          if (act === 'finish'){
+          if (actNorm === 'finish'){
             showToast(`<b>${empSel.value}</b><div class="small">Azi — Ore: <b>${stats.totalHours}</b> h • Suplimentar: <b>${stats.overtime}</b> h</div>`, 'ok');
-          } else if (act === 'extra_finish'){
+          } else if (actNorm === 'extra_finish'){
             showToast(`<b>${empSel.value}</b><div class="small">Azi — Extra: <b>${stats.extra}</b> h</div>`, 'ok');
           }
         }
@@ -835,18 +1166,22 @@ function randomNonce(){ return Math.random().toString(36).slice(2) + Date.now().
 
   /** ===== INIT ===== */
   (async function init(){
+    let loadedCfg = false;
     try {
       const r = await fetch('config.json?v=' + Date.now(), {cache:'no-store'});
       if (!r.ok) throw new Error('HTTP ' + r.status);
       CFG = await r.json();
-      if (!CFG.formAction || !CFG.fields) throw new Error('Config incomplet');
+      if (!CFG || !CFG.fields) throw new Error('Config incomplet');
       setCfg('Config încărcat', 'ok');
       window.CFG = CFG;
+      loadedCfg = true;
     } catch (e) {
-      setCfg('Eroare config: ' + (e.message||e), 'err');
-      disableAllButtons(true); return;
+      // NU mai facem return; continuăm cu fallback
+      setCfg('Eroare config — rulez fallback local.', 'warn');
+      window.CFG = {}; // fallback gol, toate accesările sunt protejate
     }
 
+    // Legăm form-urile doar dacă avem config valid (nu se rupe dacă lipsesc)
     bindCFGToForm();
     bindLeaveForm();
 
@@ -856,14 +1191,29 @@ function randomNonce(){ return Math.random().toString(36).slice(2) + Date.now().
     const cached = loadLS();
     if (cached) STATE = Object.assign(blankState(), cached);
 
+    /* NOU: reselectează automat angajatul/departamentul după refresh */
+    if (STATE.name && DEPTMAP.byName && DEPTMAP.byName.has(STATE.name)){
+      const d = DEPTMAP.byName.get(STATE.name);
+      if (d){
+        deptSel.value = d;
+        fillEmployeesFromDept(d);
+        empSel.value = STATE.name;
+        if (extraBar) extraBar.style.display = isComercialDept() ? 'none' : '';
+        await handleEmployeeChange();
+      }
+    }
+
     deptSel.addEventListener('change', () => {
       fillEmployeesFromDept(deptSel.value);
       if (empSel.value && (DEPTMAP.byName.get(empSel.value) !== deptSel.value)) {
         empSel.value = '';
       }
+      if (extraBar) extraBar.style.display = isComercialDept() ? 'none' : '';
       STATE = blankState(); STATE.name = '';
       reflectState(); setEmp('', '');
     });
+
+    if (extraBar) extraBar.style.display = '';
 
     empSel.addEventListener('change', handleEmployeeChange);
 
@@ -872,8 +1222,18 @@ function randomNonce(){ return Math.random().toString(36).slice(2) + Date.now().
       const isLeave = LEAVE_TYPES.has((actSel.value||'').toLowerCase());
       leavePanel.style.display = isLeave ? '' : 'none';
       disableTimeButtons(isLeave);
-      if (isLeave) { LEAVE_DAYS = []; renderLeaveDays(); setLeaveStatus('', ''); }
+      if (isLeave) { LEAVE_DAYS = []; setLeaveStatus('', ''); }
     });
+
+    if (btnAddDay && leaveDaysList && leaveDay){
+      btnAddDay.addEventListener('click', () => {
+        const v = (leaveDay.value||'').trim();
+        if (!v) return;
+        if (!LEAVE_DAYS.includes(v)) LEAVE_DAYS.push(v);
+        LEAVE_DAYS.sort();
+        leaveDaysList.textContent = LEAVE_DAYS.join(', ');
+      });
+    }
 
     wireButtons();
 
@@ -882,7 +1242,8 @@ function randomNonce(){ return Math.random().toString(36).slice(2) + Date.now().
       if (!deptSel.value) { setLeaveStatus('Alege departamentul.', 'err'); return; }
       if (!empSel.value)  { setLeaveStatus('Selectează angajat.', 'err'); return; }
       const tip = (actSel.value || '').toLowerCase();
-      if (!LEAVE_TYPES.has(tip)) { setLeaveStatus('Alege un tip de concediu.', 'err'); return; }
+      const LEAVES = new Set(['concediu de odihna','concediu medical','concediu pentru ore suplimentare']);
+      if (!LEAVES.has(tip)) { setLeaveStatus('Alege un tip de concediu.', 'err'); return; }
       const sd = leaveStart.value;
       const ed = leaveEnd.value;
       const hasDays = Array.isArray(LEAVE_DAYS) && LEAVE_DAYS.length > 0;
@@ -896,7 +1257,7 @@ function randomNonce(){ return Math.random().toString(36).slice(2) + Date.now().
       setLeaveStatus('Se trimite cererea…', '');
 
       let formSubmitted = false;
-      if (CFG.leaveFormAction && CFG.leaveFields) {
+      if (window.CFG && CFG.leaveFormAction && CFG.leaveFields) {
         try {
           document.getElementById('lv_name').value  = empSel.value;
           document.getElementById('lv_type').value  = tip;
@@ -914,7 +1275,7 @@ function randomNonce(){ return Math.random().toString(36).slice(2) + Date.now().
       }
 
       let endpointOk = false, endpointMsg = '';
-      if (CFG.leaveEndpoint) {
+      if (window.CFG && CFG.leaveEndpoint) {
         try {
           const _daysSorted = hasDays ? LEAVE_DAYS.slice().sort() : [];
           const _first = hasDays ? _daysSorted[0] : sd;
@@ -936,7 +1297,8 @@ function randomNonce(){ return Math.random().toString(36).slice(2) + Date.now().
 
       if (formSubmitted || endpointOk) {
         setLeaveStatus('Cerere trimisă' + endpointMsg + '. HR a fost notificat.', 'ok');
-        LEAVE_DAYS = []; renderLeaveDays();
+        LEAVE_DAYS = [];
+        leaveDaysList.textContent = '';
       } else {
         setLeaveStatus('Eroare: nu s-a putut trimite cererea (Form/Endpoint).', 'err');
       }
