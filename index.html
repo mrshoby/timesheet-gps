@@ -10,9 +10,9 @@
   <meta name="theme-color" content="#516A75"/>
   <style>
     :root{
-      --brand:#516B74;          /* SERV, contur baterie, 'We save both.' */
+      --brand:#516B74;
       --brand-weak:rgba(81,106,117,0.88);
-      --accent:#95CA4B;         /* LECT, 'Energy is money!' */
+      --accent:#95CA4B;
       --text:#0f172a;
       --muted:#5b6b73;
       --bg:#f4f7f9;
@@ -105,44 +105,27 @@
     body.action-lock .btnbar .btn { opacity:.6; cursor:not-allowed; }
 
     /* ===== SPLASH ===== */
-    .splash{
-      position:fixed; inset:0; z-index:2000;
-      display:grid; place-items:center;
+    .splash{ position:fixed; inset:0; z-index:2000; display:grid; place-items:center;
       background: radial-gradient(1200px 800px at 50% 20%, #e8f2e0, #d9e6df);
-      opacity:1; transform:scale(1); transition: opacity .6s ease, transform .6s ease;
-    }
+      opacity:1; transform:scale(1); transition: opacity .6s ease, transform .6s ease; }
     .splash.hide{ opacity:0; transform:scale(1.01); pointer-events:none }
-
     .s-wrap{ width:min(1100px, 92vw); text-align:center; user-select:none }
-    .brand-line{
-      display:flex; align-items:center; justify-content:center; gap: clamp(10px, 2vw, 22px);
-      line-height:1; flex-wrap:wrap;
-    }
+    .brand-line{ display:flex; align-items:center; justify-content:center; gap: clamp(10px, 2vw, 22px);
+      line-height:1; flex-wrap:wrap; }
     .brand-word{ font-weight:800; letter-spacing:.5px; font-size: clamp(44px, 9vw, 96px); }
-    .serv{ color:var(--brand) }
-    .lect{ color:var(--accent) }
-
-    /* baterie verticală (litera E) */
+    .serv{ color:var(--brand) } .lect{ color:var(--accent) }
     .battery{ height: clamp(110px, 20vw, 190px); width:auto; display:block;
               filter: drop-shadow(0 8px 24px rgba(0,0,0,.08)); }
     .bat-outline{ stroke:var(--brand); stroke-width:10; fill:none; stroke-linejoin:round }
     .bat-cap{ fill:var(--brand) }
     .bar{ opacity:.18; fill:transparent; stroke:var(--brand); stroke-width:2; transition: opacity .2s ease }
     .bar.on{ opacity:1; fill:currentColor; stroke:transparent }
-    .bar.stage-red{ color:#ef4444 }
-    .bar.stage-yellow{ color:#f59e0b }
-    .bar.stage-green{ color:var(--accent) }
+    .bar.stage-red{ color:#ef4444 } .bar.stage-yellow{ color:#f59e0b } .bar.stage-green{ color:var(--accent) }
     .glow{ filter: drop-shadow(0 0 0 rgba(149,202,75,0)); transition: filter .5s ease }
-    .glow.active{
-      filter: drop-shadow(0 0 14px rgba(149,202,75,.75)) drop-shadow(0 0 28px rgba(149,202,75,.45));
-    }
+    .glow.active{ filter: drop-shadow(0 0 14px rgba(149,202,75,.75)) drop-shadow(0 0 28px rgba(149,202,75,.45)); }
     .tag{ margin-top: clamp(10px, 2.2vw, 18px); font-weight:700; font-size: clamp(18px, 3.6vw, 34px); line-height:1.15; }
-    .tag .money{ color:var(--accent) }
-    .tag .save{ color:var(--brand) }
-
-    @media (prefers-reduced-motion: reduce){
-      .glow, .bar, .splash{ transition:none }
-    }
+    .tag .money{ color:var(--accent) } .tag .save{ color:var(--brand) }
+    @media (prefers-reduced-motion: reduce){ .glow, .bar, .splash{ transition:none } }
   </style>
 </head>
 <body>
@@ -151,22 +134,15 @@
     <div class="s-wrap">
       <div class="brand-line">
         <div class="brand-word serv">SERV</div>
-
-        <!-- Bateria (vertical) ca litera „E” stilizată -->
         <svg class="battery glow" id="battery" viewBox="0 0 150 240" role="img" aria-label="Baterie">
-          <!-- corp -->
           <rect x="20" y="40" width="110" height="180" rx="14" class="bat-outline"/>
-          <!-- căpăcel sus -->
           <rect x="57" y="10" width="36" height="20" rx="6" class="bat-cap"/>
-          <!-- bare (de jos în sus) -->
           <rect id="bar1" class="bar" x="32" y="174" width="86" height="32" rx="8"/>
           <rect id="bar2" class="bar" x="32" y="130" width="86" height="32" rx="8"/>
           <rect id="bar3" class="bar" x="32" y="86"  width="86" height="32" rx="8"/>
         </svg>
-
         <div class="brand-word lect">LECT</div>
       </div>
-
       <div class="tag">
         <span class="money">Energy is money!</span>
         &nbsp;<span class="save">We save both.</span>
@@ -366,17 +342,10 @@ Ana Radu
 
   <script>document.getElementById('year').textContent = new Date().getFullYear();</script>
 
-  <!-- ================== SPLASH AUDIO & ANIM (cross-browser + mute safe) ================== -->
+  <!-- ================== SPLASH AUDIO & ANIM ================== -->
   <script>
-/*
-  Principiu:
-  - încercăm WebAudio (AudioContext / webkitAudioContext).
-  - chiar dacă dispozitivul e pe mute sau autoplay e blocat, animația curge cu aceleași timpi.
-  - funcțiile de sunet returnează Promises care se rezolvă după durata exactă a secvenței.
-*/
 const ServelectAudio = (() => {
   let ctx = null;
-
   function ensureCtx(){
     if (ctx) return ctx;
     const AC = window.AudioContext || window.webkitAudioContext;
@@ -384,107 +353,57 @@ const ServelectAudio = (() => {
     try { ctx = new AC(); } catch { ctx = null; }
     return ctx;
   }
-
   function playBeepAt(freq, dur=0.16, type='sine', gain=0.9, whenSec=0){
-    const c = ensureCtx();
-    if (!c) return;
-    const o = c.createOscillator();
-    const g = c.createGain();
-    o.type = type;
-    o.frequency.setValueAtTime(freq, whenSec);
+    const c = ensureCtx(); if (!c) return;
+    const o = c.createOscillator(); const g = c.createGain();
+    o.type = type; o.frequency.setValueAtTime(freq, whenSec);
     g.gain.setValueAtTime(0.0001, whenSec);
     g.gain.linearRampToValueAtTime(gain, whenSec + 0.02);
     g.gain.exponentialRampToValueAtTime(0.0001, whenSec + dur);
     o.connect(g); g.connect(c.destination);
     try { o.start(whenSec); o.stop(whenSec + dur); } catch {}
   }
-
   function playSequence(events){
-    const c = ensureCtx();
-    let start = c && c.currentTime ? c.currentTime : 0;
-    let t = start;
-    for (const e of events){
-      const [f, d=0.16, gap=0.08, type='sine', gain=0.9] = e;
-      playBeepAt(f, d, type, gain, t);
-      t += d + gap;
-    }
-    const totalMs = Math.round(((t - start) || sumDurations(events)) * 1000) + 30;
+    const c = ensureCtx(); let start = c && c.currentTime ? c.currentTime : 0; let t = start;
+    for (const e of events){ const [f,d=0.16,gp=0.08,tp='sine',gn=0.9]=e; playBeepAt(f,d,tp,gn,t); t+=d+gp; }
+    const totalMs = Math.round(((t - start) || events.reduce((s,[,d=0.16,g=0.08])=>s+d+g,0)) * 1000) + 30;
     return new Promise(res => setTimeout(res, totalMs));
   }
-
-  function sumDurations(events){
-    let s = 0;
-    for (const e of events){ const d = e[1] ?? 0.16, g = e[2] ?? 0.08; s += d + g; }
-    return s;
-  }
-
   function chargingStage(stage){
     if (stage === 1) return playSequence([[420, .18, 0.00, 'sine', 0.9]]);
     if (stage === 2) return playSequence([[620, .16, .08, 'sine', 0.9],[760, .18, 0.00, 'sine', 0.9]]);
     return playSequence([[780,.14,.06,'triangle',0.85],[900,.14,.06,'triangle',0.85],[1020,.16,0,'triangle',0.9]]);
   }
-
-  function fullChime(){
-    return playSequence([[880,.22,.06,'triangle',0.9],[1108.7,.24,.06,'triangle',0.9],[1318.5,.28,0,'triangle',0.9]]);
-  }
-
-  async function resumeIfSuspended(){
-    const c = ensureCtx();
-    if (c && c.state === 'suspended') { try { await c.resume(); } catch {} }
-  }
-
+  function fullChime(){ return playSequence([[880,.22,.06,'triangle',0.9],[1108.7,.24,.06,'triangle',0.9],[1318.5,.28,0,'triangle',0.9]]); }
+  async function resumeIfSuspended(){ const c = ensureCtx(); if (c && c.state === 'suspended') { try { await c.resume(); } catch {} } }
   return { chargingStage, fullChime, resumeIfSuspended, ensureCtx };
 })();
 
 (function splashInit(){
-  const splash   = document.getElementById('splash');
+  const splash = document.getElementById('splash');
   const battery  = document.getElementById('battery');
-  const bars = [
-    document.getElementById('bar1'),
-    document.getElementById('bar2'),
-    document.getElementById('bar3')
-  ];
+  const bars = [document.getElementById('bar1'),document.getElementById('bar2'),document.getElementById('bar3')];
   function resetBars(){ bars.forEach(b => b.className = 'bar'); battery.classList.remove('active'); }
   function stageToClasses(stage){
     resetBars();
     if (stage >= 1){ bars[0].classList.add('on','stage-red'); }
-    if (stage >= 2){
-      bars[0].classList.remove('stage-red'); bars[0].classList.add('stage-yellow');
-      bars[1].classList.add('on','stage-yellow');
-    }
-    if (stage >= 3){
-      bars.forEach(b => { b.classList.remove('stage-red','stage-yellow'); b.classList.add('on','stage-green'); });
-      battery.classList.add('active');
-    }
+    if (stage >= 2){ bars[0].classList.remove('stage-red'); bars[0].classList.add('stage-yellow'); bars[1].classList.add('on','stage-yellow'); }
+    if (stage >= 3){ bars.forEach(b => { b.classList.remove('stage-red','stage-yellow'); b.classList.add('on','stage-green'); }); battery.classList.add('active'); }
   }
   const wait = (ms)=>new Promise(r=>setTimeout(r,ms));
   function hideSplash(){ splash.classList.add('hide'); }
-
   window.addEventListener('pointerdown', () => ServelectAudio.resumeIfSuspended(), { once:true, passive:true });
   window.addEventListener('keydown', () => ServelectAudio.resumeIfSuspended(), { once:true });
-  document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible') ServelectAudio.resumeIfSuspended();
-  });
-
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') ServelectAudio.resumeIfSuspended(); });
   (async () => {
-    resetBars();
-    try { ServelectAudio.ensureCtx(); } catch {}
-    await wait(60);
-
-    stageToClasses(1);
+    resetBars(); try { ServelectAudio.ensureCtx(); } catch {}
+    await wait(60); stageToClasses(1);
     await Promise.all([ServelectAudio.chargingStage(1), wait(350)]);
-
-    stageToClasses(2);
-    await Promise.all([ServelectAudio.chargingStage(2), wait(300)]);
-
-    stageToClasses(3);
-    await ServelectAudio.chargingStage(3);
-
-    await ServelectAudio.fullChime(); // așteaptă „final chime” înainte de hide
-    hideSplash();
+    stageToClasses(2); await Promise.all([ServelectAudio.chargingStage(2), wait(300)]);
+    stageToClasses(3); await ServelectAudio.chargingStage(3);
+    await ServelectAudio.fullChime(); hideSplash();
   })();
 })();
-/* ================== END SPLASH ================== */
   </script>
 
   <script>
@@ -508,7 +427,23 @@ function showToast(msg, type){
   showToast._h = setTimeout(()=>{ t.style.display='none'; }, 7000);
 }
 
-/** Trimite cererea de concediu la WebApp (fără preflight CORS) */
+/* Normalizări utile */
+function normalizeName(s){
+  return String(s||'')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g,'') // scoate diacritice
+    .toLowerCase()
+    .trim();
+}
+function dayKeyLocal(iso){
+  const d = new Date(iso);
+  const y = d.getFullYear();
+  const m = String(d.getMonth()+1).padStart(2,'0');
+  const dd = String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${dd}`;
+}
+
+/** Leave endpoint */
 async function sendLeave(payload) {
   const r = await fetch(CFG.leaveEndpoint, {
     method: 'POST',
@@ -516,9 +451,7 @@ async function sendLeave(payload) {
     body: JSON.stringify(payload)
   });
   const txt = await r.text();
-  let data;
-  try { data = JSON.parse(txt); }
-  catch { throw new Error('Răspuns invalid: ' + txt.slice(0,200)); }
+  let data; try { data = JSON.parse(txt); } catch { throw new Error('Răspuns invalid: ' + txt.slice(0,200)); }
   if (!r.ok || !data.ok) throw new Error((data && data.error) || ('HTTP '+r.status));
   return data;
 }
@@ -534,11 +467,7 @@ function geolocateOnce(){
   return new Promise((resolve, reject) => {
     if (!('geolocation' in navigator)) return reject(new Error('Geolocație indisponibilă pe acest dispozitiv.'));
     navigator.geolocation.getCurrentPosition(
-      pos => resolve({
-        lat: pos.coords.latitude,
-        lon: pos.coords.longitude,
-        acc: Math.round(pos.coords.accuracy || 0)
-      }),
+      pos => resolve({ lat: pos.coords.latitude, lon: pos.coords.longitude, acc: Math.round(pos.coords.accuracy || 0) }),
       err => reject(new Error('Eroare locație: ' + err.message)),
       { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 }
     );
@@ -546,29 +475,14 @@ function geolocateOnce(){
 }
 function randomNonce(){ return Math.random().toString(36).slice(2) + Date.now().toString(36); }
 
-/* ============ READ Google Sheet (CSV sau GViz), apoi calculează pauzele ============
-
-Config (în config.json):
-{
-  ...
-  "sheet": {
-    "csvUrl": "https://docs.google.com/spreadsheets/d/<ID>/export?format=csv&gid=<GID>",   // opțional
-    "gvizUrl": "https://docs.google.com/spreadsheets/d/<ID>/gviz/tq?gid=<GID>",            // opțional (recomandat: Publish to web)
-    "cols": { "timestamp": "f_timestamp", "name": "f_name", "action": "f_action" }         // exact numele coloanelor din foaia cu răspunsuri
-  }
-}
-
-– Dacă există gvizUrl, îl folosim. Dacă nu, încearcă csvUrl. Dacă niciunul nu există sau CORS blochează, se revine la fallback local.
-*/
+/* ============ READ Google Sheet (CSV / GViz) + calc pauze ============ */
 function parseGvizDateStr(s){
-  // "Date(2025,11,4,15,22,10)" — luni 0-based (11 = decembrie)
   const m = /^Date\((\d+),(\d+),(\d+)(?:,(\d+),(\d+),(\d+))?\)$/.exec(String(s).trim());
   if (!m) return null;
   const Y = +m[1], M = +m[2], D = +m[3], h = +(m[4]||0), mi = +(m[5]||0), se = +(m[6]||0);
-  const d = new Date(Y, M, D, h, mi, se); // interpretăm ca „local time”
+  const d = new Date(Y, M, D, h, mi, se); // local time
   return isNaN(d.getTime()) ? null : d.toISOString();
 }
-
 async function fetchGvizRows(url){
   const r = await fetch(url + (url.includes('?') ? '&' : '?') + 'tqx=out:json&rand=' + Date.now(), {cache:'no-store'});
   const txt = await r.text();
@@ -583,19 +497,15 @@ async function fetchGvizRows(url){
       const label = cols[i].label || ('C'+i);
       const type  = cols[i].type;
       let v = (cell && 'v' in cell) ? cell.v : null;
-
       if (type === 'datetime' || type === 'date' || type === 'timeofday') {
         let iso = null;
         if (typeof v === 'string' && /^Date\(/.test(v)) iso = parseGvizDateStr(v);
         if (!iso && cell && typeof cell.f === 'string' && cell.f.trim()){
-          const d = new Date(cell.f);
-          if (!isNaN(d.getTime())) iso = d.toISOString();
+          const d = new Date(cell.f); if (!isNaN(d.getTime())) iso = d.toISOString();
         }
         v = iso || (typeof v === 'string' ? v : (cell && cell.f) || v);
       }
-
-      obj[label] = v;
-      obj[label.toLowerCase()] = v; // dublăm cheile pentru lookup case-insensitive
+      obj[label] = v; obj[label.toLowerCase()] = v;
     });
     return obj;
   });
@@ -624,23 +534,16 @@ function isoFromAny(x){
   if (typeof x === 'string'){
     if (/^Date\(/.test(x)) return parseGvizDateStr(x);
     if (/^\d{4}-\d{2}-\d{2}T/.test(x)) return x;
-    const d = new Date(x);
-    if (!isNaN(d.getTime())) return d.toISOString();
+    const d = new Date(x); if (!isNaN(d.getTime())) return d.toISOString();
     return null;
   }
-  if (x && typeof x === 'object' && typeof x.getTime === 'function'){
-    return x.toISOString();
-  }
+  if (x && typeof x === 'object' && typeof x.getTime === 'function'){ return x.toISOString(); }
   return null;
 }
-function msBetween(isoA, isoB){
-  const a = new Date(isoA).getTime();
-  const b = new Date(isoB).getTime();
-  return Math.max(0, b - a);
-}
+function msBetween(isoA, isoB){ const a = new Date(isoA).getTime(); const b = new Date(isoB).getTime(); return Math.max(0, b - a); }
 function closeIso(a, b, ms=120000){ return Math.abs(new Date(a).getTime() - new Date(b).getTime()) <= ms; }
 
-async function getSheetEventsForDay(name, dayKey, unpauseTsIso){
+async function getSheetEventsForDay(name, dayKeyLocalWanted, unpauseTsIso){
   const S = (window.CFG && CFG.sheet) || {};
   const cols = (S.cols || { timestamp:'f_timestamp', name:'f_name', action:'f_action' });
 
@@ -654,7 +557,7 @@ async function getSheetEventsForDay(name, dayKey, unpauseTsIso){
         const act = String(
           r[cols.action] ?? r['action'] ?? r['Actiune'] ?? r['Acțiune'] ?? r['Acţiune'] ?? r['actiune'] ?? r['acțiune'] ?? r['acţiune'] ?? ''
         ).trim();
-        return { ts, name:nm, nameLc:nm.toLowerCase(), action:_normAction(act) };
+        return { ts, name:nm, nameKey:normalizeName(nm), action:_normAction(act) };
       }).filter(x => x.ts);
     } catch(e){ rows = []; }
   }
@@ -667,16 +570,19 @@ async function getSheetEventsForDay(name, dayKey, unpauseTsIso){
         const act = String(
           r[cols.action] ?? r['action'] ?? r['Actiune'] ?? r['Acțiune'] ?? r['Acţiune'] ?? r['actiune'] ?? r['acțiune'] ?? r['acţiune'] ?? ''
         ).trim();
-        return { ts, name:nm, nameLc:nm.toLowerCase(), action:_normAction(act) };
+        return { ts, name:nm, nameKey:normalizeName(nm), action:_normAction(act) };
       }).filter(x => x.ts);
     } catch(e){ rows = []; }
   }
 
   if (!rows.length) return { events: [], hasCurrentUnpause:false };
 
-  const targetNameLc = String(name||'').trim().toLowerCase();
+  const target = normalizeName(name);
   const filtered = rows
-    .filter(r => r.nameLc === targetNameLc && r.ts.slice(0,10) === dayKey && (r.action==='pause' || r.action==='unpause'))
+    .filter(r =>
+      r.nameKey === target &&
+      dayKeyLocal(r.ts) === dayKeyLocalWanted &&
+      (r.action==='pause' || r.action==='unpause'))
     .sort((a,b)=> new Date(a.ts) - new Date(b.ts));
 
   const hasCurrentUnpause = filtered.some(r => r.action==='unpause' && closeIso(r.ts, unpauseTsIso));
@@ -686,18 +592,16 @@ async function getSheetEventsForDay(name, dayKey, unpauseTsIso){
 function sumPausesFromEvents(events, fallbackPair){
   let totalMs = 0, curMs = 0, lastPause = null;
   for (const e of events){
-    if (e.action === 'pause') lastPause = e.ts;
-    else if (e.action === 'unpause' && lastPause){
+    if (e.action === 'pause') {
+      lastPause = e.ts;
+    } else if (e.action === 'unpause' && lastPause){
       const seg = msBetween(lastPause, e.ts);
-      totalMs += seg;
-      curMs = seg;
-      lastPause = null;
+      totalMs += seg; curMs = seg; lastPause = null;
     }
   }
   if (lastPause && fallbackPair && fallbackPair.endIso){
     const seg = msBetween(lastPause, fallbackPair.endIso);
-    totalMs += seg;
-    curMs = seg;
+    totalMs += seg; curMs = seg;
   }
   return { totalMs, curMs };
 }
@@ -744,9 +648,8 @@ function sumPausesFromEvents(events, fallbackPair){
       lastNormalFinish: null,
       lastExtraStart: null,
       lastExtraFinish: null,
-      /* === tracking pauze (fallback local) === */
-      lastPauseStart: null,           // ISO string
-      pauseMsByDay: {}                // { 'YYYY-MM-DD': ms }
+      lastPauseStart: null,     // ISO
+      pauseMsByDay: {}          // { 'YYYY-MM-DD'(LOCAL): ms }
     };
   }
   function loadLS(){ try { return JSON.parse(localStorage.getItem(LS_KEY) || 'null'); } catch{return null;} }
@@ -801,15 +704,11 @@ function sumPausesFromEvents(events, fallbackPair){
     if (text && text.charCodeAt && text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
     text = (text || '').replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim();
     if (!text) return [];
-    if (!/,|;/.test(text)) {
-      return text.split('\n').map(s => s.trim()).filter(Boolean);
-    }
+    if (!/,|;/.test(text)) return text.split('\n').map(s => s.trim()).filter(Boolean);
     const comma = (text.match(/,/g) || []).length;
     const semiCount = (text.match(/;/g) || []).length;
     const delim = semiCount > comma ? ';' : ',';
-    const rows = text.split('\n')
-      .map(line => line.split(delim).map(c => c.trim().replace(/^"|"$/g,'')))
-      .filter(r => r.length && r.join('').length);
+    const rows = text.split('\n').map(line => line.split(delim).map(c => c.trim().replace(/^"|"$/g,''))).filter(r => r.length && r.join('').length);
     const header = rows[0].map(h => (h||'').toLowerCase());
     let startIdx = 0, nameCol = 0;
     if (header.some(h => /angajat|nume|employee|name/.test(h))) {
@@ -1057,8 +956,8 @@ function sumPausesFromEvents(events, fallbackPair){
           const start = STATE.lastPauseStart;
           const end = ts;
           const ms = Math.max(0, new Date(end) - new Date(start));
-          const dayKey = start.slice(0,10);
-          STATE.pauseMsByDay[dayKey] = (STATE.pauseMsByDay[dayKey]||0) + ms;
+          const key = dayKeyLocal(start);
+          STATE.pauseMsByDay[key] = (STATE.pauseMsByDay[key]||0) + ms;
           STATE.lastPauseStart = null;
         }
         break;
@@ -1132,25 +1031,22 @@ function sumPausesFromEvents(events, fallbackPair){
     return v === 'comercial' || v === 'coemercial';
   }
 
-  // ---- Calculează pauzele din Google Sheet după UNPAUSE ----
+  // ---- Calculează pauzele din Google Sheet după UNPAUSE (zi locală RO) ----
   async function computePauseFromSheetAndShow(name, lastPauseStartIso, unpauseTsIso){
-    const dayKey = lastPauseStartIso.slice(0,10);
+    const keyLocal = dayKeyLocal(lastPauseStartIso);
     let events = [], hasCurrent = false;
-
-    // 3-4 încercări scurte ca să prindem rândul UNPAUSE în sheet
     for (let i=0;i<4;i++){
       try{
-        const r = await getSheetEventsForDay(name, dayKey, unpauseTsIso);
+        const r = await getSheetEventsForDay(name, keyLocal, unpauseTsIso);
         events = r.events; hasCurrent = r.hasCurrentUnpause;
         if (hasCurrent || events.length) break;
       }catch(e){}
       await sleep(500);
     }
-
     const fallbackPair = hasCurrent ? null : { startIso: lastPauseStartIso, endIso: unpauseTsIso };
     const sums = sumPausesFromEvents(events, fallbackPair);
 
-    // safety fallback minim
+    // safety: nu lăsăm curent/total sub perechea tocmai închisă
     const curMs = Math.max(sums.curMs || 0, msBetween(lastPauseStartIso, unpauseTsIso));
     const totMs = Math.max(sums.totalMs || 0, curMs);
 
@@ -1158,7 +1054,10 @@ function sumPausesFromEvents(events, fallbackPair){
     const totMin = minutesFromMs(totMs);
 
     setStatus(`Pauză încheiată — interval curent: ${curMin} min • total azi (din Google Sheet): ${totMin} min.`, 'ok');
-    showToast(`<b>Pauză încheiată</b><div class="small">Curent: <b>${curMin}</b> min • Total azi (Sheet): <b>${totMin}</b> min</div>`, 'ok');
+    showToast(
+      `<b>Pauză încheiată</b><div class="small">Curent: <b>${curMin}</b> min • Total azi (Sheet): <b>${totMin}</b> min</div>`,
+      'ok'
+    );
   }
 
   // ==================== ACTION SUBMIT cu LOCK ====================
@@ -1207,8 +1106,6 @@ function sumPausesFromEvents(events, fallbackPair){
       const gps = await geolocateOnce();
 
       const ts = new Date().toISOString();
-
-      // capturez datele pauzei înainte de mutații
       const lastPauseStartIso = (actNorm === 'unpause') ? STATE.lastPauseStart : null;
 
       setFormPayload(action, ts, gps);
@@ -1223,8 +1120,8 @@ function sumPausesFromEvents(events, fallbackPair){
           await computePauseFromSheetAndShow(empSel.value.trim(), lastPauseStartIso, ts);
         } catch(e){
           const curMin = minutesFromMs(msBetween(lastPauseStartIso, ts));
-          const dayKey = lastPauseStartIso.slice(0,10);
-          const totMin = Math.round((STATE.pauseMsByDay[dayKey]||0)/60000);
+          const keyLocal = dayKeyLocal(lastPauseStartIso);
+          const totMin = minutesFromMs((STATE.pauseMsByDay[keyLocal]||0));
           setStatus(`Pauză încheiată — (fallback) curent: ${curMin} min • total azi: ${totMin} min.`, 'warn');
         }
       } else {
