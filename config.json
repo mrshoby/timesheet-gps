@@ -1,4 +1,5 @@
- "formAction": "https://docs.google.com/forms/d/e/1FAIpQLSeUB7sd04AgfKF-W8wOvjk1SBg2xKWSoH_bPnZ_TwizwYsvTQ/formResponse",
+{
+  "formAction": "https://docs.google.com/forms/d/e/1FAIpQLSeUB7sd04AgfKF-W8wOvjk1SBg2xKWSoH_bPnZ_TwizwYsvTQ/formResponse",
   "fields": {
     "action": "entry.1158543984",
     "timestamp": "entry.378594324",
@@ -13,17 +14,21 @@
     "notes": "entry.1485036348",
     "mapsLink": "entry.692020218"
   },
+
   "leaveEndpoint": "https://script.google.com/macros/s/AKfycbzEbPv1oQ31Ge9KNL5w-XH6vUyg3q4BRSuial5Vwz6_Gnj86dZcTRzzYxfcc-X5NgBP/exec",
   "stateEndpoint": "https://script.google.com/macros/s/AKfycbzEbPv1oQ31Ge9KNL5w-XH6vUyg3q4BRSuial5Vwz6_Gnj86dZcTRzzYxfcc-X5NgBP/exec",
   "guardEndpoint": "https://script.google.com/macros/s/AKfycbzEbPv1oQ31Ge9KNL5w-XH6vUyg3q4BRSuial5Vwz6_Gnj86dZcTRzzYxfcc-X5NgBP/exec",
- "adminAuthUrl": "https://raw.githubusercontent.com/mrshoby/timesheet-gps/main/admin-auth.json",
-  "departmentsCsv": "https://raw.githubusercontent.com/mrshoby/timesheet-gps/refs/heads/main/admin-auth.json",
+
+  "departmentsCsv": "https://raw.githubusercontent.com/mrshoby/timesheet-gps/main/departments.csv",
+
   "employees": [
     "Ion Popescu",
     "Maria Ionescu",
     "Vlad Georgescu",
     "Ana Radu"
   ],
+
+  "adminAuthUrl": "https://raw.githubusercontent.com/mrshoby/timesheet-gps/main/admin-auth.json",
 
   "sheet": {
     "gvizUrl": "https://docs.google.com/spreadsheets/d/1Eq7RMyvyj6lZXnkfnQHT0Ol1Y1f-8Ul3SwdOkCkS8s4/gviz/tq?gid=57528208",
