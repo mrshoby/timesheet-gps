@@ -14,25 +14,18 @@
     "notes": "entry.1485036348",
     "mapsLink": "entry.692020218"
   },
-
   "leaveEndpoint": "https://script.google.com/macros/s/AKfycbzEbPv1oQ31Ge9KNL5w-XH6vUyg3q4BRSuial5Vwz6_Gnj86dZcTRzzYxfcc-X5NgBP/exec",
-
-  /* IMPORTANT: fără ?fn=... aici; codul adaugă singur fn=state/guard */
   "stateEndpoint": "https://script.google.com/macros/s/AKfycbzEbPv1oQ31Ge9KNL5w-XH6vUyg3q4BRSuial5Vwz6_Gnj86dZcTRzzYxfcc-X5NgBP/exec",
   "guardEndpoint": "https://script.google.com/macros/s/AKfycbzEbPv1oQ31Ge9KNL5w-XH6vUyg3q4BRSuial5Vwz6_Gnj86dZcTRzzYxfcc-X5NgBP/exec",
-
   "departmentsCsv": "https://raw.githubusercontent.com/mrshoby/timesheet-gps/main/departments.csv",
-
   "employees": [
     "Ion Popescu",
     "Maria Ionescu",
     "Vlad Georgescu",
     "Ana Radu"
   ],
-
-  /* NOU: setările foii din care calculăm pauzele zilnice */
   "sheet": {
-    "gvizUrl": "https://docs.google.com/spreadsheets/d/SPREADSHEET_ID/gviz/tq?sheet=SHEET_TAB_NAME",
+    "gvizUrl": "https://docs.google.com/spreadsheets/d/1Eq7RMyvyj6lZXnkfnQHT0Ol1Y1f-8Ul3SwdOkCkS8s4/gviz/tq?gid=57528208",
     "csvUrl": "",
     "cols": {
       "timestamp": "Marcaj de timp",
