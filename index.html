@@ -84,6 +84,144 @@
     .status{font-size:13px;color:var(--muted);margin-top:10px}
     .mono{font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;white-space:pre-wrap}
     .chip{ display:inline-flex;align-items:center;gap:8px;padding:8px 10px;border-radius:999px;background:rgba(81,106,117,.10);color:#2f3e45;font-weight:600;font-size:12px }
+    .chip-menu{
+      position:relative;
+      cursor:pointer;
+      padding-right:4px;
+    }
+    .chip-main{
+      display:flex;
+      align-items:center;
+      gap:8px;
+    }
+    .chip-label{
+      white-space:nowrap;
+      max-width:160px;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+    .chip-burger{
+      border:none;
+      background:transparent;
+      padding:4px;
+      border-radius:999px;
+      display:flex;
+      flex-direction:column;
+      gap:3px;
+      cursor:pointer;
+    }
+    .chip-burger .burger-line{
+      width:14px;
+      height:2px;
+      border-radius:999px;
+      background:#2f3e45;
+      transition: transform .18s ease, opacity .18s ease;
+    }
+    .chip.open .chip-burger .burger-line:nth-child(1){
+      transform: translateY(5px) rotate(45deg);
+    }
+    .chip.open .chip-burger .burger-line:nth-child(2){
+      opacity:0;
+    }
+    .chip.open .chip-burger .burger-line:nth-child(3){
+      transform: translateY(-5px) rotate(-45deg);
+    }
+
+    .chip-dropdown{
+      position:absolute;
+      right:0;
+      top:100%;
+      margin-top:8px;
+      min-width:260px;
+      background:#ffffff;
+      border-radius:14px;
+      box-shadow:0 14px 40px rgba(15,23,42,.26);
+      padding:12px;
+      border:1px solid rgba(15,23,42,.08);
+      opacity:0;
+      transform:translateY(-4px);
+      pointer-events:none;
+      transition: opacity .18s ease, transform .18s ease;
+      z-index:50;
+    }
+    .chip.open .chip-dropdown{
+      opacity:1;
+      transform:translateY(0);
+      pointer-events:auto;
+    }
+
+    .chip-dropdown-section{ margin-bottom:8px; }
+    .chip-dropdown-section:last-child{ margin-bottom:0; }
+
+    .chip-dropdown-title{
+      font-size:13px;
+      font-weight:700;
+      margin-bottom:6px;
+    }
+    .chip-field{
+      display:flex;
+      flex-direction:column;
+      gap:4px;
+      font-size:12px;
+      margin-bottom:6px;
+    }
+    .chip-field span{
+      opacity:.8;
+    }
+    .chip-field input{
+      font-size:13px;
+      padding:8px 10px;
+      border-radius:10px;
+      border:1px solid #d1d5db;
+      outline:none;
+    }
+    .chip-field input:focus{
+      border-color:var(--brand);
+      box-shadow:0 0 0 2px var(--ring);
+    }
+
+    .chip-btn{
+      width:100%;
+      margin-top:4px;
+      border:none;
+      border-radius:10px;
+      padding:8px 10px;
+      font-size:13px;
+      font-weight:600;
+      background:var(--brand);
+      color:#ffffff;
+      cursor:pointer;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap:6px;
+    }
+    .chip-btn-secondary{
+      background:var(--accent);
+      color:#0f172a;
+    }
+    .chip-btn:disabled{
+      opacity:.6;
+      cursor:not-allowed;
+    }
+    .chip-link-btn{
+      margin-top:4px;
+      border:none;
+      background:transparent;
+      font-size:12px;
+      color:var(--muted);
+      cursor:pointer;
+      text-decoration:underline;
+      padding:4px 0 0;
+    }
+    .chip-hint{
+      margin-top:4px;
+      font-size:11px;
+    }
+    .chip-hint.ok{ color:#15803d; }
+    .chip-hint.err{ color:#b91c1c; }
+    .chip-hint.warn{ color:#a16207; }
+
     .rail{padding:18px}
     .summary{ display:grid;gap:12px }
     .summary .item{ display:flex;align-items:center;gap:10px;padding:12px;border-radius:14px;background:#f8fafc;border:1px solid #e2e8f0; }
@@ -158,7 +296,48 @@
           <h1><span>SERVELECT</span><small>Pontaj & Management Concedii</small></h1>
         </div>
       </a>
-      <div class="chip" id="cfg">Se încarcă configurația…</div>
+
+      <!-- CHIP CONFIG + HAMBURGER + ADMIN LOGIN -->
+      <div class="chip chip-menu" id="cfg">
+        <div class="chip-main">
+          <span class="chip-label" id="cfgLabel">Se încarcă configurația…</span>
+          <button type="button" class="chip-burger" id="cfgToggle" aria-label="Deschide meniul de configurare">
+            <span class="burger-line"></span>
+            <span class="burger-line"></span>
+            <span class="burger-line"></span>
+          </button>
+        </div>
+
+        <div class="chip-dropdown" id="cfgDropdown" aria-hidden="true">
+          <!-- Stare: NELOGAT -->
+          <div class="chip-dropdown-section" id="adminLoginSection">
+            <div class="chip-dropdown-title">Admin panel</div>
+            <div class="chip-field">
+              <span>Utilizator</span>
+              <input type="text" id="adminUser" autocomplete="username" />
+            </div>
+            <div class="chip-field">
+              <span>Parolă</span>
+              <input type="password" id="adminPass" autocomplete="current-password" />
+            </div>
+            <button type="button" class="chip-btn" id="adminLoginBtn">Autentificare</button>
+            <div class="chip-hint" id="adminLoginHint"></div>
+          </div>
+
+          <!-- Stare: LOGAT -->
+          <div class="chip-dropdown-section" id="adminLoggedSection" hidden>
+            <div class="chip-dropdown-title">
+              Salut, <span id="adminName">Admin</span>
+            </div>
+            <button type="button" class="chip-btn chip-btn-secondary" id="goAdminBtn">
+              Deschide dashboard
+            </button>
+            <button type="button" class="chip-link-btn" id="adminLogoutBtn">
+              Deconectare
+            </button>
+          </div>
+        </div>
+      </div>
     </nav>
 
     <section class="hero">
@@ -714,9 +893,232 @@ function sumPausesFromEvents(events, fallbackPair){
   let LEAVE_DAYS = [];
 
   function setStatus(m, c){ setText(statusEl, m, c); }
-  function setCfg(m, c){ setText(cfgEl, m, c); }
+  function setCfg(m, c){
+    if (!cfgEl) return;
+    cfgEl.className = 'chip chip-menu' + (c ? (' ' + c) : '');
+    const labelEl = document.getElementById('cfgLabel');
+    if (labelEl) labelEl.textContent = m;
+  }
   function setEmp(m, c){ setText(empStatus, m, c); }
   function setLeaveStatus(m, c){ setText(leaveStatus, m, c); }
+
+  // ================= ADMIN HAMBURGER + LOGIN =================
+  const cfgMenu = cfgEl;
+  const cfgToggle = document.getElementById('cfgToggle');
+  const cfgDropdown = document.getElementById('cfgDropdown');
+  const adminLoginSection = document.getElementById('adminLoginSection');
+  const adminLoggedSection = document.getElementById('adminLoggedSection');
+  const adminLoginBtn = document.getElementById('adminLoginBtn');
+  const adminLoginHint = document.getElementById('adminLoginHint');
+  const adminUser = document.getElementById('adminUser');
+  const adminPass = document.getElementById('adminPass');
+  const adminNameSpan = document.getElementById('adminName');
+  const goAdminBtn = document.getElementById('goAdminBtn');
+  const adminLogoutBtn = document.getElementById('adminLogoutBtn');
+
+  const ADMIN_LS_KEY = 'pontaj/admin/v1';
+  let ADMIN_AUTH = null;
+  let isAdminLogged = false;
+
+  function getAdminSession(){
+    try{
+      const raw = localStorage.getItem(ADMIN_LS_KEY);
+      return raw ? JSON.parse(raw) : null;
+    }catch{ return null; }
+  }
+  function saveAdminSession(s){
+    try{ localStorage.setItem(ADMIN_LS_KEY, JSON.stringify(s || {})); }catch{}
+  }
+  function clearAdminSession(){
+    try{ localStorage.removeItem(ADMIN_LS_KEY); }catch{}
+  }
+
+  function setAdminHint(text, cls){
+    if (!adminLoginHint) return;
+    adminLoginHint.textContent = text || '';
+    adminLoginHint.className = 'chip-hint' + (cls ? (' ' + cls) : '');
+  }
+
+  function updateAdminUiLoggedIn(label){
+    isAdminLogged = true;
+    if (adminLoginSection) adminLoginSection.hidden = true;
+    if (adminLoggedSection) adminLoggedSection.hidden = false;
+    if (adminNameSpan) adminNameSpan.textContent = label || 'Admin';
+    setAdminHint('', '');
+  }
+  function updateAdminUiLoggedOut(){
+    isAdminLogged = false;
+    if (adminLoginSection) adminLoginSection.hidden = false;
+    if (adminLoggedSection) adminLoggedSection.hidden = true;
+    if (adminUser) adminUser.value = '';
+    if (adminPass) adminPass.value = '';
+    setAdminHint('', '');
+  }
+
+  function getAdminAuthUrl(){
+    // ideal: setezi asta în config.json: "adminAuthUrl": "https://raw.githubusercontent.com/USER/REPO/branch/admin-auth.json"
+    if (window.CFG && CFG.adminAuthUrl) return CFG.adminAuthUrl;
+    // dacă lași gol, nu se va încerca încărcarea
+    return '';
+  }
+
+  async function loadAdminConfig(){
+    if (ADMIN_AUTH) return ADMIN_AUTH;
+    const url = getAdminAuthUrl();
+    if (!url) return null;
+    try{
+      const r = await fetch(url + (url.includes('?') ? '&' : '?') + 'v=' + Date.now(), {cache:'no-store'});
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      const data = await r.json();
+      if (data && (data.usernameHash || data.userHash)){
+        ADMIN_AUTH = {
+          usernameHash: data.usernameHash || data.userHash,
+          passwordHash: data.passwordHash || data.passHash,
+          label: data.label || 'Admin'
+        };
+        return ADMIN_AUTH;
+      }
+      throw new Error('Structură admin-auth.json invalidă.');
+    }catch(e){
+      console.warn('Eroare admin-auth:', e);
+      setAdminHint('Nu pot încărca admin-auth.json din GitHub.', 'err');
+      return null;
+    }
+  }
+
+  async function sha256Hex(str){
+    if (!window.crypto || !crypto.subtle) throw new Error('Browser prea vechi pentru crypto.');
+    const enc = new TextEncoder();
+    const data = enc.encode(str);
+    const digest = await crypto.subtle.digest('SHA-256', data);
+    const bytes = Array.from(new Uint8Array(digest));
+    return bytes.map(b => b.toString(16).padStart(2, '0')).join('');
+  }
+
+  async function verifyAdminCredentials(user, pass){
+    if (!ADMIN_AUTH){
+      await loadAdminConfig();
+    }
+    if (!ADMIN_AUTH || !ADMIN_AUTH.usernameHash || !ADMIN_AUTH.passwordHash){
+      throw new Error('Config admin lipsă sau incomplet.');
+    }
+    const [uh, ph] = await Promise.all([sha256Hex(user), sha256Hex(pass)]);
+    return (
+      uh.toLowerCase() === ADMIN_AUTH.usernameHash.toLowerCase() &&
+      ph.toLowerCase() === ADMIN_AUTH.passwordHash.toLowerCase()
+    );
+  }
+
+  async function handleAdminLoginClick(){
+    if (!adminUser || !adminPass) return;
+    const u = adminUser.value.trim();
+    const p = adminPass.value;
+    if (!u || !p){
+      setAdminHint('Completează utilizatorul și parola.', 'warn');
+      return;
+    }
+    if (adminLoginBtn){
+      adminLoginBtn.disabled = true;
+      adminLoginBtn.textContent = 'Se verifică…';
+    }
+    setAdminHint('', '');
+    try{
+      const ok = await verifyAdminCredentials(u, p);
+      if (!ok){
+        setAdminHint('Date de logare greșite.', 'err');
+        return;
+      }
+      const label = (ADMIN_AUTH && ADMIN_AUTH.label) || u;
+      saveAdminSession({ user: label, at: new Date().toISOString() });
+      updateAdminUiLoggedIn(label);
+    }catch(e){
+      setAdminHint('Eroare la verificare: ' + (e.message || e), 'err');
+    }finally{
+      if (adminLoginBtn){
+        adminLoginBtn.disabled = false;
+        adminLoginBtn.textContent = 'Autentificare';
+      }
+      if (adminPass) adminPass.value = '';
+    }
+  }
+
+  function handleAdminLogout(){
+    clearAdminSession();
+    updateAdminUiLoggedOut();
+  }
+
+  function openCfgMenu(){
+    if (!cfgMenu) return;
+    cfgMenu.classList.add('open');
+    if (cfgDropdown) cfgDropdown.setAttribute('aria-hidden', 'false');
+  }
+  function closeCfgMenu(){
+    if (!cfgMenu) return;
+    cfgMenu.classList.remove('open');
+    if (cfgDropdown) cfgDropdown.setAttribute('aria-hidden', 'true');
+  }
+  function toggleCfgMenu(){
+    if (!cfgMenu) return;
+    if (cfgMenu.classList.contains('open')) closeCfgMenu();
+    else openCfgMenu();
+  }
+
+  function setupAdminChipMenu(){
+    if (!cfgMenu) return;
+
+    const session = getAdminSession();
+    if (session && session.user){
+      updateAdminUiLoggedIn(session.user);
+    }else{
+      updateAdminUiLoggedOut();
+    }
+
+    if (cfgToggle){
+      cfgToggle.addEventListener('click', (e)=>{
+        e.stopPropagation();
+        toggleCfgMenu();
+      });
+    }
+
+    // click pe tot chip-ul
+    cfgMenu.addEventListener('click', (e)=>{
+      // dacă am apăsat fix pe butonul de hamburger, îl lăsăm pe handler-ul lui
+      if (cfgToggle && (e.target === cfgToggle || cfgToggle.contains(e.target))) return;
+      toggleCfgMenu();
+    });
+
+    // click în afara meniului => închide
+    document.addEventListener('click', (e)=>{
+      if (!cfgMenu.classList.contains('open')) return;
+      if (!cfgMenu.contains(e.target)) closeCfgMenu();
+    });
+
+    // ESC => închide
+    document.addEventListener('keydown', (e)=>{
+      if (e.key === 'Escape' && cfgMenu.classList.contains('open')) closeCfgMenu();
+    });
+
+    if (adminLoginBtn){
+      adminLoginBtn.addEventListener('click', handleAdminLoginClick);
+    }
+    if (adminPass){
+      adminPass.addEventListener('keydown', (e)=>{
+        if (e.key === 'Enter'){
+          e.preventDefault();
+          handleAdminLoginClick();
+        }
+      });
+    }
+    if (goAdminBtn){
+      goAdminBtn.addEventListener('click', ()=>{
+        window.open('admin.html', '_blank');
+      });
+    }
+    if (adminLogoutBtn){
+      adminLogoutBtn.addEventListener('click', handleAdminLogout);
+    }
+  }
+
 
   let CFG = null;
   let STATE = blankState();
@@ -1378,6 +1780,7 @@ function sumPausesFromEvents(events, fallbackPair){
         setLeaveStatus('Eroare: nu s-a putut trimite cererea (Form/Endpoint).', 'err');
       }
     });
+ setupAdminChipMenu();
 
   })();
 
