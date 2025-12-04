@@ -366,100 +366,74 @@ Ana Radu
 
   <script>document.getElementById('year').textContent = new Date().getFullYear();</script>
 
+  <!-- ================== SPLASH AUDIO & ANIM (cross-browser + mute safe) ================== -->
   <script>
-/* ================== SPLASH AUDIO & ANIM (cross-browser safe) ================== */
-/* Principiu:
-   - Animația rulează întotdeauna (inclusiv pe mute / autoplay blocat).
-   - Încercăm să redăm sunet cu WebAudio (AudioContext / webkitAudioContext).
-   - Dacă audio este blocat, calculăm durata exactă a secvenței și așteptăm aceeași perioadă
-     astfel încât overlay-ul să se ascundă doar după “final chime” (chiar dacă e inaudibil). */
+/*
+  Principiu:
+  - încercăm WebAudio (AudioContext / webkitAudioContext).
+  - chiar dacă dispozitivul e pe mute sau autoplay e blocat, animația curge cu aceleași timpi.
+  - funcțiile de sunet returnează Promises care se rezolvă după durata exactă a secvenței.
+*/
 const ServelectAudio = (() => {
   let ctx = null;
 
   function ensureCtx(){
-    try {
-      if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)();
-    } catch(e) { /* fără WebAudio, rămânem doar cu timere */ }
+    if (ctx) return ctx;
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return null;
+    try { ctx = new AC(); } catch { ctx = null; }
     return ctx;
   }
 
-  async function resumeIfSuspended(){
-    try {
-      if (ctx && ctx.state === 'suspended') { await ctx.resume(); }
-    } catch {}
-  }
-
-  function seqMs(events){
-    // events: [freq, dur, gap, type, gain]
-    let total = 0;
-    for (const e of events){
-      const d = (e[1] ?? 0.16);
-      const g = (e[2] ?? 0.08);
-      total += d + g;
-    }
-    return Math.round(total * 1000);
+  function playBeepAt(freq, dur=0.16, type='sine', gain=0.9, whenSec=0){
+    const c = ensureCtx();
+    if (!c) return;
+    const o = c.createOscillator();
+    const g = c.createGain();
+    o.type = type;
+    o.frequency.setValueAtTime(freq, whenSec);
+    g.gain.setValueAtTime(0.0001, whenSec);
+    g.gain.linearRampToValueAtTime(gain, whenSec + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, whenSec + dur);
+    o.connect(g); g.connect(c.destination);
+    try { o.start(whenSec); o.stop(whenSec + dur); } catch {}
   }
 
   function playSequence(events){
-    // încearcă WebAudio; dacă nu e disponibil, doar așteaptă durata calculată
     const c = ensureCtx();
-    const durationMs = seqMs(events);
+    let start = c && c.currentTime ? c.currentTime : 0;
+    let t = start;
+    for (const e of events){
+      const [f, d=0.16, gap=0.08, type='sine', gain=0.9] = e;
+      playBeepAt(f, d, type, gain, t);
+      t += d + gap;
+    }
+    const totalMs = Math.round(((t - start) || sumDurations(events)) * 1000) + 30;
+    return new Promise(res => setTimeout(res, totalMs));
+  }
 
-    if (!c) return new Promise(res => setTimeout(res, durationMs));
-
-    let t0 = c.currentTime + 0.01;
-    try {
-      for (const [freq, dur=0.16, gap=0.08, type='sine', gain=0.9] of events){
-        const o = c.createOscillator();
-        const g = c.createGain();
-        o.type = type;
-        o.frequency.setValueAtTime(freq, t0);
-        g.gain.setValueAtTime(0.0001, t0);
-        g.gain.linearRampToValueAtTime(gain, t0 + 0.02);
-        g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
-        o.connect(g); g.connect(c.destination);
-        o.start(t0);
-        o.stop(t0 + dur);
-        t0 += dur + gap;
-      }
-    } catch { /* dacă eșuează, mergem pe timer fallback */ }
-    return new Promise(res => setTimeout(res, durationMs + 50));
+  function sumDurations(events){
+    let s = 0;
+    for (const e of events){ const d = e[1] ?? 0.16, g = e[2] ?? 0.08; s += d + g; }
+    return s;
   }
 
   function chargingStage(stage){
-    if (stage === 1) {
-      // 1 beep roșu (joasă)
-      return playSequence([[420, .17, 0.28, 'sine', 0.9]]);
-    }
-    if (stage === 2) {
-      // 2 beeps galbene (ascendente)
-      return playSequence([[620,.16,.08,'sine',0.9],[760,.18,.22,'sine',0.9]]);
-    }
-    // stage 3: 3 beeps verzi (rapide, ascendente)
-    return playSequence([[780,.14,.06,'triangle',0.85],[900,.14,.06,'triangle',0.85],[1020,.16,.14,'triangle',0.9]]);
+    if (stage === 1) return playSequence([[420, .18, 0.00, 'sine', 0.9]]);
+    if (stage === 2) return playSequence([[620, .16, .08, 'sine', 0.9],[760, .18, 0.00, 'sine', 0.9]]);
+    return playSequence([[780,.14,.06,'triangle',0.85],[900,.14,.06,'triangle',0.85],[1020,.16,0,'triangle',0.9]]);
   }
 
   function fullChime(){
-    // acord final în trepte (A5, C#6, E6)
     return playSequence([[880,.22,.06,'triangle',0.9],[1108.7,.24,.06,'triangle',0.9],[1318.5,.28,0,'triangle',0.9]]);
   }
 
-  // Autounlock best-effort (nu depinde de butoane UI)
-  // – dacă browserul cere gest, îl încercăm pe: pointerdown, touchstart, keydown, visibilitychange
-  function wireUnlockers(){
-    const once = { once:true, passive:true, capture:false };
-    const tryResume = () => resumeIfSuspended();
-    window.addEventListener('pointerdown', tryResume, once);
-    window.addEventListener('touchstart', tryResume, once);
-    window.addEventListener('keydown', tryResume, once);
-    document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'visible') tryResume();
-    });
-    // încercăm și imediat, în caz că autoplay e permis
-    setTimeout(tryResume, 0);
+  async function resumeIfSuspended(){
+    const c = ensureCtx();
+    if (c && c.state === 'suspended') { try { await c.resume(); } catch {} }
   }
 
-  return { chargingStage, fullChime, wireUnlockers, ensureCtx };
+  return { chargingStage, fullChime, resumeIfSuspended, ensureCtx };
 })();
 
 (function splashInit(){
@@ -486,30 +460,31 @@ const ServelectAudio = (() => {
   const wait = (ms)=>new Promise(r=>setTimeout(r,ms));
   function hideSplash(){ splash.classList.add('hide'); }
 
-  // rulează mereu, independent de audio
-  (async () => {
-    try { ServelectAudio.ensureCtx(); } catch {}
-    ServelectAudio.wireUnlockers();
+  window.addEventListener('pointerdown', () => ServelectAudio.resumeIfSuspended(), { once:true, passive:true });
+  window.addEventListener('keydown', () => ServelectAudio.resumeIfSuspended(), { once:true });
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') ServelectAudio.resumeIfSuspended();
+  });
 
+  (async () => {
     resetBars();
+    try { ServelectAudio.ensureCtx(); } catch {}
     await wait(60);
 
     stageToClasses(1);
-    await ServelectAudio.chargingStage(1);
+    await Promise.all([ServelectAudio.chargingStage(1), wait(350)]);
 
     stageToClasses(2);
-    await ServelectAudio.chargingStage(2);
+    await Promise.all([ServelectAudio.chargingStage(2), wait(300)]);
 
     stageToClasses(3);
     await ServelectAudio.chargingStage(3);
 
-    // așteaptă acordul final (sau durata lui, dacă audio e blocat / mute)
-    await ServelectAudio.fullChime();
-
+    await ServelectAudio.fullChime(); // așteaptă „final chime” înainte de hide
     hideSplash();
   })();
 })();
-/* =============== END SPLASH =============== */
+/* ================== END SPLASH ================== */
   </script>
 
   <script>
@@ -611,7 +586,10 @@ function randomNonce(){ return Math.random().toString(36).slice(2) + Date.now().
       lastNormalStart: null,
       lastNormalFinish: null,
       lastExtraStart: null,
-      lastExtraFinish: null
+      lastExtraFinish: null,
+      /* === tracking pauze === */
+      lastPauseStart: null,           // ISO string
+      pauseMsByDay: {}                // { 'YYYY-MM-DD': ms }
     };
   }
   function loadLS(){ try { return JSON.parse(localStorage.getItem(LS_KEY) || 'null'); } catch{return null;} }
@@ -800,6 +778,7 @@ function randomNonce(){ return Math.random().toString(36).slice(2) + Date.now().
 
   function reflectState(){
     const running = STATE.normal.running;
+    if (!btnStart) return;
     const paused  = STATE.normal.paused;
     const extraR  = STATE.extra.running;
 
@@ -898,6 +877,11 @@ function randomNonce(){ return Math.random().toString(36).slice(2) + Date.now().
     }
   }
 
+  /* --- helper pauze --- */
+  function minutesFromMs(ms){
+    return Math.round(ms / 60000);
+  }
+
   function applyLocalTransition(action, ts){
     action = _normAction(action);
     switch(action){
@@ -908,14 +892,27 @@ function randomNonce(){ return Math.random().toString(36).slice(2) + Date.now().
         break;
       case 'pause':
         STATE.normal.paused = true;
+        STATE.lastPauseStart = ts; // marchez început pauză
         break;
-      case 'unpause':
+      case 'unpause': {
         STATE.normal.paused = false;
+        // calculez și acumulez în totalul zilei bazat pe ziua de start a pauzei
+        if (STATE.lastPauseStart){
+          const start = new Date(STATE.lastPauseStart);
+          const end = new Date(ts);
+          const ms = Math.max(0, end - start);
+          const dayKey = STATE.lastPauseStart.slice(0,10); // YYYY-MM-DD
+          const prev = STATE.pauseMsByDay[dayKey] || 0;
+          STATE.pauseMsByDay[dayKey] = prev + ms;
+          STATE.lastPauseStart = null;
+        }
         break;
+      }
       case 'finish':
         STATE.normal.running = false;
         STATE.normal.paused  = false;
         STATE.lastNormalFinish = ts;
+        // opțional NU resetăm aici totalurile pe zi (sunt pe cheie de dată)
         break;
       case 'extra_start':
         STATE.extra.running = true;
@@ -948,9 +945,13 @@ function randomNonce(){ return Math.random().toString(36).slice(2) + Date.now().
   async function refreshServerState(){ 
     if (!STATE.name) return;
     try {
+      const keepPauseFields = {
+        lastPauseStart: STATE.lastPauseStart,
+        pauseMsByDay: Object.assign({}, STATE.pauseMsByDay)
+      };
       const remote = await fetchState(STATE.name);
       if (remote) {
-        STATE = Object.assign(blankState(), remote);
+        STATE = Object.assign(blankState(), keepPauseFields, remote);
         STATE.name = empSel.value || STATE.name || '';
         saveLS();
       }
@@ -978,8 +979,6 @@ function randomNonce(){ return Math.random().toString(36).slice(2) + Date.now().
   }
 
   // ==================== ACTION SUBMIT cu LOCK ====================
-  const CLICK_COOLDOWN_MS = 1200;
-  const GUARD_MIN_LOCK_MS = 600;
   async function submitAction(action) {
     const now = Date.now();
     if (busy) return;
@@ -997,9 +996,9 @@ function randomNonce(){ return Math.random().toString(36).slice(2) + Date.now().
       return;
     }
 
-    if (!isCom && !document.getElementById('locationInput').value.trim()) {
+    if (!isCom && !locInput.value.trim()) {
       setStatus('Scrie clientul/locația.', 'err');
-      document.getElementById('locationInput').focus();
+      locInput.focus();
       return;
     }
 
@@ -1025,13 +1024,37 @@ function randomNonce(){ return Math.random().toString(36).slice(2) + Date.now().
       const gps = await geolocateOnce();
 
       const ts = new Date().toISOString();
+
+      /* === calculează info pauză la UNPAUSE (înainte de mutații) === */
+      let pauseInfo = null;
+      if (actNorm === 'unpause' && STATE.lastPauseStart){
+        const start = new Date(STATE.lastPauseStart);
+        const end = new Date(ts);
+        const ms = Math.max(0, end - start);
+        const dayKey = STATE.lastPauseStart.slice(0,10);
+        const prev = STATE.pauseMsByDay[dayKey] || 0;
+        pauseInfo = {
+          curMs: ms,
+          totalMsAfter: prev + ms,
+          dayKey
+        };
+      }
+
       setFormPayload(action, ts, gps);
       form.submit();
 
       applyLocalTransition(action, ts);
       saveLS();
       reflectState();
-      setStatus(`Trimis ✓ (${actNorm.toUpperCase()}).`, 'ok');
+
+      if (actNorm === 'unpause' && pauseInfo){
+        const curMin = minutesFromMs(pauseInfo.curMs);
+        const totMin = minutesFromMs(pauseInfo.totalMsAfter);
+        setStatus(`Pauză încheiată — interval curent: ${curMin} min • total azi: ${totMin} min.`, 'ok');
+        showToast(`<b>Pauză încheiată</b><div class="small">Curent: <b>${curMin}</b> min • Total azi: <b>${totMin}</b> min</div>`, 'ok');
+      } else {
+        setStatus(`Trimis ✓ (${actNorm.toUpperCase()}).`, 'ok');
+      }
 
       await sleep(1200);
       await refreshServerState();
@@ -1092,7 +1115,6 @@ function randomNonce(){ return Math.random().toString(36).slice(2) + Date.now().
     const cached = loadLS();
     if (cached) STATE = Object.assign(blankState(), cached);
 
-    // ascunde bara EXTRA pentru Comercial
     deptSel.addEventListener('change', () => {
       fillEmployeesFromDept(deptSel.value);
       if (empSel.value && (DEPTMAP.byName.get(empSel.value) !== deptSel.value)) {
@@ -1117,6 +1139,71 @@ function randomNonce(){ return Math.random().toString(36).slice(2) + Date.now().
     });
 
     wireButtons();
+
+    document.getElementById('btnLeave').addEventListener('click', async () => {
+      setLeaveStatus('', '');
+      if (!deptSel.value) { setLeaveStatus('Alege departamentul.', 'err'); return; }
+      if (!empSel.value)  { setLeaveStatus('Selectează angajat.', 'err'); return; }
+      const tip = (actSel.value || '').toLowerCase();
+      if (!LEAVE_TYPES.has(tip)) { setLeaveStatus('Alege un tip de concediu.', 'err'); return; }
+      const sd = leaveStart.value;
+      const ed = leaveEnd.value;
+      const hasDays = Array.isArray(LEAVE_DAYS) && LEAVE_DAYS.length > 0;
+      if (!hasDays) {
+        if (!sd || !ed) { setLeaveStatus('Adaugă cel puțin o zi de concediu sau completează intervalul (start–sfârșit).', 'err'); return; }
+        if (ed < sd) { setLeaveStatus('Data de sfârșit nu poate fi înainte de start.', 'err'); return; }
+      }
+      const email = (leaveEmail.value || '').trim();
+      if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { setLeaveStatus('Email personal invalid.', 'err'); return; }
+
+      setLeaveStatus('Se trimite cererea…', '');
+
+      let formSubmitted = false;
+      if (CFG.leaveFormAction && CFG.leaveFields) {
+        try {
+          document.getElementById('lv_name').value  = empSel.value;
+          document.getElementById('lv_type').value  = tip;
+          document.getElementById('lv_email').value = email;
+          const _daysSorted = hasDays ? LEAVE_DAYS.slice().sort() : [];
+          const _first = hasDays ? _daysSorted[0] : sd;
+          const _last  = hasDays ? _daysSorted[_daysSorted.length-1] : ed;
+          document.getElementById('lv_start').value = _first;
+          document.getElementById('lv_end').value   = _last;
+          document.getElementById('lv_notes').value = (leaveNotes.value || '');
+          document.getElementById('lv_ts').value    = new Date().toISOString();
+          document.getElementById('leaveForm').submit();
+          formSubmitted = true;
+        } catch (e) { console.warn('Leave Form submit failed', e); }
+      }
+
+      let endpointOk = false, endpointMsg = '';
+      if (CFG.leaveEndpoint) {
+        try {
+          const _daysSorted = hasDays ? LEAVE_DAYS.slice().sort() : [];
+          const _first = hasDays ? _daysSorted[0] : sd;
+          const _last  = hasDays ? _daysSorted[_daysSorted.length-1] : ed;
+          const payload = {
+            name: empSel.value,
+            activityType: tip,
+            startDate: _first,
+            endDate: _last,
+            days: hasDays ? _daysSorted : undefined,
+            personalEmail: email,
+            notes: (leaveNotes.value || '')
+          };
+          const res = await sendLeave(payload);
+          endpointOk = true;
+          endpointMsg = ' (înregistrată ' + res.zile + ' zile)';
+        } catch (err) { console.warn('Leave endpoint error:', err); }
+      }
+
+      if (formSubmitted || endpointOk) {
+        setLeaveStatus('Cerere trimisă' + endpointMsg + '. HR a fost notificat.', 'ok');
+        LEAVE_DAYS = [];
+      } else {
+        setLeaveStatus('Eroare: nu s-a putut trimite cererea (Form/Endpoint).', 'err');
+      }
+    });
 
   })();
 
