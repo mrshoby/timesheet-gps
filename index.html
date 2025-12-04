@@ -371,7 +371,7 @@ Ana Radu
 /*
   Principiu:
   - încercăm WebAudio (AudioContext / webkitAudioContext).
-  - chiar dacă dispozitivul e pe mute sau autoplay e blocat, animația curge cu aceiași timpi.
+  - chiar dacă dispozitivul e pe mute sau autoplay e blocat, animația curge cu aceleași timpi.
   - funcțiile de sunet returnează Promises care se rezolvă după durata exactă a secvenței.
 */
 const ServelectAudio = (() => {
@@ -786,7 +786,7 @@ function randomNonce(){ return Math.random().toString(36).slice(2) + Date.now().
     btnStart.disabled       = !hasSel || running || extraR;
     btnPause.disabled       = !hasSel || !running || paused;
     btnUnpause.disabled     = !hasSel || !running || !paused;
-    /* ==== IMPORTANT: FINISH interzis când e PAUSE ==== */
+    /* === FINISH blocat când e în PAUSE === */
     btnFinish.disabled      = !hasSel || !running || paused;
 
     btnExtraStart.disabled  = !hasSel || running || extraR;
@@ -865,7 +865,8 @@ function randomNonce(){ return Math.random().toString(36).slice(2) + Date.now().
         return null;
       case 'finish':
         if (!running) return 'Nu poți da FINISH fără START.';
-        if (paused)   return 'Nu poți da FINISH cât timp ești pe PAUSE. Dă UNPAUSE, apoi FINISH.';
+        /* === blocare FINISH dacă e în PAUSE === */
+        if (paused)   return 'Nu poți da FINISH în PAUSE — apasă UNPAUSE mai întâi.';
         return null;
       case 'extra_start':
         if (running)  return 'Finalizează norma înainte de „EXTRA START”.';
