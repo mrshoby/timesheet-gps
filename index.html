@@ -5,14 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>SERVELECT • Pontaj & Concedii</title>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&display=swap" rel="stylesheet">
   <link rel="icon" href="favicon.png" />
   <meta name="theme-color" content="#516A75"/>
   <style>
     :root{
-      --brand: rgba(81,106,117,0.88);
-      --brand-dark:#2f3e45;
-      --accent: rgba(149,202,75,0.91);
+      --brand:#516B74;          /* SERV, contur baterie, 'We save both.' */
+      --brand-weak:rgba(81,106,117,0.88);
+      --accent:#95CA4B;         /* LECT, 'Energy is money!' */
       --text:#0f172a;
       --muted:#5b6b73;
       --bg:#f4f7f9;
@@ -90,7 +90,6 @@
     .footer{ margin-top:18px;font-size:12px;color:var(--muted);text-align:center }
     .ok{color:#15803d} .err{color:#ef4444} .warn{color:#a16207}
 
-    /* ===== Toast privat ===== */
     .toast{
       position: fixed; left: 50%; transform: translateX(-50%);
       bottom: 24px; z-index: 9999; min-width: 280px; max-width: 92vw;
@@ -102,74 +101,79 @@
     .toast.err{ background:#991b1b }
     .toast .small{opacity:.85;font-size:12px;margin-top:4px}
 
-    /* >>> ANTI-SPAM/LOCK */
     body.action-lock .btnbar { pointer-events: none; }
     body.action-lock .btnbar .btn { opacity:.6; cursor:not-allowed; }
 
-    /* ================== SPLASH (scoped .sl-*) ================== */
-    html.sl-splash-open, body.sl-splash-open{ overflow:hidden; }
-    .sl-splash{
+    /* ===== SPLASH ===== */
+    .splash{
       position:fixed; inset:0; z-index:2000;
       display:grid; place-items:center;
       background: radial-gradient(1200px 800px at 50% 20%, #e8f2e0, #d9e6df);
       opacity:1; transform:scale(1); transition: opacity .6s ease, transform .6s ease;
     }
-    .sl-splash.sl-hide{ opacity:0; transform:scale(1.01); pointer-events:none }
+    .splash.hide{ opacity:0; transform:scale(1.01); pointer-events:none }
 
-    .sl-wrap{ width:min(1100px, 92vw); text-align:center; user-select:none }
-    .sl-brand-line{
+    .s-wrap{ width:min(1100px, 92vw); text-align:center; user-select:none }
+    .brand-line{
       display:flex; align-items:center; justify-content:center; gap: clamp(10px, 2vw, 22px);
       line-height:1; flex-wrap:wrap;
     }
-    .sl-word{ font-weight:800; letter-spacing:.5px; font-size: clamp(44px, 9vw, 96px); }
-    .sl-serv{ color: rgba(81,106,117,0.88); }
-    .sl-lect{ color: #95CA4B; }
+    .brand-word{ font-weight:800; letter-spacing:.5px; font-size: clamp(44px, 9vw, 96px); }
+    .serv{ color:var(--brand) }
+    .lect{ color:var(--accent) }
 
-    .sl-battery{ height: clamp(110px, 20vw, 190px); width:auto; display:block;
-                 filter: drop-shadow(0 8px 24px rgba(0,0,0,.08)); }
-    .sl-bat-outline{ stroke:rgba(81,106,117,0.88); stroke-width:10; fill:none; stroke-linejoin:round }
-    .sl-bat-cap{ fill:rgba(81,106,117,0.88) }
-    .sl-bar{ opacity:.18; fill:transparent; stroke:rgba(81,106,117,0.88); stroke-width:2; transition: opacity .2s ease }
-    .sl-bar.on{ opacity:1; fill:currentColor; stroke:transparent }
-    .sl-bar.red{ color:#ef4444 }
-    .sl-bar.yellow{ color:#f59e0b }
-    .sl-bar.green{ color:#95CA4B }
-    .sl-glow{ filter: drop-shadow(0 0 0 rgba(149,202,75,0)); transition: filter .5s ease }
-    .sl-glow.active{
+    /* baterie verticală (litera E) */
+    .battery{ height: clamp(110px, 20vw, 190px); width:auto; display:block;
+              filter: drop-shadow(0 8px 24px rgba(0,0,0,.08)); }
+    .bat-outline{ stroke:var(--brand); stroke-width:10; fill:none; stroke-linejoin:round }
+    .bat-cap{ fill:var(--brand) }
+    .bar{ opacity:.18; fill:transparent; stroke:var(--brand); stroke-width:2; transition: opacity .2s ease }
+    .bar.on{ opacity:1; fill:currentColor; stroke:transparent }
+    .bar.stage-red{ color:#ef4444 }
+    .bar.stage-yellow{ color:#f59e0b }
+    .bar.stage-green{ color:var(--accent) }
+    .glow{ filter: drop-shadow(0 0 0 rgba(149,202,75,0)); transition: filter .5s ease }
+    .glow.active{
       filter: drop-shadow(0 0 14px rgba(149,202,75,.75)) drop-shadow(0 0 28px rgba(149,202,75,.45));
     }
-    .sl-tag{ margin-top: clamp(10px, 2.2vw, 18px); font-weight:700; font-size: clamp(18px, 3.6vw, 34px); line-height:1.15; }
-    .sl-tag .money{ color:#95CA4B }
-    .sl-tag .save{ color: rgba(81,106,117,0.88) }
+    .tag{ margin-top: clamp(10px, 2.2vw, 18px); font-weight:700; font-size: clamp(18px, 3.6vw, 34px); line-height:1.15; }
+    .tag .money{ color:var(--accent) }
+    .tag .save{ color:var(--brand) }
 
     @media (prefers-reduced-motion: reduce){
-      .sl-glow, .sl-bar, .sl-splash{ transition:none }
+      .glow, .bar, .splash{ transition:none }
     }
   </style>
 </head>
 <body>
+  <!-- ===== SPLASH OVERLAY ===== -->
+  <div id="splash" class="splash" role="dialog" aria-label="Ecran de întâmpinare">
+    <div class="s-wrap">
+      <div class="brand-line">
+        <div class="brand-word serv">SERV</div>
 
-  <!-- ================== SPLASH OVERLAY (doar adăugat, restul codului tău rămâne neschimbat) ================== -->
-  <div id="sl-splash" class="sl-splash" role="dialog" aria-label="Ecran de întâmpinare">
-    <div class="sl-wrap">
-      <div class="sl-brand-line">
-        <div class="sl-word sl-serv">SERV</div>
-        <svg class="sl-battery sl-glow" id="sl-battery" viewBox="0 0 150 240" role="img" aria-label="Baterie">
-          <rect x="20" y="40" width="110" height="180" rx="14" class="sl-bat-outline"/>
-          <rect x="57" y="10" width="36" height="20" rx="6" class="sl-bat-cap"/>
-          <rect id="sl-bar1" class="sl-bar" x="32" y="174" width="86" height="32" rx="8"/>
-          <rect id="sl-bar2" class="sl-bar" x="32" y="130" width="86" height="32" rx="8"/>
-          <rect id="sl-bar3" class="sl-bar" x="32" y="86"  width="86" height="32" rx="8"/>
+        <!-- Bateria (vertical) ca litera „E” stilizată -->
+        <svg class="battery glow" id="battery" viewBox="0 0 150 240" role="img" aria-label="Baterie">
+          <!-- corp -->
+          <rect x="20" y="40" width="110" height="180" rx="14" class="bat-outline"/>
+          <!-- căpăcel sus -->
+          <rect x="57" y="10" width="36" height="20" rx="6" class="bat-cap"/>
+          <!-- bare (de jos în sus) -->
+          <rect id="bar1" class="bar" x="32" y="174" width="86" height="32" rx="8"/>
+          <rect id="bar2" class="bar" x="32" y="130" width="86" height="32" rx="8"/>
+          <rect id="bar3" class="bar" x="32" y="86"  width="86" height="32" rx="8"/>
         </svg>
-        <div class="sl-word sl-lect">LECT</div>
+
+        <div class="brand-word lect">LECT</div>
       </div>
-      <div class="sl-tag">
+
+      <div class="tag">
         <span class="money">Energy is money!</span>
         &nbsp;<span class="save">We save both.</span>
       </div>
     </div>
   </div>
-  <!-- ================== END SPLASH OVERLAY ================== -->
+  <!-- ===== END SPLASH ===== -->
 
   <div class="shell">
     <nav class="nav card">
@@ -362,127 +366,151 @@ Ana Radu
 
   <script>document.getElementById('year').textContent = new Date().getFullYear();</script>
 
-  <!-- ================== SPLASH: AUDIO SINTETIZAT + SINCRONIZARE EXACTĂ ================== -->
   <script>
-  (function(){
-    // Delay global cerut + mic offset vizual pentru a percepe atacul beep-ului exact când se aprinde bara
-    const BASE_MS   = 500;    // 0.5s la intrare
-    const UI_OFFSET = 0.03;   // 30 ms după startul audio
-    const PRIME_LEAD= 0.12;   // „trezire” aproape mută înainte de primul beep
+/* ================== SPLASH AUDIO & ANIM (cross-browser safe) ================== */
+/* Principiu:
+   - Animația rulează întotdeauna (inclusiv pe mute / autoplay blocat).
+   - Încercăm să redăm sunet cu WebAudio (AudioContext / webkitAudioContext).
+   - Dacă audio este blocat, calculăm durata exactă a secvenței și așteptăm aceeași perioadă
+     astfel încât overlay-ul să se ascundă doar după “final chime” (chiar dacă e inaudibil). */
+const ServelectAudio = (() => {
+  let ctx = null;
 
-    // Timeline (secunde, relative la t0)
-    const TL = { s1:0.00, s2:0.60, s3:1.20, ch:1.50, hide:1.90 };
+  function ensureCtx(){
+    try {
+      if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)();
+    } catch(e) { /* fără WebAudio, rămânem doar cu timere */ }
+    return ctx;
+  }
 
-    const splash  = document.getElementById('sl-splash');
-    const battery = document.getElementById('sl-battery');
-    const bars = [
-      document.getElementById('sl-bar1'),
-      document.getElementById('sl-bar2'),
-      document.getElementById('sl-bar3')
-    ];
+  async function resumeIfSuspended(){
+    try {
+      if (ctx && ctx.state === 'suspended') { await ctx.resume(); }
+    } catch {}
+  }
 
-    function resetBars(){ bars.forEach(b=>b.setAttribute('class','sl-bar')); battery.classList.remove('active'); }
-    function stageUI(n){
-      resetBars();
-      if (n>=1){ bars[0].classList.add('on','red'); }
-      if (n>=2){ bars[0].classList.remove('red'); bars[0].classList.add('yellow'); bars[1].classList.add('on','yellow'); }
-      if (n>=3){ bars.forEach(b=>{ b.classList.remove('red','yellow'); b.classList.add('on','green'); }); battery.classList.add('active'); }
+  function seqMs(events){
+    // events: [freq, dur, gap, type, gain]
+    let total = 0;
+    for (const e of events){
+      const d = (e[1] ?? 0.16);
+      const g = (e[2] ?? 0.08);
+      total += d + g;
     }
-    function hideSplash(){
-      splash.classList.add('sl-hide');
-      setTimeout(()=>{ document.documentElement.classList.remove('sl-splash-open'); document.body.classList.remove('sl-splash-open'); }, 460);
-    }
+    return Math.round(total * 1000);
+  }
 
-    // ==== WebAudio (synth) — fără fișiere, sincron perfect ====
-    const Synth = (() => {
-      let ctx = null;
-      function ensureCtx(){
-        if (!ctx) ctx = new (window.AudioContext||window.webkitAudioContext)({latencyHint:'interactive'});
-        return ctx;
-      }
-      function blipAt(abs, freq, dur=0.16, type='sine', gain=0.95){
-        const c = ensureCtx();
-        const o = c.createOscillator(); o.type = type; o.frequency.setValueAtTime(freq, abs);
+  function playSequence(events){
+    // încearcă WebAudio; dacă nu e disponibil, doar așteaptă durata calculată
+    const c = ensureCtx();
+    const durationMs = seqMs(events);
+
+    if (!c) return new Promise(res => setTimeout(res, durationMs));
+
+    let t0 = c.currentTime + 0.01;
+    try {
+      for (const [freq, dur=0.16, gap=0.08, type='sine', gain=0.9] of events){
+        const o = c.createOscillator();
         const g = c.createGain();
-        g.gain.setValueAtTime(0, abs);
-        g.gain.linearRampToValueAtTime(gain, abs + 0.01);
-        g.gain.exponentialRampToValueAtTime(0.0001, abs + dur);
+        o.type = type;
+        o.frequency.setValueAtTime(freq, t0);
+        g.gain.setValueAtTime(0.0001, t0);
+        g.gain.linearRampToValueAtTime(gain, t0 + 0.02);
+        g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
         o.connect(g); g.connect(c.destination);
-        o.start(abs); o.stop(abs + dur);
+        o.start(t0);
+        o.stop(t0 + dur);
+        t0 += dur + gap;
       }
-      function schedule(t0){
-        const c = ensureCtx();
+    } catch { /* dacă eșuează, mergem pe timer fallback */ }
+    return new Promise(res => setTimeout(res, durationMs + 50));
+  }
 
-        // priming aproape mut (trezește pipeline-ul)
-        const primeAt = Math.max(c.currentTime + 0.01, t0 + TL.s1 - PRIME_LEAD);
-        blipAt(primeAt, 220, 0.02, 'sine', 0.001);
+  function chargingStage(stage){
+    if (stage === 1) {
+      // 1 beep roșu (joasă)
+      return playSequence([[420, .17, 0.28, 'sine', 0.9]]);
+    }
+    if (stage === 2) {
+      // 2 beeps galbene (ascendente)
+      return playSequence([[620,.16,.08,'sine',0.9],[760,.18,.22,'sine',0.9]]);
+    }
+    // stage 3: 3 beeps verzi (rapide, ascendente)
+    return playSequence([[780,.14,.06,'triangle',0.85],[900,.14,.06,'triangle',0.85],[1020,.16,.14,'triangle',0.9]]);
+  }
 
-        // Bar 1 (puțin mai „hot” ca să fie clar)
-        blipAt(t0 + TL.s1, 460, .20, 'sine', 0.98);
+  function fullChime(){
+    // acord final în trepte (A5, C#6, E6)
+    return playSequence([[880,.22,.06,'triangle',0.9],[1108.7,.24,.06,'triangle',0.9],[1318.5,.28,0,'triangle',0.9]]);
+  }
 
-        // Bar 2 (două ping-uri)
-        blipAt(t0 + TL.s2,        620, .16, 'sine',     0.95);
-        blipAt(t0 + TL.s2 + 0.09, 760, .18, 'sine',     0.95);
+  // Autounlock best-effort (nu depinde de butoane UI)
+  // – dacă browserul cere gest, îl încercăm pe: pointerdown, touchstart, keydown, visibilitychange
+  function wireUnlockers(){
+    const once = { once:true, passive:true, capture:false };
+    const tryResume = () => resumeIfSuspended();
+    window.addEventListener('pointerdown', tryResume, once);
+    window.addEventListener('touchstart', tryResume, once);
+    window.addEventListener('keydown', tryResume, once);
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') tryResume();
+    });
+    // încercăm și imediat, în caz că autoplay e permis
+    setTimeout(tryResume, 0);
+  }
 
-        // Bar 3 (trei ping-uri triunghiulare)
-        blipAt(t0 + TL.s3,        780, .14, 'triangle', 0.92);
-        blipAt(t0 + TL.s3 + 0.07, 900, .14, 'triangle', 0.92);
-        blipAt(t0 + TL.s3 + 0.14,1020, .16, 'triangle', 0.94);
+  return { chargingStage, fullChime, wireUnlockers, ensureCtx };
+})();
 
-        // Chime final
-        blipAt(t0 + TL.ch,         880, .22, 'triangle', 0.96);
-        blipAt(t0 + TL.ch + 0.07, 1109, .24, 'triangle', 0.96);
-        blipAt(t0 + TL.ch + 0.14, 1319, .28, 'triangle', 0.96);
-      }
-      async function start(){
-        const c = ensureCtx();
-        try{ if (c.state === 'suspended') await c.resume(); }catch{}
-        const t0 = c.currentTime + BASE_MS/1000;
-        schedule(t0);
+(function splashInit(){
+  const splash   = document.getElementById('splash');
+  const battery  = document.getElementById('battery');
+  const bars = [
+    document.getElementById('bar1'),
+    document.getElementById('bar2'),
+    document.getElementById('bar3')
+  ];
+  function resetBars(){ bars.forEach(b => b.className = 'bar'); battery.classList.remove('active'); }
+  function stageToClasses(stage){
+    resetBars();
+    if (stage >= 1){ bars[0].classList.add('on','stage-red'); }
+    if (stage >= 2){
+      bars[0].classList.remove('stage-red'); bars[0].classList.add('stage-yellow');
+      bars[1].classList.add('on','stage-yellow');
+    }
+    if (stage >= 3){
+      bars.forEach(b => { b.classList.remove('stage-red','stage-yellow'); b.classList.add('on','stage-green'); });
+      battery.classList.add('active');
+    }
+  }
+  const wait = (ms)=>new Promise(r=>setTimeout(r,ms));
+  function hideSplash(){ splash.classList.add('hide'); }
 
-        // UI condusă de același ceas audio
-        let d1=false,d2=false,d3=false,dh=false;
-        function tick(){
-          const now = c.currentTime;
-          const t = now - t0;
-          if (!d1 && t >= TL.s1 + UI_OFFSET){ stageUI(1); d1=true; }
-          if (!d2 && t >= TL.s2 + UI_OFFSET){ stageUI(2); d2=true; }
-          if (!d3 && t >= TL.s3 + UI_OFFSET){ stageUI(3); d3=true; }
-          if (!dh && t >= TL.hide + UI_OFFSET){ hideSplash(); dh=true; }
-          if (!dh) requestAnimationFrame(tick);
-        }
-        requestAnimationFrame(tick);
-        return true;
-      }
-      return { start, ensureCtx };
-    })();
+  // rulează mereu, independent de audio
+  (async () => {
+    try { ServelectAudio.ensureCtx(); } catch {}
+    ServelectAudio.wireUnlockers();
 
-    // Pornește splash-ul
-    (async () => {
-      document.documentElement.classList.add('sl-splash-open');
-      document.body.classList.add('sl-splash-open');
-      resetBars();
+    resetBars();
+    await wait(60);
 
-      let ok = false;
-      try { ok = await Synth.start(); } catch { ok = false; }
-      // Dacă, totuși, autoplay e extrem de restrictiv, rulăm doar UI pe timeline aproape identic (fallback silențios)
-      if (!ok || (Synth.ensureCtx().state !== 'running')){
-        const t0 = performance.now() + BASE_MS;
-        let d1=false,d2=false,d3=false,dh=false;
-        function tick(){
-          const t = (performance.now() - t0)/1000;
-          if (!d1 && t >= TL.s1 + UI_OFFSET){ stageUI(1); d1=true; }
-          if (!d2 && t >= TL.s2 + UI_OFFSET){ stageUI(2); d2=true; }
-          if (!d3 && t >= TL.s3 + UI_OFFSET){ stageUI(3); d3=true; }
-          if (!dh && t >= TL.hide + UI_OFFSET){ hideSplash(); dh=true; }
-          if (!dh) requestAnimationFrame(tick);
-        }
-        requestAnimationFrame(tick);
-      }
-    })();
+    stageToClasses(1);
+    await ServelectAudio.chargingStage(1);
+
+    stageToClasses(2);
+    await ServelectAudio.chargingStage(2);
+
+    stageToClasses(3);
+    await ServelectAudio.chargingStage(3);
+
+    // așteaptă acordul final (sau durata lui, dacă audio e blocat / mute)
+    await ServelectAudio.fullChime();
+
+    hideSplash();
   })();
+})();
+/* =============== END SPLASH =============== */
   </script>
-  <!-- ================== END SPLASH ================== -->
 
   <script>
 /** ================== Helpers & Config ================== */
@@ -563,7 +591,7 @@ function randomNonce(){ return Math.random().toString(36).slice(2) + Date.now().
   const leaveDay = document.getElementById('leaveDay');
   const leaveDaysList = document.getElementById('leaveDaysList');
   const btnAddDay = document.getElementById('btnAddDay');
-  const extraBar = document.getElementById('extraBar'); // << nou
+  const extraBar = document.getElementById('extraBar');
   let LEAVE_DAYS = [];
 
   function setStatus(m, c){ setText(statusEl, m, c); }
@@ -798,7 +826,7 @@ function randomNonce(){ return Math.random().toString(36).slice(2) + Date.now().
   async function fetchState(name){
     const base = (CFG.stateEndpoint && CFG.stateEndpoint.trim()) || (CFG.guardEndpoint && (CFG.guardEndpoint.trim() + '?fn=state'));
     if (!base) return null;
-    const url = base.includes('?fn=state') ? (base + '&name=' + encodeURIComponent(name)) 
+    const url = base.includes('?fn=state') ? (base + '&name=' + encodeURIComponent(name))
                                            : (base + (base.includes('?')?'&':'?') + 'name=' + encodeURIComponent(name));
     const r = await fetch(url, { cache:'no-store' });
     const txt = await r.text();
@@ -845,7 +873,7 @@ function randomNonce(){ return Math.random().toString(36).slice(2) + Date.now().
     switch(action){
       case 'start':
         if (running)  return 'Ai deja un START în derulare.';
-        if (extraR)   return 'Finalizează mai întâi „Extra” înainte de a porni norma.';
+        if (extraR)   return 'Finalizează norma înainte de „EXTRA START”.';
         return null;
       case 'pause':
         if (!running) return 'Nu poți da PAUSE fără START.';
@@ -944,13 +972,14 @@ function randomNonce(){ return Math.random().toString(36).slice(2) + Date.now().
     else setEmp('Nicio sesiune deschisă.', '');
   }
 
-  // ===== util: Comercial
   function isComercialDept(){
     const v = (deptSel.value || '').toLowerCase();
     return v === 'comercial' || v === 'coemercial';
   }
 
   // ==================== ACTION SUBMIT cu LOCK ====================
+  const CLICK_COOLDOWN_MS = 1200;
+  const GUARD_MIN_LOCK_MS = 600;
   async function submitAction(action) {
     const now = Date.now();
     if (busy) return;
@@ -968,9 +997,9 @@ function randomNonce(){ return Math.random().toString(36).slice(2) + Date.now().
       return;
     }
 
-    if (!isCom && !locInput.value.trim()) {
+    if (!isCom && !document.getElementById('locationInput').value.trim()) {
       setStatus('Scrie clientul/locația.', 'err');
-      locInput.focus();
+      document.getElementById('locationInput').focus();
       return;
     }
 
@@ -1063,6 +1092,7 @@ function randomNonce(){ return Math.random().toString(36).slice(2) + Date.now().
     const cached = loadLS();
     if (cached) STATE = Object.assign(blankState(), cached);
 
+    // ascunde bara EXTRA pentru Comercial
     deptSel.addEventListener('change', () => {
       fillEmployeesFromDept(deptSel.value);
       if (empSel.value && (DEPTMAP.byName.get(empSel.value) !== deptSel.value)) {
@@ -1083,75 +1113,10 @@ function randomNonce(){ return Math.random().toString(36).slice(2) + Date.now().
       const isLeave = LEAVE_TYPES.has((actSel.value||'').toLowerCase());
       leavePanel.style.display = isLeave ? '' : 'none';
       disableTimeButtons(isLeave);
-      if (isLeave) { LEAVE_DAYS = []; renderLeaveDays && renderLeaveDays(); setLeaveStatus('', ''); }
+      if (isLeave) { LEAVE_DAYS = []; setLeaveStatus('', ''); }
     });
 
     wireButtons();
-
-    document.getElementById('btnLeave').addEventListener('click', async () => {
-      setLeaveStatus('', '');
-      if (!deptSel.value) { setLeaveStatus('Alege departamentul.', 'err'); return; }
-      if (!empSel.value)  { setLeaveStatus('Selectează angajat.', 'err'); return; }
-      const tip = (actSel.value || '').toLowerCase();
-      if (!LEAVE_TYPES.has(tip)) { setLeaveStatus('Alege un tip de concediu.', 'err'); return; }
-      const sd = leaveStart.value;
-      const ed = leaveEnd.value;
-      const hasDays = Array.isArray(LEAVE_DAYS) && LEAVE_DAYS.length > 0;
-      if (!hasDays) {
-        if (!sd || !ed) { setLeaveStatus('Adaugă cel puțin o zi de concediu sau completează intervalul (start–sfârșit).', 'err'); return; }
-        if (ed < sd) { setLeaveStatus('Data de sfârșit nu poate fi înainte de start.', 'err'); return; }
-      }
-      const email = (leaveEmail.value || '').trim();
-      if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { setLeaveStatus('Email personal invalid.', 'err'); return; }
-
-      setLeaveStatus('Se trimite cererea…', '');
-
-      let formSubmitted = false;
-      if (CFG.leaveFormAction && CFG.leaveFields) {
-        try {
-          document.getElementById('lv_name').value  = empSel.value;
-          document.getElementById('lv_type').value  = tip;
-          document.getElementById('lv_email').value = email;
-          const _daysSorted = hasDays ? LEAVE_DAYS.slice().sort() : [];
-          const _first = hasDays ? _daysSorted[0] : sd;
-          const _last  = hasDays ? _daysSorted[_daysSorted.length-1] : ed;
-          document.getElementById('lv_start').value = _first;
-          document.getElementById('lv_end').value   = _last;
-          document.getElementById('lv_notes').value = (leaveNotes.value || '');
-          document.getElementById('lv_ts').value    = new Date().toISOString();
-          document.getElementById('leaveForm').submit();
-          formSubmitted = true;
-        } catch (e) { console.warn('Leave Form submit failed', e); }
-      }
-
-      let endpointOk = false, endpointMsg = '';
-      if (CFG.leaveEndpoint) {
-        try {
-          const _daysSorted = hasDays ? LEAVE_DAYS.slice().sort() : [];
-          const _first = hasDays ? _daysSorted[0] : sd;
-          const _last  = hasDays ? _daysSorted[_daysSorted.length-1] : ed;
-          const payload = {
-            name: empSel.value,
-            activityType: tip,
-            startDate: _first,
-            endDate: _last,
-            days: hasDays ? _daysSorted : undefined,
-            personalEmail: email,
-            notes: (leaveNotes.value || '')
-          };
-          const res = await sendLeave(payload);
-          endpointOk = true;
-          endpointMsg = ' (înregistrată ' + res.zile + ' zile)';
-        } catch (err) { console.warn('Leave endpoint error:', err); }
-      }
-
-      if (formSubmitted || endpointOk) {
-        setLeaveStatus('Cerere trimisă' + endpointMsg + '. HR a fost notificat.', 'ok');
-        LEAVE_DAYS = []; renderLeaveDays && renderLeaveDays();
-      } else {
-        setLeaveStatus('Eroare: nu s-a putut trimite cererea (Form/Endpoint).', 'err');
-      }
-    });
 
   })();
 
