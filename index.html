@@ -124,7 +124,6 @@
     .glow{ filter: drop-shadow(0 0 0 rgba(149,202,75,0)); transition: filter .5s ease }
     .glow.active{ filter: drop-shadow(0 0 14px rgba(149,202,75,.75)) drop-shadow(0 0 28px rgba(149,202,75,.45)); }
     .tag{ margin-top: clamp(10px, 2.2vw, 18px); font-weight:700; font-size: clamp(18px, 3.6vw, 34px); line-height:1.15; }
-    .tag .money{ color:var(--accent) } .tag .save{ color:var(--brand) }
     @media (prefers-reduced-motion: reduce){ .glow, .bar, .splash{ transition:none } }
   </style>
 </head>
@@ -1010,30 +1009,28 @@ function sumPausesFromEvents(events, fallbackPair){
     return v === 'comercial' || v === 'coemercial';
   }
 
-  async function computePauseFromSheetAndShow(name, lastPauseStartIso, unpauseTsIso){
-    let curMin = Math.max(0, Math.round(msBetween(lastPauseStartIso, unpauseTsIso) / 60000));
-    let totMin = 0;
+  /* === NOU: calculează pauza doar din server/foaie, merge și după refresh === */
+  async function computePauseFromSheetAndShow(name, untilIso){
+    let totMin = 0, curMin = 0;
+
     try{
-      const s = await fetchPauseTotals(name, unpauseTsIso);
-      if (s){
-        totMin = typeof s.totalMin === 'number' ? s.totalMin : 0;
-        if (typeof s.curMin === 'number') curMin = Math.max(curMin, s.curMin);
+      const s = await fetchPauseTotals(name, untilIso);
+      if (s && s.ok){
+        totMin = Number(s.totalMin) || 0;
+        curMin = Number(s.curMin)   || 0;
       }
     }catch{}
-    if (!totMin || totMin < curMin){
-      const keyLocal = dayKeyLocal(lastPauseStartIso);
+
+    if (!totMin && !curMin){
       try{
-        const r = await getSheetEventsForDay(name, keyLocal, unpauseTsIso);
-        const sums = sumPausesFromEvents(r.events, { startIso:lastPauseStartIso, endIso:unpauseTsIso });
-        const totalFromSheet = Math.round(sums.totalMs/60000);
-        const curFromSheet   = Math.round(sums.curMs/60000);
-        totMin = Math.max(totalFromSheet, curMin);
-        curMin = Math.max(curMin, curFromSheet);
-      }catch{
-        const key = dayKeyLocal(lastPauseStartIso);
-        totMin = Math.max((STATE.pauseMsByDay[key]||0)/60000|0, curMin);
-      }
+        const keyLocal = dayKeyLocal(untilIso);
+        const r = await getSheetEventsForDay(name, keyLocal, untilIso);
+        const sums = sumPausesFromEvents(r.events, { endIso: untilIso });
+        totMin = Math.round(sums.totalMs/60000);
+        curMin = Math.round(sums.curMs/60000);
+      }catch{}
     }
+
     setStatus(`Pauză încheiată — interval curent: ${curMin} min • total azi: ${totMin} min.`, 'ok');
     showToast(
       `<b>Pauză încheiată</b><div class="small">Curent: <b>${curMin}</b> min • Total azi: <b>${totMin}</b> min</div>`,
@@ -1070,6 +1067,11 @@ function sumPausesFromEvents(events, fallbackPair){
       return;
     }
 
+    /* NOU: sincronizare cu serverul înainte de guard-ul local */
+    setStatus('Sincronizez starea…', '');
+    await refreshServerState();
+    reflectState();
+
     // local guard
     {
       const running = STATE.normal.running;
@@ -1103,7 +1105,6 @@ function sumPausesFromEvents(events, fallbackPair){
       const gps = await geolocateOnce();
 
       const ts = new Date().toISOString();
-      const lastPauseStartIso = (actNorm === 'unpause') ? STATE.lastPauseStart : null;
 
       setFormPayload(action, ts, gps);
 
@@ -1117,14 +1118,11 @@ function sumPausesFromEvents(events, fallbackPair){
       saveLS();
       reflectState();
 
-      if (actNorm === 'unpause' && lastPauseStartIso){
+      if (actNorm === 'unpause'){
         try{
-          await computePauseFromSheetAndShow(empSel.value.trim(), lastPauseStartIso, ts);
+          await computePauseFromSheetAndShow(empSel.value.trim(), ts);
         } catch(e){
-          const curMin = minutesFromMs(msBetween(lastPauseStartIso, ts));
-          const keyLocal = dayKeyLocal(lastPauseStartIso);
-          const totMin = minutesFromMs((STATE.pauseMsByDay[keyLocal]||0));
-          setStatus(`Pauză încheiată — (fallback) curent: ${curMin} min • total azi: ${totMin} min.`, 'warn');
+          setStatus(`UNPAUSE trimis ✓ (nu am putut calcula pauza din server/foaie)`, 'warn');
         }
       } else {
         setStatus(`Trimis ✓ (${actNorm.toUpperCase()}).`, 'ok');
@@ -1192,6 +1190,18 @@ function sumPausesFromEvents(events, fallbackPair){
 
     const cached = loadLS();
     if (cached) STATE = Object.assign(blankState(), cached);
+
+    /* NOU: reselectează automat angajatul/departamentul după refresh */
+    if (STATE.name && DEPTMAP.byName && DEPTMAP.byName.has(STATE.name)){
+      const d = DEPTMAP.byName.get(STATE.name);
+      if (d){
+        deptSel.value = d;
+        fillEmployeesFromDept(d);
+        empSel.value = STATE.name;
+        if (extraBar) extraBar.style.display = isComercialDept() ? 'none' : '';
+        await handleEmployeeChange();
+      }
+    }
 
     deptSel.addEventListener('change', () => {
       fillEmployeesFromDept(deptSel.value);
