@@ -102,7 +102,7 @@
     .toast.err{ background:#991b1b }
     .toast .small{opacity:.85;font-size:12px;margin-top:4px}
 
-    /* ===== SPLASH (doar ce e necesar) ===== */
+    /* ===== SPLASH ===== */
     html.splash-open, body.splash-open{ overflow:hidden; }
     .splash{
       position:fixed; inset:0; z-index:2000;
@@ -117,7 +117,7 @@
       line-height:1; flex-wrap:wrap;
     }
     .brand-word{ font-weight:800; letter-spacing:.5px; font-size: clamp(44px, 9vw, 96px); }
-    .serv{ color:var(--brand-dark) }
+    .serv{ color:var(--brand) }
     .lect{ color:var(--accent) }
     .battery{ height: clamp(110px, 20vw, 190px); width:auto; display:block;
               filter: drop-shadow(0 8px 24px rgba(0,0,0,.08)); }
@@ -127,14 +127,15 @@
     .bar.on{ opacity:1; fill:currentColor; stroke:transparent }
     .bar.stage-red{ color:#ef4444 }
     .bar.stage-yellow{ color:#f59e0b }
-    .bar.stage-green{ color:#16a34a }
+    .bar.stage-green{ color:var(--accent) }
     .glow{ filter: drop-shadow(0 0 0 rgba(149,202,75,0)); transition: filter .5s ease }
     .glow.active{
       filter: drop-shadow(0 0 14px rgba(149,202,75,.75)) drop-shadow(0 0 28px rgba(149,202,75,.45));
     }
     .tag{ margin-top: clamp(10px, 2.2vw, 18px); font-weight:700; font-size: clamp(18px, 3.6vw, 34px); line-height:1.15; }
-    .tag .money{ color:#16a34a }
+    .tag .money{ color:var(--accent) }
     .tag .save{ color:var(--brand-dark) }
+
     @media (prefers-reduced-motion: reduce){
       .glow, .bar, .splash{ transition:none }
     }
@@ -147,7 +148,8 @@
     <div class="s-wrap">
       <div class="brand-line">
         <div class="brand-word serv">SERV</div>
-        <!-- Bateria verticală (litera E) -->
+
+        <!-- Bateria (vertical) ca litera „E” stilizată -->
         <svg class="battery glow" id="battery" viewBox="0 0 150 240" role="img" aria-label="Baterie">
           <rect x="20" y="40" width="110" height="180" rx="14" class="bat-outline"/>
           <rect x="57" y="10" width="36" height="20" rx="6" class="bat-cap"/>
@@ -155,6 +157,7 @@
           <rect id="bar2" class="bar" x="32" y="130" width="86" height="32" rx="8"/>
           <rect id="bar3" class="bar" x="32" y="86"  width="86" height="32" rx="8"/>
         </svg>
+
         <div class="brand-word lect">LECT</div>
       </div>
 
@@ -183,6 +186,7 @@
           <span class="dot" aria-hidden="true"></span>
           <h2>Înregistrare activitate</h2>
         </header>
+        <!-- text actualizat ca să reflecte faptul că locația poate fi opțională -->
         <p class="sub">Alege <b>Departament</b> → <b>Angajat</b>, apoi <b>Tip de activitate</b>, completează (dacă e cazul) <b>Locația</b> și (opțional) o <b>Notă</b>. Apoi folosește butoanele de mai jos.</p>
 
         <div class="grid cols-3">
@@ -234,20 +238,20 @@
         <div id="leavePanel" class="leave" style="display:none;margin-top:16px">
           <div class="kicker"><b>Cerere concediu</b> — adaugă <b>zile individuale</b> de concediu, apoi completează emailul personal și (opțional) o notă. Se trimite automat la HR.</div>
 
-          <div class="grid cols-3" id="leaveDaysBlock">
-            <div>
-              <label for="leaveDay">Zi concediu</label>
-              <input type="date" id="leaveDay" />
-            </div>
-            <div>
-              <label>&nbsp;</label>
-              <button id="btnAddDay" class="btn extra" type="button" style="width:100%">Adaugă zi</button>
-            </div>
-            <div>
-              <label>Zile selectate</label>
-              <div id="leaveDaysList" class="status" style="min-height:44px"></div>
-            </div>
-          </div>
+  <div class="grid cols-3" id="leaveDaysBlock">
+    <div>
+      <label for="leaveDay">Zi concediu</label>
+      <input type="date" id="leaveDay" />
+    </div>
+    <div>
+      <label>&nbsp;</label>
+      <button id="btnAddDay" class="btn extra" type="button" style="width:100%">Adaugă zi</button>
+    </div>
+    <div>
+      <label>Zile selectate</label>
+      <div id="leaveDaysList" class="status" style="min-height:44px"></div>
+    </div>
+  </div>
           <div class="grid cols-3">
             <div>
               <label for="leaveStart">Data start</label>
@@ -283,6 +287,7 @@
         </div>
 
         <!-- EXTRA time buttons -->
+        <!-- ID NOU PENTRU A PUTEA ASCUNDE BARA LA COMERCIAL -->
         <div class="btnbar" id="extraBar" style="margin-top:8px">
           <button class="btn extra" id="btnExtraStart" title="Pornește orele extra (separate de suplimentare)">Extra Start</button>
           <button class="btn extra" id="btnExtraFinish" title="Încheie orele extra">Extra Finish</button>
@@ -290,6 +295,7 @@
 
         <div id="status" class="status" role="status" aria-live="polite"></div>
 
+        <!-- Ascuns: blocul de debug JSON NU mai e folosit -->
         <div id="last" class="status mono" style="display:none"></div>
       </div>
 
@@ -355,14 +361,15 @@ Ana Radu
 
   <script>document.getElementById('year').textContent = new Date().getFullYear();</script>
 
-  <!-- ================== SPLASH: UI + AUDIO (synth) SINCRONIZATE ================== -->
+  <!-- =============== SPLASH: AUDIO SINCRO + DELAY 0.5s (nu atinge pontajul) =============== -->
   <script>
   (() => {
-    // întârziere globală ca să „prindă” sigur primul beep și să pornească simultan cu UI
-    const BASE_MS   = 500;   // 0.5s la intrare
-    const UI_OFFSET = 0.03;  // 30 ms după audio (percepție mai clară a atacului)
-    const PRIME_LEAD= 0.12;  // 120 ms înainte de primul beep — „dezgheață” audio
+    // Parametri de sincron
+    const BASE_MS   = 500;   // 0.5 s întârziere cerută
+    const UI_OFFSET = 0.03;  // UI apare la 30 ms după startul sunetului (percepție mai clară)
+    const PRIME_LEAD= 0.12;  // „trezire” aproape mută înainte de primul beep
 
+    // Timeline (secunde)
     const TL = { s1: 0.00, s2: 0.60, s3: 1.20, chime: 1.50, hide: 1.90 };
 
     const splash  = document.getElementById('splash');
@@ -384,47 +391,48 @@ Ana Radu
       setTimeout(()=>{ document.documentElement.classList.remove('splash-open'); document.body.classList.remove('splash-open'); }, 460);
     }
 
-    // WebAudio synth (fără fișiere) — stabil și rapid
+    // ===== WebAudio beeps (synth) =====
     const AudioSync = (() => {
       let ctx = null;
       function ensureCtx(){
         if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)({ latencyHint:'interactive' });
         return ctx;
       }
-      function blipAt(t, f, dur=0.16, type='sine', gain=0.95){
+      function blipAt(absTimeSec, freq, dur=0.16, type='sine', gain=0.95){
         const c = ensureCtx();
-        const o = c.createOscillator(); o.type = type; o.frequency.setValueAtTime(f, t);
+        const o = c.createOscillator(); o.type = type; o.frequency.setValueAtTime(freq, absTimeSec);
         const g = c.createGain();
-        g.gain.setValueAtTime(0, t);
-        g.gain.linearRampToValueAtTime(gain, t + 0.01);
-        g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+        g.gain.setValueAtTime(0, absTimeSec);
+        g.gain.linearRampToValueAtTime(gain, absTimeSec + 0.01);
+        g.gain.exponentialRampToValueAtTime(0.0001, absTimeSec + dur);
         o.connect(g); g.connect(c.destination);
-        o.start(t); o.stop(t + dur);
+        o.start(absTimeSec); o.stop(absTimeSec + dur);
       }
       function schedule(t0){
         const c = ensureCtx();
+        // priming aproape mut înainte de primul beep
         const primeAt = Math.max(c.currentTime + 0.01, t0 + TL.s1 - PRIME_LEAD);
-        blipAt(primeAt, 220, 0.02, 'sine', 0.001); // aproape mut, doar ca să „trezească” audio
+        blipAt(primeAt, 220, 0.02, 'sine', 0.001);
 
-        blipAt(t0 + TL.s1, 460, .20, 'sine', 0.98);      // linia 1
-        blipAt(t0 + TL.s2, 620, .16, 'sine', 0.95);      // linia 2 (două tonuri)
+        // bare
+        blipAt(t0 + TL.s1, 460, .20, 'sine', 0.98);     // prima linie mai clară
+        blipAt(t0 + TL.s2, 620, .16, 'sine', 0.95);
         blipAt(t0 + TL.s2 + 0.09, 760, .18, 'sine', 0.95);
-        blipAt(t0 + TL.s3, 780, .14, 'triangle', 0.92);  // linia 3 (trei tonuri)
+        blipAt(t0 + TL.s3, 780, .14, 'triangle', 0.92);
         blipAt(t0 + TL.s3 + 0.07, 900, .14, 'triangle', 0.92);
         blipAt(t0 + TL.s3 + 0.14,1020, .16, 'triangle', 0.94);
 
-        blipAt(t0 + TL.chime,        880, .22, 'triangle', 0.96); // chime final
-        blipAt(t0 + TL.chime + 0.07,1109, .24, 'triangle', 0.96);
-        blipAt(t0 + TL.chime + 0.14,1319, .28, 'triangle', 0.96);
+        // chime
+        blipAt(t0 + TL.chime,         880, .22, 'triangle', 0.96);
+        blipAt(t0 + TL.chime + 0.07, 1109, .24, 'triangle', 0.96);
+        blipAt(t0 + TL.chime + 0.14, 1319, .28, 'triangle', 0.96);
       }
       async function start(){
         const c = ensureCtx();
-        // unele browsere pornesc suspendat; încercăm resume
-        try{ if (c.state === 'suspended') await c.resume(); }catch{}
         const t0 = c.currentTime + BASE_MS/1000;
         schedule(t0);
 
-        // UI condusă de același ceas
+        // UI condusă de același ceas audio
         let done1=false, done2=false, done3=false, doneHide=false;
         function tick(){
           const now = c.currentTime;
@@ -438,32 +446,40 @@ Ana Radu
         requestAnimationFrame(tick);
         return true;
       }
-      return { start, ensureCtx };
+      async function tryResume(){ try{ const c = ensureCtx(); if (c.state==='suspended') await c.resume(); }catch{} }
+      return { start, tryResume, ensureCtx };
     })();
 
-    // Run
+    // Fallback fără audio (dacă autoplay e blocat)
+    function fallbackNoAudio(){
+      const startAt = performance.now() + BASE_MS;
+      let done1=false, done2=false, done3=false, doneHide=false;
+      function tick(){
+        const t = (performance.now() - startAt)/1000;
+        if (!done1 && t >= TL.s1 + UI_OFFSET){ stageUI(1); done1=true; }
+        if (!done2 && t >= TL.s2 + UI_OFFSET){ stageUI(2); done2=true; }
+        if (!done3 && t >= TL.s3 + UI_OFFSET){ stageUI(3); done3=true; }
+        if (!doneHide && t >= TL.hide + UI_OFFSET){ hideSplash(); doneHide=true; }
+        if (!doneHide) requestAnimationFrame(tick);
+      }
+      requestAnimationFrame(tick);
+    }
+
+    // RUN
     resetBars();
     (async () => {
-      let ok = false;
-      try { ok = await AudioSync.start(); } catch { ok = false; }
-      // fallback: dacă audio e blocat complet, măcar UI merge pe timp
-      if (!ok || (AudioSync.ensureCtx().state !== 'running')){
-        const t0ms = performance.now() + BASE_MS;
-        let d1=false,d2=false,d3=false,dH=false;
-        function tick(){
-          const t = (performance.now() - t0ms)/1000;
-          if (!d1 && t >= TL.s1 + UI_OFFSET){ stageUI(1); d1=true; }
-          if (!d2 && t >= TL.s2 + UI_OFFSET){ stageUI(2); d2=true; }
-          if (!d3 && t >= TL.s3 + UI_OFFSET){ stageUI(3); d3=true; }
-          if (!dH && t >= TL.hide + UI_OFFSET){ hideSplash(); dH=true; }
-          if (!dH) requestAnimationFrame(tick);
-        }
-        requestAnimationFrame(tick);
+      let started = false;
+      try {
+        await AudioSync.tryResume();
+        started = await AudioSync.start();
+      } catch { started = false; }
+      if (!started || (AudioSync.ensureCtx().state !== 'running')) {
+        fallbackNoAudio();
       }
     })();
   })();
   </script>
-  <!-- ================== END SPLASH ================== -->
+  <!-- ================= END SPLASH ================= -->
 
   <script>
 /** ================== Helpers & Config ================== */
@@ -599,6 +615,7 @@ async function sendLeave(payload) {
       'f_device':   names.device,
       'f_notes':    names.notes,
       'f_maps':     names.mapsLink,
+      // nou: dacă există în config.json -> fields.department
       'f_department': names.department || ''
     };
     Object.entries(idMap).forEach(([id,name]) => {
