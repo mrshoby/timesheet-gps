@@ -859,11 +859,11 @@ function sumPausesFromEvents(events, fallbackPair){
     if (lbtn) lbtn.disabled = !!disabled;
   }
 
+  // >>> MODIFICAT: atașez mereu fn=state (merge cu root /exec sau cu URL complet)
   async function fetchState(name){
-    const base = (CFG.stateEndpoint && CFG.stateEndpoint.trim()) || (CFG.guardEndpoint && (CFG.guardEndpoint.trim() + '?fn=state'));
-    if (!base) return null;
-    const url = base.includes('?fn=state') ? (base + '&name=' + encodeURIComponent(name))
-                                           : (base + (base.includes('?')?'&':'?') + 'name=' + encodeURIComponent(name));
+    const baseRoot = (CFG.stateEndpoint && CFG.stateEndpoint.trim()) || (CFG.guardEndpoint && CFG.guardEndpoint.trim());
+    if (!baseRoot) return null;
+    const url = baseRoot + (baseRoot.includes('?') ? '&' : '?') + 'fn=state&name=' + encodeURIComponent(name);
     const r = await fetch(url, { cache:'no-store' });
     const txt = await r.text();
     try { return JSON.parse(txt).state || null; } catch { return null; }
