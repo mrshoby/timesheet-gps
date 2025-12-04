@@ -392,6 +392,10 @@ const ServelectAudio = (() => {
   }
   const wait = (ms)=>new Promise(r=>setTimeout(r,ms));
   function hideSplash(){ splash.classList.add('hide'); }
+
+  // Failsafe: ascunde splash și dacă orice se blochează
+  setTimeout(hideSplash, 3200);
+
   window.addEventListener('pointerdown', () => ServelectAudio.resumeIfSuspended(), { once:true, passive:true });
   window.addEventListener('keydown', () => ServelectAudio.resumeIfSuspended(), { once:true });
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') ServelectAudio.resumeIfSuspended(); });
@@ -431,7 +435,7 @@ function showToast(msg, type){
 function normalizeName(s){
   return String(s||'')
     .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g,'') // scoate diacritice
+    .replace(/[\u0300-\u036f]/g,'')
     .toLowerCase()
     .trim();
 }
@@ -445,6 +449,9 @@ function dayKeyLocal(iso){
 
 /** Leave endpoint */
 async function sendLeave(payload) {
+  if (!(window.CFG && CFG.leaveEndpoint)) {
+    throw new Error('Endpoint concedii indisponibil în config.');
+  }
   const r = await fetch(CFG.leaveEndpoint, {
     method: 'POST',
     headers: {'Content-Type':'text/plain;charset=utf-8'},
@@ -480,7 +487,7 @@ function parseGvizDateStr(s){
   const m = /^Date\((\d+),(\d+),(\d+)(?:,(\d+),(\d+),(\d+))?\)$/.exec(String(s).trim());
   if (!m) return null;
   const Y = +m[1], M = +m[2], D = +m[3], h = +(m[4]||0), mi = +(m[5]||0), se = +(m[6]||0);
-  const d = new Date(Y, M, D, h, mi, se); // local time
+  const d = new Date(Y, M, D, h, mi, se);
   return isNaN(d.getTime()) ? null : d.toISOString();
 }
 async function fetchGvizRows(url){
@@ -648,14 +655,15 @@ function sumPausesFromEvents(events, fallbackPair){
       lastNormalFinish: null,
       lastExtraStart: null,
       lastExtraFinish: null,
-      lastPauseStart: null,     // ISO
-      pauseMsByDay: {}          // { 'YYYY-MM-DD'(LOCAL): ms }
+      lastPauseStart: null,
+      pauseMsByDay: {}
     };
   }
   function loadLS(){ try { return JSON.parse(localStorage.getItem(LS_KEY) || 'null'); } catch{return null;} }
   function saveLS(){ try { localStorage.setItem(LS_KEY, JSON.stringify(STATE)); } catch{} }
 
   function bindCFGToForm() {
+    if (!(CFG && CFG.formAction && CFG.fields)) return false;
     form.action = CFG.formAction;
     const names = CFG.fields;
     const idMap = {
@@ -674,12 +682,13 @@ function sumPausesFromEvents(events, fallbackPair){
     };
     Object.entries(idMap).forEach(([id,name]) => {
       const el = document.getElementById(id);
-      if (name) el.setAttribute('name', name);
+      if (el && name) el.setAttribute('name', name);
     });
+    return true;
   }
 
   function bindLeaveForm() {
-    if (!CFG.leaveFormAction || !CFG.leaveFields) return false;
+    if (!(CFG && CFG.leaveFormAction && CFG.leaveFields)) return false;
     const m = CFG.leaveFields;
     const map = {
       'lv_name':  m.name,
@@ -788,7 +797,7 @@ function sumPausesFromEvents(events, fallbackPair){
 
   async function loadDepartments(){
     try{
-      if (CFG.departmentsCsv){
+      if (window.CFG && CFG.departmentsCsv){
         const url = CFG.departmentsCsv + (CFG.departmentsCsv.includes('?') ? '&' : '?') + 'v=' + Date.now();
         const r = await fetch(url, {cache:'no-store'});
         if (r.ok){
@@ -807,13 +816,13 @@ function sumPausesFromEvents(events, fallbackPair){
     // Fallback
     let fallbackEmployees = [];
     try {
-      if (CFG.employeesCsv){
+      if (window.CFG && CFG.employeesCsv){
         const url = CFG.employeesCsv + (CFG.employeesCsv.includes('?') ? '&' : '?') + 'v=' + Date.now();
         const r = await fetch(url, {cache:'no-store'});
         if (r.ok) fallbackEmployees = parseEmployeesCSV(await r.text());
       }
     } catch(e){}
-    if (!fallbackEmployees.length && Array.isArray(CFG.employees)) fallbackEmployees = CFG.employees.slice();
+    if (!fallbackEmployees.length && window.CFG && Array.isArray(CFG.employees)) fallbackEmployees = CFG.employees.slice();
     if (!fallbackEmployees.length) fallbackEmployees = getInlineEmployees();
 
     const byDept = new Map([['productie', fallbackEmployees]]);
@@ -842,7 +851,6 @@ function sumPausesFromEvents(events, fallbackPair){
     btnStart.disabled       = !hasSel || running || extraR;
     btnPause.disabled       = !hasSel || !running || paused;
     btnUnpause.disabled     = !hasSel || !running || !paused;
-    /* FINISH blocat când e în PAUSE */
     btnFinish.disabled      = !hasSel || !running || paused;
 
     btnExtraStart.disabled  = !hasSel || running || extraR;
@@ -860,20 +868,21 @@ function sumPausesFromEvents(events, fallbackPair){
   }
 
   // ==== STATE & STATS API HELPERS ====
-  async function fetchState(name){
-    const baseRoot = (CFG.stateEndpoint && CFG.stateEndpoint.trim()) || (CFG.guardEndpoint && CFG.guardEndpoint.trim());
-    if (!baseRoot) return null;
-    const url = baseRoot.replace(/\?.*$/,'') + '?fn=state&name=' + encodeURIComponent(name);
-    const r = await fetch(url, { cache:'no-store' });
-    const txt = await r.text();
-    try { return JSON.parse(txt).state || null; } catch { return null; }
+  function baseEndpoint(){
+    const fromCfg = (window.CFG && (CFG.guardEndpoint || CFG.stateEndpoint)) || '';
+    const base = (fromCfg || location.href).replace(/\?.*$/,'');
+    return base;
   }
-
+  async function fetchState(name){
+    const url = baseEndpoint() + '?fn=state&name=' + encodeURIComponent(name);
+    try{
+      const r = await fetch(url, { cache:'no-store' });
+      const txt = await r.text();
+      return JSON.parse(txt).state || null;
+    }catch{ return null; }
+  }
   async function fetchStats(name){
-    const rawBase = (CFG.guardEndpoint && CFG.guardEndpoint.trim()) || (CFG.stateEndpoint && CFG.stateEndpoint.trim());
-    if (!rawBase) return null;
-    const base = rawBase.replace(/\?.*$/,''); 
-    const url = base + '?fn=stats&name=' + encodeURIComponent(name);
+    const url = baseEndpoint() + '?fn=stats&name=' + encodeURIComponent(name);
     try{
       const r = await fetch(url, { cache:'no-store' });
       const txt = await r.text();
@@ -881,13 +890,8 @@ function sumPausesFromEvents(events, fallbackPair){
       return (data && data.ok) ? data.stats : null;
     }catch{ return null; }
   }
-
-  // NEW: server-side pause totals (day in RO) until a given ISO
   async function fetchPauseTotals(name, untilIso){
-    const rawBase = (CFG.guardEndpoint && CFG.guardEndpoint.trim()) || (CFG.stateEndpoint && CFG.stateEndpoint.trim());
-    if (!rawBase) return null;
-    const base = rawBase.replace(/\?.*$/,''); 
-    const url = base + '?fn=pausetotals&name=' + encodeURIComponent(name) + (untilIso ? ('&until=' + encodeURIComponent(untilIso)) : '');
+    const url = baseEndpoint() + '?fn=pausetotals&name=' + encodeURIComponent(name) + (untilIso ? ('&until=' + encodeURIComponent(untilIso)) : '');
     try{
       const r = await fetch(url, { cache:'no-store' });
       const txt = await r.text();
@@ -895,11 +899,8 @@ function sumPausesFromEvents(events, fallbackPair){
       return (data && data.ok) ? data : null;
     }catch{ return null; }
   }
-
   async function guardRemote(name, action){
-    const base = (CFG.guardEndpoint && CFG.guardEndpoint.trim()) || (CFG.stateEndpoint && CFG.stateEndpoint.trim());
-    if (!base) return {ok:true};
-    const url = base.replace(/\?.*$/,'') + '?fn=guard';
+    const url = baseEndpoint() + '?fn=guard';
     try{
       const r = await fetch(url, {
         method: 'POST',
@@ -914,42 +915,6 @@ function sumPausesFromEvents(events, fallbackPair){
     }
   }
 
-  function localGuard(action){
-    action = _normAction(action);
-    const running = STATE.normal.running;
-    const paused  = STATE.normal.paused;
-    const extraR  = STATE.extra.running;
-
-    switch(action){
-      case 'start':
-        if (running)  return 'Ai deja un START în derulare.';
-        if (extraR)   return 'Finalizează norma înainte de „EXTRA START”.';
-        return null;
-      case 'pause':
-        if (!running) return 'Nu poți da PAUSE fără START.';
-        if (paused)   return 'Ești deja pe PAUSE.';
-        return null;
-      case 'unpause':
-        if (!running) return 'Nu poți da UNPAUSE fără START.';
-        if (!paused)  return 'Nu ești în PAUSE.';
-        return null;
-      case 'finish':
-        if (!running) return 'Nu poți da FINISH fără START.';
-        if (paused)   return 'Nu poți da FINISH în PAUSE — apasă UNPAUSE mai întâi.';
-        return null;
-      case 'extra_start':
-        if (running)  return 'Finalizează norma înainte de „EXTRA START”.';
-        if (extraR)   return 'Ai deja EXTRA pornit.';
-        return null;
-      case 'extra_finish':
-        if (!extraR)  return 'Nu poți da „EXTRA FINISH” fără „EXTRA START”.';
-        return null;
-      default:
-        return null;
-    }
-  }
-
-  /* --- helpers pauze --- */
   const minutesFromMs = (ms)=> Math.round(ms / 60000);
 
   function applyLocalTransition(action, ts){
@@ -1004,7 +969,7 @@ function sumPausesFromEvents(events, fallbackPair){
     document.getElementById('f_device').value    = navigator.userAgent;
     document.getElementById('f_notes').value     = (notesEl.value || '');
     document.getElementById('f_maps').value      = `https://maps.google.com/?q=${gps.lat},${gps.lon}`;
-    const deptFromMap = DEPTMAP.byName.get(empSel.value) || '';
+    const deptFromMap = (DEPTMAP.byName && DEPTMAP.byName.get) ? (DEPTMAP.byName.get(empSel.value) || '') : '';
     document.getElementById('f_department').value = (deptSel.value || deptFromMap || '');
     document.getElementById('f_nonce').value      = randomNonce();
   }
@@ -1045,12 +1010,8 @@ function sumPausesFromEvents(events, fallbackPair){
     return v === 'comercial' || v === 'coemercial';
   }
 
-  // ---- Calculează pauzele din server (zi locală RO) cu fallback pe foaie/local ----
   async function computePauseFromSheetAndShow(name, lastPauseStartIso, unpauseTsIso){
-    // 1) curent (minim, local)
     let curMin = Math.max(0, Math.round(msBetween(lastPauseStartIso, unpauseTsIso) / 60000));
-
-    // 2) total din server (până la 'unpauseTsIso')
     let totMin = 0;
     try{
       const s = await fetchPauseTotals(name, unpauseTsIso);
@@ -1059,8 +1020,6 @@ function sumPausesFromEvents(events, fallbackPair){
         if (typeof s.curMin === 'number') curMin = Math.max(curMin, s.curMin);
       }
     }catch{}
-
-    // 3) fallback-uri dacă serverul nu a reușit din vreun motiv
     if (!totMin || totMin < curMin){
       const keyLocal = dayKeyLocal(lastPauseStartIso);
       try{
@@ -1075,14 +1034,12 @@ function sumPausesFromEvents(events, fallbackPair){
         totMin = Math.max((STATE.pauseMsByDay[key]||0)/60000|0, curMin);
       }
     }
-
     setStatus(`Pauză încheiată — interval curent: ${curMin} min • total azi: ${totMin} min.`, 'ok');
     showToast(
       `<b>Pauză încheiată</b><div class="small">Curent: <b>${curMin}</b> min • Total azi: <b>${totMin}</b> min</div>`,
       'ok'
     );
   }
-
 
   // ==================== ACTION SUBMIT cu LOCK ====================
   async function submitAction(action) {
@@ -1113,8 +1070,24 @@ function sumPausesFromEvents(events, fallbackPair){
       return;
     }
 
-    const lg = localGuard(action);
-    if (lg) { setStatus(lg, 'warn'); return; }
+    // local guard
+    {
+      const running = STATE.normal.running;
+      const paused  = STATE.normal.paused;
+      const extraR  = STATE.extra.running;
+      const e = (()=>{
+        switch(actNorm){
+          case 'start':        if (running) return 'Ai deja START activ.'; if (extraR) return 'Finalizează „EXTRA” înainte de START.'; break;
+          case 'pause':        if (!running) return 'Nu poți PAUSE fără START.'; if (paused) return 'Ești deja în PAUSE.'; break;
+          case 'unpause':      if (!running) return 'Nu poți UNPAUSE fără START.'; if (!paused) return 'Nu ești în PAUSE.'; break;
+          case 'finish':       if (!running) return 'Nu poți FINISH fără START.'; if (paused) return 'Nu poți FINISH în PAUSE — apasă UNPAUSE mai întâi.'; break;
+          case 'extra_start':  if (running) return 'Închide norma (FINISH) înainte de EXTRA START.'; if (extraR) return 'EXTRA este deja pornit.'; break;
+          case 'extra_finish': if (!extraR) return 'Nu poți EXTRA FINISH fără EXTRA START.'; break;
+        }
+        return null;
+      })();
+      if (e) { setStatus(e, 'warn'); return; }
+    }
 
     busy = true;
     setUILock(true);
@@ -1133,7 +1106,12 @@ function sumPausesFromEvents(events, fallbackPair){
       const lastPauseStartIso = (actNorm === 'unpause') ? STATE.lastPauseStart : null;
 
       setFormPayload(action, ts, gps);
-      form.submit();
+
+      if (form.action && form.action.trim().length && form.querySelector('[name]')) {
+        form.submit(); // avem config pentru Google Form
+      } else {
+        setStatus('Atenție: nu există config de formular — acțiunea se înregistrează doar local/UI.', 'warn');
+      }
 
       applyLocalTransition(action, ts);
       saveLS();
@@ -1190,18 +1168,22 @@ function sumPausesFromEvents(events, fallbackPair){
 
   /** ===== INIT ===== */
   (async function init(){
+    let loadedCfg = false;
     try {
       const r = await fetch('config.json?v=' + Date.now(), {cache:'no-store'});
       if (!r.ok) throw new Error('HTTP ' + r.status);
       CFG = await r.json();
-      if (!CFG.formAction || !CFG.fields) throw new Error('Config incomplet');
+      if (!CFG || !CFG.fields) throw new Error('Config incomplet');
       setCfg('Config încărcat', 'ok');
       window.CFG = CFG;
+      loadedCfg = true;
     } catch (e) {
-      setCfg('Eroare config: ' + (e.message||e), 'err');
-      disableAllButtons(true); return;
+      // NU mai facem return; continuăm cu fallback
+      setCfg('Eroare config — rulez fallback local.', 'warn');
+      window.CFG = {}; // fallback gol, toate accesările sunt protejate
     }
 
+    // Legăm form-urile doar dacă avem config valid (nu se rupe dacă lipsesc)
     bindCFGToForm();
     bindLeaveForm();
 
@@ -1217,7 +1199,6 @@ function sumPausesFromEvents(events, fallbackPair){
         empSel.value = '';
       }
       if (extraBar) extraBar.style.display = isComercialDept() ? 'none' : '';
-
       STATE = blankState(); STATE.name = '';
       reflectState(); setEmp('', '');
     });
@@ -1234,7 +1215,6 @@ function sumPausesFromEvents(events, fallbackPair){
       if (isLeave) { LEAVE_DAYS = []; setLeaveStatus('', ''); }
     });
 
-    // UI “add day” mic utilitar
     if (btnAddDay && leaveDaysList && leaveDay){
       btnAddDay.addEventListener('click', () => {
         const v = (leaveDay.value||'').trim();
@@ -1252,7 +1232,8 @@ function sumPausesFromEvents(events, fallbackPair){
       if (!deptSel.value) { setLeaveStatus('Alege departamentul.', 'err'); return; }
       if (!empSel.value)  { setLeaveStatus('Selectează angajat.', 'err'); return; }
       const tip = (actSel.value || '').toLowerCase();
-      if (!LEAVE_TYPES.has(tip)) { setLeaveStatus('Alege un tip de concediu.', 'err'); return; }
+      const LEAVES = new Set(['concediu de odihna','concediu medical','concediu pentru ore suplimentare']);
+      if (!LEAVES.has(tip)) { setLeaveStatus('Alege un tip de concediu.', 'err'); return; }
       const sd = leaveStart.value;
       const ed = leaveEnd.value;
       const hasDays = Array.isArray(LEAVE_DAYS) && LEAVE_DAYS.length > 0;
@@ -1266,7 +1247,7 @@ function sumPausesFromEvents(events, fallbackPair){
       setLeaveStatus('Se trimite cererea…', '');
 
       let formSubmitted = false;
-      if (CFG.leaveFormAction && CFG.leaveFields) {
+      if (window.CFG && CFG.leaveFormAction && CFG.leaveFields) {
         try {
           document.getElementById('lv_name').value  = empSel.value;
           document.getElementById('lv_type').value  = tip;
@@ -1284,7 +1265,7 @@ function sumPausesFromEvents(events, fallbackPair){
       }
 
       let endpointOk = false, endpointMsg = '';
-      if (CFG.leaveEndpoint) {
+      if (window.CFG && CFG.leaveEndpoint) {
         try {
           const _daysSorted = hasDays ? LEAVE_DAYS.slice().sort() : [];
           const _first = hasDays ? _daysSorted[0] : sd;
