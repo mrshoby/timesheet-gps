@@ -92,7 +92,7 @@
     .admin-header{
       display:flex;
       flex-wrap:wrap;
-      align-items:center;
+      align-items:flex-start;
       justify-content:space-between;
       gap:12px;
       margin-bottom:14px;
@@ -104,7 +104,7 @@
     .admin-filter-line{
       display:flex;
       flex-wrap:wrap;
-      align-items:center;
+      align-items:flex-end;
       gap:10px;
     }
     .admin-filter-line label{
@@ -120,6 +120,7 @@
       border:1px solid #d1d5db;
       font-size:13px;
       outline:none;
+      background:#ffffff;
     }
     .admin-filter-line select:focus{
       border-color:var(--brand);
@@ -128,6 +129,7 @@
     .admin-last-update{
       font-size:12px;
       color:var(--muted);
+      margin-left:auto;
     }
 
     .admin-error{
@@ -179,6 +181,7 @@
       display:grid;
       grid-template-columns: minmax(0,1.3fr) minmax(0,1.7fr);
       gap:12px;
+      margin-bottom:12px;
     }
     @media (max-width:960px){
       .admin-grid{ grid-template-columns:1fr; }
@@ -255,6 +258,18 @@
       border-bottom:none;
     }
 
+    .admin-log{
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", Courier, monospace;
+      font-size:11px;
+      background:#020617;
+      color:#e5e7eb;
+      border-radius:10px;
+      padding:10px 12px;
+      max-height:240px;
+      overflow:auto;
+      white-space:pre;
+    }
+
     .admin-side{
       display:flex;
       flex-direction:column;
@@ -324,6 +339,18 @@
                 <option value="all">Toate datele</option>
               </select>
             </label>
+            <label>
+              <span>Departament</span>
+              <select id="deptFilter">
+                <option value="all">Toate</option>
+              </select>
+            </label>
+            <label>
+              <span>Angajat</span>
+              <select id="employeeFilter">
+                <option value="all">Toți</option>
+              </select>
+            </label>
             <div class="admin-last-update" id="lastUpdate">–</div>
           </div>
         </header>
@@ -354,13 +381,13 @@
           <div class="admin-grid">
             <section class="card admin-card">
               <h2>Distribuție pe departamente</h2>
-              <div class="admin-small-text">Număr de pontaje în perioada selectată.</div>
+              <div class="admin-small-text">Număr de pontaje în perioada și filtrele selectate.</div>
               <div id="deptList" class="admin-list"></div>
             </section>
 
             <section class="card admin-card">
               <h2>Ultimele pontaje</h2>
-              <div class="admin-small-text">Cele mai recente 25 de înregistrări.</div>
+              <div class="admin-small-text">Cele mai recente 25 de înregistrări din filtrul curent.</div>
               <div class="table-wrap">
                 <table class="admin-table">
                   <thead>
@@ -377,6 +404,14 @@
               </div>
             </section>
           </div>
+
+          <section class="card admin-card">
+            <h2>Log brut (filtru curent)</h2>
+            <div class="admin-small-text">
+              Lista completă a evenimentelor care trec de filtrele de mai sus — utilă pentru debugging sau verificări rapide.
+            </div>
+            <pre id="rawLog" class="admin-log">–</pre>
+          </section>
         </section>
       </section>
 
@@ -387,6 +422,9 @@
             Conectat ca <b id="adminLabel">Admin</b>.
           </p>
           <button id="logoutBtn" class="btn primary" type="button">Deconectare</button>
+          <button id="exportCsvBtn" class="btn" type="button" style="margin-top:8px">
+            Export CSV (filtru curent)
+          </button>
           <p class="admin-small-text" style="margin-top:10px">
             <a href="index.html" class="admin-link">Înapoi la pontaj</a>
           </p>
@@ -396,7 +434,7 @@
           <h2>Notițe</h2>
           <p class="admin-small-text">
             Pagina citește direct foaia de pontaj ( <code>sheet.gvizUrl</code> din <code>config.json</code> )
-            și calculează sumarul în browser. Poți extinde logica în <code>admin.html</code> (statistici suplimentare, filtre etc.).
+            și calculează sumarul în browser. Poți extinde logica aici pentru rapoarte suplimentare, filtre, exporturi etc.
           </p>
         </section>
       </aside>
@@ -424,7 +462,11 @@
     const loadingEl = document.getElementById('loading');
     const dashboardEl = document.getElementById('dashboard');
     const rangeSelect = document.getElementById('rangeSelect');
+    const deptFilter = document.getElementById('deptFilter');
+    const employeeFilter = document.getElementById('employeeFilter');
     const lastUpdateEl = document.getElementById('lastUpdate');
+    const rawLogEl = document.getElementById('rawLog');
+    const exportCsvBtn = document.getElementById('exportCsvBtn');
 
     if (!session){
       alert('Nu ești autentificat ca admin. Te redirecționez la pagina principală.');
@@ -514,14 +556,16 @@
         name:'f_name',
         action:'f_action',
         department:'f_department',
-        activity:'f_activity'
+        activity:'f_activity',
+        location:'f_location'
       }, colsCfg || {});
       const ts = isoFromAny(row[cols.timestamp] ?? row['timestamp'] ?? row['Timestamp'] ?? row['data'] ?? row['dată'] ?? row['date']);
       const name = String(row[cols.name] ?? row['Nume'] ?? row['nume'] ?? row['name'] ?? '').trim();
       const action = _normAction(row[cols.action] ?? row['actiune'] ?? row['acțiune'] ?? row['Acțiune'] ?? row['Actiune'] ?? '');
       const dept = String(row[cols.department] ?? row['departament'] ?? row['Departament'] ?? '').trim();
       const activity = String(row[cols.activity] ?? row['activitate'] ?? row['Activitate'] ?? '').trim();
-      return { ts, name, action, dept, activity };
+      const location = String(row[cols.location] ?? row['locație'] ?? row['locatie'] ?? row['location'] ?? '').trim();
+      return { ts, name, action, dept, activity, location };
     }
 
     function filterEventsByRange(events, range){
@@ -582,7 +626,7 @@
       if (!container) return;
       const list = events || [];
       if (!list.length){
-        container.innerHTML = '<div class="admin-empty">Nu există date în perioada selectată.</div>';
+        container.innerHTML = '<div class="admin-empty">Nu există date în filtrul curent.</div>';
         return;
       }
       const counts = {};
@@ -615,7 +659,7 @@
         const tr = document.createElement('tr');
         const td = document.createElement('td');
         td.colSpan = 5;
-        td.textContent = 'Nu există înregistrări în perioada selectată.';
+        td.textContent = 'Nu există înregistrări în filtrul curent.';
         tr.appendChild(td);
         tbody.appendChild(tr);
         return;
@@ -630,6 +674,113 @@
           '<td>' + (ev.activity || '') + '</td>';
         tbody.appendChild(tr);
       });
+    }
+
+    function renderRawLog(events){
+      if (!rawLogEl) return;
+      const list = events || [];
+      if (!list.length){
+        rawLogEl.textContent = 'Nu există evenimente în filtrul curent.';
+        return;
+      }
+      const sorted = list.slice().sort((a,b)=>{
+        const ta = a.ts ? new Date(a.ts).getTime() : 0;
+        const tb = b.ts ? new Date(b.ts).getTime() : 0;
+        return ta - tb;
+      });
+      const lines = sorted.map(ev => {
+        const t = fmtDateTime(ev.ts);
+        const dept = ev.dept || '';
+        const name = ev.name || '';
+        const action = ev.action || '';
+        const act = ev.activity || '';
+        const loc = ev.location || '';
+        let s = `[${t}] ${name}`;
+        if (dept) s += ' | ' + dept;
+        if (action) s += ' | ' + action;
+        if (act) s += ' | ' + act;
+        if (loc) s += ' | ' + loc;
+        return s;
+      });
+      rawLogEl.textContent = lines.join('\n');
+    }
+
+    function buildDeptFilter(events){
+      if (!deptFilter) return;
+      const set = new Set();
+      events.forEach(ev => {
+        const key = ev.dept || '(fără departament)';
+        if (key) set.add(key);
+      });
+      const depts = Array.from(set).sort((a,b)=>a.localeCompare(b,'ro'));
+      deptFilter.innerHTML = '';
+      const optAll = document.createElement('option');
+      optAll.value = 'all';
+      optAll.textContent = 'Toate';
+      deptFilter.appendChild(optAll);
+      depts.forEach(d => {
+        const o = document.createElement('option');
+        o.value = d;
+        o.textContent = d;
+        deptFilter.appendChild(o);
+      });
+    }
+
+    function buildEmployeeFilter(events, selectedDept){
+      if (!employeeFilter) return;
+      const set = new Set();
+      events.forEach(ev => {
+        if (!ev.name) return;
+        const deptKey = ev.dept || '(fără departament)';
+        if (selectedDept && selectedDept !== 'all' && deptKey !== selectedDept) return;
+        set.add(ev.name);
+      });
+      const emps = Array.from(set).sort((a,b)=>a.localeCompare(b,'ro'));
+      employeeFilter.innerHTML = '';
+      const optAll = document.createElement('option');
+      optAll.value = 'all';
+      optAll.textContent = 'Toți';
+      employeeFilter.appendChild(optAll);
+      emps.forEach(n => {
+        const o = document.createElement('option');
+        o.value = n;
+        o.textContent = n;
+        employeeFilter.appendChild(o);
+      });
+    }
+
+    function exportCsv(events){
+      const list = events || [];
+      if (!list.length){
+        alert('Nu există evenimente în filtrul curent pentru export.');
+        return;
+      }
+      const header = ['timestamp_iso','data_ora','nume','departament','actiune','activitate','locatie'];
+      const rows = list.map(ev => [
+        ev.ts || '',
+        fmtDateTime(ev.ts) || '',
+        ev.name || '',
+        ev.dept || '',
+        ev.action || '',
+        ev.activity || '',
+        ev.location || ''
+      ]);
+      const csvLines = [header].concat(rows).map(row => row.map(cell => {
+        const s = String(cell).replace(/"/g,'""');
+        return '"' + s + '"';
+      }).join(','));
+      const csv = csvLines.join('\r\n');
+      const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'pontaj-export.csv';
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(function(){
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }, 0);
     }
 
     async function init(){
@@ -656,17 +807,63 @@
         }
 
         let currentRange = rangeSelect ? rangeSelect.value : 'today';
+        let currentDept = 'all';
+        let currentEmployee = 'all';
+        let latestFiltered = [];
+
+        // populate filtre
+        buildDeptFilter(events);
+        buildEmployeeFilter(events, currentDept);
+
+        function getFilteredEvents(){
+          let list = filterEventsByRange(events, currentRange || 'today');
+          if (currentDept && currentDept !== 'all'){
+            list = list.filter(ev => (ev.dept || '(fără departament)') === currentDept);
+          }
+          if (currentEmployee && currentEmployee !== 'all'){
+            list = list.filter(ev => ev.name === currentEmployee);
+          }
+          return list;
+        }
+
         function refresh(){
-          const range = rangeSelect ? rangeSelect.value : currentRange;
-          currentRange = range;
-          const filtered = filterEventsByRange(events, range || 'today');
+          const filtered = getFilteredEvents();
+          latestFiltered = filtered;
           renderKpis(filtered);
           renderDept(filtered);
           renderLastEvents(filtered);
+          renderRawLog(filtered);
         }
+
         if (rangeSelect){
-          rangeSelect.addEventListener('change', refresh);
+          rangeSelect.addEventListener('change', function(){
+            currentRange = rangeSelect.value || 'today';
+            refresh();
+          });
         }
+        if (deptFilter){
+          deptFilter.addEventListener('change', function(){
+            currentDept = deptFilter.value || 'all';
+            buildEmployeeFilter(events, currentDept);
+            currentEmployee = 'all';
+            if (employeeFilter) employeeFilter.value = 'all';
+            refresh();
+          });
+        }
+        if (employeeFilter){
+          employeeFilter.addEventListener('change', function(){
+            currentEmployee = employeeFilter.value || 'all';
+            refresh();
+          });
+        }
+
+        if (exportCsvBtn){
+          exportCsvBtn.addEventListener('click', function(){
+            exportCsv(latestFiltered);
+          });
+        }
+
+        // prima randare
         refresh();
       }catch(e){
         showError(e.message || String(e));
