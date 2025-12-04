@@ -560,24 +560,42 @@ Config (în config.json):
 
 – Dacă există gvizUrl, îl folosim. Dacă nu, încearcă csvUrl. Dacă niciunul nu există sau CORS blochează, se revine la fallback local.
 */
+function parseGvizDateStr(s){
+  // "Date(2025,11,4,15,22,10)" — luni 0-based (11 = decembrie)
+  const m = /^Date\((\d+),(\d+),(\d+)(?:,(\d+),(\d+),(\d+))?\)$/.exec(String(s).trim());
+  if (!m) return null;
+  const Y = +m[1], M = +m[2], D = +m[3], h = +(m[4]||0), mi = +(m[5]||0), se = +(m[6]||0);
+  const d = new Date(Y, M, D, h, mi, se); // interpretăm ca „local time”
+  return isNaN(d.getTime()) ? null : d.toISOString();
+}
+
 async function fetchGvizRows(url){
   const r = await fetch(url + (url.includes('?') ? '&' : '?') + 'tqx=out:json&rand=' + Date.now(), {cache:'no-store'});
   const txt = await r.text();
-  // strip prefix/suffix
   const m = txt.match(/google\.visualization\.Query\.setResponse\(([\s\S]*)\);?/);
   if (!m) throw new Error('GViz format necunoscut');
   const data = JSON.parse(m[1]);
   if (!data.table || !data.table.rows) return [];
-  const cols = data.table.cols.map(c => (c.label || c.id || '').trim());
+  const cols = data.table.cols.map(c => ({ label:(c.label||c.id||'').trim(), type:(c.type||'').trim() }));
   return data.table.rows.map(row => {
     const obj = {};
     row.c.forEach((cell, i) => {
-      const label = cols[i] || ('C' + i);
-      let v = cell && ('v' in cell) ? cell.v : null;
-      if (v && typeof v === 'object' && v instanceof Date === false && 'f' in cell && typeof cell.f === 'string') {
-        v = cell.f;
+      const label = cols[i].label || ('C'+i);
+      const type  = cols[i].type;
+      let v = (cell && 'v' in cell) ? cell.v : null;
+
+      if (type === 'datetime' || type === 'date' || type === 'timeofday') {
+        let iso = null;
+        if (typeof v === 'string' && /^Date\(/.test(v)) iso = parseGvizDateStr(v);
+        if (!iso && cell && typeof cell.f === 'string' && cell.f.trim()){
+          const d = new Date(cell.f);
+          if (!isNaN(d.getTime())) iso = d.toISOString();
+        }
+        v = iso || (typeof v === 'string' ? v : (cell && cell.f) || v);
       }
+
       obj[label] = v;
+      obj[label.toLowerCase()] = v; // dublăm cheile pentru lookup case-insensitive
     });
     return obj;
   });
@@ -587,17 +605,14 @@ function parseCSV(text){
   text = (text || '').replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim();
   const lines = text.split('\n').filter(Boolean);
   if (!lines.length) return [];
-  const detect = (text.indexOf(';') > -1 && text.indexOf(';') < text.indexOf(',')) ? ';' : ',';
-  const sep = detect;
+  const sep = (text.indexOf(';') > -1 && text.indexOf(';') < text.indexOf(',')) ? ';' : ',';
   const hdr = lines[0].split(sep).map(s=>s.trim().replace(/^"|"$/g,''));
-  const rows = [];
-  for (let i=1;i<lines.length;i++){
-    const cells = lines[i].split(sep).map(s=>s.trim().replace(/^"|"$/g,''));
-    const obj = {};
-    hdr.forEach((h,idx)=>{ obj[h]=cells[idx]??''; });
-    rows.push(obj);
-  }
-  return rows;
+  return lines.slice(1).map(line=>{
+    const cells = line.split(sep).map(s=>s.trim().replace(/^"|"$/g,''));
+    const o = {};
+    hdr.forEach((h,i)=>{ o[h]=cells[i]??''; o[h.toLowerCase()]=cells[i]??''; });
+    return o;
+  });
 }
 async function fetchCsvRows(url){
   const r = await fetch(url + (url.includes('?') ? '&' : '?') + 'rand=' + Date.now(), {cache:'no-store'});
@@ -607,9 +622,8 @@ async function fetchCsvRows(url){
 function isoFromAny(x){
   if (!x) return null;
   if (typeof x === 'string'){
-    // already ISO?
+    if (/^Date\(/.test(x)) return parseGvizDateStr(x);
     if (/^\d{4}-\d{2}-\d{2}T/.test(x)) return x;
-    // try to parse locale date/time
     const d = new Date(x);
     if (!isNaN(d.getTime())) return d.toISOString();
     return null;
@@ -619,32 +633,28 @@ function isoFromAny(x){
   }
   return null;
 }
-function sameDayKey(isoA, isoB){
-  if (!isoA || !isoB) return false;
-  return isoA.slice(0,10) === isoB.slice(0,10);
-}
 function msBetween(isoA, isoB){
   const a = new Date(isoA).getTime();
   const b = new Date(isoB).getTime();
   return Math.max(0, b - a);
 }
-function closeIso(a, b, ms=120000){ // ±2 minute
-  return Math.abs(new Date(a).getTime() - new Date(b).getTime()) <= ms;
-}
+function closeIso(a, b, ms=120000){ return Math.abs(new Date(a).getTime() - new Date(b).getTime()) <= ms; }
+
 async function getSheetEventsForDay(name, dayKey, unpauseTsIso){
   const S = (window.CFG && CFG.sheet) || {};
   const cols = (S.cols || { timestamp:'f_timestamp', name:'f_name', action:'f_action' });
+
   let rows = [];
   if (S.gvizUrl){
     try {
       const raw = await fetchGvizRows(S.gvizUrl);
       rows = raw.map(r => {
-        const ts = isoFromAny(r[cols.timestamp] ?? r['timestamp'] ?? r['Timestamp']);
-        return {
-          ts,
-          name: String(r[cols.name] ?? r['name'] ?? r['Nume'] ?? '').trim(),
-          action: _normAction(r[cols.action] ?? r['action'] ?? r['Actiune'] ?? '')
-        };
+        const ts = isoFromAny(r[cols.timestamp] ?? r['timestamp'] ?? r['Timestamp'] ?? r['data'] ?? r['dată'] ?? r['date']);
+        const nm = String(r[cols.name] ?? r['name'] ?? r['Nume'] ?? r['nume'] ?? '').trim();
+        const act = String(
+          r[cols.action] ?? r['action'] ?? r['Actiune'] ?? r['Acțiune'] ?? r['Acţiune'] ?? r['actiune'] ?? r['acțiune'] ?? r['acţiune'] ?? ''
+        ).trim();
+        return { ts, name:nm, nameLc:nm.toLowerCase(), action:_normAction(act) };
       }).filter(x => x.ts);
     } catch(e){ rows = []; }
   }
@@ -652,34 +662,35 @@ async function getSheetEventsForDay(name, dayKey, unpauseTsIso){
     try {
       const raw = await fetchCsvRows(S.csvUrl);
       rows = raw.map(r => {
-        const ts = isoFromAny(r[cols.timestamp] ?? r['timestamp'] ?? r['Timestamp']);
-        return {
-          ts,
-          name: String(r[cols.name] ?? r['name'] ?? r['Nume'] ?? '').trim(),
-          action: _normAction(r[cols.action] ?? r['action'] ?? r['Actiune'] ?? '')
-        };
+        const ts = isoFromAny(r[cols.timestamp] ?? r['timestamp'] ?? r['Timestamp'] ?? r['data'] ?? r['dată'] ?? r['date']);
+        const nm = String(r[cols.name] ?? r['name'] ?? r['Nume'] ?? r['nume'] ?? '').trim();
+        const act = String(
+          r[cols.action] ?? r['action'] ?? r['Actiune'] ?? r['Acțiune'] ?? r['Acţiune'] ?? r['actiune'] ?? r['acțiune'] ?? r['acţiune'] ?? ''
+        ).trim();
+        return { ts, name:nm, nameLc:nm.toLowerCase(), action:_normAction(act) };
       }).filter(x => x.ts);
     } catch(e){ rows = []; }
   }
-  // filtrează ziua și numele
-  const filtered = rows.filter(r => r.name === name && r.ts.slice(0,10) === dayKey && (r.action==='pause' || r.action==='unpause'));
-  filtered.sort((a,b)=> new Date(a.ts) - new Date(b.ts));
-  // dacă tocmai am dat UNPAUSE, uneori rândul nu e încă în sheet; vom reîncerca scurt
+
+  if (!rows.length) return { events: [], hasCurrentUnpause:false };
+
+  const targetNameLc = String(name||'').trim().toLowerCase();
+  const filtered = rows
+    .filter(r => r.nameLc === targetNameLc && r.ts.slice(0,10) === dayKey && (r.action==='pause' || r.action==='unpause'))
+    .sort((a,b)=> new Date(a.ts) - new Date(b.ts));
+
   const hasCurrentUnpause = filtered.some(r => r.action==='unpause' && closeIso(r.ts, unpauseTsIso));
   return { events: filtered, hasCurrentUnpause };
 }
-function sumPausesFromEvents(events, fallbackPair){ 
-  // events: listă ordonată (pause/unpause). fallbackPair: {startIso, endIso} pentru perechea curentă dacă unpause nu este în sheet încă.
-  let totalMs = 0;
-  let curMs = null;
-  let lastPause = null;
+
+function sumPausesFromEvents(events, fallbackPair){
+  let totalMs = 0, curMs = 0, lastPause = null;
   for (const e of events){
-    if (e.action === 'pause'){
-      lastPause = e.ts;
-    } else if (e.action === 'unpause' && lastPause){
+    if (e.action === 'pause') lastPause = e.ts;
+    else if (e.action === 'unpause' && lastPause){
       const seg = msBetween(lastPause, e.ts);
       totalMs += seg;
-      curMs = seg; // „curent” devine ultimul segment închis din zi
+      curMs = seg;
       lastPause = null;
     }
   }
@@ -688,9 +699,10 @@ function sumPausesFromEvents(events, fallbackPair){
     totalMs += seg;
     curMs = seg;
   }
-  return { totalMs, curMs: curMs ?? 0 };
+  return { totalMs, curMs };
 }
 
+/* ================== App logic ================== */
 (function(){
   const statusEl = document.getElementById('status');
   const cfgEl = document.getElementById('cfg');
@@ -1122,21 +1134,29 @@ function sumPausesFromEvents(events, fallbackPair){
 
   // ---- Calculează pauzele din Google Sheet după UNPAUSE ----
   async function computePauseFromSheetAndShow(name, lastPauseStartIso, unpauseTsIso){
-    // 2-3 încercări scurte ca să prindem rândul UNPAUSE în sheet
     const dayKey = lastPauseStartIso.slice(0,10);
     let events = [], hasCurrent = false;
-    for (let i=0;i<3;i++){
+
+    // 3-4 încercări scurte ca să prindem rândul UNPAUSE în sheet
+    for (let i=0;i<4;i++){
       try{
         const r = await getSheetEventsForDay(name, dayKey, unpauseTsIso);
         events = r.events; hasCurrent = r.hasCurrentUnpause;
-        if (hasCurrent) break;
+        if (hasCurrent || events.length) break;
       }catch(e){}
       await sleep(500);
     }
+
     const fallbackPair = hasCurrent ? null : { startIso: lastPauseStartIso, endIso: unpauseTsIso };
     const sums = sumPausesFromEvents(events, fallbackPair);
-    const curMin = minutesFromMs(Math.max(sums.curMs, msBetween(lastPauseStartIso, unpauseTsIso))); // safety
-    const totMin = minutesFromMs(sums.totalMs);
+
+    // safety fallback minim
+    const curMs = Math.max(sums.curMs || 0, msBetween(lastPauseStartIso, unpauseTsIso));
+    const totMs = Math.max(sums.totalMs || 0, curMs);
+
+    const curMin = minutesFromMs(curMs);
+    const totMin = minutesFromMs(totMs);
+
     setStatus(`Pauză încheiată — interval curent: ${curMin} min • total azi (din Google Sheet): ${totMin} min.`, 'ok');
     showToast(`<b>Pauză încheiată</b><div class="small">Curent: <b>${curMin}</b> min • Total azi (Sheet): <b>${totMin}</b> min</div>`, 'ok');
   }
@@ -1199,13 +1219,12 @@ function sumPausesFromEvents(events, fallbackPair){
       reflectState();
 
       if (actNorm === 'unpause' && lastPauseStartIso){
-        // încearcă din Google Sheet; dacă nu se poate, afișează fallback local
         try{
           await computePauseFromSheetAndShow(empSel.value.trim(), lastPauseStartIso, ts);
         } catch(e){
           const curMin = minutesFromMs(msBetween(lastPauseStartIso, ts));
           const dayKey = lastPauseStartIso.slice(0,10);
-          const totMin = minutesFromMs((STATE.pauseMsByDay[dayKey]||0));
+          const totMin = Math.round((STATE.pauseMsByDay[dayKey]||0)/60000);
           setStatus(`Pauză încheiată — (fallback) curent: ${curMin} min • total azi: ${totMin} min.`, 'warn');
         }
       } else {
