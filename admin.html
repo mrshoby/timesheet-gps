@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SERVELECT • Admin Pontaj</title>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="icon" href="favicon.png" />
+  <meta name="theme-color" content="#516A75"/>
+  <style>
+    :root{
+      --brand:#516B74;
+      --brand-weak:rgba(81,106,117,0.88);
+      --accent:#95CA4B;
+      --text:#0f172a;
+      --muted:#5b6b73;
+      --bg:#f4f7f9;
+      --card:#ffffff;
+      --ring:#cfe0e7;
+      --danger:#ef4444;
+      --warn:#f59e0b;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%; width:100%}
+    body{
+      margin:0;
+      font-family: Montserrat, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      color:var(--text);
+      background:
+        linear-gradient(180deg, rgba(149, 202, 75, 0.91) 0%, rgba(81, 106, 117, 0.88) 66%),
+        url('background.jpg');
+      background-size: cover;
+      background-position: center center;
+      background-repeat: no-repeat;
+      background-attachment: fixed;
+      min-height:100vh;
+    }
+    .shell{max-width:1200px;margin:0 auto;padding:24px;}
+    .nav{
+      display:flex;align-items:center;justify-content:space-between;
+      gap:16px;padding:14px 16px;border-radius:16px;
+      background:linear-gradient(180deg, rgba(255,255,255,.95), rgba(255,255,255,.80));
+      backdrop-filter: blur(8px);
+      box-shadow: 0 8px 30px rgba(81,106,117,.18);
+      border:1px solid rgba(81,106,117,.18);
+    }
+    .brand{display:flex;align-items:center;gap:12px;text-decoration:none;color:inherit}
+    .brand img{ width:38px;height:38px;object-fit:contain;aspect-ratio:1/1;border-radius:10px;box-shadow:0 3px 10px rgba(81,106,117,.25) }
+    .brand h1{font-size:18px;letter-spacing:.2px;margin:0;line-height:1.1}
+    .brand h1 span{display:block;font-weight:700}
+    .brand small{display:block;font-size:12px;color:var(--muted);margin-top:2px}
+
+    .chip{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:8px 10px;
+      border-radius:999px;
+      background:rgba(81,106,117,.10);
+      color:#2f3e45;
+      font-weight:600;
+      font-size:12px;
+    }
+
+    .card{
+      background:var(--card);
+      border:1px solid rgba(14,165,233,.12);
+      border-radius:18px;
+      box-shadow: 0 20px 60px rgba(2,132,199,.08);
+    }
+
+    .admin-layout{
+      margin-top:20px;
+      display:grid;
+      grid-template-columns: minmax(0,2.5fr) minmax(260px,1fr);
+      gap:18px;
+      align-items:flex-start;
+    }
+    @media (max-width:960px){
+      .admin-layout{ grid-template-columns:1fr; }
+    }
+
+    .admin-main{
+      padding:18px 18px 16px;
+      border-radius:18px;
+      background:rgba(248,250,252,.92);
+      backdrop-filter: blur(6px);
+      border:1px solid rgba(148,163,184,.25);
+    }
+
+    .admin-header{
+      display:flex;
+      flex-wrap:wrap;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      margin-bottom:14px;
+    }
+    .admin-header h1{
+      margin:0;
+      font-size:20px;
+    }
+    .admin-filter-line{
+      display:flex;
+      flex-wrap:wrap;
+      align-items:center;
+      gap:10px;
+    }
+    .admin-filter-line label{
+      display:flex;
+      flex-direction:column;
+      font-size:12px;
+      color:var(--muted);
+    }
+    .admin-filter-line select{
+      margin-top:2px;
+      padding:6px 10px;
+      border-radius:999px;
+      border:1px solid #d1d5db;
+      font-size:13px;
+      outline:none;
+    }
+    .admin-filter-line select:focus{
+      border-color:var(--brand);
+      box-shadow:0 0 0 2px var(--ring);
+    }
+    .admin-last-update{
+      font-size:12px;
+      color:var(--muted);
+    }
+
+    .admin-error{
+      margin-top:8px;
+      padding:10px 12px;
+      border-radius:12px;
+      background:#fef2f2;
+      border:1px solid #fecaca;
+      font-size:13px;
+      color:#991b1b;
+    }
+    .admin-loading{
+      margin-top:8px;
+      padding:10px 12px;
+      border-radius:12px;
+      background:#eff6ff;
+      border:1px solid #bfdbfe;
+      font-size:13px;
+      color:#1d4ed8;
+    }
+
+    .admin-kpis{
+      display:grid;
+      grid-template-columns:repeat(4,minmax(0,1fr));
+      gap:10px;
+      margin-bottom:14px;
+    }
+    @media (max-width:960px){
+      .admin-kpis{ grid-template-columns:repeat(2,minmax(0,1fr)); }
+    }
+
+    .kpi{
+      padding:10px 12px;
+      border-radius:14px;
+      background:#ffffff;
+      border:1px solid #e2e8f0;
+    }
+    .kpi-label{
+      font-size:11px;
+      color:var(--muted);
+      margin-bottom:6px;
+    }
+    .kpi-value{
+      font-size:20px;
+      font-weight:700;
+    }
+
+    .admin-grid{
+      display:grid;
+      grid-template-columns: minmax(0,1.3fr) minmax(0,1.7fr);
+      gap:12px;
+    }
+    @media (max-width:960px){
+      .admin-grid{ grid-template-columns:1fr; }
+    }
+
+    .admin-card{
+      padding:14px 14px 12px;
+    }
+    .admin-card h2{
+      margin:0 0 4px;
+      font-size:16px;
+    }
+    .admin-small-text{
+      font-size:12px;
+      color:var(--muted);
+      margin-bottom:10px;
+    }
+
+    .admin-list{
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+      max-height:260px;
+      overflow:auto;
+    }
+    .admin-list-row{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:8px;
+      font-size:13px;
+      padding:6px 8px;
+      border-radius:10px;
+      background:#f8fafc;
+      border:1px solid #e2e8f0;
+    }
+    .admin-list-label{
+      font-weight:500;
+    }
+    .admin-list-value{
+      font-variant-numeric:tabular-nums;
+      font-weight:600;
+    }
+    .admin-empty{
+      font-size:12px;
+      color:var(--muted);
+    }
+
+    .table-wrap{
+      max-height:260px;
+      overflow:auto;
+      border-radius:10px;
+      border:1px solid #e2e8f0;
+      background:#ffffff;
+    }
+    .admin-table{
+      width:100%;
+      border-collapse:collapse;
+      font-size:12px;
+    }
+    .admin-table th,
+    .admin-table td{
+      padding:6px 8px;
+      border-bottom:1px solid #e5e7eb;
+    }
+    .admin-table th{
+      text-align:left;
+      position:sticky;
+      top:0;
+      background:#f9fafb;
+      z-index:1;
+    }
+    .admin-table tr:last-child td{
+      border-bottom:none;
+    }
+
+    .admin-side{
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+    }
+
+    .btn{
+      --bg:#e2e8f0;
+      --fg:#0f172a;
+      appearance:none;
+      border:0;
+      border-radius:12px;
+      padding:10px 14px;
+      font-weight:600;
+      cursor:pointer;
+      transition: transform .06s ease, box-shadow .2s ease, background .2s;
+      box-shadow:0 6px 16px rgba(15,23,42,.08);
+      color:var(--fg);
+      background:var(--bg);
+      font-size:13px;
+    }
+    .btn:active{ transform:translateY(1px); }
+    .btn.primary{
+      --bg:var(--danger);
+      --fg:#fff;
+    }
+
+    .admin-link{
+      color:var(--brand);
+      text-decoration:none;
+      font-weight:600;
+      font-size:13px;
+    }
+    .admin-link:hover{
+      text-decoration:underline;
+    }
+    code{
+      font-size:11px;
+      background:#f1f5f9;
+      border-radius:4px;
+      padding:2px 4px;
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <nav class="nav card">
+      <a class="brand" href="index.html" aria-label="Spre pontaj">
+        <img src="favicon.png" alt="Siglă SERVELECT" />
+        <div>
+          <h1><span>SERVELECT</span><small>Pontaj & Management Concedii</small></h1>
+        </div>
+      </a>
+      <div class="chip">Admin dashboard</div>
+    </nav>
+
+    <main class="admin-layout">
+      <section class="admin-main">
+        <header class="admin-header">
+          <h1>Dashboard pontaj</h1>
+          <div class="admin-filter-line">
+            <label>
+              <span>Perioadă</span>
+              <select id="rangeSelect">
+                <option value="today">Astăzi</option>
+                <option value="last7">Ultimele 7 zile</option>
+                <option value="all">Toate datele</option>
+              </select>
+            </label>
+            <div class="admin-last-update" id="lastUpdate">–</div>
+          </div>
+        </header>
+
+        <div id="error" class="admin-error" style="display:none"></div>
+        <div id="loading" class="admin-loading">Se încarcă datele din foaia de pontaj…</div>
+
+        <section id="dashboard" style="display:none">
+          <div class="admin-kpis">
+            <div class="card kpi">
+              <div class="kpi-label">Pontaje în perioadă</div>
+              <div class="kpi-value" id="kpiTotal">–</div>
+            </div>
+            <div class="card kpi">
+              <div class="kpi-label">Angajați implicați</div>
+              <div class="kpi-value" id="kpiEmployees">–</div>
+            </div>
+            <div class="card kpi">
+              <div class="kpi-label">START</div>
+              <div class="kpi-value" id="kpiStart">–</div>
+            </div>
+            <div class="card kpi">
+              <div class="kpi-label">FINISH</div>
+              <div class="kpi-value" id="kpiFinish">–</div>
+            </div>
+          </div>
+
+          <div class="admin-grid">
+            <section class="card admin-card">
+              <h2>Distribuție pe departamente</h2>
+              <div class="admin-small-text">Număr de pontaje în perioada selectată.</div>
+              <div id="deptList" class="admin-list"></div>
+            </section>
+
+            <section class="card admin-card">
+              <h2>Ultimele pontaje</h2>
+              <div class="admin-small-text">Cele mai recente 25 de înregistrări.</div>
+              <div class="table-wrap">
+                <table class="admin-table">
+                  <thead>
+                    <tr>
+                      <th>Data / ora</th>
+                      <th>Angajat</th>
+                      <th>Departament</th>
+                      <th>Acțiune</th>
+                      <th>Activitate</th>
+                    </tr>
+                  </thead>
+                  <tbody id="lastEventsBody"></tbody>
+                </table>
+              </div>
+            </section>
+          </div>
+        </section>
+      </section>
+
+      <aside class="admin-side">
+        <section class="card admin-card">
+          <h2>Sesiune admin</h2>
+          <p class="admin-small-text">
+            Conectat ca <b id="adminLabel">Admin</b>.
+          </p>
+          <button id="logoutBtn" class="btn primary" type="button">Deconectare</button>
+          <p class="admin-small-text" style="margin-top:10px">
+            <a href="index.html" class="admin-link">Înapoi la pontaj</a>
+          </p>
+        </section>
+
+        <section class="card admin-card">
+          <h2>Notițe</h2>
+          <p class="admin-small-text">
+            Pagina citește direct foaia de pontaj ( <code>sheet.gvizUrl</code> din <code>config.json</code> )
+            și calculează sumarul în browser. Poți extinde logica în <code>admin.html</code> (statistici suplimentare, filtre etc.).
+          </p>
+        </section>
+      </aside>
+    </main>
+  </div>
+
+  <script>
+  (function(){
+    const ADMIN_LS_KEY = 'pontaj/admin/v1';
+
+    function getAdminSession(){
+      try{
+        const raw = localStorage.getItem(ADMIN_LS_KEY);
+        return raw ? JSON.parse(raw) : null;
+      }catch{ return null; }
+    }
+    function clearAdminSession(){
+      try{ localStorage.removeItem(ADMIN_LS_KEY); }catch{}
+    }
+
+    const session = getAdminSession();
+    const adminLabelEl = document.getElementById('adminLabel');
+    const logoutBtn = document.getElementById('logoutBtn');
+    const errorEl = document.getElementById('error');
+    const loadingEl = document.getElementById('loading');
+    const dashboardEl = document.getElementById('dashboard');
+    const rangeSelect = document.getElementById('rangeSelect');
+    const lastUpdateEl = document.getElementById('lastUpdate');
+
+    if (!session){
+      alert('Nu ești autentificat ca admin. Te redirecționez la pagina principală.');
+      window.location.href = 'index.html';
+      return;
+    }
+    if (adminLabelEl) adminLabelEl.textContent = session.user || 'Admin';
+    if (logoutBtn){
+      logoutBtn.addEventListener('click', function(){
+        clearAdminSession();
+        window.location.href = 'index.html';
+      });
+    }
+
+    function showError(msg){
+      if (errorEl){
+        errorEl.textContent = msg;
+        errorEl.style.display = 'block';
+      }
+      if (loadingEl) loadingEl.style.display = 'none';
+      if (dashboardEl) dashboardEl.style.display = 'none';
+    }
+
+    function parseGvizDateStr(s){
+      const m = /^Date\((\d+),(\d+),(\d+)(?:,(\d+),(\d+),(\d+))?\)$/.exec(String(s).trim());
+      if (!m) return null;
+      const Y = +m[1], M = +m[2], D = +m[3], h = +(m[4]||0), mi = +(m[5]||0), se = +(m[6]||0);
+      const d = new Date(Y, M, D, h, mi, se);
+      return isNaN(d.getTime()) ? null : d.toISOString();
+    }
+
+    function isoFromAny(x){
+      if (!x) return null;
+      if (typeof x === 'string'){
+        if (/^Date\(/.test(x)) return parseGvizDateStr(x);
+        if (/^\d{4}-\d{2}-\d{2}T/.test(x)) return x;
+        const d = new Date(x); if (!isNaN(d.getTime())) return d.toISOString();
+        return null;
+      }
+      if (x && typeof x === 'object' && typeof x.getTime === 'function'){
+        return x.toISOString();
+      }
+      return null;
+    }
+
+    function _norm(s){ return String(s==null?'':s).trim(); }
+    function _normAction(a){
+      let s = _norm(a).toLowerCase().replace(/[-\s]+/g,'_');
+      if (s === 'resume') s='unpause';
+      if (s === 'stop') s='finish';
+      if (s === 'extra start') s='extra_start';
+      if (s === 'extra finish') s='extra_finish';
+      return s;
+    }
+
+    async function fetchGvizRows(url){
+      const r = await fetch(url + (url.includes('?') ? '&' : '?') + 'tqx=out:json&rand=' + Date.now(), {cache:'no-store'});
+      const txt = await r.text();
+      const m = txt.match(/google\.visualization\.Query\.setResponse\(([\s\S]*)\);?/);
+      if (!m) throw new Error('Format GViz necunoscut.');
+      const data = JSON.parse(m[1]);
+      if (!data.table || !data.table.rows) return [];
+      const cols = data.table.cols.map(c => ({ label:(c.label||c.id||'').trim(), type:(c.type||'').trim() }));
+      return data.table.rows.map(row => {
+        const obj = {};
+        row.c.forEach((cell, i) => {
+          const label = cols[i].label || ('C'+i);
+          const type  = cols[i].type;
+          let v = (cell && 'v' in cell) ? cell.v : null;
+          if (type === 'datetime' || type === 'date' || type === 'timeofday') {
+            let iso = null;
+            if (typeof v === 'string' && /^Date\(/.test(v)) iso = parseGvizDateStr(v);
+            if (!iso && cell && typeof cell.f === 'string' && cell.f.trim()){
+              const d = new Date(cell.f); if (!isNaN(d.getTime())) iso = d.toISOString();
+            }
+            v = iso || (typeof v === 'string' ? v : (cell && cell.f) || v);
+          }
+          obj[label] = v; obj[label.toLowerCase()] = v;
+        });
+        return obj;
+      });
+    }
+
+    function mapRowToEvent(row, colsCfg){
+      const cols = Object.assign({
+        timestamp:'f_timestamp',
+        name:'f_name',
+        action:'f_action',
+        department:'f_department',
+        activity:'f_activity'
+      }, colsCfg || {});
+      const ts = isoFromAny(row[cols.timestamp] ?? row['timestamp'] ?? row['Timestamp'] ?? row['data'] ?? row['dată'] ?? row['date']);
+      const name = String(row[cols.name] ?? row['Nume'] ?? row['nume'] ?? row['name'] ?? '').trim();
+      const action = _normAction(row[cols.action] ?? row['actiune'] ?? row['acțiune'] ?? row['Acțiune'] ?? row['Actiune'] ?? '');
+      const dept = String(row[cols.department] ?? row['departament'] ?? row['Departament'] ?? '').trim();
+      const activity = String(row[cols.activity] ?? row['activitate'] ?? row['Activitate'] ?? '').trim();
+      return { ts, name, action, dept, activity };
+    }
+
+    function filterEventsByRange(events, range){
+      if (!events || !events.length) return [];
+      const now = new Date();
+      if (range === 'all') return events.slice();
+      const endTime = now.getTime();
+      let startTime;
+      if (range === 'last7'){
+        const d = new Date(now);
+        d.setDate(d.getDate() - 6);
+        startTime = d.getTime();
+      }else{ // today
+        const d = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0,0,0);
+        startTime = d.getTime();
+      }
+      return events.filter(ev => {
+        if (!ev.ts) return false;
+        const t = new Date(ev.ts).getTime();
+        if (isNaN(t)) return false;
+        return t >= startTime && t <= endTime;
+      });
+    }
+
+    function fmtDateTime(iso){
+      if (!iso) return '';
+      const d = new Date(iso);
+      if (isNaN(d.getTime())) return '';
+      const dd = String(d.getDate()).padStart(2,'0');
+      const mm = String(d.getMonth()+1).padStart(2,'0');
+      const yyyy = d.getFullYear();
+      const hh = String(d.getHours()).padStart(2,'0');
+      const mi = String(d.getMinutes()).padStart(2,'0');
+      return `${dd}.${mm}.${yyyy} ${hh}:${mi}`;
+    }
+
+    function renderKpis(events){
+      const totalEl = document.getElementById('kpiTotal');
+      const empEl = document.getElementById('kpiEmployees');
+      const startEl = document.getElementById('kpiStart');
+      const finishEl = document.getElementById('kpiFinish');
+      const list = events || [];
+      if (totalEl) totalEl.textContent = String(list.length);
+      const uniq = new Set();
+      let cStart = 0, cFinish = 0;
+      list.forEach(ev => {
+        if (ev.name) uniq.add(ev.name);
+        if (ev.action === 'start') cStart++;
+        if (ev.action === 'finish') cFinish++;
+      });
+      if (empEl) empEl.textContent = String(uniq.size);
+      if (startEl) startEl.textContent = String(cStart);
+      if (finishEl) finishEl.textContent = String(cFinish);
+    }
+
+    function renderDept(events){
+      const container = document.getElementById('deptList');
+      if (!container) return;
+      const list = events || [];
+      if (!list.length){
+        container.innerHTML = '<div class="admin-empty">Nu există date în perioada selectată.</div>';
+        return;
+      }
+      const counts = {};
+      list.forEach(ev => {
+        const key = ev.dept || '(fără departament)';
+        counts[key] = (counts[key] || 0) + 1;
+      });
+      const entries = Object.entries(counts).sort((a,b)=>b[1]-a[1]);
+      container.innerHTML = '';
+      entries.forEach(([dept, count])=>{
+        const row = document.createElement('div');
+        row.className = 'admin-list-row';
+        row.innerHTML =
+          '<span class="admin-list-label">' + dept + '</span>' +
+          '<span class="admin-list-value">' + count + '</span>';
+        container.appendChild(row);
+      });
+    }
+
+    function renderLastEvents(events){
+      const tbody = document.getElementById('lastEventsBody');
+      if (!tbody) return;
+      const list = (events || []).slice().sort((a,b)=>{
+        const ta = a.ts ? new Date(a.ts).getTime() : 0;
+        const tb = b.ts ? new Date(b.ts).getTime() : 0;
+        return tb - ta;
+      }).slice(0,25);
+      tbody.innerHTML = '';
+      if (!list.length){
+        const tr = document.createElement('tr');
+        const td = document.createElement('td');
+        td.colSpan = 5;
+        td.textContent = 'Nu există înregistrări în perioada selectată.';
+        tr.appendChild(td);
+        tbody.appendChild(tr);
+        return;
+      }
+      list.forEach(ev=>{
+        const tr = document.createElement('tr');
+        tr.innerHTML =
+          '<td>' + fmtDateTime(ev.ts) + '</td>' +
+          '<td>' + (ev.name || '') + '</td>' +
+          '<td>' + (ev.dept || '') + '</td>' +
+          '<td>' + (ev.action || '') + '</td>' +
+          '<td>' + (ev.activity || '') + '</td>';
+        tbody.appendChild(tr);
+      });
+    }
+
+    async function init(){
+      try{
+        const r = await fetch('config.json?v=' + Date.now(), {cache:'no-store'});
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        const CFG = await r.json();
+        if (!CFG || !CFG.sheet || !CFG.sheet.gvizUrl){
+          throw new Error('config.json nu conține sheet.gvizUrl (sub cheia sheet).');
+        }
+        const gvizUrl = CFG.sheet.gvizUrl;
+        const rawRows = await fetchGvizRows(gvizUrl);
+        const colsCfg = (CFG.sheet && CFG.sheet.cols) || {};
+        const events = rawRows.map(row => mapRowToEvent(row, colsCfg)).filter(ev => ev.ts);
+
+        if (loadingEl) loadingEl.style.display = 'none';
+        if (dashboardEl) dashboardEl.style.display = '';
+
+        if (lastUpdateEl){
+          const now = new Date();
+          const hh = String(now.getHours()).padStart(2,'0');
+          const mi = String(now.getMinutes()).padStart(2,'0');
+          lastUpdateEl.textContent = 'Actualizat la ' + hh + ':' + mi;
+        }
+
+        let currentRange = rangeSelect ? rangeSelect.value : 'today';
+        function refresh(){
+          const range = rangeSelect ? rangeSelect.value : currentRange;
+          currentRange = range;
+          const filtered = filterEventsByRange(events, range || 'today');
+          renderKpis(filtered);
+          renderDept(filtered);
+          renderLastEvents(filtered);
+        }
+        if (rangeSelect){
+          rangeSelect.addEventListener('change', refresh);
+        }
+        refresh();
+      }catch(e){
+        showError(e.message || String(e));
+      }
+    }
+
+    init();
+  })();
+  </script>
+</body>
+</html>
