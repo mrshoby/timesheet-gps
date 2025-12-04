@@ -17,13 +17,15 @@
   "leaveEndpoint": "https://script.google.com/macros/s/AKfycbzEbPv1oQ31Ge9KNL5w-XH6vUyg3q4BRSuial5Vwz6_Gnj86dZcTRzzYxfcc-X5NgBP/exec",
   "stateEndpoint": "https://script.google.com/macros/s/AKfycbzEbPv1oQ31Ge9KNL5w-XH6vUyg3q4BRSuial5Vwz6_Gnj86dZcTRzzYxfcc-X5NgBP/exec",
   "guardEndpoint": "https://script.google.com/macros/s/AKfycbzEbPv1oQ31Ge9KNL5w-XH6vUyg3q4BRSuial5Vwz6_Gnj86dZcTRzzYxfcc-X5NgBP/exec",
-  "departmentsCsv": "https://raw.githubusercontent.com/mrshoby/timesheet-gps/main/departments.csv",
+  "departmentsCsv": "https://raw.githubusercontent.com/mrshoby/timesheet-gps/refs/heads/main/admin-auth.json",
   "employees": [
     "Ion Popescu",
     "Maria Ionescu",
     "Vlad Georgescu",
     "Ana Radu"
   ],
+  "adminAuthUrl": "https://raw.githubusercontent.com/USER/REPO/branch/admin-auth.json"
+
   "sheet": {
     "gvizUrl": "https://docs.google.com/spreadsheets/d/1Eq7RMyvyj6lZXnkfnQHT0Ol1Y1f-8Ul3SwdOkCkS8s4/gviz/tq?gid=57528208",
     "csvUrl": "",
