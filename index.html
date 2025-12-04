@@ -264,16 +264,16 @@
 
         <!-- Main action buttons -->
         <div class="btnbar" style="margin-top:16px">
-          <button class="btn primary" id="btnStart">Start</button>
-          <button class="btn pause"   id="btnPause">Pause</button>
-          <button class="btn unpause" id="btnUnpause">Unpause</button>
-          <button class="btn finish"  id="btnFinish">Finish</button>
+          <button class="btn primary" id="btnStart"  type="button">Start</button>
+          <button class="btn pause"   id="btnPause"  type="button">Pause</button>
+          <button class="btn unpause" id="btnUnpause" type="button">Unpause</button>
+          <button class="btn finish"  id="btnFinish" type="button">Finish</button>
         </div>
 
         <!-- EXTRA time buttons (ascunse pentru Comercial) -->
         <div class="btnbar" id="extraBar" style="margin-top:8px">
-          <button class="btn extra" id="btnExtraStart" title="Pornește orele extra (separate de suplimentare)">Extra Start</button>
-          <button class="btn extra" id="btnExtraFinish" title="Încheie orele extra">Extra Finish</button>
+          <button class="btn extra" id="btnExtraStart"  type="button" title="Pornește orele extra (separate de suplimentare)">Extra Start</button>
+          <button class="btn extra" id="btnExtraFinish" type="button" title="Încheie orele extra">Extra Finish</button>
         </div>
 
         <div id="status" class="status" role="status" aria-live="polite"></div>
@@ -304,7 +304,7 @@
   <iframe name="hidden_iframe_leave" style="display:none;"></iframe>
 
   <!-- Leave Google Form -->
-  <form id="leaveForm" method="POST" target="hidden_iframe_leave">
+  <form id="leaveForm" method="POST" target="hidden_iframe_leave" novalidate>
     <input type="hidden" id="lv_name" />
     <input type="hidden" id="lv_type" />
     <input type="hidden" id="lv_email" />
@@ -315,7 +315,7 @@
   </form>
 
   <!-- Main Google Form payload -->
-  <form id="gform" method="POST" target="hidden_iframe">
+  <form id="gform" method="POST" target="hidden_iframe" novalidate>
     <input type="hidden" id="f_action" />
     <input type="hidden" id="f_timestamp" />
     <input type="hidden" id="f_name" />
@@ -392,7 +392,6 @@ const ServelectAudio = (() => {
   const wait = (ms)=>new Promise(r=>setTimeout(r,ms));
   function hideSplash(){ splash.classList.add('hide'); }
 
-  // Failsafe: ascunde splash și dacă orice se blochează
   setTimeout(hideSplash, 3200);
 
   window.addEventListener('pointerdown', () => ServelectAudio.resumeIfSuspended(), { once:true, passive:true });
@@ -1009,7 +1008,6 @@ function sumPausesFromEvents(events, fallbackPair){
     return v === 'comercial' || v === 'coemercial';
   }
 
-  /* === NOU: calculează pauza doar din server/foaie, merge și după refresh === */
   async function computePauseFromSheetAndShow(name, untilIso){
     let totMin = 0, curMin = 0;
 
@@ -1038,12 +1036,13 @@ function sumPausesFromEvents(events, fallbackPair){
     );
   }
 
-  // ==================== ACTION SUBMIT cu LOCK ====================
+  // ==================== ACTION SUBMIT cu LOCK ANTISPAM IMEDIAT ====================
   async function submitAction(action) {
     const now = Date.now();
     if (busy) return;
     if (now - lastActionAt < CLICK_COOLDOWN_MS) return;
 
+    // Validări rapide (fără await) — dacă lipsesc, nu blocăm UI inutil
     if (!deptSel.value) { setStatus('Alege departamentul.', 'err'); return; }
     if (!empSel.value)  { setStatus('Selectează angajat.', 'err'); return; }
     if (!actSel.value)  { setStatus('Alege tip de activitate.', 'err'); return; }
@@ -1055,49 +1054,47 @@ function sumPausesFromEvents(events, fallbackPair){
       setStatus('Departamentul Comercial nu poate folosi ore EXTRA.', 'warn');
       return;
     }
-
     if (!isCom && !locInput.value.trim()) {
       setStatus('Scrie clientul/locația.', 'err');
       locInput.focus();
       return;
     }
-
     if (['concediu de odihna','concediu medical','concediu pentru ore suplimentare'].includes((actSel.value||'').toLowerCase())){
       setStatus('Pentru concediu folosește „Trimite cererea de concediu”.', 'warn');
       return;
     }
 
-    /* NOU: sincronizare cu serverul înainte de guard-ul local */
-    setStatus('Sincronizez starea…', '');
-    await refreshServerState();
-    reflectState();
-
-    // local guard
-    {
-      const running = STATE.normal.running;
-      const paused  = STATE.normal.paused;
-      const extraR  = STATE.extra.running;
-      const e = (()=>{
-        switch(actNorm){
-          case 'start':        if (running) return 'Ai deja START activ.'; if (extraR) return 'Finalizează „EXTRA” înainte de START.'; break;
-          case 'pause':        if (!running) return 'Nu poți PAUSE fără START.'; if (paused) return 'Ești deja în PAUSE.'; break;
-          case 'unpause':      if (!running) return 'Nu poți UNPAUSE fără START.'; if (!paused) return 'Nu ești în PAUSE.'; break;
-          case 'finish':       if (!running) return 'Nu poți FINISH fără START.'; if (paused) return 'Nu poți FINISH în PAUSE — apasă UNPAUSE mai întâi.'; break;
-          case 'extra_start':  if (running) return 'Închide norma (FINISH) înainte de EXTRA START.'; if (extraR) return 'EXTRA este deja pornit.'; break;
-          case 'extra_finish': if (!extraR) return 'Nu poți EXTRA FINISH fără EXTRA START.'; break;
-        }
-        return null;
-      })();
-      if (e) { setStatus(e, 'warn'); return; }
-    }
-
+    // —— LOCK IMEDIAT: din acest moment nu se mai pot apăsa alte butoane ——
     busy = true;
     setUILock(true);
     disableAllButtons(true);
     const lockStart = Date.now();
-    setStatus('Verific starea…', '');
 
     try {
+      setStatus('Sincronizez starea…', '');
+      await refreshServerState();
+      reflectState();
+
+      // Guard local cu starea sincronizată
+      {
+        const running = STATE.normal.running;
+        const paused  = STATE.normal.paused;
+        const extraR  = STATE.extra.running;
+        const e = (()=>{
+          switch(actNorm){
+            case 'start':        if (running) return 'Ai deja START activ.'; if (extraR) return 'Finalizează „EXTRA” înainte de START.'; break;
+            case 'pause':        if (!running) return 'Nu poți PAUSE fără START.'; if (paused) return 'Ești deja în PAUSE.'; break;
+            case 'unpause':      if (!running) return 'Nu poți UNPAUSE fără START.'; if (!paused) return 'Nu ești în PAUSE.'; break;
+            case 'finish':       if (!running) return 'Nu poți FINISH fără START.'; if (paused) return 'Nu poți FINISH în PAUSE — apasă UNPAUSE mai întâi.'; break;
+            case 'extra_start':  if (running) return 'Închide norma (FINISH) înainte de EXTRA START.'; if (extraR) return 'EXTRA este deja pornit.'; break;
+            case 'extra_finish': if (!extraR) return 'Nu poți EXTRA FINISH fără EXTRA START.'; break;
+          }
+          return null;
+        })();
+        if (e) { setStatus(e, 'warn'); return; }
+      }
+
+      setStatus('Verific reguli…', '');
       const g = await guardRemote(empSel.value.trim(), action);
       if (!g.ok) { setStatus(g.msg || 'Acțiune blocată de regulile de pontaj.', 'warn'); return; }
 
@@ -1105,11 +1102,10 @@ function sumPausesFromEvents(events, fallbackPair){
       const gps = await geolocateOnce();
 
       const ts = new Date().toISOString();
-
       setFormPayload(action, ts, gps);
 
       if (form.action && form.action.trim().length && form.querySelector('[name]')) {
-        form.submit(); // avem config pentru Google Form
+        form.submit(); // un singur submit — restul clicurilor sunt blocate
       } else {
         setStatus('Atenție: nu există config de formular — acțiunea se înregistrează doar local/UI.', 'warn');
       }
@@ -1151,6 +1147,7 @@ function sumPausesFromEvents(events, fallbackPair){
       busy = false;
       setUILock(false);
       disableAllButtons(false);
+      reflectState();
     }
   }
 
@@ -1161,12 +1158,20 @@ function sumPausesFromEvents(events, fallbackPair){
     document.getElementById('btnFinish').addEventListener('click', ()=>submitAction('finish'));
     document.getElementById('btnExtraStart').addEventListener('click', ()=>submitAction('extra_start'));
     document.getElementById('btnExtraFinish').addEventListener('click', ()=>submitAction('extra_finish'));
+
+    // Prevenim activarea simultană cu tastatura (Space/Enter menținute) — ignorăm repeat
+    ['btnStart','btnPause','btnUnpause','btnFinish','btnExtraStart','btnExtraFinish','btnLeave']
+      .forEach(id=>{
+        const b = document.getElementById(id);
+        if (!b) return;
+        b.addEventListener('keydown', (e)=>{ if (e.repeat) e.preventDefault(); });
+      });
+
     reflectState();
   }
 
   /** ===== INIT ===== */
   (async function init(){
-    let loadedCfg = false;
     try {
       const r = await fetch('config.json?v=' + Date.now(), {cache:'no-store'});
       if (!r.ok) throw new Error('HTTP ' + r.status);
@@ -1174,14 +1179,11 @@ function sumPausesFromEvents(events, fallbackPair){
       if (!CFG || !CFG.fields) throw new Error('Config incomplet');
       setCfg('Config încărcat', 'ok');
       window.CFG = CFG;
-      loadedCfg = true;
     } catch (e) {
-      // NU mai facem return; continuăm cu fallback
       setCfg('Eroare config — rulez fallback local.', 'warn');
-      window.CFG = {}; // fallback gol, toate accesările sunt protejate
+      window.CFG = {};
     }
 
-    // Legăm form-urile doar dacă avem config valid (nu se rupe dacă lipsesc)
     bindCFGToForm();
     bindLeaveForm();
 
@@ -1191,7 +1193,7 @@ function sumPausesFromEvents(events, fallbackPair){
     const cached = loadLS();
     if (cached) STATE = Object.assign(blankState(), cached);
 
-    /* NOU: reselectează automat angajatul/departamentul după refresh */
+    // Reselectare automată după refresh
     if (STATE.name && DEPTMAP.byName && DEPTMAP.byName.has(STATE.name)){
       const d = DEPTMAP.byName.get(STATE.name);
       if (d){
@@ -1256,6 +1258,7 @@ function sumPausesFromEvents(events, fallbackPair){
 
       setLeaveStatus('Se trimite cererea…', '');
 
+      // NU blocăm întreg UI aici; dar oricum click-urile sunt înlănțuite de browser
       let formSubmitted = false;
       if (window.CFG && CFG.leaveFormAction && CFG.leaveFields) {
         try {
