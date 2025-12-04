@@ -90,6 +90,7 @@
     .footer{ margin-top:18px;font-size:12px;color:var(--muted);text-align:center }
     .ok{color:#15803d} .err{color:#ef4444} .warn{color:#a16207}
 
+    /* ===== Toast privat ===== */
     .toast{
       position: fixed; left: 50%; transform: translateX(-50%);
       bottom: 24px; z-index: 9999; min-width: 280px; max-width: 92vw;
@@ -101,72 +102,69 @@
     .toast.err{ background:#991b1b }
     .toast .small{opacity:.85;font-size:12px;margin-top:4px}
 
-    /* ===== SV-SPLASH: stiluri izolate ===== */
-    html.sv-splash-open, body.sv-splash-open{ overflow:hidden; }
-    .sv-splash{
+    /* ===== SPLASH (doar ce e necesar) ===== */
+    html.splash-open, body.splash-open{ overflow:hidden; }
+    .splash{
       position:fixed; inset:0; z-index:2000;
       display:grid; place-items:center;
       background: radial-gradient(1200px 800px at 50% 20%, #e8f2e0, #d9e6df);
       opacity:1; transform:scale(1); transition: opacity .6s ease, transform .6s ease;
     }
-    .sv-splash.hide{ opacity:0; transform:scale(1.01); pointer-events:none }
-    .sv-s-wrap{ width:min(1100px, 92vw); text-align:center; user-select:none }
-    .sv-brand-line{
+    .splash.hide{ opacity:0; transform:scale(1.01); pointer-events:none }
+    .s-wrap{ width:min(1100px, 92vw); text-align:center; user-select:none }
+    .brand-line{
       display:flex; align-items:center; justify-content:center; gap: clamp(10px, 2vw, 22px);
       line-height:1; flex-wrap:wrap;
     }
-    .sv-brand-word{ font-weight:800; letter-spacing:.5px; font-size: clamp(44px, 9vw, 96px); }
-    .sv-serv{ color:#516B74 }
-    .sv-lect{ color:#95CA4B }
-
-    .sv-battery{ height: clamp(110px, 20vw, 190px); width:auto; display:block;
-                 filter: drop-shadow(0 8px 24px rgba(0,0,0,.08)); }
-    .sv-bat-outline{ stroke:#516B74; stroke-width:10; fill:none; stroke-linejoin:round }
-    .sv-bat-cap{ fill:#516B74 }
-    .sv-bar{ opacity:.18; fill:transparent; stroke:#516B74; stroke-width:2; transition: opacity .2s ease }
-    .sv-bar.on{ opacity:1; fill:currentColor; stroke:transparent }
-    .sv-bar.sv-red{ color:#ef4444 }
-    .sv-bar.sv-yellow{ color:#f59e0b }
-    .sv-bar.sv-green{ color:#95CA4B }
-    .sv-glow{ filter: drop-shadow(0 0 0 rgba(149,202,75,0)); transition: filter .5s ease }
-    .sv-glow.active{
+    .brand-word{ font-weight:800; letter-spacing:.5px; font-size: clamp(44px, 9vw, 96px); }
+    .serv{ color:var(--brand-dark) }
+    .lect{ color:var(--accent) }
+    .battery{ height: clamp(110px, 20vw, 190px); width:auto; display:block;
+              filter: drop-shadow(0 8px 24px rgba(0,0,0,.08)); }
+    .bat-outline{ stroke:var(--brand-dark); stroke-width:10; fill:none; stroke-linejoin:round }
+    .bat-cap{ fill:var(--brand-dark) }
+    .bar{ opacity:.18; fill:transparent; stroke:var(--brand-dark); stroke-width:2; transition: opacity .2s ease }
+    .bar.on{ opacity:1; fill:currentColor; stroke:transparent }
+    .bar.stage-red{ color:#ef4444 }
+    .bar.stage-yellow{ color:#f59e0b }
+    .bar.stage-green{ color:#16a34a }
+    .glow{ filter: drop-shadow(0 0 0 rgba(149,202,75,0)); transition: filter .5s ease }
+    .glow.active{
       filter: drop-shadow(0 0 14px rgba(149,202,75,.75)) drop-shadow(0 0 28px rgba(149,202,75,.45));
     }
-    .sv-tag{ margin-top: clamp(10px, 2.2vw, 18px); font-weight:700; font-size: clamp(18px, 3.6vw, 34px); line-height:1.15; }
-    .sv-tag .money{ color:#95CA4B }
-    .sv-tag .save{ color:#516B74 }
-
+    .tag{ margin-top: clamp(10px, 2.2vw, 18px); font-weight:700; font-size: clamp(18px, 3.6vw, 34px); line-height:1.15; }
+    .tag .money{ color:#16a34a }
+    .tag .save{ color:var(--brand-dark) }
     @media (prefers-reduced-motion: reduce){
-      .sv-glow, .sv-bar, .sv-splash{ transition:none }
+      .glow, .bar, .splash{ transition:none }
     }
   </style>
 </head>
 <body>
 
-  <!-- ===== SV-SPLASH (nou, izolat) ===== -->
-  <div id="sv-splash" class="sv-splash" role="dialog" aria-label="Ecran de întâmpinare">
-    <div class="sv-s-wrap">
-      <div class="sv-brand-line">
-        <div class="sv-brand-word sv-serv">SERV</div>
-
-        <svg class="sv-battery sv-glow" id="sv-battery" viewBox="0 0 150 240" role="img" aria-label="Baterie">
-          <rect x="20" y="40" width="110" height="180" rx="14" class="sv-bat-outline"/>
-          <rect x="57" y="10" width="36" height="20" rx="6" class="sv-bat-cap"/>
-          <rect id="sv-bar1" class="sv-bar" x="32" y="174" width="86" height="32" rx="8"/>
-          <rect id="sv-bar2" class="sv-bar" x="32" y="130" width="86" height="32" rx="8"/>
-          <rect id="sv-bar3" class="sv-bar" x="32" y="86"  width="86" height="32" rx="8"/>
+  <!-- ===== SPLASH OVERLAY (nou) ===== -->
+  <div id="splash" class="splash" role="dialog" aria-label="Ecran de întâmpinare">
+    <div class="s-wrap">
+      <div class="brand-line">
+        <div class="brand-word serv">SERV</div>
+        <!-- Bateria verticală (litera E) -->
+        <svg class="battery glow" id="battery" viewBox="0 0 150 240" role="img" aria-label="Baterie">
+          <rect x="20" y="40" width="110" height="180" rx="14" class="bat-outline"/>
+          <rect x="57" y="10" width="36" height="20" rx="6" class="bat-cap"/>
+          <rect id="bar1" class="bar" x="32" y="174" width="86" height="32" rx="8"/>
+          <rect id="bar2" class="bar" x="32" y="130" width="86" height="32" rx="8"/>
+          <rect id="bar3" class="bar" x="32" y="86"  width="86" height="32" rx="8"/>
         </svg>
-
-        <div class="sv-brand-word sv-lect">LECT</div>
+        <div class="brand-word lect">LECT</div>
       </div>
 
-      <div class="sv-tag">
+      <div class="tag">
         <span class="money">Energy is money!</span>
         &nbsp;<span class="save">We save both.</span>
       </div>
     </div>
   </div>
-  <!-- ===== END SV-SPLASH ===== -->
+  <!-- ===== END SPLASH ===== -->
 
   <div class="shell">
     <nav class="nav card">
@@ -313,7 +311,7 @@
     </section>
   </div>
 
-  <!-- Toast -->
+  <!-- Toast privat -->
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
   <iframe name="hidden_iframe" style="display:none;"></iframe>
@@ -343,6 +341,7 @@
     <input type="hidden" id="f_device" />
     <input type="hidden" id="f_notes" />
     <input type="hidden" id="f_maps" />
+    <!-- nou: departament -->
     <input type="hidden" id="f_department" />
   </form>
 
@@ -356,47 +355,45 @@ Ana Radu
 
   <script>document.getElementById('year').textContent = new Date().getFullYear();</script>
 
-  <!-- ===== SV-SPLASH: AUDIO + SINCRONIZARE (izolat, nu atinge pontajul) ===== -->
+  <!-- ================== SPLASH: UI + AUDIO (synth) SINCRONIZATE ================== -->
   <script>
-  (function(){
-    const BASE_DELAY_MS = 500;   // întârziere cerută, 0.5s
-    const UI_OFFSET = 0.03;      // UI aprinde bara la ~30ms după startul beep-ului
-    const PRIME_LEAD = 0.12;     // priming aproape mut înainte de primul beep
+  (() => {
+    // întârziere globală ca să „prindă” sigur primul beep și să pornească simultan cu UI
+    const BASE_MS   = 500;   // 0.5s la intrare
+    const UI_OFFSET = 0.03;  // 30 ms după audio (percepție mai clară a atacului)
+    const PRIME_LEAD= 0.12;  // 120 ms înainte de primul beep — „dezgheață” audio
 
-    const TL = { s1:0.00, s2:0.60, s3:1.20, chime:1.50, hide:1.90 };
+    const TL = { s1: 0.00, s2: 0.60, s3: 1.20, chime: 1.50, hide: 1.90 };
 
-    const splash  = document.getElementById('sv-splash');
-    const battery = document.getElementById('sv-battery');
-    const bars    = [document.getElementById('sv-bar1'), document.getElementById('sv-bar2'), document.getElementById('sv-bar3')];
+    const splash  = document.getElementById('splash');
+    const battery = document.getElementById('battery');
+    const bars    = [document.getElementById('bar1'), document.getElementById('bar2'), document.getElementById('bar3')];
 
-    document.documentElement.classList.add('sv-splash-open');
-    document.body.classList.add('sv-splash-open');
+    document.documentElement.classList.add('splash-open');
+    document.body.classList.add('splash-open');
 
-    function resetBars(){ bars.forEach(b => b.className = 'sv-bar'); battery.classList.remove('active'); }
+    function resetBars(){ bars.forEach(b => b.className = 'bar'); battery.classList.remove('active'); }
     function stageUI(n){
       resetBars();
-      if (n>=1){ bars[0].classList.add('on','sv-red'); }
-      if (n>=2){ bars[0].classList.remove('sv-red'); bars[0].classList.add('sv-yellow'); bars[1].classList.add('on','sv-yellow'); }
-      if (n>=3){ bars.forEach(b=>{ b.classList.remove('sv-red','sv-yellow'); b.classList.add('on','sv-green'); }); battery.classList.add('active'); }
+      if (n>=1){ bars[0].classList.add('on','stage-red'); }
+      if (n>=2){ bars[0].classList.remove('stage-red'); bars[0].classList.add('stage-yellow'); bars[1].classList.add('on','stage-yellow'); }
+      if (n>=3){ bars.forEach(b=>{ b.classList.remove('stage-red','stage-yellow'); b.classList.add('on','stage-green'); }); battery.classList.add('active'); }
     }
     function hideSplash(){
       splash.classList.add('hide');
-      setTimeout(()=>{ 
-        document.documentElement.classList.remove('sv-splash-open');
-        document.body.classList.remove('sv-splash-open');
-        splash.style.display='none';
-      }, 460);
+      setTimeout(()=>{ document.documentElement.classList.remove('splash-open'); document.body.classList.remove('splash-open'); }, 460);
     }
 
+    // WebAudio synth (fără fișiere) — stabil și rapid
     const AudioSync = (() => {
-      let ctx=null;
-      function ensure(){
-        if (!ctx) ctx = new (window.AudioContext||window.webkitAudioContext)({latencyHint:'interactive'});
+      let ctx = null;
+      function ensureCtx(){
+        if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)({ latencyHint:'interactive' });
         return ctx;
       }
-      function blipAt(t, freq, dur=0.16, type='sine', gain=0.95){
-        const c = ensure();
-        const o = c.createOscillator(); o.type = type; o.frequency.setValueAtTime(freq, t);
+      function blipAt(t, f, dur=0.16, type='sine', gain=0.95){
+        const c = ensureCtx();
+        const o = c.createOscillator(); o.type = type; o.frequency.setValueAtTime(f, t);
         const g = c.createGain();
         g.gain.setValueAtTime(0, t);
         g.gain.linearRampToValueAtTime(gain, t + 0.01);
@@ -404,30 +401,27 @@ Ana Radu
         o.connect(g); g.connect(c.destination);
         o.start(t); o.stop(t + dur);
       }
-      async function tryResume(){ try{ const c=ensure(); if (c.state==='suspended') await c.resume(); }catch{} }
-
       function schedule(t0){
-        const c = ensure();
+        const c = ensureCtx();
         const primeAt = Math.max(c.currentTime + 0.01, t0 + TL.s1 - PRIME_LEAD);
-        blipAt(primeAt, 220, 0.02, 'sine', 0.001); // aproape mut (deblochează ieșirea audio)
+        blipAt(primeAt, 220, 0.02, 'sine', 0.001); // aproape mut, doar ca să „trezească” audio
 
-        // bare (primul puțin mai lung/mai tare)
-        blipAt(t0 + TL.s1, 460, .20, 'sine', 0.98);
-        blipAt(t0 + TL.s2, 620, .16, 'sine', 0.95);
+        blipAt(t0 + TL.s1, 460, .20, 'sine', 0.98);      // linia 1
+        blipAt(t0 + TL.s2, 620, .16, 'sine', 0.95);      // linia 2 (două tonuri)
         blipAt(t0 + TL.s2 + 0.09, 760, .18, 'sine', 0.95);
-        blipAt(t0 + TL.s3, 780, .14, 'triangle', 0.92);
+        blipAt(t0 + TL.s3, 780, .14, 'triangle', 0.92);  // linia 3 (trei tonuri)
         blipAt(t0 + TL.s3 + 0.07, 900, .14, 'triangle', 0.92);
         blipAt(t0 + TL.s3 + 0.14,1020, .16, 'triangle', 0.94);
 
-        // chime final
-        blipAt(t0 + TL.chime,         880, .22, 'triangle', 0.96);
-        blipAt(t0 + TL.chime + 0.07, 1109, .24, 'triangle', 0.96);
-        blipAt(t0 + TL.chime + 0.14, 1319, .28, 'triangle', 0.96);
+        blipAt(t0 + TL.chime,        880, .22, 'triangle', 0.96); // chime final
+        blipAt(t0 + TL.chime + 0.07,1109, .24, 'triangle', 0.96);
+        blipAt(t0 + TL.chime + 0.14,1319, .28, 'triangle', 0.96);
       }
-
       async function start(){
-        const c = ensure();
-        const t0 = c.currentTime + BASE_DELAY_MS/1000;
+        const c = ensureCtx();
+        // unele browsere pornesc suspendat; încercăm resume
+        try{ if (c.state === 'suspended') await c.resume(); }catch{}
+        const t0 = c.currentTime + BASE_MS/1000;
         schedule(t0);
 
         // UI condusă de același ceas
@@ -444,33 +438,32 @@ Ana Radu
         requestAnimationFrame(tick);
         return true;
       }
-      return { tryResume, start, ensure };
+      return { start, ensureCtx };
     })();
 
-    function fallbackNoAudio(){
-      const startAt = performance.now() + BASE_DELAY_MS;
-      let done1=false, done2=false, done3=false, doneHide=false;
-      function tick(){
-        const t = (performance.now() - startAt)/1000;
-        if (!done1 && t >= TL.s1 + UI_OFFSET){ stageUI(1); done1=true; }
-        if (!done2 && t >= TL.s2 + UI_OFFSET){ stageUI(2); done2=true; }
-        if (!done3 && t >= TL.s3 + UI_OFFSET){ stageUI(3); done3=true; }
-        if (!doneHide && t >= TL.hide + UI_OFFSET){ hideSplash(); doneHide=true; }
-        if (!doneHide) requestAnimationFrame(tick);
-      }
-      requestAnimationFrame(tick);
-    }
-
+    // Run
     resetBars();
-    (async ()=>{
-      await AudioSync.tryResume();
-      let ok=false;
-      try { ok = await AudioSync.start(); } catch { ok=false; }
-      if (!ok || (AudioSync.ensure().state!=='running')) fallbackNoAudio();
+    (async () => {
+      let ok = false;
+      try { ok = await AudioSync.start(); } catch { ok = false; }
+      // fallback: dacă audio e blocat complet, măcar UI merge pe timp
+      if (!ok || (AudioSync.ensureCtx().state !== 'running')){
+        const t0ms = performance.now() + BASE_MS;
+        let d1=false,d2=false,d3=false,dH=false;
+        function tick(){
+          const t = (performance.now() - t0ms)/1000;
+          if (!d1 && t >= TL.s1 + UI_OFFSET){ stageUI(1); d1=true; }
+          if (!d2 && t >= TL.s2 + UI_OFFSET){ stageUI(2); d2=true; }
+          if (!d3 && t >= TL.s3 + UI_OFFSET){ stageUI(3); d3=true; }
+          if (!dH && t >= TL.hide + UI_OFFSET){ hideSplash(); dH=true; }
+          if (!dH) requestAnimationFrame(tick);
+        }
+        requestAnimationFrame(tick);
+      }
     })();
   })();
   </script>
-  <!-- ===== END SV-SPLASH ===== -->
+  <!-- ================== END SPLASH ================== -->
 
   <script>
 /** ================== Helpers & Config ================== */
@@ -525,6 +518,7 @@ async function sendLeave(payload) {
   const leaveEmail = document.getElementById('leaveEmail');
   const leaveNotes = document.getElementById('leaveNotes');
   const leaveStatus = document.getElementById('leaveStatus');
+  // Per-day leave selection
   const leaveDay = document.getElementById('leaveDay');
   const leaveDaysList = document.getElementById('leaveDaysList');
   const btnAddDay = document.getElementById('btnAddDay');
@@ -534,6 +528,7 @@ async function sendLeave(payload) {
     if (!leaveDaysList) return;
     leaveDaysList.innerHTML = '';
     if (!LEAVE_DAYS.length) { leaveDaysList.textContent = 'Nicio zi adăugată.'; return; }
+    // sort and deduplicate
     LEAVE_DAYS = Array.from(new Set(LEAVE_DAYS)).sort();
     LEAVE_DAYS.forEach((d, idx) => {
       const chip = document.createElement('span');
@@ -557,13 +552,14 @@ async function sendLeave(payload) {
     if (!isNaN(i)) { LEAVE_DAYS.splice(i,1); renderLeaveDays(); }
   });
 
+
   const btnStart = document.getElementById('btnStart');
   const btnPause = document.getElementById('btnPause');
   const btnUnpause = document.getElementById('btnUnpause');
   const btnFinish = document.getElementById('btnFinish');
   const btnExtraStart = document.getElementById('btnExtraStart');
   const btnExtraFinish = document.getElementById('btnExtraFinish');
-  const extraBar = document.getElementById('extraBar');
+  const extraBar = document.getElementById('extraBar'); // NOU
 
   function setStatus(m, c){ setText(statusEl, m, c); }
   function setCfg(m, c){ setText(cfgEl, m, c); }
@@ -631,6 +627,9 @@ async function sendLeave(payload) {
     return true;
   }
 
+  /** ===== EMPLOYAȚI & DEPARTAMENTE ===== */
+
+  // Employees CSV (folosit doar ca fallback)
   function parseEmployeesCSV(text){
     if (text && text.charCodeAt && text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
     text = (text || '').replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim();
@@ -663,12 +662,14 @@ async function sendLeave(payload) {
     return el.textContent.split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
   }
 
+  // Departments CSV (sursa principală)
   function parseDepartmentsCSV(text){
     if (text && text.charCodeAt && text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
     text = (text || '').replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim();
     if (!text) return { byDept:new Map(), byName:new Map(), deptList:[] };
 
     const lines = text.split('\n').filter(Boolean);
+    // suportă , sau ;
     const sep = (text.indexOf(';') > -1 && (text.indexOf(';') < text.indexOf(','))) ? ';' : ',';
 
     let start = 0, depCol = 0, nameCol = 1;
@@ -699,6 +700,7 @@ async function sendLeave(payload) {
     return { byDept, byName, deptList };
   }
 
+  // State pentru departamente
   let DEPTMAP = { byDept:new Map(), byName:new Map(), deptList:[] };
 
   function fillDepartments(deptList){
@@ -722,6 +724,7 @@ async function sendLeave(payload) {
   }
 
   async function loadDepartments(){
+    // 1) Încearcă departmentsCsv din config
     try{
       if (CFG.departmentsCsv){
         const url = CFG.departmentsCsv + (CFG.departmentsCsv.includes('?') ? '&' : '?') + 'v=' + Date.now();
@@ -739,6 +742,7 @@ async function sendLeave(payload) {
       }
     }catch(e){}
 
+    // 2) Fallback: dacă nu există departments.csv, construim “productie” din employeesCsv/config/inline
     let fallbackEmployees = [];
     try {
       if (CFG.employeesCsv){
@@ -758,6 +762,7 @@ async function sendLeave(payload) {
     setEmp('Nu există departmentsCsv — folosesc „productie”.', 'warn');
   }
 
+  /** ===== STATE (UI + server) ===== */
   function reflectState(){
     const running = STATE.normal.running;
     const paused  = STATE.normal.paused;
@@ -793,6 +798,7 @@ async function sendLeave(payload) {
     try { return JSON.parse(txt).state || null; } catch { return null; }
   }
 
+  // Stats (Azi)
   async function fetchStats(name){
     const rawBase = (CFG.guardEndpoint && CFG.guardEndpoint.trim()) || (CFG.stateEndpoint && CFG.stateEndpoint.trim());
     if (!rawBase) return null;
@@ -900,6 +906,8 @@ async function sendLeave(payload) {
     document.getElementById('f_device').value    = navigator.userAgent;
     document.getElementById('f_notes').value     = (notesEl.value || '');
     document.getElementById('f_maps').value      = `https://maps.google.com/?q=${gps.lat},${gps.lon}`;
+
+    // nou: trimitem și departamentul (din select sau din mapare byName)
     const deptFromMap = DEPTMAP.byName.get(empSel.value) || '';
     document.getElementById('f_department').value = (deptSel.value || deptFromMap || '');
   }
@@ -931,6 +939,7 @@ async function sendLeave(payload) {
     else setEmp('Nicio sesiune deschisă.', '');
   }
 
+  // ==================== ACTION SUBMIT ====================
   let busy = false;
 
   async function submitAction(action) {
@@ -943,11 +952,13 @@ async function sendLeave(payload) {
     const isComercial = (depVal === 'coemercial' || depVal === 'comercial');
     const actNorm = _normAction(action);
 
+    // blocăm explicit extra_start/extra_finish pentru departamentul Comercial
     if (isComercial && (actNorm === 'extra_start' || actNorm === 'extra_finish')) {
       setStatus('Departamentul Comercial nu poate folosi ore EXTRA.', 'warn');
       return;
     }
 
+    // locația este obligatorie doar pentru departamentele non-Comercial
     if (!isComercial && !locInput.value.trim()) {
       setStatus('Scrie o locație.', 'err');
       locInput.focus();
@@ -1021,6 +1032,7 @@ async function sendLeave(payload) {
     reflectState();
   }
 
+  /** ===== INIT ===== */
   (async function init(){
     try {
       const r = await fetch('config.json?v=' + Date.now(), {cache:'no-store'});
@@ -1037,12 +1049,15 @@ async function sendLeave(payload) {
     bindCFGToForm();
     bindLeaveForm();
 
+    // Încarcă departamentele (sursa primară) + populează employees după departament
     await loadDepartments();
-    fillEmployeesFromDept('');
+    fillEmployeesFromDept(''); // placeholder până alegi departamentul
 
+    // restaurăm starea locală
     const cached = loadLS();
     if (cached) STATE = Object.assign(blankState(), cached);
 
+    // când schimb departamentul, re-populez angajații și resetez starea selectată
     deptSel.addEventListener('change', () => {
       fillEmployeesFromDept(deptSel.value);
       if (empSel.value && (DEPTMAP.byName.get(empSel.value) !== deptSel.value)) {
@@ -1051,15 +1066,19 @@ async function sendLeave(payload) {
       STATE = blankState(); STATE.name = '';
       reflectState(); setEmp('', '');
 
+      // NOU: ascund/arat bara EXTRA pentru Comercial
       const depVal = (deptSel.value || '').toLowerCase();
       const isComercial = (depVal === 'coemercial' || depVal === 'comercial');
       if (extraBar) extraBar.style.display = isComercial ? 'none' : '';
     });
 
+    // inițial: extraBar vizibil (nu e ales încă Comercial)
     if (extraBar) extraBar.style.display = '';
 
+    // schimbare angajat — doar starea
     empSel.addEventListener('change', handleEmployeeChange);
 
+    // toggle concedii
     const LEAVE_TYPES = new Set(['concediu de odihna','concediu medical','concediu pentru ore suplimentare']);
     actSel.addEventListener('change', () => {
       const isLeave = LEAVE_TYPES.has((actSel.value||'').toLowerCase());
@@ -1068,8 +1087,10 @@ async function sendLeave(payload) {
       if (isLeave) { LEAVE_DAYS = []; renderLeaveDays(); setLeaveStatus('', ''); }
     });
 
+    // butoane acțiuni
     wireButtons();
 
+    // buton concedii
     document.getElementById('btnLeave').addEventListener('click', async () => {
       setLeaveStatus('', '');
       if (!deptSel.value) { setLeaveStatus('Alege departamentul.', 'err'); return; }
@@ -1088,6 +1109,7 @@ async function sendLeave(payload) {
 
       setLeaveStatus('Se trimite cererea…', '');
 
+      // optional: Google Form
       let formSubmitted = false;
       if (CFG.leaveFormAction && CFG.leaveFields) {
         try {
@@ -1106,6 +1128,7 @@ async function sendLeave(payload) {
         } catch (e) { console.warn('Leave Form submit failed', e); }
       }
 
+      // endpoint WebApp
       let endpointOk = false, endpointMsg = '';
       if (CFG.leaveEndpoint) {
         try {
