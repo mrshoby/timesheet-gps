@@ -436,6 +436,7 @@
             </div>
           </div>
 
+          <!-- Distribuție + ultimele pontaje -->
           <div class="admin-grid">
             <section class="card admin-card">
               <h2>Distribuție pe departamente</h2>
@@ -443,29 +444,50 @@
               <div id="deptList" class="admin-list"></div>
             </section>
 
-        <section class="card admin-card">
-  <h2>Zile incomplete</h2>
-  <div class="admin-small-text">
-    Zile în care există pontaj (START/FINISH), dar norma nu este completă pentru angajații din filtrul curent.
-  </div>
-  <div class="table-wrap">
-    <table class="admin-table">
-      <thead>
-        <tr>
-          <th>Data</th>
-          <th>Angajat</th>
-          <th>Departament</th>
-          <th>Normă</th>
-          <th>Extra</th>
-          <th>Stare</th>
-        </tr>
-      </thead>
-      <tbody id="incompleteDaysBody"></tbody>
-    </table>
-  </div>
-</section>
+            <section class="card admin-card">
+              <h2>Ultimele pontaje</h2>
+              <div class="admin-small-text">Cele mai recente 25 de înregistrări din filtrul curent.</div>
+              <div class="table-wrap">
+                <table class="admin-table">
+                  <thead>
+                    <tr>
+                      <th>Data / ora</th>
+                      <th>Angajat</th>
+                      <th>Departament</th>
+                      <th>Acțiune</th>
+                      <th>Activitate</th>
+                    </tr>
+                  </thead>
+                  <tbody id="lastEventsBody"></tbody>
+                </table>
+              </div>
+            </section>
+          </div>
 
+          <!-- Zile incomplete HR -->
+          <section class="card admin-card">
+            <h2>Zile incomplete</h2>
+            <div class="admin-small-text">
+              Zile în care există pontaj (START/FINISH), dar norma nu este completă pentru angajații din filtrul curent.
+            </div>
+            <div class="table-wrap">
+              <table class="admin-table">
+                <thead>
+                  <tr>
+                    <th>Data</th>
+                    <th>Angajat</th>
+                    <th>Departament</th>
+                    <th>Normă</th>
+                    <th>Extra</th>
+                    <th>Stare</th>
+                  </tr>
+                </thead>
+                <tbody id="incompleteDaysBody"></tbody>
+              </table>
+            </div>
+          </section>
 
+          <!-- Log brut -->
           <section class="card admin-card">
             <h2>Log brut (filtru curent)</h2>
             <div class="admin-small-text">
@@ -474,6 +496,7 @@
             <pre id="rawLog" class="admin-log">–</pre>
           </section>
 
+          <!-- Prezență pe zile -->
           <section class="card admin-card">
             <h2>Prezență pe zile</h2>
             <div class="admin-small-text">
@@ -494,6 +517,7 @@
             </div>
           </section>
 
+          <!-- Index + detalii -->
           <div class="admin-grid">
             <section class="card admin-card">
               <h2>Index angajați</h2>
@@ -609,6 +633,7 @@
     const employeeDetailsBodyEl = document.getElementById('employeeDetailsBody');
     const kpiCompletedTodayEl = document.getElementById('kpiCompletedToday');
     const dailyPresenceBodyEl = document.getElementById('dailyPresenceBody');
+    const incompleteDaysBodyEl = document.getElementById('incompleteDaysBody');
 
     if (!session){
       alert('Nu ești autentificat ca admin. Te redirecționez la pagina principală.');
@@ -1261,6 +1286,65 @@
       });
     }
 
+    function renderIncompleteDays(stats){
+      if (!incompleteDaysBodyEl) return;
+      incompleteDaysBodyEl.innerHTML = '';
+      if (!stats || !stats.employees || !stats.employees.size){
+        const tr = document.createElement('tr');
+        const td = document.createElement('td');
+        td.colSpan = 6;
+        td.textContent = 'Nu există zile incomplete în filtrul curent.';
+        tr.appendChild(td);
+        incompleteDaysBodyEl.appendChild(tr);
+        return;
+      }
+      const rows = [];
+      stats.employees.forEach(emp => {
+        emp.days.forEach(day => {
+          if ((day.hasStart || day.hasFinish) && !day.completed){
+            rows.push({
+              empName: emp.name,
+              dept: day.dept || emp.dept || '',
+              dateKey: day.dateKey,
+              workMs: day.workMs || 0,
+              extraMs: day.extraMs || 0,
+              hasStart: !!day.hasStart,
+              hasFinish: !!day.hasFinish
+            });
+          }
+        });
+      });
+      if (!rows.length){
+        const tr = document.createElement('tr');
+        const td = document.createElement('td');
+        td.colSpan = 6;
+        td.textContent = 'Nu există zile incomplete în filtrul curent.';
+        tr.appendChild(td);
+        incompleteDaysBodyEl.appendChild(tr);
+        return;
+      }
+      rows.sort((a,b)=>{
+        if (a.dateKey < b.dateKey) return -1;
+        if (a.dateKey > b.dateKey) return 1;
+        return a.empName.localeCompare(b.empName,'ro');
+      });
+      rows.forEach(row => {
+        let statusText;
+        if (row.hasStart && !row.hasFinish) statusText = 'DOAR START';
+        else if (!row.hasStart && row.hasFinish) statusText = 'DOAR FINISH';
+        else statusText = 'INCOMPLETĂ';
+        const tr = document.createElement('tr');
+        tr.innerHTML =
+          '<td>' + row.dateKey + '</td>' +
+          '<td>' + row.empName + '</td>' +
+          '<td>' + row.dept + '</td>' +
+          '<td>' + (row.workMs ? fmtHoursHM(row.workMs) : '-') + '</td>' +
+          '<td>' + (row.extraMs ? fmtHoursHM(row.extraMs) : '-') + '</td>' +
+          '<td><span class="badge badge-warn">' + statusText + '</span></td>';
+        incompleteDaysBodyEl.appendChild(tr);
+      });
+    }
+
     async function init(){
       try{
         const CFG = await loadConfig();
@@ -1363,6 +1447,7 @@
           const statsBase = buildStatsFromEvents(base);
           updateCompletedTodayKpiFromStats(statsBase, currentRange);
           renderDailyPresence(statsBase);
+          renderIncompleteDays(statsBase);
         }
 
         if (rangeSelect){
@@ -1429,9 +1514,14 @@
               const url = cfg.adminEventsEndpoint +
                 '?fn=adminPdf&name=' + encodeURIComponent(SELECTED_EMPLOYEE) +
                 '&v=' + Date.now();
-              window.open(url, '_blank');
+              const r = await fetch(url, {cache:'no-store'});
+              const resp = await r.json();
+              if (!resp.ok || !resp.url){
+                throw new Error(resp.error || 'Nu am primit un URL de raport.');
+              }
+              window.open(resp.url, '_blank');
             }catch(err){
-              alert('Eroare configurare PDF: ' + (err && err.message ? err.message : err));
+              alert('Eroare la generarea PDF-ului pe angajat: ' + (err.message || err));
             }
           });
         }
@@ -1547,4 +1637,3 @@
   </script>
 </body>
 </html>
-
