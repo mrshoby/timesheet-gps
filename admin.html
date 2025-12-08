@@ -402,7 +402,7 @@
             <div class="admin-last-update">
               <label class="toggle-incomplete">
                 <input type="checkbox" id="incompleteOnly" />
-                <span>Doar zile incomplete</span>
+                <span>Doar zile incomplete (START fără FINISH)</span>
               </label>
               <span id="lastUpdate">–</span>
             </div>
@@ -468,7 +468,7 @@
           <section class="card admin-card">
             <h2>Zile incomplete</h2>
             <div class="admin-small-text">
-              Zile în care există pontaj (START/FINISH), dar norma nu este completă pentru angajații din filtrul curent.
+              Zile în care există cel puțin un START, dar nu există niciun FINISH (pentru filtrul curent).
             </div>
             <div class="table-wrap">
               <table class="admin-table">
@@ -1302,7 +1302,8 @@
       const rows = [];
       stats.employees.forEach(emp => {
         emp.days.forEach(day => {
-          if ((day.hasStart || day.hasFinish) && !day.completed){
+          // *** DEFINIȚIA NOUĂ: START fără niciun FINISH ***
+          if (day.hasStart && !day.hasFinish){
             rows.push({
               dateKey: day.dateKey,
               name: emp.name,
@@ -1335,11 +1336,7 @@
       });
 
       rows.forEach(item => {
-        let status;
-        if (item.hasStart && !item.hasFinish) status = 'Doar START';
-        else if (!item.hasStart && item.hasFinish) status = 'Doar FINISH';
-        else status = 'Incompletă';
-
+        let status = 'Doar START (fără FINISH)';
         const tr = document.createElement('tr');
         tr.innerHTML =
           '<td>' + item.dateKey + '</td>' +
@@ -1429,7 +1426,8 @@
           const incompleteKeys = new Set();
           stats.employees.forEach(emp => {
             emp.days.forEach(day => {
-              if ((day.hasStart || day.hasFinish) && !day.completed){
+              // *** Aici la fel: doar START fără FINISH ***
+              if (day.hasStart && !day.hasFinish){
                 incompleteKeys.add(emp.name + '||' + day.dateKey);
               }
             });
@@ -1460,7 +1458,7 @@
           if (lastEventsTitleEl && lastEventsHintEl && rawLogTitleEl){
             if (filterIncompleteOnly){
               lastEventsTitleEl.textContent = 'Ultimele pontaje (doar zile incomplete)';
-              lastEventsHintEl.textContent = 'Cele mai recente 25 de înregistrări doar din zilele incomplete pentru filtrul curent.';
+              lastEventsHintEl.textContent = 'Cele mai recente 25 de înregistrări doar din zilele cu START fără FINISH, pentru filtrul curent.';
               rawLogTitleEl.textContent = 'Log brut (doar zile incomplete)';
             } else {
               lastEventsTitleEl.textContent = 'Ultimele pontaje';
