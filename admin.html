@@ -446,7 +446,16 @@
             <section class="card admin-card">
               <h2 id="lastEventsTitle">Ultimele pontaje</h2>
               <div class="admin-small-text" id="lastEventsHint">
-                Cele mai recente 25 de înregistrări din filtrul curent.
+                <span>Perioadă listă:</span>
+                <select id="lastEventsRange">
+                  <option value="today">Ziua curentă</option>
+                  <option value="week">Săptămâna curentă</option>
+                  <option value="month">Luna curentă</option>
+                  <option value="all">Toate înregistrările</option>
+                </select>
+                <span id="lastEventsHintText">
+                  Toate înregistrările din perioada aleasă, după filtrele de mai sus.
+                </span>
               </div>
               <div class="table-wrap">
                 <table class="admin-table">
@@ -589,6 +598,7 @@
     let CURRENT_DEPT_FILTER = 'all';
     let filterIncompleteOnly = false;
     let GLOBAL_CFG = null;
+    let lastEventsRange = 'today';
 
     function getAdminSession(){
       try{
@@ -632,7 +642,8 @@
     const dailyPresenceBodyEl = document.getElementById('dailyPresenceBody');
     const incompleteDaysBodyEl = document.getElementById('incompleteDaysBody');
     const lastEventsTitleEl = document.getElementById('lastEventsTitle');
-    const lastEventsHintEl = document.getElementById('lastEventsHint');
+    const lastEventsHintTextEl = document.getElementById('lastEventsHintText');
+    const lastEventsRangeSelect = document.getElementById('lastEventsRange');
     const rawLogTitleEl = document.getElementById('rawLogTitle');
 
     if (!session){
@@ -753,13 +764,13 @@
         const ta = a.ts ? new Date(a.ts).getTime() : 0;
         const tb = b.ts ? new Date(b.ts).getTime() : 0;
         return tb - ta;
-      }).slice(0,25);
+      });
       tbody.innerHTML = '';
       if (!list.length){
         const tr = document.createElement('tr');
         const td = document.createElement('td');
         td.colSpan = 5;
-        td.textContent = 'Nu există înregistrări în filtrul curent.';
+        td.textContent = 'Nu există înregistrări în perioada aleasă (după filtre).';
         tr.appendChild(td);
         tbody.appendChild(tr);
         return;
@@ -1237,6 +1248,36 @@
       });
     }
 
+    function filterLastEventsByRange(events, range){
+      if (!events || !events.length) return [];
+      const now = new Date();
+      const endTime = now.getTime();
+      let startTime = null;
+
+      if (range === 'today'){
+        const d = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0,0,0);
+        startTime = d.getTime();
+      } else if (range === 'week'){
+        const d = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0,0,0);
+        const day = d.getDay(); // 0=Sun, 1=Mon...
+        const diffToMonday = (day + 6) % 7;
+        d.setDate(d.getDate() - diffToMonday);
+        startTime = d.getTime();
+      } else if (range === 'month'){
+        const d = new Date(now.getFullYear(), now.getMonth(), 1, 0,0,0);
+        startTime = d.getTime();
+      } else { // all
+        return events.slice();
+      }
+
+      return events.filter(ev => {
+        if (!ev.ts) return false;
+        const t = new Date(ev.ts).getTime();
+        if (isNaN(t)) return false;
+        return t >= startTime && t <= endTime;
+      });
+    }
+
     function updateCompletedTodayKpiFromStats(stats, range){
       if (!kpiCompletedTodayEl) return;
       if (range !== 'today'){
@@ -1302,16 +1343,14 @@
       const rows = [];
       stats.employees.forEach(emp => {
         emp.days.forEach(day => {
-          // *** DEFINIȚIA NOUĂ: START fără niciun FINISH ***
+          // Zi incompletă: are START și NU are FINISH
           if (day.hasStart && !day.hasFinish){
             rows.push({
               dateKey: day.dateKey,
               name: emp.name,
               dept: day.dept || emp.dept || '',
               workMs: day.workMs,
-              extraMs: day.extraMs,
-              hasStart: day.hasStart,
-              hasFinish: day.hasFinish
+              extraMs: day.extraMs
             });
           }
         });
@@ -1336,7 +1375,6 @@
       });
 
       rows.forEach(item => {
-        let status = 'Doar START (fără FINISH)';
         const tr = document.createElement('tr');
         tr.innerHTML =
           '<td>' + item.dateKey + '</td>' +
@@ -1344,8 +1382,37 @@
           '<td>' + item.dept + '</td>' +
           '<td>' + (item.workMs ? fmtHoursHM(item.workMs) : '-') + '</td>' +
           '<td>' + (item.extraMs ? fmtHoursHM(item.extraMs) : '-') + '</td>' +
-          '<td>' + status + '</td>';
+          '<td>Doar START (fără FINISH)</td>';
         incompleteDaysBodyEl.appendChild(tr);
+      });
+    }
+
+    function applyDeptEmployee(events, currentDept, currentEmployee){
+      let list = events.slice();
+      if (currentDept && currentDept !== 'all'){
+        list = list.filter(ev => (ev.dept || '(fără departament)') === currentDept);
+      }
+      if (currentEmployee && currentEmployee !== 'all'){
+        list = list.filter(ev => ev.name === currentEmployee);
+      }
+      return list;
+    }
+
+    function applyIncompleteFilter(events){
+      if (!filterIncompleteOnly) return events;
+      const stats = buildStatsFromEvents(events);
+      const incompleteKeys = new Set();
+      stats.employees.forEach(emp => {
+        emp.days.forEach(day => {
+          if (day.hasStart && !day.hasFinish){
+            incompleteKeys.add(emp.name + '||' + day.dateKey);
+          }
+        });
+      });
+      return events.filter(ev => {
+        const dk = dateKeyFromIso(ev.ts);
+        if (!dk) return false;
+        return incompleteKeys.has(ev.name + '||' + dk);
       });
     }
 
@@ -1393,7 +1460,6 @@
           lastUpdateEl.textContent = 'Actualizat la ' + hh + ':' + mi;
         }
 
-        // ALL_STATS = statistici all-time, din toate evenimentele
         ALL_STATS = buildStatsFromEvents(events);
         renderTopEmployees(ALL_STATS);
 
@@ -1407,62 +1473,39 @@
         renderEmployeeIndex(ALL_STATS, CURRENT_DEPT_FILTER);
         renderEmployeeDetails(null);
 
-        function applyRangeDeptEmployee(allEvents){
-          let list = filterByRange(allEvents, currentRange || 'today');
-          if (currentDept && currentDept !== 'all'){
-            list = list.filter(ev => (ev.dept || '(fără departament)') === currentDept);
-          }
-          if (currentEmployee && currentEmployee !== 'all'){
-            list = list.filter(ev => ev.name === currentEmployee);
-          }
-          return list;
-        }
-
-        function getFilteredEvents(){
-          let base = applyRangeDeptEmployee(events);
-          if (!filterIncompleteOnly) return base;
-
-          const stats = buildStatsFromEvents(base);
-          const incompleteKeys = new Set();
-          stats.employees.forEach(emp => {
-            emp.days.forEach(day => {
-              // *** Aici la fel: doar START fără FINISH ***
-              if (day.hasStart && !day.hasFinish){
-                incompleteKeys.add(emp.name + '||' + day.dateKey);
-              }
-            });
-          });
-          const result = base.filter(ev => {
-            const dk = dateKeyFromIso(ev.ts);
-            if (!dk) return false;
-            return incompleteKeys.has(ev.name + '||' + dk);
-          });
-          return result;
-        }
-
         function refresh(){
-          const filtered = getFilteredEvents();
-          latestFiltered = filtered;
-          renderKpis(filtered);
-          renderDept(filtered);
-          renderLastEvents(filtered);
-          renderRawLog(filtered);
+          // 1) Evenimente pentru KPI, log, prezență, zile incomplete
+          let baseAll = applyDeptEmployee(events, currentDept, currentEmployee);
+          let baseRange = filterByRange(baseAll, currentRange || 'today');
+          let filteredForMain = applyIncompleteFilter(baseRange);
+          latestFiltered = filteredForMain;
 
-          const base = applyRangeDeptEmployee(events);
-          const statsBase = buildStatsFromEvents(base);
+          renderKpis(filteredForMain);
+          renderDept(filteredForMain);
+          renderRawLog(filteredForMain);
+
+          const statsBase = buildStatsFromEvents(baseRange);
           updateCompletedTodayKpiFromStats(statsBase, currentRange);
           renderDailyPresence(statsBase);
           renderIncompleteDays(statsBase);
 
-          // UX: actualizăm titlurile când este activ filtrul de zile incomplete
-          if (lastEventsTitleEl && lastEventsHintEl && rawLogTitleEl){
+          // 2) Evenimente pentru "Ultimele pontaje" (are propriul range)
+          let lastBase = applyDeptEmployee(events, currentDept, currentEmployee);
+          let lastByRange = filterLastEventsByRange(lastBase, lastEventsRange || 'today');
+          let lastFinal = applyIncompleteFilter(lastByRange);
+          renderLastEvents(lastFinal);
+
+          // 3) Actualizare titluri când e bifat "doar zile incomplete"
+          if (lastEventsTitleEl && lastEventsHintTextEl && rawLogTitleEl){
             if (filterIncompleteOnly){
               lastEventsTitleEl.textContent = 'Ultimele pontaje (doar zile incomplete)';
-              lastEventsHintEl.textContent = 'Cele mai recente 25 de înregistrări doar din zilele cu START fără FINISH, pentru filtrul curent.';
+              lastEventsHintTextEl.textContent =
+                'Toate înregistrările din zilele cu START fără FINISH, pentru perioada aleasă și filtrul curent.';
               rawLogTitleEl.textContent = 'Log brut (doar zile incomplete)';
             } else {
               lastEventsTitleEl.textContent = 'Ultimele pontaje';
-              lastEventsHintEl.textContent = 'Cele mai recente 25 de înregistrări din filtrul curent.';
+              lastEventsHintTextEl.textContent =
+                'Toate înregistrările din perioada aleasă, după filtrele de mai sus.';
               rawLogTitleEl.textContent = 'Log brut (filtru curent)';
             }
           }
@@ -1510,6 +1553,12 @@
         if (incompleteOnlyCheckbox){
           incompleteOnlyCheckbox.addEventListener('change', function(){
             filterIncompleteOnly = !!incompleteOnlyCheckbox.checked;
+            refresh();
+          });
+        }
+        if (lastEventsRangeSelect){
+          lastEventsRangeSelect.addEventListener('change', function(){
+            lastEventsRange = lastEventsRangeSelect.value || 'today';
             refresh();
           });
         }
