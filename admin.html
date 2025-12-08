@@ -1151,31 +1151,53 @@
     async function init(){
       try{
         const r = await fetch('config.json?v=' + Date.now(), {cache:'no-store'});
-        if (!r.ok) throw new Error('HTTP ' + r.status);
+        if (!r.ok) throw new Error('Nu pot citi config.json (HTTP ' + r.status + ').');
         const CFG = await r.json();
         if (!CFG || !CFG.adminEventsEndpoint){
           throw new Error('config.json nu conține adminEventsEndpoint.');
         }
 
-        const adminUrl = CFG.adminEventsEndpoint + '?fn=adminEvents&v=' + Date.now();
+        const baseEndpoint = String(CFG.adminEventsEndpoint || '').trim();
+        if (!baseEndpoint){
+          throw new Error('config.json adminEventsEndpoint este gol.');
+        }
+        const hasQuery = baseEndpoint.indexOf('?') !== -1;
+        const adminUrl = baseEndpoint + (hasQuery ? '&' : '?') + 'fn=adminEvents&v=' + Date.now();
+
         const r2 = await fetch(adminUrl, { cache:'no-store' });
         const txt = await r2.text();
+        try { console.debug('adminEventsEndpoint raw:', txt); } catch(_){}
         let data;
-        try { data = JSON.parse(txt); } catch(e){ throw new Error('Răspuns invalid de la adminEventsEndpoint.'); }
-        if (!data || !data.ok || !Array.isArray(data.events)){
-          throw new Error('adminEventsEndpoint nu a întors un obiect ok cu events[].');
+        try {
+          data = JSON.parse(txt);
+        } catch(e){
+          throw new Error('Răspuns invalid de la adminEventsEndpoint (nu este JSON).');
+        }
+
+        if (!data || data.ok !== true){
+          throw new Error('adminEventsEndpoint nu a întors ok:true.');
+        }
+
+        const rawEvents =
+          Array.isArray(data.events) ? data.events :
+          Array.isArray(data.rows) ? data.rows :
+          Array.isArray(data.eventList) ? data.eventList :
+          [];
+
+        if (!Array.isArray(rawEvents)){
+          throw new Error('adminEventsEndpoint nu a întors un array de evenimente (events[]).');
         }
 
         const meta = data.meta || null;
         window.__pontajAdminMeta = meta || null;
 
-        const events = data.events.map(ev => ({
-          ts: ev.ts,
-          name: ev.name || '',
-          action: _normAction(ev.action),
-          dept: ev.dept || '',
-          activity: ev.activity || '',
-          location: ev.location || ''
+        const events = rawEvents.map(ev => ({
+          ts: ev.ts || ev.timestamp || ev.Timestamp || '',
+          name: ev.name || ev.employee || ev.Nume || '',
+          action: _normAction(ev.action || ev.actiune || ev.Activity || ''),
+          dept: ev.dept || ev.department || ev.departament || ev.Departament || '',
+          activity: ev.activity || ev.activitate || '',
+          location: ev.location || ev.client || ev.locație || ev.locatie || ''
         })).filter(ev => ev.ts);
 
         if (loadingEl) loadingEl.style.display = 'none';
@@ -1283,8 +1305,10 @@
               .then(r => r.json())
               .then(cfg => {
                 if (!cfg.adminEventsEndpoint) throw new Error('Lipsește adminEventsEndpoint.');
-                const url = cfg.adminEventsEndpoint +
-                  '?fn=adminPdf&name=' + encodeURIComponent(SELECTED_EMPLOYEE) +
+                const base = String(cfg.adminEventsEndpoint || '').trim();
+                const hasQ = base.indexOf('?') !== -1;
+                const url = base + (hasQ ? '&' : '?') +
+                  'fn=adminPdf&name=' + encodeURIComponent(SELECTED_EMPLOYEE) +
                   '&v=' + Date.now();
                 window.open(url, '_blank');
               })
