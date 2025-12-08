@@ -153,7 +153,7 @@
 
     .admin-kpis{
       display:grid;
-      grid-template-columns:repeat(4,minmax(0,1fr));
+      grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
       gap:10px;
       margin-bottom:14px;
     }
@@ -217,13 +217,23 @@
       border-radius:10px;
       background:#f8fafc;
       border:1px solid #e2e8f0;
+      cursor:pointer;
+    }
+    .admin-list-row:hover{
+      background:#e5f0ff;
     }
     .admin-list-label{
       font-weight:500;
     }
+    .admin-list-sub{
+      font-size:11px;
+      color:var(--muted);
+    }
     .admin-list-value{
       font-variant-numeric:tabular-nums;
       font-weight:600;
+      font-size:12px;
+      text-align:right;
     }
     .admin-empty{
       font-size:12px;
@@ -312,6 +322,23 @@
       border-radius:4px;
       padding:2px 4px;
     }
+
+    .badge{
+      display:inline-flex;
+      align-items:center;
+      padding:2px 8px;
+      border-radius:999px;
+      font-size:11px;
+      font-weight:600;
+    }
+    .badge-ok{
+      background:#dcfce7;
+      color:#166534;
+    }
+    .badge-warn{
+      background:#fef3c7;
+      color:#92400e;
+    }
   </style>
 </head>
 <body>
@@ -356,12 +383,12 @@
         </header>
 
         <div id="error" class="admin-error" style="display:none"></div>
-        <div id="loading" class="admin-loading">Se încarcă datele din foaia de pontaj…</div>
+        <div id="loading" class="admin-loading">Se încarcă datele din server…</div>
 
         <section id="dashboard" style="display:none">
           <div class="admin-kpis">
             <div class="card kpi">
-              <div class="kpi-label">Pontaje în perioadă</div>
+              <div class="kpi-label">Pontaje în filtrul curent</div>
               <div class="kpi-value" id="kpiTotal">–</div>
             </div>
             <div class="card kpi">
@@ -375,6 +402,10 @@
             <div class="card kpi">
               <div class="kpi-label">FINISH</div>
               <div class="kpi-value" id="kpiFinish">–</div>
+            </div>
+            <div class="card kpi">
+              <div class="kpi-label">Norme complete (azi)</div>
+              <div class="kpi-value" id="kpiCompletedToday">–</div>
             </div>
           </div>
 
@@ -412,6 +443,26 @@
             </div>
             <pre id="rawLog" class="admin-log">–</pre>
           </section>
+
+          <div class="admin-grid">
+            <section class="card admin-card">
+              <h2>Index angajați</h2>
+              <div class="admin-small-text">
+                Listă angajați (după filtrul de departament). Click pe un nume pentru a vedea statistici detaliate (all time).
+              </div>
+              <div id="employeeIndexList" class="admin-list"></div>
+            </section>
+
+            <section class="card admin-card">
+              <h2>Detalii angajat</h2>
+              <div class="admin-small-text" id="employeeDetailsHeader">
+                Selectează un angajat din listă pentru a vedea situația pe toate zilele (normă, extra, overtime, zile complete).
+              </div>
+              <div id="employeeDetailsBody">
+                <div class="admin-empty">Niciun angajat selectat.</div>
+              </div>
+            </section>
+          </div>
         </section>
       </section>
 
@@ -425,16 +476,27 @@
           <button id="exportCsvBtn" class="btn" type="button" style="margin-top:8px">
             Export CSV (filtru curent)
           </button>
+          <button id="pdfBtn" class="btn" type="button" style="margin-top:8px">
+            PDF angajat selectat
+          </button>
           <p class="admin-small-text" style="margin-top:10px">
             <a href="index.html" class="admin-link">Înapoi la pontaj</a>
           </p>
         </section>
 
         <section class="card admin-card">
+          <h2>Top angajați</h2>
+          <div class="admin-small-text">
+            După total ore normă lucrate (all time).
+          </div>
+          <div id="topEmployees" class="admin-list"></div>
+        </section>
+
+        <section class="card admin-card">
           <h2>Notițe</h2>
           <p class="admin-small-text">
-            Pagina citește direct foaia de pontaj ( <code>sheet.gvizUrl</code> din <code>config.json</code> )
-            și calculează sumarul în browser. Poți extinde logica aici pentru rapoarte suplimentare, filtre, exporturi etc.
+            Pagina citește datele prin Apps Script (<code>adminEventsEndpoint</code> din <code>config.json</code>).
+            Foaia de pontaj rămâne privată; serverul întoarce un JSON cu evenimente, iar aici calculăm statistici, ore pe zi, overtime și rapoarte PDF.
           </p>
         </section>
       </aside>
@@ -444,6 +506,10 @@
   <script>
   (function(){
     const ADMIN_LS_KEY = 'pontaj/admin/v1';
+
+    let ALL_STATS = null;
+    let SELECTED_EMPLOYEE = null;
+    let CURRENT_DEPT_FILTER = 'all';
 
     function getAdminSession(){
       try{
@@ -467,6 +533,12 @@
     const lastUpdateEl = document.getElementById('lastUpdate');
     const rawLogEl = document.getElementById('rawLog');
     const exportCsvBtn = document.getElementById('exportCsvBtn');
+    const pdfBtn = document.getElementById('pdfBtn');
+    const topEmployeesEl = document.getElementById('topEmployees');
+    const employeeIndexListEl = document.getElementById('employeeIndexList');
+    const employeeDetailsHeaderEl = document.getElementById('employeeDetailsHeader');
+    const employeeDetailsBodyEl = document.getElementById('employeeDetailsBody');
+    const kpiCompletedTodayEl = document.getElementById('kpiCompletedToday');
 
     if (!session){
       alert('Nu ești autentificat ca admin. Te redirecționez la pagina principală.');
@@ -490,28 +562,6 @@
       if (dashboardEl) dashboardEl.style.display = 'none';
     }
 
-    function parseGvizDateStr(s){
-      const m = /^Date\((\d+),(\d+),(\d+)(?:,(\d+),(\d+),(\d+))?\)$/.exec(String(s).trim());
-      if (!m) return null;
-      const Y = +m[1], M = +m[2], D = +m[3], h = +(m[4]||0), mi = +(m[5]||0), se = +(m[6]||0);
-      const d = new Date(Y, M, D, h, mi, se);
-      return isNaN(d.getTime()) ? null : d.toISOString();
-    }
-
-    function isoFromAny(x){
-      if (!x) return null;
-      if (typeof x === 'string'){
-        if (/^Date\(/.test(x)) return parseGvizDateStr(x);
-        if (/^\d{4}-\d{2}-\d{2}T/.test(x)) return x;
-        const d = new Date(x); if (!isNaN(d.getTime())) return d.toISOString();
-        return null;
-      }
-      if (x && typeof x === 'object' && typeof x.getTime === 'function'){
-        return x.toISOString();
-      }
-      return null;
-    }
-
     function _norm(s){ return String(s==null?'':s).trim(); }
     function _normAction(a){
       let s = _norm(a).toLowerCase().replace(/[-\s]+/g,'_');
@@ -521,75 +571,6 @@
       if (s === 'extra finish') s='extra_finish';
       return s;
     }
-
-    async function fetchGvizRows(url){
-      const r = await fetch(url + (url.includes('?') ? '&' : '?') + 'tqx=out:json&rand=' + Date.now(), {cache:'no-store'});
-      const txt = await r.text();
-      const m = txt.match(/google\.visualization\.Query\.setResponse\(([\s\S]*)\);?/);
-      if (!m) throw new Error('Format GViz necunoscut.');
-      const data = JSON.parse(m[1]);
-      if (!data.table || !data.table.rows) return [];
-      const cols = data.table.cols.map(c => ({ label:(c.label||c.id||'').trim(), type:(c.type||'').trim() }));
-      return data.table.rows.map(row => {
-        const obj = {};
-        row.c.forEach((cell, i) => {
-          const label = cols[i].label || ('C'+i);
-          const type  = cols[i].type;
-          let v = (cell && 'v' in cell) ? cell.v : null;
-          if (type === 'datetime' || type === 'date' || type === 'timeofday') {
-            let iso = null;
-            if (typeof v === 'string' && /^Date\(/.test(v)) iso = parseGvizDateStr(v);
-            if (!iso && cell && typeof cell.f === 'string' && cell.f.trim()){
-              const d = new Date(cell.f); if (!isNaN(d.getTime())) iso = d.toISOString();
-            }
-            v = iso || (typeof v === 'string' ? v : (cell && cell.f) || v);
-          }
-          obj[label] = v; obj[label.toLowerCase()] = v;
-        });
-        return obj;
-      });
-    }
-
-    function mapRowToEvent(row, colsCfg){
-      const cols = Object.assign({
-        timestamp:'f_timestamp',
-        name:'f_name',
-        action:'f_action',
-        department:'f_department',
-        activity:'f_activity',
-        location:'f_location'
-      }, colsCfg || {});
-      const ts = isoFromAny(row[cols.timestamp] ?? row['timestamp'] ?? row['Timestamp'] ?? row['data'] ?? row['dată'] ?? row['date']);
-      const name = String(row[cols.name] ?? row['Nume'] ?? row['nume'] ?? row['name'] ?? '').trim();
-      const action = _normAction(row[cols.action] ?? row['actiune'] ?? row['acțiune'] ?? row['Acțiune'] ?? row['Actiune'] ?? '');
-      const dept = String(row[cols.department] ?? row['departament'] ?? row['Departament'] ?? '').trim();
-      const activity = String(row[cols.activity] ?? row['activitate'] ?? row['Activitate'] ?? '').trim();
-      const location = String(row[cols.location] ?? row['locație'] ?? row['locatie'] ?? row['location'] ?? '').trim();
-      return { ts, name, action, dept, activity, location };
-    }
-
-    function filterEventsByRange(events, range){
-      if (!events || !events.length) return [];
-      const now = new Date();
-      if (range === 'all') return events.slice();
-      const endTime = now.getTime();
-      let startTime;
-      if (range === 'last7'){
-        const d = new Date(now);
-        d.setDate(d.getDate() - 6);
-        startTime = d.getTime();
-      }else{ // today
-        const d = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0,0,0);
-        startTime = d.getTime();
-      }
-      return events.filter(ev => {
-        if (!ev.ts) return false;
-        const t = new Date(ev.ts).getTime();
-        if (isNaN(t)) return false;
-        return t >= startTime && t <= endTime;
-      });
-    }
-
     function fmtDateTime(iso){
       if (!iso) return '';
       const d = new Date(iso);
@@ -600,6 +581,16 @@
       const hh = String(d.getHours()).padStart(2,'0');
       const mi = String(d.getMinutes()).padStart(2,'0');
       return `${dd}.${mm}.${yyyy} ${hh}:${mi}`;
+    }
+    function fmtHoursShort(ms){
+      const h = ms / 3600000;
+      return h.toFixed(1).replace('.', ',') + ' h';
+    }
+    function fmtHoursHM(ms){
+      const totalMin = Math.round(ms / 60000);
+      const h = Math.floor(totalMin / 60);
+      const m = totalMin % 60;
+      return `${h}h ${String(m).padStart(2,'0')}m`;
     }
 
     function renderKpis(events){
@@ -640,8 +631,10 @@
         const row = document.createElement('div');
         row.className = 'admin-list-row';
         row.innerHTML =
-          '<span class="admin-list-label">' + dept + '</span>' +
-          '<span class="admin-list-value">' + count + '</span>';
+          '<div>' +
+            '<div class="admin-list-label">' + dept + '</div>' +
+          '</div>' +
+          '<div class="admin-list-value">' + count + '</div>';
         container.appendChild(row);
       });
     }
@@ -783,18 +776,403 @@
       }, 0);
     }
 
+    function buildStatsFromEvents(events){
+      const employees = new Map();
+      const perDay = new Map();
+      const NORM_MS = 8 * 60 * 60 * 1000;
+      function dateKeyFromIso(iso){
+        const d = new Date(iso);
+        if (isNaN(d.getTime())) return null;
+        const y = d.getFullYear();
+        const m = String(d.getMonth()+1).padStart(2,'0');
+        const dd = String(d.getDate()).padStart(2,'0');
+        return `${y}-${m}-${dd}`;
+      }
+      function getEmp(name){
+        if (!employees.has(name)){
+          employees.set(name, {
+            name,
+            dept:'',
+            days:new Map(),
+            totals:{
+              daysWithStart:0,
+              daysWithFinish:0,
+              daysCompleted:0,
+              totalWorkMs:0,
+              totalExtraMs:0,
+              overtimeMs:0,
+              firstEvent:null,
+              lastEvent:null
+            }
+          });
+        }
+        return employees.get(name);
+      }
+
+      const byNameDate = new Map();
+      (events || []).forEach(ev => {
+        if (!ev.ts || !ev.name) return;
+        const dk = dateKeyFromIso(ev.ts);
+        if (!dk) return;
+        const key = ev.name + '||' + dk;
+        if (!byNameDate.has(key)) byNameDate.set(key, []);
+        byNameDate.get(key).push(ev);
+      });
+
+      byNameDate.forEach((evs, key) => {
+        evs.sort((a,b)=>new Date(a.ts) - new Date(b.ts));
+        const parts = key.split('||');
+        const name = parts[0];
+        const dk = parts[1];
+
+        const emp = getEmp(name);
+        let day = emp.days.get(dk);
+        if (!day){
+          day = {
+            dateKey: dk,
+            dept:'',
+            events: evs,
+            workMs:0,
+            extraMs:0,
+            hasStart:false,
+            hasFinish:false,
+            completed:false,
+            overtimeMs:0
+          };
+          emp.days.set(dk, day);
+        }
+
+        evs.forEach(ev => {
+          if (ev.dept) day.dept = ev.dept;
+        });
+        if (!emp.dept && day.dept) emp.dept = day.dept;
+
+        let running = false;
+        let paused = false;
+        let extraRunning = false;
+        let startTs = null;
+        let pauseStartTs = null;
+        let extraStartTs = null;
+        let sumPauseMs = 0;
+        let workMs = 0;
+        let extraMs = 0;
+
+        evs.forEach(ev => {
+          const t = new Date(ev.ts).getTime();
+          if (isNaN(t)) return;
+          const act = ev.action;
+          if (act === 'start') {
+            day.hasStart = true;
+            if (!running) {
+              running = true;
+              paused = false;
+              sumPauseMs = 0;
+              startTs = t;
+              pauseStartTs = null;
+            }
+          } else if (act === 'pause') {
+            if (running && !paused) {
+              paused = true;
+              pauseStartTs = t;
+            }
+          } else if (act === 'unpause') {
+            if (running && paused) {
+              paused = false;
+              if (pauseStartTs != null) {
+                sumPauseMs += Math.max(0, t - pauseStartTs);
+                pauseStartTs = null;
+              }
+            }
+          } else if (act === 'finish') {
+            day.hasFinish = true;
+            if (running && startTs != null) {
+              if (paused && pauseStartTs != null) {
+                sumPauseMs += Math.max(0, t - pauseStartTs);
+                pauseStartTs = null;
+                paused = false;
+              }
+              const diff = Math.max(0, t - startTs);
+              const segment = Math.max(0, diff - sumPauseMs);
+              workMs += segment;
+            }
+            running = false;
+            paused = false;
+            startTs = null;
+            pauseStartTs = null;
+            sumPauseMs = 0;
+          } else if (act === 'extra_start') {
+            if (!extraRunning) {
+              extraRunning = true;
+              extraStartTs = t;
+            }
+          } else if (act === 'extra_finish') {
+            if (extraRunning && extraStartTs != null) {
+              extraMs += Math.max(0, t - extraStartTs);
+            }
+            extraRunning = false;
+            extraStartTs = null;
+          }
+        });
+
+        day.workMs = workMs;
+        day.extraMs = extraMs;
+        if (day.hasStart) emp.totals.daysWithStart++;
+        if (day.hasFinish) emp.totals.daysWithFinish++;
+        if (day.hasStart && day.hasFinish && workMs > 0) {
+          day.completed = true;
+          emp.totals.daysCompleted++;
+          if (workMs > NORM_MS) {
+            day.overtimeMs = workMs - NORM_MS;
+            emp.totals.overtimeMs += day.overtimeMs;
+          }
+        }
+        emp.totals.totalWorkMs += workMs;
+        emp.totals.totalExtraMs += extraMs;
+
+        evs.forEach(ev => {
+          const t = new Date(ev.ts).getTime();
+          if (isNaN(t)) return;
+          if (!emp.totals.firstEvent || t < new Date(emp.totals.firstEvent).getTime()) {
+            emp.totals.firstEvent = ev.ts;
+          }
+          if (!emp.totals.lastEvent || t > new Date(emp.totals.lastEvent).getTime()) {
+            emp.totals.lastEvent = ev.ts;
+          }
+        });
+
+        let daySummary = perDay.get(dk);
+        if (!daySummary) {
+          daySummary = { dateKey: dk, started: new Set(), completed: new Set() };
+          perDay.set(dk, daySummary);
+        }
+        if (day.hasStart) daySummary.started.add(name);
+        if (day.completed) daySummary.completed.add(name);
+      });
+
+      return { employees, perDay };
+    }
+
+    function renderEmployeeIndex(allStats, deptFilterValue){
+      if (!employeeIndexListEl) return;
+      if (!allStats || !allStats.employees){
+        employeeIndexListEl.innerHTML = '<div class="admin-empty">Nu există date.</div>';
+        return;
+      }
+      const entries = [];
+      allStats.employees.forEach((emp) => {
+        const dept = emp.dept || '(fără departament)';
+        if (deptFilterValue && deptFilterValue !== 'all' && dept !== deptFilterValue) return;
+        entries.push(emp);
+      });
+      if (!entries.length){
+        employeeIndexListEl.innerHTML = '<div class="admin-empty">Nu există angajați pentru acest departament.</div>';
+        return;
+      }
+      entries.sort((a,b)=>b.totals.totalWorkMs - a.totals.totalWorkMs);
+      employeeIndexListEl.innerHTML = '';
+      entries.forEach(emp => {
+        const row = document.createElement('div');
+        row.className = 'admin-list-row';
+        const dept = emp.dept || '(fără departament)';
+        const t = emp.totals;
+        row.innerHTML =
+          '<div>' +
+            '<div class="admin-list-label">' + emp.name + '</div>' +
+            '<div class="admin-list-sub">' + dept + ' • ' +
+              t.daysCompleted + ' zile complete, ' + fmtHoursShort(t.totalWorkMs) +
+            '</div>' +
+          '</div>' +
+          '<div class="admin-list-value">' +
+            '<span>' + fmtHoursShort(t.totalWorkMs) + '</span>' +
+          '</div>';
+        row.addEventListener('click', function(){
+          SELECTED_EMPLOYEE = emp.name;
+          if (employeeFilter){
+            if (!employeeFilter.querySelector('option[value="'+emp.name+'"]')){
+              const o = document.createElement('option');
+              o.value = emp.name;
+              o.textContent = emp.name;
+              employeeFilter.appendChild(o);
+            }
+            employeeFilter.value = emp.name;
+          }
+          renderEmployeeDetails(emp.name);
+        });
+        employeeIndexListEl.appendChild(row);
+      });
+    }
+
+    function renderEmployeeDetails(name){
+      if (!employeeDetailsBodyEl || !employeeDetailsHeaderEl) return;
+      if (!name){
+        employeeDetailsHeaderEl.textContent = 'Selectează un angajat din listă pentru a vedea situația pe toate zilele.';
+        employeeDetailsBodyEl.innerHTML = '<div class="admin-empty">Niciun angajat selectat.</div>';
+        return;
+      }
+      if (!ALL_STATS || !ALL_STATS.employees || !ALL_STATS.employees.has(name)){
+        employeeDetailsHeaderEl.textContent = 'Nu găsesc statistici pentru ' + name + '.';
+        employeeDetailsBodyEl.innerHTML = '<div class="admin-empty">Nu există date pentru acest angajat.</div>';
+        return;
+      }
+      const emp = ALL_STATS.employees.get(name);
+      const dept = emp.dept || '(fără departament)';
+      const t = emp.totals;
+      employeeDetailsHeaderEl.innerHTML =
+        'Statistici all time pentru <b>' + name + '</b> (' + dept + '). ' +
+        'Zile cu normă completă: <b>' + t.daysCompleted + '</b> din <b>' + t.daysWithStart + '</b> cu START.';
+      const daysArr = Array.from(emp.days.values()).sort((a,b)=>a.dateKey < b.dateKey ? -1 : (a.dateKey > b.dateKey ? 1 : 0));
+
+      let html = '';
+      html += '<div style="margin-bottom:10px;font-size:13px;">';
+      html += '<div><b>Total ore normă:</b> ' + fmtHoursShort(t.totalWorkMs) + '</div>';
+      html += '<div><b>Total ore extra:</b> ' + fmtHoursShort(t.totalExtraMs) + '</div>';
+      html += '<div><b>Total overtime:</b> ' + fmtHoursShort(t.overtimeMs) + '</div>';
+      html += '<div><b>Zile cu START:</b> ' + t.daysWithStart + ' • <b>Zile cu FINISH:</b> ' + t.daysWithFinish + '</div>';
+      html += '</div>';
+
+      if (!daysArr.length){
+        html += '<div class="admin-empty">Nu există zile înregistrate pentru acest angajat.</div>';
+        employeeDetailsBodyEl.innerHTML = html;
+        return;
+      }
+
+      html += '<div class="table-wrap">';
+      html += '<table class="admin-table">';
+      html += '<thead><tr>' +
+        '<th>Data</th>' +
+        '<th>Departament</th>' +
+        '<th>Normă</th>' +
+        '<th>Extra</th>' +
+        '<th>Completă</th>' +
+        '<th>Overtime</th>' +
+      '</tr></thead><tbody>';
+      daysArr.forEach(d => {
+        const status = d.completed
+          ? '<span class="badge badge-ok">DA</span>'
+          : (d.hasStart || d.hasFinish)
+            ? '<span class="badge badge-warn">INCOMPLETĂ</span>'
+            : '-';
+        html += '<tr>' +
+          '<td>' + d.dateKey + '</td>' +
+          '<td>' + (d.dept || '') + '</td>' +
+          '<td>' + (d.workMs ? fmtHoursHM(d.workMs) : '-') + '</td>' +
+          '<td>' + (d.extraMs ? fmtHoursHM(d.extraMs) : '-') + '</td>' +
+          '<td>' + status + '</td>' +
+          '<td>' + (d.overtimeMs ? fmtHoursHM(d.overtimeMs) : '-') + '</td>' +
+        '</tr>';
+      });
+      html += '</tbody></table></div>';
+
+      employeeDetailsBodyEl.innerHTML = html;
+    }
+
+    function renderTopEmployees(allStats){
+      if (!topEmployeesEl) return;
+      if (!allStats || !allStats.employees){
+        topEmployeesEl.innerHTML = '<div class="admin-empty">Nu există date.</div>';
+        return;
+      }
+      const entries = [];
+      allStats.employees.forEach((emp) => {
+        entries.push(emp);
+      });
+      if (!entries.length){
+        topEmployeesEl.innerHTML = '<div class="admin-empty">Nu există date.</div>';
+        return;
+      }
+      entries.sort((a,b)=>b.totals.totalWorkMs - a.totals.totalWorkMs);
+      const top = entries.slice(0,5);
+      topEmployeesEl.innerHTML = '';
+      top.forEach(emp => {
+        const t = emp.totals;
+        const row = document.createElement('div');
+        row.className = 'admin-list-row';
+        row.innerHTML =
+          '<div>' +
+            '<div class="admin-list-label">' + emp.name + '</div>' +
+            '<div class="admin-list-sub">' + (emp.dept || '(fără departament)') + '</div>' +
+          '</div>' +
+          '<div class="admin-list-value">' +
+            '<div>' + fmtHoursShort(t.totalWorkMs) + '</div>' +
+            '<div style="font-size:11px;color:#6b7280;">' + t.daysCompleted + ' zile complete</div>' +
+          '</div>';
+        row.addEventListener('click', function(){
+          SELECTED_EMPLOYEE = emp.name;
+          renderEmployeeDetails(emp.name);
+        });
+        topEmployeesEl.appendChild(row);
+      });
+    }
+
+    function filterByRange(events, range){
+      if (!events || !events.length) return [];
+      const now = new Date();
+      if (range === 'all') return events.slice();
+      const endTime = now.getTime();
+      let startTime;
+      if (range === 'last7'){
+        const d = new Date(now);
+        d.setDate(d.getDate() - 6);
+        startTime = d.getTime();
+      } else { // today
+        const d = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0,0,0);
+        startTime = d.getTime();
+      }
+      return events.filter(ev => {
+        if (!ev.ts) return false;
+        const t = new Date(ev.ts).getTime();
+        if (isNaN(t)) return false;
+        return t >= startTime && t <= endTime;
+      });
+    }
+
+    function updateCompletedTodayKpi(eventsForRange, range){
+      if (!kpiCompletedTodayEl) return;
+      if (range !== 'today'){
+        kpiCompletedTodayEl.textContent = '–';
+        return;
+      }
+      if (!eventsForRange || !eventsForRange.length){
+        kpiCompletedTodayEl.textContent = '0 / 0';
+        return;
+      }
+      const stats = buildStatsFromEvents(eventsForRange);
+      let total = 0, completed = 0;
+      stats.employees.forEach(emp => {
+        const t = emp.totals;
+        if (t.daysWithStart || t.daysWithFinish){
+          total++;
+          if (t.daysCompleted > 0) completed++;
+        }
+      });
+      kpiCompletedTodayEl.textContent = completed + ' / ' + total;
+    }
+
     async function init(){
       try{
         const r = await fetch('config.json?v=' + Date.now(), {cache:'no-store'});
         if (!r.ok) throw new Error('HTTP ' + r.status);
         const CFG = await r.json();
-        if (!CFG || !CFG.sheet || !CFG.sheet.gvizUrl){
-          throw new Error('config.json nu conține sheet.gvizUrl (sub cheia sheet).');
+        if (!CFG || !CFG.adminEventsEndpoint){
+          throw new Error('config.json nu conține adminEventsEndpoint.');
         }
-        const gvizUrl = CFG.sheet.gvizUrl;
-        const rawRows = await fetchGvizRows(gvizUrl);
-        const colsCfg = (CFG.sheet && CFG.sheet.cols) || {};
-        const events = rawRows.map(row => mapRowToEvent(row, colsCfg)).filter(ev => ev.ts);
+        const adminUrl = CFG.adminEventsEndpoint + '?fn=adminEvents&v=' + Date.now();
+        const r2 = await fetch(adminUrl, { cache:'no-store' });
+        const txt = await r2.text();
+        let data;
+        try { data = JSON.parse(txt); } catch(e){ throw new Error('Răspuns invalid de la adminEventsEndpoint.'); }
+        if (!data.ok || !Array.isArray(data.events)){
+          throw new Error('adminEventsEndpoint nu a întors un obiect ok cu events[].');
+        }
+
+        const events = data.events.map(ev => ({
+          ts: ev.ts,
+          name: ev.name || '',
+          action: _normAction(ev.action),
+          dept: ev.dept || '',
+          activity: ev.activity || '',
+          location: ev.location || ''
+        })).filter(ev => ev.ts);
 
         if (loadingEl) loadingEl.style.display = 'none';
         if (dashboardEl) dashboardEl.style.display = '';
@@ -806,17 +1184,21 @@
           lastUpdateEl.textContent = 'Actualizat la ' + hh + ':' + mi;
         }
 
+        ALL_STATS = buildStatsFromEvents(events);
+        renderTopEmployees(ALL_STATS);
+
         let currentRange = rangeSelect ? rangeSelect.value : 'today';
         let currentDept = 'all';
         let currentEmployee = 'all';
         let latestFiltered = [];
 
-        // populate filtre
         buildDeptFilter(events);
         buildEmployeeFilter(events, currentDept);
+        renderEmployeeIndex(ALL_STATS, CURRENT_DEPT_FILTER);
+        renderEmployeeDetails(null);
 
         function getFilteredEvents(){
-          let list = filterEventsByRange(events, currentRange || 'today');
+          let list = filterByRange(events, currentRange || 'today');
           if (currentDept && currentDept !== 'all'){
             list = list.filter(ev => (ev.dept || '(fără departament)') === currentDept);
           }
@@ -833,6 +1215,7 @@
           renderDept(filtered);
           renderLastEvents(filtered);
           renderRawLog(filtered);
+          updateCompletedTodayKpi(filtered, currentRange);
         }
 
         if (rangeSelect){
@@ -844,15 +1227,32 @@
         if (deptFilter){
           deptFilter.addEventListener('change', function(){
             currentDept = deptFilter.value || 'all';
+            CURRENT_DEPT_FILTER = currentDept;
             buildEmployeeFilter(events, currentDept);
-            currentEmployee = 'all';
-            if (employeeFilter) employeeFilter.value = 'all';
+            if (currentEmployee !== 'all' && employeeFilter){
+              if (!employeeFilter.querySelector('option[value="'+currentEmployee+'"]')){
+                const o = document.createElement('option');
+                o.value = currentEmployee;
+                o.textContent = currentEmployee;
+                employeeFilter.appendChild(o);
+              }
+              employeeFilter.value = currentEmployee;
+            }
+            renderEmployeeIndex(ALL_STATS, CURRENT_DEPT_FILTER);
+            renderEmployeeDetails(SELECTED_EMPLOYEE);
             refresh();
           });
         }
         if (employeeFilter){
           employeeFilter.addEventListener('change', function(){
             currentEmployee = employeeFilter.value || 'all';
+            if (currentEmployee === 'all'){
+              SELECTED_EMPLOYEE = null;
+              renderEmployeeDetails(null);
+            } else {
+              SELECTED_EMPLOYEE = currentEmployee;
+              renderEmployeeDetails(SELECTED_EMPLOYEE);
+            }
             refresh();
           });
         }
@@ -863,7 +1263,25 @@
           });
         }
 
-        // prima randare
+        if (pdfBtn){
+          pdfBtn.addEventListener('click', function(){
+            if (!SELECTED_EMPLOYEE){
+              alert('Selectează mai întâi un angajat din Index sau din filtrul de angajați.');
+              return;
+            }
+            fetch('config.json?v=' + Date.now(), {cache:'no-store'})
+              .then(r => r.json())
+              .then(cfg => {
+                if (!cfg.adminEventsEndpoint) throw new Error('Lipsește adminEventsEndpoint.');
+                const url = cfg.adminEventsEndpoint +
+                  '?fn=adminPdf&name=' + encodeURIComponent(SELECTED_EMPLOYEE) +
+                  '&v=' + Date.now();
+                window.open(url, '_blank');
+              })
+              .catch(err => alert('Eroare configurare PDF: ' + (err && err.message ? err.message : err)));
+          });
+        }
+
         refresh();
       }catch(e){
         showError(e.message || String(e));
