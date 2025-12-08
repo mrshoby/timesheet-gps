@@ -436,7 +436,6 @@
             </div>
           </div>
 
-          <!-- Distribuție + ultimele pontaje -->
           <div class="admin-grid">
             <section class="card admin-card">
               <h2>Distribuție pe departamente</h2>
@@ -445,8 +444,10 @@
             </section>
 
             <section class="card admin-card">
-              <h2>Ultimele pontaje</h2>
-              <div class="admin-small-text">Cele mai recente 25 de înregistrări din filtrul curent.</div>
+              <h2 id="lastEventsTitle">Ultimele pontaje</h2>
+              <div class="admin-small-text" id="lastEventsHint">
+                Cele mai recente 25 de înregistrări din filtrul curent.
+              </div>
               <div class="table-wrap">
                 <table class="admin-table">
                   <thead>
@@ -464,7 +465,6 @@
             </section>
           </div>
 
-          <!-- Zile incomplete HR -->
           <section class="card admin-card">
             <h2>Zile incomplete</h2>
             <div class="admin-small-text">
@@ -487,16 +487,14 @@
             </div>
           </section>
 
-          <!-- Log brut -->
           <section class="card admin-card">
-            <h2>Log brut (filtru curent)</h2>
+            <h2 id="rawLogTitle">Log brut (filtru curent)</h2>
             <div class="admin-small-text">
               Lista completă a evenimentelor care trec de filtrele de mai sus — utilă pentru debugging sau verificări rapide.
             </div>
             <pre id="rawLog" class="admin-log">–</pre>
           </section>
 
-          <!-- Prezență pe zile -->
           <section class="card admin-card">
             <h2>Prezență pe zile</h2>
             <div class="admin-small-text">
@@ -517,7 +515,6 @@
             </div>
           </section>
 
-          <!-- Index + detalii -->
           <div class="admin-grid">
             <section class="card admin-card">
               <h2>Index angajați</h2>
@@ -634,6 +631,9 @@
     const kpiCompletedTodayEl = document.getElementById('kpiCompletedToday');
     const dailyPresenceBodyEl = document.getElementById('dailyPresenceBody');
     const incompleteDaysBodyEl = document.getElementById('incompleteDaysBody');
+    const lastEventsTitleEl = document.getElementById('lastEventsTitle');
+    const lastEventsHintEl = document.getElementById('lastEventsHint');
+    const rawLogTitleEl = document.getElementById('rawLogTitle');
 
     if (!session){
       alert('Nu ești autentificat ca admin. Te redirecționez la pagina principală.');
@@ -1298,22 +1298,24 @@
         incompleteDaysBodyEl.appendChild(tr);
         return;
       }
+
       const rows = [];
       stats.employees.forEach(emp => {
         emp.days.forEach(day => {
           if ((day.hasStart || day.hasFinish) && !day.completed){
             rows.push({
-              empName: emp.name,
-              dept: day.dept || emp.dept || '',
               dateKey: day.dateKey,
-              workMs: day.workMs || 0,
-              extraMs: day.extraMs || 0,
-              hasStart: !!day.hasStart,
-              hasFinish: !!day.hasFinish
+              name: emp.name,
+              dept: day.dept || emp.dept || '',
+              workMs: day.workMs,
+              extraMs: day.extraMs,
+              hasStart: day.hasStart,
+              hasFinish: day.hasFinish
             });
           }
         });
       });
+
       if (!rows.length){
         const tr = document.createElement('tr');
         const td = document.createElement('td');
@@ -1323,24 +1325,29 @@
         incompleteDaysBodyEl.appendChild(tr);
         return;
       }
+
       rows.sort((a,b)=>{
         if (a.dateKey < b.dateKey) return -1;
         if (a.dateKey > b.dateKey) return 1;
-        return a.empName.localeCompare(b.empName,'ro');
+        if (a.name < b.name) return -1;
+        if (a.name > b.name) return 1;
+        return 0;
       });
-      rows.forEach(row => {
-        let statusText;
-        if (row.hasStart && !row.hasFinish) statusText = 'DOAR START';
-        else if (!row.hasStart && row.hasFinish) statusText = 'DOAR FINISH';
-        else statusText = 'INCOMPLETĂ';
+
+      rows.forEach(item => {
+        let status;
+        if (item.hasStart && !item.hasFinish) status = 'Doar START';
+        else if (!item.hasStart && item.hasFinish) status = 'Doar FINISH';
+        else status = 'Incompletă';
+
         const tr = document.createElement('tr');
         tr.innerHTML =
-          '<td>' + row.dateKey + '</td>' +
-          '<td>' + row.empName + '</td>' +
-          '<td>' + row.dept + '</td>' +
-          '<td>' + (row.workMs ? fmtHoursHM(row.workMs) : '-') + '</td>' +
-          '<td>' + (row.extraMs ? fmtHoursHM(row.extraMs) : '-') + '</td>' +
-          '<td><span class="badge badge-warn">' + statusText + '</span></td>';
+          '<td>' + item.dateKey + '</td>' +
+          '<td>' + item.name + '</td>' +
+          '<td>' + item.dept + '</td>' +
+          '<td>' + (item.workMs ? fmtHoursHM(item.workMs) : '-') + '</td>' +
+          '<td>' + (item.extraMs ? fmtHoursHM(item.extraMs) : '-') + '</td>' +
+          '<td>' + status + '</td>';
         incompleteDaysBodyEl.appendChild(tr);
       });
     }
@@ -1448,6 +1455,19 @@
           updateCompletedTodayKpiFromStats(statsBase, currentRange);
           renderDailyPresence(statsBase);
           renderIncompleteDays(statsBase);
+
+          // UX: actualizăm titlurile când este activ filtrul de zile incomplete
+          if (lastEventsTitleEl && lastEventsHintEl && rawLogTitleEl){
+            if (filterIncompleteOnly){
+              lastEventsTitleEl.textContent = 'Ultimele pontaje (doar zile incomplete)';
+              lastEventsHintEl.textContent = 'Cele mai recente 25 de înregistrări doar din zilele incomplete pentru filtrul curent.';
+              rawLogTitleEl.textContent = 'Log brut (doar zile incomplete)';
+            } else {
+              lastEventsTitleEl.textContent = 'Ultimele pontaje';
+              lastEventsHintEl.textContent = 'Cele mai recente 25 de înregistrări din filtrul curent.';
+              rawLogTitleEl.textContent = 'Log brut (filtru curent)';
+            }
+          }
         }
 
         if (rangeSelect){
@@ -1514,14 +1534,9 @@
               const url = cfg.adminEventsEndpoint +
                 '?fn=adminPdf&name=' + encodeURIComponent(SELECTED_EMPLOYEE) +
                 '&v=' + Date.now();
-              const r = await fetch(url, {cache:'no-store'});
-              const resp = await r.json();
-              if (!resp.ok || !resp.url){
-                throw new Error(resp.error || 'Nu am primit un URL de raport.');
-              }
-              window.open(resp.url, '_blank');
+              window.open(url, '_blank');
             }catch(err){
-              alert('Eroare la generarea PDF-ului pe angajat: ' + (err.message || err));
+              alert('Eroare configurare PDF: ' + (err && err.message ? err.message : err));
             }
           });
         }
