@@ -589,1197 +589,1187 @@
     </main>
   </div>
 
-  <script>
-  (function(){
-    const ADMIN_LS_KEY = 'pontaj/admin/v1';
+ <script>
+(function(){
+  const ADMIN_LS_KEY = 'pontaj/admin/v1';
 
-    let ALL_STATS = null;
-    let SELECTED_EMPLOYEE = null;
-    let CURRENT_DEPT_FILTER = 'all';
-    let filterIncompleteOnly = false;
-    let GLOBAL_CFG = null;
-    let lastEventsRange = 'today';
+  let ALL_STATS = null;
+  let SELECTED_EMPLOYEE = null;
+  let CURRENT_DEPT_FILTER = 'all';
+  let filterIncompleteOnly = false;
+  let GLOBAL_CFG = null;
+  let lastEventsRange = 'today';
 
-    function getAdminSession(){
-      try{
-        const raw = localStorage.getItem(ADMIN_LS_KEY);
-        return raw ? JSON.parse(raw) : null;
-      }catch{ return null; }
-    }
-    function clearAdminSession(){
-      try{ localStorage.removeItem(ADMIN_LS_KEY); }catch{}
-    }
+  function getAdminSession(){
+    try{
+      const raw = localStorage.getItem(ADMIN_LS_KEY);
+      return raw ? JSON.parse(raw) : null;
+    }catch{ return null; }
+  }
+  function clearAdminSession(){
+    try{ localStorage.removeItem(ADMIN_LS_KEY); }catch{}
+  }
 
-    async function loadConfig(){
-      if (GLOBAL_CFG) return GLOBAL_CFG;
-      const r = await fetch('config.json?v=' + Date.now(), {cache:'no-store'});
-      if (!r.ok) throw new Error('Nu pot citi config.json (HTTP ' + r.status + ').');
-      GLOBAL_CFG = await r.json();
-      return GLOBAL_CFG;
-    }
+  async function loadConfig(){
+    if (GLOBAL_CFG) return GLOBAL_CFG;
+    const r = await fetch('config.json?v=' + Date.now(), {cache:'no-store'});
+    if (!r.ok) throw new Error('Nu pot citi config.json (HTTP ' + r.status + ').');
+    GLOBAL_CFG = await r.json();
+    return GLOBAL_CFG;
+  }
 
-    const session = getAdminSession();
-    const adminLabelEl = document.getElementById('adminLabel');
-    const logoutBtn = document.getElementById('logoutBtn');
-    const errorEl = document.getElementById('error');
-    const loadingEl = document.getElementById('loading');
-    const dashboardEl = document.getElementById('dashboard');
-    const rangeSelect = document.getElementById('rangeSelect');
-    const deptFilter = document.getElementById('deptFilter');
-    const employeeFilter = document.getElementById('employeeFilter');
-    const incompleteOnlyCheckbox = document.getElementById('incompleteOnly');
-    const lastUpdateEl = document.getElementById('lastUpdate');
-    const rawLogEl = document.getElementById('rawLog');
-    const exportCsvBtn = document.getElementById('exportCsvBtn');
-    const pdfBtn = document.getElementById('pdfBtn');
-    const deptPdfBtn = document.getElementById('deptPdfBtn');
-    const employeeExportBtn = document.getElementById('employeeExportBtn');
-    const topEmployeesEl = document.getElementById('topEmployees');
-    const employeeIndexListEl = document.getElementById('employeeIndexList');
-    const employeeDetailsHeaderEl = document.getElementById('employeeDetailsHeader');
-    const employeeDetailsBodyEl = document.getElementById('employeeDetailsBody');
-    const kpiCompletedTodayEl = document.getElementById('kpiCompletedToday');
-    const dailyPresenceBodyEl = document.getElementById('dailyPresenceBody');
-    const incompleteDaysBodyEl = document.getElementById('incompleteDaysBody');
-    const lastEventsTitleEl = document.getElementById('lastEventsTitle');
-    const lastEventsHintTextEl = document.getElementById('lastEventsHintText');
-    const lastEventsRangeSelect = document.getElementById('lastEventsRange');
-    const rawLogTitleEl = document.getElementById('rawLogTitle');
+  const session = getAdminSession();
+  const adminLabelEl = document.getElementById('adminLabel');
+  const logoutBtn = document.getElementById('logoutBtn');
+  const errorEl = document.getElementById('error');
+  const loadingEl = document.getElementById('loading');
+  const dashboardEl = document.getElementById('dashboard');
+  const rangeSelect = document.getElementById('rangeSelect');
+  const deptFilter = document.getElementById('deptFilter');
+  const employeeFilter = document.getElementById('employeeFilter');
+  const incompleteOnlyCheckbox = document.getElementById('incompleteOnly');
+  const lastUpdateEl = document.getElementById('lastUpdate');
+  const rawLogEl = document.getElementById('rawLog');
+  const exportCsvBtn = document.getElementById('exportCsvBtn');
+  const pdfBtn = document.getElementById('pdfBtn');
+  const deptPdfBtn = document.getElementById('deptPdfBtn');
+  const employeeExportBtn = document.getElementById('employeeExportBtn');
+  const topEmployeesEl = document.getElementById('topEmployees');
+  const employeeIndexListEl = document.getElementById('employeeIndexList');
+  const employeeDetailsHeaderEl = document.getElementById('employeeDetailsHeader');
+  const employeeDetailsBodyEl = document.getElementById('employeeDetailsBody');
+  const kpiCompletedTodayEl = document.getElementById('kpiCompletedToday');
+  const dailyPresenceBodyEl = document.getElementById('dailyPresenceBody');
+  const incompleteDaysBodyEl = document.getElementById('incompleteDaysBody');
+  const lastEventsTitleEl = document.getElementById('lastEventsTitle');
+  const lastEventsHintTextEl = document.getElementById('lastEventsHintText');
+  const lastEventsRangeSelect = document.getElementById('lastEventsRange');
+  const rawLogTitleEl = document.getElementById('rawLogTitle');
 
-    if (!session){
-      alert('Nu ești autentificat ca admin. Te redirecționez la pagina principală.');
+  if (!session){
+    alert('Nu ești autentificat ca admin. Te redirecționez la pagina principală.');
+    window.location.href = 'index.html';
+    return;
+  }
+  if (adminLabelEl) adminLabelEl.textContent = session.user || 'Admin';
+  if (logoutBtn){
+    logoutBtn.addEventListener('click', function(){
+      clearAdminSession();
       window.location.href = 'index.html';
+    });
+  }
+
+  function showError(msg){
+    if (errorEl){
+      errorEl.textContent = msg;
+      errorEl.style.display = 'block';
+    }
+    if (loadingEl) loadingEl.style.display = 'none';
+    if (dashboardEl) dashboardEl.style.display = 'none';
+  }
+
+  function _norm(s){ return String(s==null?'':s).trim(); }
+  function _normAction(a){
+    let s = _norm(a).toLowerCase().replace(/[-\s]+/g,'_');
+    if (s === 'resume') s='unpause';
+    if (s === 'stop') s='finish';
+    if (s === 'extra start') s='extra_start';
+    if (s === 'extra finish') s='extra_finish';
+    return s;
+  }
+  function fmtDateTime(iso){
+    if (!iso) return '';
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return '';
+    const dd = String(d.getDate()).padStart(2,'0');
+    const mm = String(d.getMonth()+1).padStart(2,'0');
+    const yyyy = d.getFullYear();
+    const hh = String(d.getHours()).padStart(2,'0');
+    const mi = String(d.getMinutes()).padStart(2,'0');
+    return `${dd}.${mm}.${yyyy} ${hh}:${mi}`;
+  }
+  function fmtHoursShort(ms){
+    const h = ms / 3600000;
+    return h.toFixed(1).replace('.', ',') + ' h';
+  }
+  function fmtHoursHM(ms){
+    const totalMin = Math.round(ms / 60000);
+    const h = Math.floor(totalMin / 60);
+    const m = totalMin % 60;
+    return `${h}h ${String(m).padStart(2,'0')}m`;
+  }
+  function msToHours(ms){
+    return ms / 3600000;
+  }
+  function dateKeyFromIso(iso){
+    if (!iso) return null;
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return null;
+    const y = d.getFullYear();
+    const m = String(d.getMonth()+1).padStart(2,'0');
+    const dd = String(d.getDate()).padStart(2,'0');
+    return `${y}-${m}-${dd}`;
+  }
+
+  function renderKpis(events){
+    const totalEl = document.getElementById('kpiTotal');
+    const empEl = document.getElementById('kpiEmployees');
+    const startEl = document.getElementById('kpiStart');
+    const finishEl = document.getElementById('kpiFinish');
+    const list = events || [];
+    if (totalEl) totalEl.textContent = String(list.length);
+    const uniq = new Set();
+    let cStart = 0, cFinish = 0;
+    list.forEach(ev => {
+      if (ev.name) uniq.add(ev.name);
+      if (ev.action === 'start') cStart++;
+      if (ev.action === 'finish') cFinish++;
+    });
+    if (empEl) empEl.textContent = String(uniq.size);
+    if (startEl) startEl.textContent = String(cStart);
+    if (finishEl) finishEl.textContent = String(cFinish);
+  }
+
+  function renderDept(events){
+    const container = document.getElementById('deptList');
+    if (!container) return;
+    const list = events || [];
+    if (!list.length){
+      container.innerHTML = '<div class="admin-empty">Nu există date în filtrul curent.</div>';
       return;
     }
-    if (adminLabelEl) adminLabelEl.textContent = session.user || 'Admin';
-    if (logoutBtn){
-      logoutBtn.addEventListener('click', function(){
-        clearAdminSession();
-        window.location.href = 'index.html';
-      });
-    }
+    const counts = {};
+    list.forEach(ev => {
+      const key = ev.dept || '(fără departament)';
+      counts[key] = (counts[key] || 0) + 1;
+    });
+    const entries = Object.entries(counts).sort((a,b)=>b[1]-a[1]);
+    container.innerHTML = '';
+    entries.forEach(([dept, count])=>{
+      const row = document.createElement('div');
+      row.className = 'admin-list-row';
+      row.innerHTML =
+        '<div>' +
+          '<div class="admin-list-label">' + dept + '</div>' +
+        '</div>' +
+        '<div class="admin-list-value">' + count + '</div>';
+      container.appendChild(row);
+    });
+  }
 
-    function showError(msg){
-      if (errorEl){
-        errorEl.textContent = msg;
-        errorEl.style.display = 'block';
-      }
-      if (loadingEl) loadingEl.style.display = 'none';
-      if (dashboardEl) dashboardEl.style.display = 'none';
+  function renderLastEvents(events){
+    const tbody = document.getElementById('lastEventsBody');
+    if (!tbody) return;
+    const list = (events || []).slice().sort((a,b)=>{
+      const ta = a.ts ? new Date(a.ts).getTime() : 0;
+      const tb = b.ts ? new Date(b.ts).getTime() : 0;
+      return tb - ta;
+    });
+    tbody.innerHTML = '';
+    if (!list.length){
+      const tr = document.createElement('tr');
+      const td = document.createElement('td');
+      td.colSpan = 5;
+      td.textContent = 'Nu există înregistrări în perioada aleasă (după filtre).';
+      tr.appendChild(td);
+      tbody.appendChild(tr);
+      return;
     }
+    list.forEach(ev=>{
+      const tr = document.createElement('tr');
+      tr.innerHTML =
+        '<td>' + fmtDateTime(ev.ts) + '</td>' +
+        '<td>' + (ev.name || '') + '</td>' +
+        '<td>' + (ev.dept || '') + '</td>' +
+        '<td>' + (ev.action || '') + '</td>' +
+        '<td>' + (ev.activity || '') + '</td>';
+      tbody.appendChild(tr);
+    });
+  }
 
-    function _norm(s){ return String(s==null?'':s).trim(); }
-    function _normAction(a){
-      let s = _norm(a).toLowerCase().replace(/[-\s]+/g,'_');
-      if (s === 'resume') s='unpause';
-      if (s === 'stop') s='finish';
-      if (s === 'extra start') s='extra_start';
-      if (s === 'extra finish') s='extra_finish';
+  function renderRawLog(events){
+    if (!rawLogEl) return;
+    const list = events || [];
+    if (!list.length){
+      rawLogEl.textContent = 'Nu există evenimente în filtrul curent.';
+      return;
+    }
+    const sorted = list.slice().sort((a,b)=>{
+      const ta = a.ts ? new Date(a.ts).getTime() : 0;
+      const tb = b.ts ? new Date(b.ts).getTime() : 0;
+      return ta - tb;
+    });
+    const lines = sorted.map(ev => {
+      const t = fmtDateTime(ev.ts);
+      const dept = ev.dept || '';
+      const name = ev.name || '';
+      const action = ev.action || '';
+      const act = ev.activity || '';
+      const loc = ev.location || '';
+      let s = `[${t}] ${name}`;
+      if (dept) s += ' | ' + dept;
+      if (action) s += ' | ' + action;
+      if (act) s += ' | ' + act;
+      if (loc) s += ' | ' + loc;
       return s;
-    }
-    function fmtDateTime(iso){
-      if (!iso) return '';
-      const d = new Date(iso);
-      if (isNaN(d.getTime())) return '';
-      const dd = String(d.getDate()).padStart(2,'0');
-      const mm = String(d.getMonth()+1).padStart(2,'0');
-      const yyyy = d.getFullYear();
-      const hh = String(d.getHours()).padStart(2,'0');
-      const mi = String(d.getMinutes()).padStart(2,'0');
-      return `${dd}.${mm}.${yyyy} ${hh}:${mi}`;
-    }
-    function fmtHoursShort(ms){
-      const h = ms / 3600000;
-      return h.toFixed(1).replace('.', ',') + ' h';
-    }
-    function fmtHoursHM(ms){
-      const totalMin = Math.round(ms / 60000);
-      const h = Math.floor(totalMin / 60);
-      const m = totalMin % 60;
-      return `${h}h ${String(m).padStart(2,'0')}m`;
-    }
-    function msToHours(ms){
-      return ms / 3600000;
-    }
-    function dateKeyFromIso(iso){
-      if (!iso) return null;
-      const d = new Date(iso);
-      if (isNaN(d.getTime())) return null;
-      const y = d.getFullYear();
-      const m = String(d.getMonth()+1).padStart(2,'0');
-      const dd = String(d.getDate()).padStart(2,'0');
-      return `${y}-${m}-${dd}`;
-    }
+    });
+    rawLogEl.textContent = lines.join('\n');
+  }
 
-    function renderKpis(events){
-      const totalEl = document.getElementById('kpiTotal');
-      const empEl = document.getElementById('kpiEmployees');
-      const startEl = document.getElementById('kpiStart');
-      const finishEl = document.getElementById('kpiFinish');
-      const list = events || [];
-      if (totalEl) totalEl.textContent = String(list.length);
-      const uniq = new Set();
-      let cStart = 0, cFinish = 0;
-      list.forEach(ev => {
-        if (ev.name) uniq.add(ev.name);
-        if (ev.action === 'start') cStart++;
-        if (ev.action === 'finish') cFinish++;
-      });
-      if (empEl) empEl.textContent = String(uniq.size);
-      if (startEl) startEl.textContent = String(cStart);
-      if (finishEl) finishEl.textContent = String(cFinish);
+  function buildDeptFilter(events){
+    if (!deptFilter) return;
+    const set = new Set();
+    events.forEach(ev => {
+      const key = ev.dept || '(fără departament)';
+      if (key) set.add(key);
+    });
+    const depts = Array.from(set).sort((a,b)=>a.localeCompare(b,'ro'));
+    deptFilter.innerHTML = '';
+    const optAll = document.createElement('option');
+    optAll.value = 'all';
+    optAll.textContent = 'Toate';
+    deptFilter.appendChild(optAll);
+    depts.forEach(d => {
+      const o = document.createElement('option');
+      o.value = d;
+      o.textContent = d;
+      deptFilter.appendChild(o);
+    });
+  }
+
+  function buildEmployeeFilter(events, selectedDept){
+    if (!employeeFilter) return;
+    const set = new Set();
+    events.forEach(ev => {
+      if (!ev.name) return;
+      const deptKey = ev.dept || '(fără departament)';
+      if (selectedDept && selectedDept !== 'all' && deptKey !== selectedDept) return;
+      set.add(ev.name);
+    });
+    const emps = Array.from(set).sort((a,b)=>a.localeCompare(b,'ro'));
+    employeeFilter.innerHTML = '';
+    const optAll = document.createElement('option');
+    optAll.value = 'all';
+    optAll.textContent = 'Toți';
+    employeeFilter.appendChild(optAll);
+    emps.forEach(n => {
+      const o = document.createElement('option');
+      o.value = n;
+      o.textContent = n;
+      employeeFilter.appendChild(o);
+    });
+  }
+
+  function exportCsv(events){
+    const list = events || [];
+    if (!list.length){
+      alert('Nu există evenimente în filtrul curent pentru export.');
+      return;
     }
+    const header = ['timestamp_iso','data_ora','nume','departament','actiune','activitate','locatie'];
+    const rows = list.map(ev => [
+      ev.ts || '',
+      fmtDateTime(ev.ts) || '',
+      ev.name || '',
+      ev.dept || '',
+      ev.action || '',
+      ev.activity || '',
+      ev.location || ''
+    ]);
+    const csvLines = [header].concat(rows).map(row => row.map(cell => {
+      const s = String(cell).replace(/"/g,'""');
+      return '"' + s + '"';
+    }).join(','));
+    const csv = csvLines.join('\r\n');
+    const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'pontaj-export.csv';
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(function(){
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }, 0);
+  }
 
-    function renderDept(events){
-      const container = document.getElementById('deptList');
-      if (!container) return;
-      const list = events || [];
-      if (!list.length){
-        container.innerHTML = '<div class="admin-empty">Nu există date în filtrul curent.</div>';
-        return;
-      }
-      const counts = {};
-      list.forEach(ev => {
-        const key = ev.dept || '(fără departament)';
-        counts[key] = (counts[key] || 0) + 1;
-      });
-      const entries = Object.entries(counts).sort((a,b)=>b[1]-a[1]);
-      container.innerHTML = '';
-      entries.forEach(([dept, count])=>{
-        const row = document.createElement('div');
-        row.className = 'admin-list-row';
-        row.innerHTML =
-          '<div>' +
-            '<div class="admin-list-label">' + dept + '</div>' +
-          '</div>' +
-          '<div class="admin-list-value">' + count + '</div>';
-        container.appendChild(row);
-      });
-    }
+  // --- helper: zi incompletă (bazat DOAR pe câmpurile day) ---
+  function isDayIncomplete(day){
+    if (!day) return false;
+    const hasAnyEvent =
+      day.startCount || day.finishCount ||
+      day.pauseCount || day.unpauseCount ||
+      day.extraStartCount || day.extraFinishCount;
+    if (!hasAnyEvent) return false;
+    // dacă e marcată completă, nu o mai considerăm incompletă
+    if (day.completed) return false;
+    // orice altă zi cu evenimente dar fără completare corectă = incompletă
+    return true;
+  }
 
-    function renderLastEvents(events){
-      const tbody = document.getElementById('lastEventsBody');
-      if (!tbody) return;
-      const list = (events || []).slice().sort((a,b)=>{
-        const ta = a.ts ? new Date(a.ts).getTime() : 0;
-        const tb = b.ts ? new Date(b.ts).getTime() : 0;
-        return tb - ta;
-      });
-      tbody.innerHTML = '';
-      if (!list.length){
-        const tr = document.createElement('tr');
-        const td = document.createElement('td');
-        td.colSpan = 5;
-        td.textContent = 'Nu există înregistrări în perioada aleasă (după filtre).';
-        tr.appendChild(td);
-        tbody.appendChild(tr);
-        return;
-      }
-      list.forEach(ev=>{
-        const tr = document.createElement('tr');
-        tr.innerHTML =
-          '<td>' + fmtDateTime(ev.ts) + '</td>' +
-          '<td>' + (ev.name || '') + '</td>' +
-          '<td>' + (ev.dept || '') + '</td>' +
-          '<td>' + (ev.action || '') + '</td>' +
-          '<td>' + (ev.activity || '') + '</td>';
-        tbody.appendChild(tr);
-      });
-    }
+  // === STATISTICI ALL-TIME & PE PERIOADĂ ===
+  function buildStatsFromEvents(events){
+    const employees = new Map();
+    const perDay = new Map();
+    const NORM_MS = 8 * 60 * 60 * 1000;
 
-    function renderRawLog(events){
-      if (!rawLogEl) return;
-      const list = events || [];
-      if (!list.length){
-        rawLogEl.textContent = 'Nu există evenimente în filtrul curent.';
-        return;
-      }
-      const sorted = list.slice().sort((a,b)=>{
-        const ta = a.ts ? new Date(a.ts).getTime() : 0;
-        const tb = b.ts ? new Date(b.ts).getTime() : 0;
-        return ta - tb;
-      });
-      const lines = sorted.map(ev => {
-        const t = fmtDateTime(ev.ts);
-        const dept = ev.dept || '';
-        const name = ev.name || '';
-        const action = ev.action || '';
-        const act = ev.activity || '';
-        const loc = ev.location || '';
-        let s = `[${t}] ${name}`;
-        if (dept) s += ' | ' + dept;
-        if (action) s += ' | ' + action;
-        if (act) s += ' | ' + act;
-        if (loc) s += ' | ' + loc;
-        return s;
-      });
-      rawLogEl.textContent = lines.join('\n');
-    }
-
-    function buildDeptFilter(events){
-      if (!deptFilter) return;
-      const set = new Set();
-      events.forEach(ev => {
-        const key = ev.dept || '(fără departament)';
-        if (key) set.add(key);
-      });
-      const depts = Array.from(set).sort((a,b)=>a.localeCompare(b,'ro'));
-      deptFilter.innerHTML = '';
-      const optAll = document.createElement('option');
-      optAll.value = 'all';
-      optAll.textContent = 'Toate';
-      deptFilter.appendChild(optAll);
-      depts.forEach(d => {
-        const o = document.createElement('option');
-        o.value = d;
-        o.textContent = d;
-        deptFilter.appendChild(o);
-      });
-    }
-
-    function buildEmployeeFilter(events, selectedDept){
-      if (!employeeFilter) return;
-      const set = new Set();
-      events.forEach(ev => {
-        if (!ev.name) return;
-        const deptKey = ev.dept || '(fără departament)';
-        if (selectedDept && selectedDept !== 'all' && deptKey !== selectedDept) return;
-        set.add(ev.name);
-      });
-      const emps = Array.from(set).sort((a,b)=>a.localeCompare(b,'ro'));
-      employeeFilter.innerHTML = '';
-      const optAll = document.createElement('option');
-      optAll.value = 'all';
-      optAll.textContent = 'Toți';
-      employeeFilter.appendChild(optAll);
-      emps.forEach(n => {
-        const o = document.createElement('option');
-        o.value = n;
-        o.textContent = n;
-        employeeFilter.appendChild(o);
-      });
-    }
-
-    function exportCsv(events){
-      const list = events || [];
-      if (!list.length){
-        alert('Nu există evenimente în filtrul curent pentru export.');
-        return;
-      }
-      const header = ['timestamp_iso','data_ora','nume','departament','actiune','activitate','locatie'];
-      const rows = list.map(ev => [
-        ev.ts || '',
-        fmtDateTime(ev.ts) || '',
-        ev.name || '',
-        ev.dept || '',
-        ev.action || '',
-        ev.activity || '',
-        ev.location || ''
-      ]);
-      const csvLines = [header].concat(rows).map(row => row.map(cell => {
-        const s = String(cell).replace(/"/g,'""');
-        return '"' + s + '"';
-      }).join(','));
-      const csv = csvLines.join('\r\n');
-      const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'pontaj-export.csv';
-      document.body.appendChild(a);
-      a.click();
-      setTimeout(function(){
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-      }, 0);
-    }
-
-    // --- helper: zi incompletă (folosim global ALL_STATS) ---
-    function isDayIncomplete(day){
-      if (!day) return false;
-      const hasAnyActivity =
-        day.hasStart || day.hasFinish ||
-        (day.workMs && day.workMs > 0) ||
-        (day.extraMs && day.extraMs > 0) ||
-        day.openRunning || day.openPause || day.openExtra ||
-        day.hasPauseWithoutUnpause || day.hasExtraStartWithoutFinish;
-      if (!hasAnyActivity) return false;
-      if (day.completed) return false;
-
-      if (day.hasStart && !day.hasFinish) return true;
-      if (day.hasFinish && !day.hasStart) return true; // caz ciudat dar îl marcăm
-      if (day.openRunning || day.openPause || day.openExtra) return true;
-      if (day.hasPauseWithoutUnpause) return true;
-      if (day.hasExtraStartWithoutFinish) return true;
-      return false;
-    }
-
-    // === STATISTICI ALL-TIME & PE PERIOADĂ ===
-    function buildStatsFromEvents(events){
-      const employees = new Map();
-      const perDay = new Map();
-      const NORM_MS = 8 * 60 * 60 * 1000;
-
-      function getEmp(name){
-        if (!employees.has(name)){
-          employees.set(name, {
-            name,
-            dept:'',
-            days:new Map(),
-            totals:{
-              daysWithStart:0,
-              daysWithFinish:0,
-              daysCompleted:0,
-              totalWorkMs:0,
-              totalExtraMs:0,
-              overtimeMs:0,
-              firstEvent:null,
-              lastEvent:null
-            }
-          });
-        }
-        return employees.get(name);
-      }
-
-      const byNameDate = new Map();
-      (events || []).forEach(ev => {
-        if (!ev.ts || !ev.name) return;
-        const dk = dateKeyFromIso(ev.ts);
-        if (!dk) return;
-        const key = ev.name + '||' + dk;
-        if (!byNameDate.has(key)) byNameDate.set(key, []);
-        byNameDate.get(key).push(ev);
-      });
-
-      byNameDate.forEach((evs, key) => {
-        evs.sort((a,b)=>new Date(a.ts) - new Date(b.ts));
-        const parts = key.split('||');
-        const name = parts[0];
-        const dk = parts[1];
-
-        const emp = getEmp(name);
-        let day = emp.days.get(dk);
-        if (!day){
-          day = {
-            dateKey: dk,
-            dept:'',
-            events: evs,
-            workMs:0,
-            extraMs:0,
-            hasStart:false,
-            hasFinish:false,
-            completed:false,
+    function getEmp(name){
+      if (!employees.has(name)){
+        employees.set(name, {
+          name,
+          dept:'',
+          days:new Map(),
+          totals:{
+            daysWithStart:0,
+            daysWithFinish:0,
+            daysCompleted:0,
+            totalWorkMs:0,
+            totalExtraMs:0,
             overtimeMs:0,
-            openRunning:false,
-            openPause:false,
-            openExtra:false,
-            hasPauseWithoutUnpause:false,
-            hasExtraStartWithoutFinish:false
-          };
-          emp.days.set(dk, day);
-        }
-
-        evs.forEach(ev => {
-          if (ev.dept) day.dept = ev.dept;
+            firstEvent:null,
+            lastEvent:null
+          }
         });
-        if (!emp.dept && day.dept) emp.dept = day.dept;
+      }
+      return employees.get(name);
+    }
 
-        let running = false;
-        let paused = false;
-        let extraRunning = false;
-        let startTs = null;
-        let pauseStartTs = null;
-        let extraStartTs = null;
-        let sumPauseMs = 0;
-        let workMs = 0;
-        let extraMs = 0;
+    const byNameDate = new Map();
+    (events || []).forEach(ev => {
+      if (!ev.ts || !ev.name) return;
+      const dk = dateKeyFromIso(ev.ts);
+      if (!dk) return;
+      const key = ev.name + '||' + dk;
+      if (!byNameDate.has(key)) byNameDate.set(key, []);
+      byNameDate.get(key).push(ev);
+    });
 
-        let pauseDepth = 0;
-        let extraDepth = 0;
-        let pauseAnomaly = false;
-        let extraAnomaly = false;
+    byNameDate.forEach((evs, key) => {
+      evs.sort((a,b)=>new Date(a.ts) - new Date(b.ts));
+      const parts = key.split('||');
+      const name = parts[0];
+      const dk = parts[1];
 
-        evs.forEach(ev => {
-          const t = new Date(ev.ts).getTime();
-          if (isNaN(t)) return;
-          const act = ev.action;
-          if (act === 'start') {
-            day.hasStart = true;
-            if (!running) {
-              running = true;
-              paused = false;
-              sumPauseMs = 0;
-              startTs = t;
+      const emp = getEmp(name);
+      let day = emp.days.get(dk);
+      if (!day){
+        day = {
+          dateKey: dk,
+          dept:'',
+          events: evs,
+          workMs:0,
+          extraMs:0,
+          hasStart:false,
+          hasFinish:false,
+          completed:false,
+          overtimeMs:0,
+          startCount:0,
+          finishCount:0,
+          pauseCount:0,
+          unpauseCount:0,
+          extraStartCount:0,
+          extraFinishCount:0,
+          openRunning:false,
+          openExtra:false,
+          hasPauseMismatch:false,
+          hasExtraMismatch:false
+        };
+        emp.days.set(dk, day);
+      }
+
+      evs.forEach(ev => {
+        if (ev.dept) day.dept = ev.dept;
+      });
+      if (!emp.dept && day.dept) emp.dept = day.dept;
+
+      let running = false;
+      let paused = false;
+      let extraRunning = false;
+      let startTs = null;
+      let pauseStartTs = null;
+      let extraStartTs = null;
+      let sumPauseMs = 0;
+      let workMs = 0;
+      let extraMs = 0;
+
+      evs.forEach(ev => {
+        const t = new Date(ev.ts).getTime();
+        if (isNaN(t)) return;
+        const act = ev.action;
+        if (act === 'start') {
+          day.hasStart = true;
+          day.startCount++;
+          if (!running) {
+            running = true;
+            paused = false;
+            sumPauseMs = 0;
+            startTs = t;
+            pauseStartTs = null;
+          }
+        } else if (act === 'pause') {
+          day.pauseCount++;
+          if (running && !paused) {
+            paused = true;
+            pauseStartTs = t;
+          }
+        } else if (act === 'unpause') {
+          day.unpauseCount++;
+          if (running && paused) {
+            paused = false;
+            if (pauseStartTs != null) {
+              sumPauseMs += Math.max(0, t - pauseStartTs);
               pauseStartTs = null;
             }
-          } else if (act === 'pause') {
-            pauseDepth++;
-            if (running && !paused) {
-              paused = true;
-              pauseStartTs = t;
-            }
-          } else if (act === 'unpause') {
-            if (pauseDepth > 0) {
-              pauseDepth--;
-            }
-            if (running && paused) {
+          }
+        } else if (act === 'finish') {
+          day.hasFinish = true;
+          day.finishCount++;
+          if (running && startTs != null) {
+            if (paused && pauseStartTs != null) {
+              sumPauseMs += Math.max(0, t - pauseStartTs);
+              pauseStartTs = null;
               paused = false;
-              if (pauseStartTs != null) {
-                sumPauseMs += Math.max(0, t - pauseStartTs);
-                pauseStartTs = null;
-              }
             }
-          } else if (act === 'finish') {
-            day.hasFinish = true;
-            if (running && startTs != null) {
-              if (paused && pauseStartTs != null) {
-                sumPauseMs += Math.max(0, t - pauseStartTs);
-                pauseStartTs = null;
-                paused = false;
-              }
-              const diff = Math.max(0, t - startTs);
-              const segment = Math.max(0, diff - sumPauseMs);
-              workMs += segment;
-            }
-            running = false;
-            paused = false;
-            startTs = null;
-            pauseStartTs = null;
-            sumPauseMs = 0;
-
-            if (pauseDepth > 0) {
-              pauseAnomaly = true;
-              pauseDepth = 0;
-            }
-          } else if (act === 'extra_start') {
-            extraDepth++;
-            if (!extraRunning) {
-              extraRunning = true;
-              extraStartTs = t;
-            }
-          } else if (act === 'extra_finish') {
-            if (extraDepth > 0) {
-              extraDepth--;
-            }
-            if (extraRunning && extraStartTs != null) {
-              extraMs += Math.max(0, t - extraStartTs);
-            }
-            extraRunning = false;
-            extraStartTs = null;
+            const diff = Math.max(0, t - startTs);
+            const segment = Math.max(0, diff - sumPauseMs);
+            workMs += segment;
           }
-        });
-
-        if (pauseDepth > 0) {
-          pauseAnomaly = true;
-          pauseDepth = 0;
-        }
-        if (extraDepth > 0) {
-          extraAnomaly = true;
-          extraDepth = 0;
-        }
-
-        day.workMs = workMs;
-        day.extraMs = extraMs;
-        day.openRunning = running;
-        day.openPause = paused;
-        day.openExtra = extraRunning;
-        day.hasPauseWithoutUnpause = pauseAnomaly;
-        day.hasExtraStartWithoutFinish = extraAnomaly;
-
-        if (day.hasStart) emp.totals.daysWithStart++;
-        if (day.hasFinish) emp.totals.daysWithFinish++;
-        if (day.hasStart && day.hasFinish && workMs > 0) {
-          day.completed = true;
-          emp.totals.daysCompleted++;
-          if (workMs > NORM_MS) {
-            day.overtimeMs = workMs - NORM_MS;
-            emp.totals.overtimeMs += day.overtimeMs;
+          running = false;
+          paused = false;
+          startTs = null;
+          pauseStartTs = null;
+          sumPauseMs = 0;
+        } else if (act === 'extra_start') {
+          day.extraStartCount++;
+          if (!extraRunning) {
+            extraRunning = true;
+            extraStartTs = t;
           }
-        }
-        emp.totals.totalWorkMs += workMs;
-        emp.totals.totalExtraMs += extraMs;
-
-        evs.forEach(ev => {
-          const t = new Date(ev.ts).getTime();
-          if (isNaN(t)) return;
-          if (!emp.totals.firstEvent || t < new Date(emp.totals.firstEvent).getTime()) {
-            emp.totals.firstEvent = ev.ts;
+        } else if (act === 'extra_finish') {
+          day.extraFinishCount++;
+          if (extraRunning && extraStartTs != null) {
+            extraMs += Math.max(0, t - extraStartTs);
           }
-          if (!emp.totals.lastEvent || t > new Date(emp.totals.lastEvent).getTime()) {
-            emp.totals.lastEvent = ev.ts;
-          }
-        });
-
-        let daySummary = perDay.get(dk);
-        if (!daySummary) {
-          daySummary = { dateKey: dk, started: new Set(), completed: new Set() };
-          perDay.set(dk, daySummary);
+          extraRunning = false;
+          extraStartTs = null;
         }
-        if (day.hasStart) daySummary.started.add(name);
-        if (day.completed) daySummary.completed.add(name);
       });
 
-      return { employees, perDay };
+      day.workMs = workMs;
+      day.extraMs = extraMs;
+      day.openRunning = day.hasStart && !day.hasFinish;
+      day.openExtra = day.extraStartCount > day.extraFinishCount;
+      day.hasPauseMismatch = day.pauseCount !== day.unpauseCount;
+      day.hasExtraMismatch = day.extraStartCount !== day.extraFinishCount;
+
+      if (day.hasStart) emp.totals.daysWithStart++;
+      if (day.hasFinish) emp.totals.daysWithFinish++;
+
+      if (
+        day.hasStart &&
+        day.hasFinish &&
+        workMs > 0 &&
+        !day.hasPauseMismatch &&
+        !day.hasExtraMismatch &&
+        !day.openRunning &&
+        !day.openExtra
+      ) {
+        day.completed = true;
+        emp.totals.daysCompleted++;
+        if (workMs > NORM_MS) {
+          day.overtimeMs = workMs - NORM_MS;
+          emp.totals.overtimeMs += day.overtimeMs;
+        }
+      }
+
+      emp.totals.totalWorkMs += workMs;
+      emp.totals.totalExtraMs += extraMs;
+
+      evs.forEach(ev => {
+        const t = new Date(ev.ts).getTime();
+        if (isNaN(t)) return;
+        if (!emp.totals.firstEvent || t < new Date(emp.totals.firstEvent).getTime()) {
+          emp.totals.firstEvent = ev.ts;
+        }
+        if (!emp.totals.lastEvent || t > new Date(emp.totals.lastEvent).getTime()) {
+          emp.totals.lastEvent = ev.ts;
+        }
+      });
+
+      let daySummary = perDay.get(dk);
+      if (!daySummary) {
+        daySummary = { dateKey: dk, started: new Set(), completed: new Set() };
+        perDay.set(dk, daySummary);
+      }
+      if (day.hasStart) daySummary.started.add(name);
+      if (day.completed) daySummary.completed.add(name);
+    });
+
+    return { employees, perDay };
+  }
+
+  function renderEmployeeIndex(allStats, deptFilterValue){
+    if (!employeeIndexListEl) return;
+    if (!allStats || !allStats.employees){
+      employeeIndexListEl.innerHTML = '<div class="admin-empty">Nu există date.</div>';
+      return;
     }
-
-    function renderEmployeeIndex(allStats, deptFilterValue){
-      if (!employeeIndexListEl) return;
-      if (!allStats || !allStats.employees){
-        employeeIndexListEl.innerHTML = '<div class="admin-empty">Nu există date.</div>';
-        return;
-      }
-      const entries = [];
-      allStats.employees.forEach((emp) => {
-        const dept = emp.dept || '(fără departament)';
-        if (deptFilterValue && deptFilterValue !== 'all' && dept !== deptFilterValue) return;
-        entries.push(emp);
-      });
-      if (!entries.length){
-        employeeIndexListEl.innerHTML = '<div class="admin-empty">Nu există angajați pentru acest departament.</div>';
-        return;
-      }
-      entries.sort((a,b)=>b.totals.totalWorkMs - a.totals.totalWorkMs);
-      employeeIndexListEl.innerHTML = '';
-      entries.forEach(emp => {
-        const row = document.createElement('div');
-        row.className = 'admin-list-row';
-        row.dataset.empName = emp.name;
-        const dept = emp.dept || '(fără departament)';
-        const t = emp.totals;
-        row.innerHTML =
-          '<div>' +
-            '<div class="admin-list-label">' + emp.name + '</div>' +
-            '<div class="admin-list-sub">' + dept + ' • ' +
-              t.daysCompleted + ' zile complete, ' + fmtHoursShort(t.totalWorkMs) +
-            '</div>' +
-          '</div>' +
-          '<div class="admin-list-value">' +
-            '<span>' + fmtHoursShort(t.totalWorkMs) + '</span>' +
-          '</div>';
-        row.addEventListener('click', function(){
-          SELECTED_EMPLOYEE = emp.name;
-          if (employeeFilter){
-            if (!employeeFilter.querySelector('option[value="'+emp.name+'"]')){
-              const o = document.createElement('option');
-              o.value = emp.name;
-              o.textContent = emp.name;
-              employeeFilter.appendChild(o);
-            }
-            employeeFilter.value = emp.name;
-          }
-          markSelectedEmployee(emp.name);
-          renderEmployeeDetails(emp.name);
-        });
-        employeeIndexListEl.appendChild(row);
-      });
+    const entries = [];
+    allStats.employees.forEach((emp) => {
+      const dept = emp.dept || '(fără departament)';
+      if (deptFilterValue && deptFilterValue !== 'all' && dept !== deptFilterValue) return;
+      entries.push(emp);
+    });
+    if (!entries.length){
+      employeeIndexListEl.innerHTML = '<div class="admin-empty">Nu există angajați pentru acest departament.</div>';
+      return;
     }
-
-    function markSelectedEmployee(name){
-      document.querySelectorAll('.admin-list-row').forEach(el => {
-        el.classList.toggle('selected', el.dataset.empName === name);
-      });
-    }
-
-    function renderEmployeeDetails(name){
-      if (!employeeDetailsBodyEl || !employeeDetailsHeaderEl) return;
-      if (!name){
-        employeeDetailsHeaderEl.textContent = 'Selectează un angajat din listă pentru a vedea situația pe toate zilele.';
-        employeeDetailsBodyEl.innerHTML = '<div class="admin-empty">Niciun angajat selectat.</div>';
-        return;
-      }
-      if (!ALL_STATS || !ALL_STATS.employees || !ALL_STATS.employees.has(name)){
-        employeeDetailsHeaderEl.textContent = 'Nu găsesc statistici pentru ' + name + '.';
-        employeeDetailsBodyEl.innerHTML = '<div class="admin-empty">Nu există date pentru acest angajat.</div>';
-        return;
-      }
-      const emp = ALL_STATS.employees.get(name);
+    entries.sort((a,b)=>b.totals.totalWorkMs - a.totals.totalWorkMs);
+    employeeIndexListEl.innerHTML = '';
+    entries.forEach(emp => {
+      const row = document.createElement('div');
+      row.className = 'admin-list-row';
+      row.dataset.empName = emp.name;
       const dept = emp.dept || '(fără departament)';
       const t = emp.totals;
-      employeeDetailsHeaderEl.innerHTML =
-        'Statistici all time pentru <b>' + name + '</b> (' + dept + '). ' +
-        'Zile cu normă completă: <b>' + t.daysCompleted + '</b> din <b>' + t.daysWithStart + '</b> cu START.';
-      const daysArr = Array.from(emp.days.values()).sort((a,b)=>a.dateKey < b.dateKey ? -1 : (a.dateKey > b.dateKey ? 1 : 0));
-
-      let html = '';
-      html += '<div style="margin-bottom:10px;font-size:13px;">';
-      html += '<div><b>Total ore normă:</b> ' + fmtHoursShort(t.totalWorkMs) + '</div>';
-      html += '<div><b>Total ore extra:</b> ' + fmtHoursShort(t.totalExtraMs) + '</div>';
-      html += '<div><b>Total overtime:</b> ' + fmtHoursShort(t.overtimeMs) + '</div>';
-      html += '<div><b>Zile cu START:</b> ' + t.daysWithStart + ' • <b>Zile cu FINISH:</b> ' + t.daysWithFinish + '</div>';
-      html += '</div>';
-
-      if (!daysArr.length){
-        html += '<div class="admin-empty">Nu există zile înregistrate pentru acest angajat.</div>';
-        employeeDetailsBodyEl.innerHTML = html;
-        return;
-      }
-
-      html += '<div class="table-wrap">';
-      html += '<table class="admin-table">';
-      html += '<thead><tr>' +
-        '<th>Data</th>' +
-        '<th>Departament</th>' +
-        '<th>Normă</th>' +
-        '<th>Extra</th>' +
-        '<th>Completă</th>' +
-        '<th>Overtime</th>' +
-      '</tr></thead><tbody>';
-      daysArr.forEach(d => {
-        const status = d.completed
-          ? '<span class="badge badge-ok">DA</span>'
-          : (d.hasStart || d.hasFinish || d.workMs || d.extraMs)
-            ? '<span class="badge badge-warn">INCOMPLETĂ</span>'
-            : '-';
-        html += '<tr>' +
-          '<td>' + d.dateKey + '</td>' +
-          '<td>' + (d.dept || '') + '</td>' +
-          '<td>' + (d.workMs ? fmtHoursHM(d.workMs) : '-') + '</td>' +
-          '<td>' + (d.extraMs ? fmtHoursHM(d.extraMs) : '-') + '</td>' +
-          '<td>' + status + '</td>' +
-          '<td>' + (d.overtimeMs ? fmtHoursHM(d.overtimeMs) : '-') + '</td>' +
-        '</tr>';
-      });
-      html += '</tbody></table></div>';
-
-      employeeDetailsBodyEl.innerHTML = html;
-    }
-
-    function renderTopEmployees(allStats){
-      if (!topEmployeesEl) return;
-      if (!allStats || !allStats.employees){
-        topEmployeesEl.innerHTML = '<div class="admin-empty">Nu există date.</div>';
-        return;
-      }
-      const entries = [];
-      allStats.employees.forEach((emp) => {
-        entries.push(emp);
-      });
-      if (!entries.length){
-        topEmployeesEl.innerHTML = '<div class="admin-empty">Nu există date.</div>';
-        return;
-      }
-      entries.sort((a,b)=>b.totals.totalWorkMs - a.totals.totalWorkMs);
-      const top = entries.slice(0,5);
-      topEmployeesEl.innerHTML = '';
-      top.forEach(emp => {
-        const t = emp.totals;
-        const row = document.createElement('div');
-        row.className = 'admin-list-row';
-        row.dataset.empName = emp.name;
-        row.innerHTML =
-          '<div>' +
-            '<div class="admin-list-label">' + emp.name + '</div>' +
-            '<div class="admin-list-sub">' + (emp.dept || '(fără departament)') + '</div>' +
+      row.innerHTML =
+        '<div>' +
+          '<div class="admin-list-label">' + emp.name + '</div>' +
+          '<div class="admin-list-sub">' + dept + ' • ' +
+            t.daysCompleted + ' zile complete, ' + fmtHoursShort(t.totalWorkMs) +
           '</div>' +
-          '<div class="admin-list-value">' +
-            '<div>' + fmtHoursShort(t.totalWorkMs) + '</div>' +
-            '<div style="font-size:11px;color:#6b7280;">' + t.daysCompleted + ' zile complete</div>' +
-          '</div>';
-        row.addEventListener('click', function(){
-          SELECTED_EMPLOYEE = emp.name;
-          markSelectedEmployee(emp.name);
-          renderEmployeeDetails(emp.name);
-        });
-        topEmployeesEl.appendChild(row);
-      });
-    }
-
-    function filterByRange(events, range){
-      if (!events || !events.length) return [];
-      const now = new Date();
-      if (range === 'all') return events.slice();
-      const endTime = now.getTime();
-      let startTime;
-      if (range === 'last7'){
-        const d = new Date(now);
-        d.setDate(d.getDate() - 6);
-        startTime = d.getTime();
-      } else { // today
-        const d = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0,0,0);
-        startTime = d.getTime();
-      }
-      return events.filter(ev => {
-        if (!ev.ts) return false;
-        const t = new Date(ev.ts).getTime();
-        if (isNaN(t)) return false;
-        return t >= startTime && t <= endTime;
-      });
-    }
-
-    function filterLastEventsByRange(events, range){
-      if (!events || !events.length) return [];
-      const now = new Date();
-      const endTime = now.getTime();
-      let startTime = null;
-
-      if (range === 'today'){
-        const d = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0,0,0);
-        startTime = d.getTime();
-      } else if (range === 'week'){
-        const d = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0,0,0);
-        const day = d.getDay(); // 0=Sun, 1=Mon...
-        const diffToMonday = (day + 6) % 7;
-        d.setDate(d.getDate() - diffToMonday);
-        startTime = d.getTime();
-      } else if (range === 'month'){
-        const d = new Date(now.getFullYear(), now.getMonth(), 1, 0,0,0);
-        startTime = d.getTime();
-      } else { // all
-        return events.slice();
-      }
-
-      return events.filter(ev => {
-        if (!ev.ts) return false;
-        const t = new Date(ev.ts).getTime();
-        if (isNaN(t)) return false;
-        return t >= startTime && t <= endTime;
-      });
-    }
-
-    function updateCompletedTodayKpiFromStats(stats, range){
-      if (!kpiCompletedTodayEl) return;
-      if (range !== 'today'){
-        kpiCompletedTodayEl.textContent = '–';
-        return;
-      }
-      if (!stats || !stats.employees || !stats.employees.size){
-        kpiCompletedTodayEl.textContent = '0 / 0';
-        return;
-      }
-      let total = 0, completed = 0;
-      stats.employees.forEach(emp => {
-        const t = emp.totals;
-        if (t.daysWithStart || t.daysWithFinish){
-          total++;
-          if (t.daysCompleted > 0) completed++;
-        }
-      });
-      kpiCompletedTodayEl.textContent = completed + ' / ' + total;
-    }
-
-    function renderDailyPresence(stats){
-      if (!dailyPresenceBodyEl) return;
-      dailyPresenceBodyEl.innerHTML = '';
-      if (!stats || !stats.perDay || !stats.perDay.size){
-        const tr = document.createElement('tr');
-        const td = document.createElement('td');
-        td.colSpan = 4;
-        td.textContent = 'Nu există zile în filtrul curent.';
-        tr.appendChild(td);
-        dailyPresenceBodyEl.appendChild(tr);
-        return;
-      }
-      const entries = Array.from(stats.perDay.values())
-        .sort((a,b)=>a.dateKey < b.dateKey ? -1 : (a.dateKey > b.dateKey ? 1 : 0));
-      entries.forEach(day => {
-        const started = day.started ? day.started.size : 0;
-        const completed = day.completed ? day.completed.size : 0;
-        const pct = started ? Math.round(100 * completed / started) : 0;
-        const tr = document.createElement('tr');
-        tr.innerHTML =
-          '<td>' + day.dateKey + '</td>' +
-          '<td>' + started + '</td>' +
-          '<td>' + completed + '</td>' +
-          '<td>' + (started ? pct + '%' : '–') + '</td>';
-        dailyPresenceBodyEl.appendChild(tr);
-      });
-    }
-
-    function renderIncompleteDays(baseEvents){
-      if (!incompleteDaysBodyEl) return;
-      incompleteDaysBodyEl.innerHTML = '';
-
-      if (!baseEvents || !baseEvents.length || !ALL_STATS || !ALL_STATS.employees || !ALL_STATS.employees.size){
-        const tr = document.createElement('tr');
-        const td = document.createElement('td');
-        td.colSpan = 6;
-        td.textContent = 'Nu există zile incomplete în filtrul curent.';
-        tr.appendChild(td);
-        incompleteDaysBodyEl.appendChild(tr);
-        return;
-      }
-
-      const keyMap = new Map(); // key -> {name, dateKey, deptHint}
-      baseEvents.forEach(ev => {
-        if (!ev.name || !ev.ts) return;
-        const dk = dateKeyFromIso(ev.ts);
-        if (!dk) return;
-        const key = ev.name + '||' + dk;
-        if (!keyMap.has(key)){
-          keyMap.set(key, {
-            name: ev.name,
-            dateKey: dk,
-            deptHint: ev.dept || ''
-          });
-        }
-      });
-
-      const rows = [];
-      keyMap.forEach(info => {
-        const emp = ALL_STATS.employees.get(info.name);
-        if (!emp) return;
-        const day = emp.days.get(info.dateKey);
-        if (!day) return;
-        if (!isDayIncomplete(day)) return;
-        rows.push({
-          dateKey: info.dateKey,
-          name: info.name,
-          dept: day.dept || emp.dept || info.deptHint || '',
-          workMs: day.workMs,
-          extraMs: day.extraMs,
-          day
-        });
-      });
-
-      if (!rows.length){
-        const tr = document.createElement('tr');
-        const td = document.createElement('td');
-        td.colSpan = 6;
-        td.textContent = 'Nu există zile incomplete în filtrul curent.';
-        tr.appendChild(td);
-        incompleteDaysBodyEl.appendChild(tr);
-        return;
-      }
-
-      rows.sort((a,b)=>{
-        if (a.dateKey < b.dateKey) return -1;
-        if (a.dateKey > b.dateKey) return 1;
-        if (a.name < b.name) return -1;
-        if (a.name > b.name) return 1;
-        return 0;
-      });
-
-      rows.forEach(item => {
-        const d = item.day;
-        const statusParts = [];
-        if (d.hasStart && !d.hasFinish) statusParts.push('START fără FINISH');
-        if (d.hasFinish && !d.hasStart) statusParts.push('FINISH fără START');
-        if (d.hasPauseWithoutUnpause) statusParts.push('PAUSE fără UNPAUSE');
-        if (d.hasExtraStartWithoutFinish) statusParts.push('EXTRA START fără EXTRA FINISH');
-        if (d.openRunning) statusParts.push('Sesiune normă încă deschisă');
-        if (d.openPause) statusParts.push('În PAUSE la finalul zilei');
-        if (d.openExtra) statusParts.push('Sesiune EXTRA încă deschisă');
-        const statusText = statusParts.length ? statusParts.join(' • ') : 'Incompletă';
-
-        const tr = document.createElement('tr');
-        tr.innerHTML =
-          '<td>' + item.dateKey + '</td>' +
-          '<td>' + item.name + '</td>' +
-          '<td>' + item.dept + '</td>' +
-          '<td>' + (item.workMs ? fmtHoursHM(item.workMs) : '-') + '</td>' +
-          '<td>' + (item.extraMs ? fmtHoursHM(item.extraMs) : '-') + '</td>' +
-          '<td>' + statusText + '</td>';
-        incompleteDaysBodyEl.appendChild(tr);
-      });
-    }
-
-    function applyDeptEmployee(events, currentDept, currentEmployee){
-      let list = events.slice();
-      if (currentDept && currentDept !== 'all'){
-        list = list.filter(ev => (ev.dept || '(fără departament)') === currentDept);
-      }
-      if (currentEmployee && currentEmployee !== 'all'){
-        list = list.filter(ev => ev.name === currentEmployee);
-      }
-      return list;
-    }
-
-    function applyIncompleteFilter(events){
-      if (!filterIncompleteOnly) return events;
-      if (!ALL_STATS || !ALL_STATS.employees || !events || !events.length) return events;
-      return events.filter(ev => {
-        if (!ev.name || !ev.ts) return false;
-        const dk = dateKeyFromIso(ev.ts);
-        if (!dk) return false;
-        const emp = ALL_STATS.employees.get(ev.name);
-        if (!emp) return false;
-        const day = emp.days.get(dk);
-        if (!day) return false;
-        return isDayIncomplete(day);
-      });
-    }
-
-    async function init(){
-      try{
-        const CFG = await loadConfig();
-        if (!CFG || !CFG.adminEventsEndpoint){
-          throw new Error('config.json nu conține adminEventsEndpoint.');
-        }
-
-        const adminUrl = CFG.adminEventsEndpoint + '?fn=adminEvents&v=' + Date.now();
-        const r2 = await fetch(adminUrl, { cache:'no-store' });
-        const txt = await r2.text();
-        let data;
-        try { data = JSON.parse(txt); } catch(e){ throw new Error('Răspuns invalid de la adminEventsEndpoint.'); }
-        if (!data || !data.ok || !Array.isArray(data.events)){
-          throw new Error('adminEventsEndpoint nu a întors un obiect ok cu events[].');
-        }
-
-        const meta = data.meta || null;
-        window.__pontajAdminMeta = meta || null;
-
-        const events = data.events.map(ev => ({
-          ts: ev.ts,
-          name: ev.name || '',
-          action: _normAction(ev.action),
-          dept: ev.dept || '',
-          activity: ev.activity || '',
-          location: ev.location || ''
-        })).filter(ev => ev.ts);
-
-        if (loadingEl) loadingEl.style.display = 'none';
-        if (dashboardEl) dashboardEl.style.display = '';
-
-        if (lastUpdateEl){
-          let stamp = new Date();
-          if (meta && meta.generatedAt){
-            const dMeta = new Date(meta.generatedAt);
-            if (!isNaN(dMeta.getTime())) {
-              stamp = dMeta;
-            }
-          }
-          const hh = String(stamp.getHours()).padStart(2,'0');
-          const mi = String(stamp.getMinutes()).padStart(2,'0');
-          lastUpdateEl.textContent = 'Actualizat la ' + hh + ':' + mi;
-        }
-
-        // ALL_STATS = statistici all-time, din toate evenimentele
-        ALL_STATS = buildStatsFromEvents(events);
-        renderTopEmployees(ALL_STATS);
-
-        let currentRange = rangeSelect ? rangeSelect.value : 'today';
-        let currentDept = 'all';
-        let currentEmployee = 'all';
-        let latestFiltered = [];
-
-        buildDeptFilter(events);
-        buildEmployeeFilter(events, currentDept);
-        renderEmployeeIndex(ALL_STATS, CURRENT_DEPT_FILTER);
-        renderEmployeeDetails(null);
-
-        function refresh(){
-          // 1) Pentru KPI, log, prezență, zile incomplete: folosim rangeSelect
-          let baseAll = applyDeptEmployee(events, currentDept, currentEmployee);
-          let baseRange = filterByRange(baseAll, currentRange || 'today');
-          let filteredForMain = applyIncompleteFilter(baseRange);
-          latestFiltered = filteredForMain;
-
-          renderKpis(filteredForMain);
-          renderDept(filteredForMain);
-          renderRawLog(filteredForMain);
-
-          const statsBase = buildStatsFromEvents(baseRange);
-          updateCompletedTodayKpiFromStats(statsBase, currentRange);
-          renderDailyPresence(statsBase);
-          renderIncompleteDays(baseRange);
-
-          // 2) Pentru „Ultimele pontaje”: range propriu (lastEventsRange)
-          let lastBase = applyDeptEmployee(events, currentDept, currentEmployee);
-          let lastByRange = filterLastEventsByRange(lastBase, lastEventsRange || 'today');
-          let lastFinal = applyIncompleteFilter(lastByRange);
-          renderLastEvents(lastFinal);
-
-          // 3) Titluri când este bifat "doar zile incomplete"
-          if (lastEventsTitleEl && lastEventsHintTextEl && rawLogTitleEl){
-            if (filterIncompleteOnly){
-              lastEventsTitleEl.textContent = 'Ultimele pontaje (doar zile incomplete)';
-              lastEventsHintTextEl.textContent =
-                'Toate înregistrările din zilele problematice (START/PAUSE/EXTRA neînchise) pentru perioada aleasă și filtrul curent.';
-              rawLogTitleEl.textContent = 'Log brut (doar zile incomplete)';
-            } else {
-              lastEventsTitleEl.textContent = 'Ultimele pontaje';
-              lastEventsHintTextEl.textContent =
-                'Toate înregistrările din perioada aleasă, după filtrele de mai sus.';
-              rawLogTitleEl.textContent = 'Log brut (filtru curent)';
-            }
-          }
-        }
-
-        if (rangeSelect){
-          rangeSelect.addEventListener('change', function(){
-            currentRange = rangeSelect.value || 'today';
-            refresh();
-          });
-        }
-        if (deptFilter){
-          deptFilter.addEventListener('change', function(){
-            currentDept = deptFilter.value || 'all';
-            CURRENT_DEPT_FILTER = currentDept;
-            buildEmployeeFilter(events, currentDept);
-            if (currentEmployee !== 'all' && employeeFilter){
-              if (!employeeFilter.querySelector('option[value="'+currentEmployee+'"]')){
-                const o = document.createElement('option');
-                o.value = currentEmployee;
-                o.textContent = currentEmployee;
-                employeeFilter.appendChild(o);
-              }
-              employeeFilter.value = currentEmployee;
-            }
-            renderEmployeeIndex(ALL_STATS, CURRENT_DEPT_FILTER);
-            renderEmployeeDetails(SELECTED_EMPLOYEE);
-            refresh();
-          });
-        }
+        '</div>' +
+        '<div class="admin-list-value">' +
+          '<span>' + fmtHoursShort(t.totalWorkMs) + '</span>' +
+        '</div>';
+      row.addEventListener('click', function(){
+        SELECTED_EMPLOYEE = emp.name;
         if (employeeFilter){
-          employeeFilter.addEventListener('change', function(){
-            currentEmployee = employeeFilter.value || 'all';
-            if (currentEmployee === 'all'){
-              SELECTED_EMPLOYEE = null;
-              renderEmployeeDetails(null);
-            } else {
-              SELECTED_EMPLOYEE = currentEmployee;
-              markSelectedEmployee(SELECTED_EMPLOYEE);
-              renderEmployeeDetails(SELECTED_EMPLOYEE);
-            }
-            refresh();
-          });
+          if (!employeeFilter.querySelector('option[value="'+emp.name+'"]')){
+            const o = document.createElement('option');
+            o.value = emp.name;
+            o.textContent = emp.name;
+            employeeFilter.appendChild(o);
+          }
+          employeeFilter.value = emp.name;
         }
-        if (incompleteOnlyCheckbox){
-          incompleteOnlyCheckbox.addEventListener('change', function(){
-            filterIncompleteOnly = !!incompleteOnlyCheckbox.checked;
-            refresh();
-          });
-        }
-        if (lastEventsRangeSelect){
-          lastEventsRangeSelect.addEventListener('change', function(){
-            lastEventsRange = lastEventsRangeSelect.value || 'today';
-            refresh();
-          });
-        }
+        markSelectedEmployee(emp.name);
+        renderEmployeeDetails(emp.name);
+      });
+      employeeIndexListEl.appendChild(row);
+    });
+  }
 
-        if (exportCsvBtn){
-          exportCsvBtn.addEventListener('click', function(){
-            exportCsv(latestFiltered);
-          });
-        }
+  function markSelectedEmployee(name){
+    document.querySelectorAll('.admin-list-row').forEach(el => {
+      el.classList.toggle('selected', el.dataset.empName === name);
+    });
+  }
 
-        if (pdfBtn){
-          pdfBtn.addEventListener('click', async function(){
-            if (!SELECTED_EMPLOYEE){
-              alert('Selectează mai întâi un angajat din Index sau din filtrul de angajați.');
-              return;
-            }
-            try{
-              const cfg = await loadConfig();
-              if (!cfg.adminEventsEndpoint) throw new Error('Lipsește adminEventsEndpoint.');
-              const url = cfg.adminEventsEndpoint +
-                '?fn=adminPdf&name=' + encodeURIComponent(SELECTED_EMPLOYEE) +
-                '&v=' + Date.now();
-              window.open(url, '_blank');
-            }catch(err){
-              alert('Eroare configurare PDF: ' + (err && err.message ? err.message : err));
-            }
-          });
-        }
+  function renderEmployeeDetails(name){
+    if (!employeeDetailsBodyEl || !employeeDetailsHeaderEl) return;
+    if (!name){
+      employeeDetailsHeaderEl.textContent = 'Selectează un angajat din listă pentru a vedea situația pe toate zilele.';
+      employeeDetailsBodyEl.innerHTML = '<div class="admin-empty">Niciun angajat selectat.</div>';
+      return;
+    }
+    if (!ALL_STATS || !ALL_STATS.employees || !ALL_STATS.employees.has(name)){
+      employeeDetailsHeaderEl.textContent = 'Nu găsesc statistici pentru ' + name + '.';
+      employeeDetailsBodyEl.innerHTML = '<div class="admin-empty">Nu există date pentru acest angajat.</div>';
+      return;
+    }
+    const emp = ALL_STATS.employees.get(name);
+    const dept = emp.dept || '(fără departament)';
+    const t = emp.totals;
+    employeeDetailsHeaderEl.innerHTML =
+      'Statistici all time pentru <b>' + name + '</b> (' + dept + '). ' +
+      'Zile cu normă completă: <b>' + t.daysCompleted + '</b> din <b>' + t.daysWithStart + '</b> cu START.';
+    const daysArr = Array.from(emp.days.values()).sort((a,b)=>a.dateKey < b.dateKey ? -1 : (a.dateKey > b.dateKey ? 1 : 0));
 
-        if (deptPdfBtn){
-          deptPdfBtn.addEventListener('click', async function(){
-            let dept = CURRENT_DEPT_FILTER && CURRENT_DEPT_FILTER !== 'all'
-              ? CURRENT_DEPT_FILTER
-              : '';
-            if (!dept){
-              const listOpts = Array.from(deptFilter ? deptFilter.options : [])
-                .map(o => o.value)
-                .filter(v => v && v !== 'all');
-              const suggestion = listOpts.length ? listOpts[0] : '';
-              const input = prompt('Introdu numele departamentului pentru raport (exact cum apare în filtrul de departamente):', suggestion);
-              dept = input ? input.trim() : '';
-            }
-            if (!dept){
-              alert('Nu a fost ales niciun departament.');
-              return;
-            }
-            try{
-              const cfg = await loadConfig();
-              if (!cfg.adminEventsEndpoint) throw new Error('Lipsește adminEventsEndpoint.');
-              const url = cfg.adminEventsEndpoint +
-                '?fn=adminPdfDept&dept=' + encodeURIComponent(dept) +
-                '&v=' + Date.now();
-              const r = await fetch(url, {cache:'no-store'});
-              const resp = await r.json();
-              if (!resp.ok || !resp.url){
-                throw new Error(resp.error || 'Nu am primit un URL de raport.');
-              }
-              window.open(resp.url, '_blank');
-            }catch(err){
-              alert('Eroare la generarea raportului departamental: ' + (err.message || err));
-            }
-          });
-        }
+    let html = '';
+    html += '<div style="margin-bottom:10px;font-size:13px;">';
+    html += '<div><b>Total ore normă:</b> ' + fmtHoursShort(t.totalWorkMs) + '</div>';
+    html += '<div><b>Total ore extra:</b> ' + fmtHoursShort(t.totalExtraMs) + '</div>';
+    html += '<div><b>Total overtime:</b> ' + fmtHoursShort(t.overtimeMs) + '</div>';
+    html += '<div><b>Zile cu START:</b> ' + t.daysWithStart + ' • <b>Zile cu FINISH:</b> ' + t.daysWithFinish + '</div>';
+    html += '</div>';
 
-        if (employeeExportBtn){
-          employeeExportBtn.addEventListener('click', function(){
-            if (!SELECTED_EMPLOYEE){
-              alert('Selectează mai întâi un angajat din Index sau din filtrul de angajați.');
-              return;
-            }
-            if (!ALL_STATS || !ALL_STATS.employees || !ALL_STATS.employees.has(SELECTED_EMPLOYEE)){
-              alert('Nu găsesc date pentru acest angajat.');
-              return;
-            }
-            const emp = ALL_STATS.employees.get(SELECTED_EMPLOYEE);
-            const t = emp.totals;
-            const daysArr = Array.from(emp.days.values())
-              .sort((a,b)=>a.dateKey < b.dateKey ? -1 : (a.dateKey > b.dateKey ? 1 : 0));
-
-            const totalNormH = msToHours(t.totalWorkMs);
-            const totalExtraH = msToHours(t.totalExtraMs);
-            const totalOverH = msToHours(t.overtimeMs);
-            const pctComplete = t.daysWithStart ? Math.round(100 * t.daysCompleted / t.daysWithStart) : 0;
-
-            const header = [
-              'Nume','Departament','Total ore norma (h)','Total ore extra (h)',
-              'Total overtime (h)','Zile cu START','Zile cu FINISH','Zile complete',
-              'Procent zile complete (%)','Data','Norma (h)','Extra (h)','Overtime (h)','Complet'
-            ];
-
-            const rows = daysArr.map(d => {
-              return [
-                emp.name,
-                emp.dept || '',
-                totalNormH.toFixed(2),
-                totalExtraH.toFixed(2),
-                totalOverH.toFixed(2),
-                t.daysWithStart,
-                t.daysWithFinish,
-                t.daysCompleted,
-                pctComplete,
-                d.dateKey,
-                (msToHours(d.workMs) || 0).toFixed(2),
-                (msToHours(d.extraMs) || 0).toFixed(2),
-                (msToHours(d.overtimeMs) || 0).toFixed(2),
-                d.completed ? 'DA' : ((d.hasStart || d.hasFinish || d.workMs || d.extraMs) ? 'INCOMPLETA' : '-')
-              ];
-            });
-
-            const csvLines = [header].concat(rows).map(row => row.map(cell => {
-              const s = String(cell).replace(/"/g,'""');
-              return '"' + s + '"';
-            }).join(','));
-            const csv = csvLines.join('\r\n');
-
-            const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'pontaj-' + SELECTED_EMPLOYEE.replace(/\s+/g,'_') + '.csv';
-            document.body.appendChild(a);
-            a.click();
-            setTimeout(() => {
-              document.body.removeChild(a);
-              URL.revokeObjectURL(url);
-            }, 0);
-          });
-        }
-
-        refresh();
-      }catch(e){
-        showError(e.message || String(e));
-      }
+    if (!daysArr.length){
+      html += '<div class="admin-empty">Nu există zile înregistrate pentru acest angajat.</div>';
+      employeeDetailsBodyEl.innerHTML = html;
+      return;
     }
 
-    init();
-  })();
-  </script>
+    html += '<div class="table-wrap">';
+    html += '<table class="admin-table">';
+    html += '<thead><tr>' +
+      '<th>Data</th>' +
+      '<th>Departament</th>' +
+      '<th>Normă</th>' +
+      '<th>Extra</th>' +
+      '<th>Completă</th>' +
+      '<th>Overtime</th>' +
+    '</tr></thead><tbody>';
+    daysArr.forEach(d => {
+      const status = d.completed
+        ? '<span class="badge badge-ok">DA</span>'
+        : (isDayIncomplete(d)
+            ? '<span class="badge badge-warn">INCOMPLETĂ</span>'
+            : '-');
+      html += '<tr>' +
+        '<td>' + d.dateKey + '</td>' +
+        '<td>' + (d.dept || '') + '</td>' +
+        '<td>' + (d.workMs ? fmtHoursHM(d.workMs) : '-') + '</td>' +
+        '<td>' + (d.extraMs ? fmtHoursHM(d.extraMs) : '-') + '</td>' +
+        '<td>' + status + '</td>' +
+        '<td>' + (d.overtimeMs ? fmtHoursHM(d.overtimeMs) : '-') + '</td>' +
+      '</tr>';
+    });
+    html += '</tbody></table></div>';
+
+    employeeDetailsBodyEl.innerHTML = html;
+  }
+
+  function renderTopEmployees(allStats){
+    if (!topEmployeesEl) return;
+    if (!allStats || !allStats.employees){
+      topEmployeesEl.innerHTML = '<div class="admin-empty">Nu există date.</div>';
+      return;
+    }
+    const entries = [];
+    allStats.employees.forEach((emp) => {
+      entries.push(emp);
+    });
+    if (!entries.length){
+      topEmployeesEl.innerHTML = '<div class="admin-empty">Nu există date.</div>';
+      return;
+    }
+    entries.sort((a,b)=>b.totals.totalWorkMs - a.totals.totalWorkMs);
+    const top = entries.slice(0,5);
+    topEmployeesEl.innerHTML = '';
+    top.forEach(emp => {
+      const t = emp.totals;
+      const row = document.createElement('div');
+      row.className = 'admin-list-row';
+      row.dataset.empName = emp.name;
+      row.innerHTML =
+        '<div>' +
+          '<div class="admin-list-label">' + emp.name + '</div>' +
+          '<div class="admin-list-sub">' + (emp.dept || '(fără departament)') + '</div>' +
+        '</div>' +
+        '<div class="admin-list-value">' +
+          '<div>' + fmtHoursShort(t.totalWorkMs) + '</div>' +
+          '<div style="font-size:11px;color:#6b7280;">' + t.daysCompleted + ' zile complete</div>' +
+        '</div>';
+      row.addEventListener('click', function(){
+        SELECTED_EMPLOYEE = emp.name;
+        markSelectedEmployee(emp.name);
+        renderEmployeeDetails(emp.name);
+      });
+      topEmployeesEl.appendChild(row);
+    });
+  }
+
+  function filterByRange(events, range){
+    if (!events || !events.length) return [];
+    const now = new Date();
+    if (range === 'all') return events.slice();
+    const endTime = now.getTime();
+    let startTime;
+    if (range === 'last7'){
+      const d = new Date(now);
+      d.setDate(d.getDate() - 6);
+      startTime = d.getTime();
+    } else { // today
+      const d = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0,0,0);
+      startTime = d.getTime();
+    }
+    return events.filter(ev => {
+      if (!ev.ts) return false;
+      const t = new Date(ev.ts).getTime();
+      if (isNaN(t)) return false;
+      return t >= startTime && t <= endTime;
+    });
+  }
+
+  function filterLastEventsByRange(events, range){
+    if (!events || !events.length) return [];
+    const now = new Date();
+    const endTime = now.getTime();
+    let startTime = null;
+
+    if (range === 'today'){
+      const d = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0,0,0);
+      startTime = d.getTime();
+    } else if (range === 'week'){
+      const d = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0,0,0);
+      const day = d.getDay(); // 0=Sun, 1=Mon...
+      const diffToMonday = (day + 6) % 7;
+      d.setDate(d.getDate() - diffToMonday);
+      startTime = d.getTime();
+    } else if (range === 'month'){
+      const d = new Date(now.getFullYear(), now.getMonth(), 1, 0,0,0);
+      startTime = d.getTime();
+    } else { // all
+      return events.slice();
+    }
+
+    return events.filter(ev => {
+      if (!ev.ts) return false;
+      const t = new Date(ev.ts).getTime();
+      if (isNaN(t)) return false;
+      return t >= startTime && t <= endTime;
+    });
+  }
+
+  function updateCompletedTodayKpiFromStats(stats, range){
+    if (!kpiCompletedTodayEl) return;
+    if (range !== 'today'){
+      kpiCompletedTodayEl.textContent = '–';
+      return;
+    }
+    if (!stats || !stats.employees || !stats.employees.size){
+      kpiCompletedTodayEl.textContent = '0 / 0';
+      return;
+    }
+    let total = 0, completed = 0;
+    stats.employees.forEach(emp => {
+      const t = emp.totals;
+      if (t.daysWithStart || t.daysWithFinish){
+        total++;
+        if (t.daysCompleted > 0) completed++;
+      }
+    });
+    kpiCompletedTodayEl.textContent = completed + ' / ' + total;
+  }
+
+  function renderDailyPresence(stats){
+    if (!dailyPresenceBodyEl) return;
+    dailyPresenceBodyEl.innerHTML = '';
+    if (!stats || !stats.perDay || !stats.perDay.size){
+      const tr = document.createElement('tr');
+      const td = document.createElement('td');
+      td.colSpan = 4;
+      td.textContent = 'Nu există zile în filtrul curent.';
+      tr.appendChild(td);
+      dailyPresenceBodyEl.appendChild(tr);
+      return;
+    }
+    const entries = Array.from(stats.perDay.values())
+      .sort((a,b)=>a.dateKey < b.dateKey ? -1 : (a.dateKey > b.dateKey ? 1 : 0));
+    entries.forEach(day => {
+      const started = day.started ? day.started.size : 0;
+      const completed = day.completed ? day.completed.size : 0;
+      const pct = started ? Math.round(100 * completed / started) : 0;
+      const tr = document.createElement('tr');
+      tr.innerHTML =
+        '<td>' + day.dateKey + '</td>' +
+        '<td>' + started + '</td>' +
+        '<td>' + completed + '</td>' +
+        '<td>' + (started ? pct + '%' : '–') + '</td>';
+      dailyPresenceBodyEl.appendChild(tr);
+    });
+  }
+
+  function renderIncompleteDays(baseEvents){
+    if (!incompleteDaysBodyEl) return;
+    incompleteDaysBodyEl.innerHTML = '';
+
+    if (!baseEvents || !baseEvents.length || !ALL_STATS || !ALL_STATS.employees || !ALL_STATS.employees.size){
+      const tr = document.createElement('tr');
+      const td = document.createElement('td');
+      td.colSpan = 6;
+      td.textContent = 'Nu există zile incomplete în filtrul curent.';
+      tr.appendChild(td);
+      incompleteDaysBodyEl.appendChild(tr);
+      return;
+    }
+
+    const keyMap = new Map(); // key -> {name, dateKey, deptHint}
+    baseEvents.forEach(ev => {
+      if (!ev.name || !ev.ts) return;
+      const dk = dateKeyFromIso(ev.ts);
+      if (!dk) return;
+      const key = ev.name + '||' + dk;
+      if (!keyMap.has(key)){
+        keyMap.set(key, {
+          name: ev.name,
+          dateKey: dk,
+          deptHint: ev.dept || ''
+        });
+      }
+    });
+
+    const rows = [];
+    keyMap.forEach(info => {
+      const emp = ALL_STATS.employees.get(info.name);
+      if (!emp) return;
+      const day = emp.days.get(info.dateKey);
+      if (!day) return;
+      if (!isDayIncomplete(day)) return;
+      rows.push({
+        dateKey: info.dateKey,
+        name: info.name,
+        dept: day.dept || emp.dept || info.deptHint || '',
+        workMs: day.workMs,
+        extraMs: day.extraMs,
+        day
+      });
+    });
+
+    if (!rows.length){
+      const tr = document.createElement('tr');
+      const td = document.createElement('td');
+      td.colSpan = 6;
+      td.textContent = 'Nu există zile incomplete în filtrul curent.';
+      tr.appendChild(td);
+      incompleteDaysBodyEl.appendChild(tr);
+      return;
+    }
+
+    rows.sort((a,b)=>{
+      if (a.dateKey < b.dateKey) return -1;
+      if (a.dateKey > b.dateKey) return 1;
+      if (a.name < b.name) return -1;
+      if (a.name > b.name) return 1;
+      return 0;
+    });
+
+    rows.forEach(item => {
+      const d = item.day;
+      const statusParts = [];
+      if (d.hasStart && !d.hasFinish) statusParts.push('START fără FINISH');
+      if (!d.hasStart && d.hasFinish) statusParts.push('FINISH fără START');
+      if (d.hasPauseMismatch) statusParts.push('PAUSE / UNPAUSE necuplate');
+      if (d.hasExtraMismatch) statusParts.push('EXTRA START / EXTRA FINISH necuplate');
+      if (d.openRunning) statusParts.push('Sesiune normă încă deschisă');
+      if (d.openExtra) statusParts.push('Sesiune EXTRA încă deschisă');
+      if (!statusParts.length) statusParts.push('Normă necompletă');
+
+      const statusText = statusParts.join(' • ');
+
+      const tr = document.createElement('tr');
+      tr.innerHTML =
+        '<td>' + item.dateKey + '</td>' +
+        '<td>' + item.name + '</td>' +
+        '<td>' + item.dept + '</td>' +
+        '<td>' + (item.workMs ? fmtHoursHM(item.workMs) : '-') + '</td>' +
+        '<td>' + (item.extraMs ? fmtHoursHM(item.extraMs) : '-') + '</td>' +
+        '<td>' + statusText + '</td>';
+      incompleteDaysBodyEl.appendChild(tr);
+    });
+  }
+
+  function applyDeptEmployee(events, currentDept, currentEmployee){
+    let list = events.slice();
+    if (currentDept && currentDept !== 'all'){
+      list = list.filter(ev => (ev.dept || '(fără departament)') === currentDept);
+    }
+    if (currentEmployee && currentEmployee !== 'all'){
+      list = list.filter(ev => ev.name === currentEmployee);
+    }
+    return list;
+  }
+
+  function applyIncompleteFilter(events){
+    if (!filterIncompleteOnly) return events;
+    if (!ALL_STATS || !ALL_STATS.employees || !events || !events.length) return events;
+    return events.filter(ev => {
+      if (!ev.name || !ev.ts) return false;
+      const dk = dateKeyFromIso(ev.ts);
+      if (!dk) return false;
+      const emp = ALL_STATS.employees.get(ev.name);
+      if (!emp) return false;
+      const day = emp.days.get(dk);
+      if (!day) return false;
+      return isDayIncomplete(day);
+    });
+  }
+
+  async function init(){
+    try{
+      const CFG = await loadConfig();
+      if (!CFG || !CFG.adminEventsEndpoint){
+        throw new Error('config.json nu conține adminEventsEndpoint.');
+      }
+
+      const adminUrl = CFG.adminEventsEndpoint + '?fn=adminEvents&v=' + Date.now();
+      const r2 = await fetch(adminUrl, { cache:'no-store' });
+      const txt = await r2.text();
+      let data;
+      try { data = JSON.parse(txt); } catch(e){ throw new Error('Răspuns invalid de la adminEventsEndpoint.'); }
+      if (!data || !data.ok || !Array.isArray(data.events)){
+        throw new Error('adminEventsEndpoint nu a întors un obiect ok cu events[].');
+      }
+
+      const meta = data.meta || null;
+      window.__pontajAdminMeta = meta || null;
+
+      const events = data.events.map(ev => ({
+        ts: ev.ts,
+        name: ev.name || '',
+        action: _normAction(ev.action),
+        dept: ev.dept || '',
+        activity: ev.activity || '',
+        location: ev.location || ''
+      })).filter(ev => ev.ts);
+
+      if (loadingEl) loadingEl.style.display = 'none';
+      if (dashboardEl) dashboardEl.style.display = '';
+
+      if (lastUpdateEl){
+        let stamp = new Date();
+        if (meta && meta.generatedAt){
+          const dMeta = new Date(meta.generatedAt);
+          if (!isNaN(dMeta.getTime())) {
+            stamp = dMeta;
+          }
+        }
+        const hh = String(stamp.getHours()).padStart(2,'0');
+        const mi = String(stamp.getMinutes()).padStart(2,'0');
+        lastUpdateEl.textContent = 'Actualizat la ' + hh + ':' + mi;
+      }
+
+      // ALL_STATS = statistici all-time, din toate evenimentele
+      ALL_STATS = buildStatsFromEvents(events);
+      renderTopEmployees(ALL_STATS);
+
+      let currentRange = rangeSelect ? rangeSelect.value : 'today';
+      let currentDept = 'all';
+      let currentEmployee = 'all';
+      let latestFiltered = [];
+
+      buildDeptFilter(events);
+      buildEmployeeFilter(events, currentDept);
+      renderEmployeeIndex(ALL_STATS, CURRENT_DEPT_FILTER);
+      renderEmployeeDetails(null);
+
+      function refresh(){
+        // 1) Pentru KPI, log, prezență, zile incomplete: folosim rangeSelect
+        let baseAll = applyDeptEmployee(events, currentDept, currentEmployee);
+        let baseRange = filterByRange(baseAll, currentRange || 'today');
+        let filteredForMain = applyIncompleteFilter(baseRange);
+        latestFiltered = filteredForMain;
+
+        renderKpis(filteredForMain);
+        renderDept(filteredForMain);
+        renderRawLog(filteredForMain);
+
+        const statsBase = buildStatsFromEvents(baseRange);
+        updateCompletedTodayKpiFromStats(statsBase, currentRange);
+        renderDailyPresence(statsBase);
+        renderIncompleteDays(baseRange);
+
+        // 2) Pentru „Ultimele pontaje”: range propriu (lastEventsRange)
+        let lastBase = applyDeptEmployee(events, currentDept, currentEmployee);
+        let lastByRange = filterLastEventsByRange(lastBase, lastEventsRange || 'today');
+        let lastFinal = applyIncompleteFilter(lastByRange);
+        renderLastEvents(lastFinal);
+
+        // 3) Titluri când este bifat "doar zile incomplete"
+        if (lastEventsTitleEl && lastEventsHintTextEl && rawLogTitleEl){
+          if (filterIncompleteOnly){
+            lastEventsTitleEl.textContent = 'Ultimele pontaje (doar zile incomplete)';
+            lastEventsHintTextEl.textContent =
+              'Toate înregistrările din zilele problematice (START/PAUSE/EXTRA neînchise) pentru perioada aleasă și filtrul curent.';
+            rawLogTitleEl.textContent = 'Log brut (doar zile incomplete)';
+          } else {
+            lastEventsTitleEl.textContent = 'Ultimele pontaje';
+            lastEventsHintTextEl.textContent =
+              'Toate înregistrările din perioada aleasă, după filtrele de mai sus.';
+            rawLogTitleEl.textContent = 'Log brut (filtru curent)';
+          }
+        }
+      }
+
+      if (rangeSelect){
+        rangeSelect.addEventListener('change', function(){
+          currentRange = rangeSelect.value || 'today';
+          refresh();
+        });
+      }
+      if (deptFilter){
+        deptFilter.addEventListener('change', function(){
+          currentDept = deptFilter.value || 'all';
+          CURRENT_DEPT_FILTER = currentDept;
+          buildEmployeeFilter(events, currentDept);
+          if (currentEmployee !== 'all' && employeeFilter){
+            if (!employeeFilter.querySelector('option[value="'+currentEmployee+'"]')){
+              const o = document.createElement('option');
+              o.value = currentEmployee;
+              o.textContent = currentEmployee;
+              employeeFilter.appendChild(o);
+            }
+            employeeFilter.value = currentEmployee;
+          }
+          renderEmployeeIndex(ALL_STATS, CURRENT_DEPT_FILTER);
+          renderEmployeeDetails(SELECTED_EMPLOYEE);
+          refresh();
+        });
+      }
+      if (employeeFilter){
+        employeeFilter.addEventListener('change', function(){
+          currentEmployee = employeeFilter.value || 'all';
+          if (currentEmployee === 'all'){
+            SELECTED_EMPLOYEE = null;
+            renderEmployeeDetails(null);
+          } else {
+            SELECTED_EMPLOYEE = currentEmployee;
+            markSelectedEmployee(SELECTED_EMPLOYEE);
+            renderEmployeeDetails(SELECTED_EMPLOYEE);
+          }
+          refresh();
+        });
+      }
+      if (incompleteOnlyCheckbox){
+        incompleteOnlyCheckbox.addEventListener('change', function(){
+          filterIncompleteOnly = !!incompleteOnlyCheckbox.checked;
+          refresh();
+        });
+      }
+      if (lastEventsRangeSelect){
+        lastEventsRangeSelect.addEventListener('change', function(){
+          lastEventsRange = lastEventsRangeSelect.value || 'today';
+          refresh();
+        });
+      }
+
+      if (exportCsvBtn){
+        exportCsvBtn.addEventListener('click', function(){
+          exportCsv(latestFiltered);
+        });
+      }
+
+      if (pdfBtn){
+        pdfBtn.addEventListener('click', async function(){
+          if (!SELECTED_EMPLOYEE){
+            alert('Selectează mai întâi un angajat din Index sau din filtrul de angajați.');
+            return;
+          }
+          try{
+            const cfg = await loadConfig();
+            if (!cfg.adminEventsEndpoint) throw new Error('Lipsește adminEventsEndpoint.');
+            const url = cfg.adminEventsEndpoint +
+              '?fn=adminPdf&name=' + encodeURIComponent(SELECTED_EMPLOYEE) +
+              '&v=' + Date.now();
+            window.open(url, '_blank');
+          }catch(err){
+            alert('Eroare configurare PDF: ' + (err && err.message ? err.message : err));
+          }
+        });
+      }
+
+      if (deptPdfBtn){
+        deptPdfBtn.addEventListener('click', async function(){
+          let dept = CURRENT_DEPT_FILTER && CURRENT_DEPT_FILTER !== 'all'
+            ? CURRENT_DEPT_FILTER
+            : '';
+          if (!dept){
+            const listOpts = Array.from(deptFilter ? deptFilter.options : [])
+              .map(o => o.value)
+              .filter(v => v && v !== 'all');
+            const suggestion = listOpts.length ? listOpts[0] : '';
+            const input = prompt('Introdu numele departamentului pentru raport (exact cum apare în filtrul de departamente):', suggestion);
+            dept = input ? input.trim() : '';
+          }
+          if (!dept){
+            alert('Nu a fost ales niciun departament.');
+            return;
+          }
+          try{
+            const cfg = await loadConfig();
+            if (!cfg.adminEventsEndpoint) throw new Error('Lipsește adminEventsEndpoint.');
+            const url = cfg.adminEventsEndpoint +
+              '?fn=adminPdfDept&dept=' + encodeURIComponent(dept) +
+              '&v=' + Date.now();
+            const r = await fetch(url, {cache:'no-store'});
+            const resp = await r.json();
+            if (!resp.ok || !resp.url){
+              throw new Error(resp.error || 'Nu am primit un URL de raport.');
+            }
+            window.open(resp.url, '_blank');
+          }catch(err){
+            alert('Eroare la generarea raportului departamental: ' + (err.message || err));
+          }
+        });
+      }
+
+      if (employeeExportBtn){
+        employeeExportBtn.addEventListener('click', function(){
+          if (!SELECTED_EMPLOYEE){
+            alert('Selectează mai întâi un angajat din Index sau din filtrul de angajați.');
+            return;
+          }
+          if (!ALL_STATS || !ALL_STATS.employees || !ALL_STATS.employees.has(SELECTED_EMPLOYEE)){
+            alert('Nu găsesc date pentru acest angajat.');
+            return;
+          }
+          const emp = ALL_STATS.employees.get(SELECTED_EMPLOYEE);
+          const t = emp.totals;
+          const daysArr = Array.from(emp.days.values())
+            .sort((a,b)=>a.dateKey < b.dateKey ? -1 : (a.dateKey > b.dateKey ? 1 : 0));
+
+          const totalNormH = msToHours(t.totalWorkMs);
+          const totalExtraH = msToHours(t.totalExtraMs);
+          const totalOverH = msToHours(t.overtimeMs);
+          const pctComplete = t.daysWithStart ? Math.round(100 * t.daysCompleted / t.daysWithStart) : 0;
+
+          const header = [
+            'Nume','Departament','Total ore norma (h)','Total ore extra (h)',
+            'Total overtime (h)','Zile cu START','Zile cu FINISH','Zile complete',
+            'Procent zile complete (%)','Data','Norma (h)','Extra (h)','Overtime (h)','Complet'
+          ];
+
+          const rows = daysArr.map(d => {
+            const flagIncomplete = isDayIncomplete(d);
+            return [
+              emp.name,
+              emp.dept || '',
+              totalNormH.toFixed(2),
+              totalExtraH.toFixed(2),
+              totalOverH.toFixed(2),
+              t.daysWithStart,
+              t.daysWithFinish,
+              t.daysCompleted,
+              pctComplete,
+              d.dateKey,
+              (msToHours(d.workMs) || 0).toFixed(2),
+              (msToHours(d.extraMs) || 0).toFixed(2),
+              (msToHours(d.overtimeMs) || 0).toFixed(2),
+              d.completed ? 'DA' : (flagIncomplete ? 'INCOMPLETA' : '-')
+            ];
+          });
+
+          const csvLines = [header].concat(rows).map(row => row.map(cell => {
+            const s = String(cell).replace(/"/g,'""');
+            return '"' + s + '"';
+          }).join(','));
+          const csv = csvLines.join('\r\n');
+
+          const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = 'pontaj-' + SELECTED_EMPLOYEE.replace(/\s+/g,'_') + '.csv';
+          document.body.appendChild(a);
+          a.click();
+          setTimeout(() => {
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+          }, 0);
+        });
+      }
+
+      refresh();
+    }catch(e){
+      showError(e.message || String(e));
+    }
+  }
+
+  init();
+})();
+</script>
 </body>
 </html>
+
