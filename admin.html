@@ -443,25 +443,28 @@
               <div id="deptList" class="admin-list"></div>
             </section>
 
-            <section class="card admin-card">
-              <h2>Ultimele pontaje</h2>
-              <div class="admin-small-text">Cele mai recente 25 de înregistrări din filtrul curent.</div>
-              <div class="table-wrap">
-                <table class="admin-table">
-                  <thead>
-                    <tr>
-                      <th>Data / ora</th>
-                      <th>Angajat</th>
-                      <th>Departament</th>
-                      <th>Acțiune</th>
-                      <th>Activitate</th>
-                    </tr>
-                  </thead>
-                  <tbody id="lastEventsBody"></tbody>
-                </table>
-              </div>
-            </section>
-          </div>
+        <section class="card admin-card">
+  <h2>Zile incomplete</h2>
+  <div class="admin-small-text">
+    Zile în care există pontaj (START/FINISH), dar norma nu este completă pentru angajații din filtrul curent.
+  </div>
+  <div class="table-wrap">
+    <table class="admin-table">
+      <thead>
+        <tr>
+          <th>Data</th>
+          <th>Angajat</th>
+          <th>Departament</th>
+          <th>Normă</th>
+          <th>Extra</th>
+          <th>Stare</th>
+        </tr>
+      </thead>
+      <tbody id="incompleteDaysBody"></tbody>
+    </table>
+  </div>
+</section>
+
 
           <section class="card admin-card">
             <h2>Log brut (filtru curent)</h2>
@@ -1544,3 +1547,4 @@
   </script>
 </body>
 </html>
+
