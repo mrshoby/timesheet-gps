@@ -1156,14 +1156,18 @@
         if (!CFG || !CFG.adminEventsEndpoint){
           throw new Error('config.json nu conține adminEventsEndpoint.');
         }
+
         const adminUrl = CFG.adminEventsEndpoint + '?fn=adminEvents&v=' + Date.now();
         const r2 = await fetch(adminUrl, { cache:'no-store' });
         const txt = await r2.text();
         let data;
         try { data = JSON.parse(txt); } catch(e){ throw new Error('Răspuns invalid de la adminEventsEndpoint.'); }
-        if (!data.ok || !Array.isArray(data.events)){
+        if (!data || !data.ok || !Array.isArray(data.events)){
           throw new Error('adminEventsEndpoint nu a întors un obiect ok cu events[].');
         }
+
+        const meta = data.meta || null;
+        window.__pontajAdminMeta = meta || null;
 
         const events = data.events.map(ev => ({
           ts: ev.ts,
@@ -1178,9 +1182,15 @@
         if (dashboardEl) dashboardEl.style.display = '';
 
         if (lastUpdateEl){
-          const now = new Date();
-          const hh = String(now.getHours()).padStart(2,'0');
-          const mi = String(now.getMinutes()).padStart(2,'0');
+          let stamp = new Date();
+          if (meta && meta.generatedAt){
+            const dMeta = new Date(meta.generatedAt);
+            if (!isNaN(dMeta.getTime())) {
+              stamp = dMeta;
+            }
+          }
+          const hh = String(stamp.getHours()).padStart(2,'0');
+          const mi = String(stamp.getMinutes()).padStart(2,'0');
           lastUpdateEl.textContent = 'Actualizat la ' + hh + ':' + mi;
         }
 
