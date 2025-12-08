@@ -130,6 +130,22 @@
       font-size:12px;
       color:var(--muted);
       margin-left:auto;
+      display:flex;
+      align-items:center;
+      gap:8px;
+    }
+
+    .toggle-incomplete{
+      display:inline-flex;
+      align-items:center;
+      gap:4px;
+      font-size:12px;
+      color:var(--muted);
+      cursor:pointer;
+      user-select:none;
+    }
+    .toggle-incomplete input{
+      margin:0;
     }
 
     .admin-error{
@@ -221,6 +237,11 @@
     }
     .admin-list-row:hover{
       background:#e5f0ff;
+    }
+    .admin-list-row.selected{
+      border-color: var(--accent);
+      box-shadow:0 0 0 1px rgba(149,202,75,.5);
+      background:#ecfdf3;
     }
     .admin-list-label{
       font-weight:500;
@@ -378,7 +399,13 @@
                 <option value="all">Toți</option>
               </select>
             </label>
-            <div class="admin-last-update" id="lastUpdate">–</div>
+            <div class="admin-last-update">
+              <label class="toggle-incomplete">
+                <input type="checkbox" id="incompleteOnly" />
+                <span>Doar zile incomplete</span>
+              </label>
+              <span id="lastUpdate">–</span>
+            </div>
           </div>
         </header>
 
@@ -444,6 +471,26 @@
             <pre id="rawLog" class="admin-log">–</pre>
           </section>
 
+          <section class="card admin-card">
+            <h2>Prezență pe zile</h2>
+            <div class="admin-small-text">
+              Pentru perioada și filtrele de mai sus: câți angajați au avut cel puțin un START și câți au normă completă.
+            </div>
+            <div class="table-wrap">
+              <table class="admin-table">
+                <thead>
+                  <tr>
+                    <th>Data</th>
+                    <th>Angajați cu pontaj</th>
+                    <th>Normă completă</th>
+                    <th>% complet</th>
+                  </tr>
+                </thead>
+                <tbody id="dailyPresenceBody"></tbody>
+              </table>
+            </div>
+          </section>
+
           <div class="admin-grid">
             <section class="card admin-card">
               <h2>Index angajați</h2>
@@ -479,6 +526,12 @@
           <button id="pdfBtn" class="btn" type="button" style="margin-top:8px">
             PDF angajat selectat
           </button>
+          <button id="deptPdfBtn" class="btn" type="button" style="margin-top:8px">
+            PDF departament (luna precedentă)
+          </button>
+          <button id="employeeExportBtn" class="btn" type="button" style="margin-top:8px">
+            Export CSV angajat (all time)
+          </button>
           <p class="admin-small-text" style="margin-top:10px">
             <a href="index.html" class="admin-link">Înapoi la pontaj</a>
           </p>
@@ -510,6 +563,8 @@
     let ALL_STATS = null;
     let SELECTED_EMPLOYEE = null;
     let CURRENT_DEPT_FILTER = 'all';
+    let filterIncompleteOnly = false;
+    let GLOBAL_CFG = null;
 
     function getAdminSession(){
       try{
@@ -521,6 +576,14 @@
       try{ localStorage.removeItem(ADMIN_LS_KEY); }catch{}
     }
 
+    async function loadConfig(){
+      if (GLOBAL_CFG) return GLOBAL_CFG;
+      const r = await fetch('config.json?v=' + Date.now(), {cache:'no-store'});
+      if (!r.ok) throw new Error('Nu pot citi config.json (HTTP ' + r.status + ').');
+      GLOBAL_CFG = await r.json();
+      return GLOBAL_CFG;
+    }
+
     const session = getAdminSession();
     const adminLabelEl = document.getElementById('adminLabel');
     const logoutBtn = document.getElementById('logoutBtn');
@@ -530,15 +593,19 @@
     const rangeSelect = document.getElementById('rangeSelect');
     const deptFilter = document.getElementById('deptFilter');
     const employeeFilter = document.getElementById('employeeFilter');
+    const incompleteOnlyCheckbox = document.getElementById('incompleteOnly');
     const lastUpdateEl = document.getElementById('lastUpdate');
     const rawLogEl = document.getElementById('rawLog');
     const exportCsvBtn = document.getElementById('exportCsvBtn');
     const pdfBtn = document.getElementById('pdfBtn');
+    const deptPdfBtn = document.getElementById('deptPdfBtn');
+    const employeeExportBtn = document.getElementById('employeeExportBtn');
     const topEmployeesEl = document.getElementById('topEmployees');
     const employeeIndexListEl = document.getElementById('employeeIndexList');
     const employeeDetailsHeaderEl = document.getElementById('employeeDetailsHeader');
     const employeeDetailsBodyEl = document.getElementById('employeeDetailsBody');
     const kpiCompletedTodayEl = document.getElementById('kpiCompletedToday');
+    const dailyPresenceBodyEl = document.getElementById('dailyPresenceBody');
 
     if (!session){
       alert('Nu ești autentificat ca admin. Te redirecționez la pagina principală.');
@@ -591,6 +658,18 @@
       const h = Math.floor(totalMin / 60);
       const m = totalMin % 60;
       return `${h}h ${String(m).padStart(2,'0')}m`;
+    }
+    function msToHours(ms){
+      return ms / 3600000;
+    }
+    function dateKeyFromIso(iso){
+      if (!iso) return null;
+      const d = new Date(iso);
+      if (isNaN(d.getTime())) return null;
+      const y = d.getFullYear();
+      const m = String(d.getMonth()+1).padStart(2,'0');
+      const dd = String(d.getDate()).padStart(2,'0');
+      return `${y}-${m}-${dd}`;
     }
 
     function renderKpis(events){
@@ -776,18 +855,12 @@
       }, 0);
     }
 
+    // === STATISTICI ALL-TIME & PE PERIOADĂ ===
     function buildStatsFromEvents(events){
       const employees = new Map();
       const perDay = new Map();
       const NORM_MS = 8 * 60 * 60 * 1000;
-      function dateKeyFromIso(iso){
-        const d = new Date(iso);
-        if (isNaN(d.getTime())) return null;
-        const y = d.getFullYear();
-        const m = String(d.getMonth()+1).padStart(2,'0');
-        const dd = String(d.getDate()).padStart(2,'0');
-        return `${y}-${m}-${dd}`;
-      }
+
       function getEmp(name){
         if (!employees.has(name)){
           employees.set(name, {
@@ -973,6 +1046,7 @@
       entries.forEach(emp => {
         const row = document.createElement('div');
         row.className = 'admin-list-row';
+        row.dataset.empName = emp.name;
         const dept = emp.dept || '(fără departament)';
         const t = emp.totals;
         row.innerHTML =
@@ -996,9 +1070,16 @@
             }
             employeeFilter.value = emp.name;
           }
+          markSelectedEmployee(emp.name);
           renderEmployeeDetails(emp.name);
         });
         employeeIndexListEl.appendChild(row);
+      });
+    }
+
+    function markSelectedEmployee(name){
+      document.querySelectorAll('.admin-list-row').forEach(el => {
+        el.classList.toggle('selected', el.dataset.empName === name);
       });
     }
 
@@ -1087,6 +1168,7 @@
         const t = emp.totals;
         const row = document.createElement('div');
         row.className = 'admin-list-row';
+        row.dataset.empName = emp.name;
         row.innerHTML =
           '<div>' +
             '<div class="admin-list-label">' + emp.name + '</div>' +
@@ -1098,6 +1180,7 @@
           '</div>';
         row.addEventListener('click', function(){
           SELECTED_EMPLOYEE = emp.name;
+          markSelectedEmployee(emp.name);
           renderEmployeeDetails(emp.name);
         });
         topEmployeesEl.appendChild(row);
@@ -1126,17 +1209,16 @@
       });
     }
 
-    function updateCompletedTodayKpi(eventsForRange, range){
+    function updateCompletedTodayKpiFromStats(stats, range){
       if (!kpiCompletedTodayEl) return;
       if (range !== 'today'){
         kpiCompletedTodayEl.textContent = '–';
         return;
       }
-      if (!eventsForRange || !eventsForRange.length){
+      if (!stats || !stats.employees || !stats.employees.size){
         kpiCompletedTodayEl.textContent = '0 / 0';
         return;
       }
-      const stats = buildStatsFromEvents(eventsForRange);
       let total = 0, completed = 0;
       stats.employees.forEach(emp => {
         const t = emp.totals;
@@ -1148,56 +1230,60 @@
       kpiCompletedTodayEl.textContent = completed + ' / ' + total;
     }
 
+    function renderDailyPresence(stats){
+      if (!dailyPresenceBodyEl) return;
+      dailyPresenceBodyEl.innerHTML = '';
+      if (!stats || !stats.perDay || !stats.perDay.size){
+        const tr = document.createElement('tr');
+        const td = document.createElement('td');
+        td.colSpan = 4;
+        td.textContent = 'Nu există zile în filtrul curent.';
+        tr.appendChild(td);
+        dailyPresenceBodyEl.appendChild(tr);
+        return;
+      }
+      const entries = Array.from(stats.perDay.values())
+        .sort((a,b)=>a.dateKey < b.dateKey ? -1 : (a.dateKey > b.dateKey ? 1 : 0));
+      entries.forEach(day => {
+        const started = day.started ? day.started.size : 0;
+        const completed = day.completed ? day.completed.size : 0;
+        const pct = started ? Math.round(100 * completed / started) : 0;
+        const tr = document.createElement('tr');
+        tr.innerHTML =
+          '<td>' + day.dateKey + '</td>' +
+          '<td>' + started + '</td>' +
+          '<td>' + completed + '</td>' +
+          '<td>' + (started ? pct + '%' : '–') + '</td>';
+        dailyPresenceBodyEl.appendChild(tr);
+      });
+    }
+
     async function init(){
       try{
-        const r = await fetch('config.json?v=' + Date.now(), {cache:'no-store'});
-        if (!r.ok) throw new Error('Nu pot citi config.json (HTTP ' + r.status + ').');
-        const CFG = await r.json();
+        const CFG = await loadConfig();
         if (!CFG || !CFG.adminEventsEndpoint){
           throw new Error('config.json nu conține adminEventsEndpoint.');
         }
 
-        const baseEndpoint = String(CFG.adminEventsEndpoint || '').trim();
-        if (!baseEndpoint){
-          throw new Error('config.json adminEventsEndpoint este gol.');
-        }
-        const hasQuery = baseEndpoint.indexOf('?') !== -1;
-        const adminUrl = baseEndpoint + (hasQuery ? '&' : '?') + 'fn=adminEvents&v=' + Date.now();
-
+        const adminUrl = CFG.adminEventsEndpoint + '?fn=adminEvents&v=' + Date.now();
         const r2 = await fetch(adminUrl, { cache:'no-store' });
         const txt = await r2.text();
-        try { console.debug('adminEventsEndpoint raw:', txt); } catch(_){}
         let data;
-        try {
-          data = JSON.parse(txt);
-        } catch(e){
-          throw new Error('Răspuns invalid de la adminEventsEndpoint (nu este JSON).');
-        }
-
-        if (!data || data.ok !== true){
-          throw new Error('adminEventsEndpoint nu a întors ok:true.');
-        }
-
-        const rawEvents =
-          Array.isArray(data.events) ? data.events :
-          Array.isArray(data.rows) ? data.rows :
-          Array.isArray(data.eventList) ? data.eventList :
-          [];
-
-        if (!Array.isArray(rawEvents)){
-          throw new Error('adminEventsEndpoint nu a întors un array de evenimente (events[]).');
+        try { data = JSON.parse(txt); } catch(e){ throw new Error('Răspuns invalid de la adminEventsEndpoint.'); }
+        if (!data || !data.ok || !Array.isArray(data.events)){
+          throw new Error('adminEventsEndpoint nu a întors un obiect ok cu events[].');
         }
 
         const meta = data.meta || null;
         window.__pontajAdminMeta = meta || null;
 
-        const events = rawEvents.map(ev => ({
-          ts: ev.ts || ev.timestamp || ev.Timestamp || '',
-          name: ev.name || ev.employee || ev.Nume || '',
-          action: _normAction(ev.action || ev.actiune || ev.Activity || ''),
-          dept: ev.dept || ev.department || ev.departament || ev.Departament || '',
-          activity: ev.activity || ev.activitate || '',
-          location: ev.location || ev.client || ev.locație || ev.locatie || ''
+        const events = data.events.map(ev => ({
+          ts: ev.ts,
+          name: ev.name || '',
+          action: _normAction(ev.action),
+          dept: ev.dept || '',
+          activity: ev.activity || '',
+          location: ev.location || ''
         })).filter(ev => ev.ts);
 
         if (loadingEl) loadingEl.style.display = 'none';
@@ -1216,6 +1302,7 @@
           lastUpdateEl.textContent = 'Actualizat la ' + hh + ':' + mi;
         }
 
+        // ALL_STATS = statistici all-time, din toate evenimentele
         ALL_STATS = buildStatsFromEvents(events);
         renderTopEmployees(ALL_STATS);
 
@@ -1229,8 +1316,8 @@
         renderEmployeeIndex(ALL_STATS, CURRENT_DEPT_FILTER);
         renderEmployeeDetails(null);
 
-        function getFilteredEvents(){
-          let list = filterByRange(events, currentRange || 'today');
+        function applyRangeDeptEmployee(allEvents){
+          let list = filterByRange(allEvents, currentRange || 'today');
           if (currentDept && currentDept !== 'all'){
             list = list.filter(ev => (ev.dept || '(fără departament)') === currentDept);
           }
@@ -1240,6 +1327,27 @@
           return list;
         }
 
+        function getFilteredEvents(){
+          let base = applyRangeDeptEmployee(events);
+          if (!filterIncompleteOnly) return base;
+
+          const stats = buildStatsFromEvents(base);
+          const incompleteKeys = new Set();
+          stats.employees.forEach(emp => {
+            emp.days.forEach(day => {
+              if ((day.hasStart || day.hasFinish) && !day.completed){
+                incompleteKeys.add(emp.name + '||' + day.dateKey);
+              }
+            });
+          });
+          const result = base.filter(ev => {
+            const dk = dateKeyFromIso(ev.ts);
+            if (!dk) return false;
+            return incompleteKeys.has(ev.name + '||' + dk);
+          });
+          return result;
+        }
+
         function refresh(){
           const filtered = getFilteredEvents();
           latestFiltered = filtered;
@@ -1247,7 +1355,11 @@
           renderDept(filtered);
           renderLastEvents(filtered);
           renderRawLog(filtered);
-          updateCompletedTodayKpi(filtered, currentRange);
+
+          const base = applyRangeDeptEmployee(events);
+          const statsBase = buildStatsFromEvents(base);
+          updateCompletedTodayKpiFromStats(statsBase, currentRange);
+          renderDailyPresence(statsBase);
         }
 
         if (rangeSelect){
@@ -1283,8 +1395,15 @@
               renderEmployeeDetails(null);
             } else {
               SELECTED_EMPLOYEE = currentEmployee;
+              markSelectedEmployee(SELECTED_EMPLOYEE);
               renderEmployeeDetails(SELECTED_EMPLOYEE);
             }
+            refresh();
+          });
+        }
+        if (incompleteOnlyCheckbox){
+          incompleteOnlyCheckbox.addEventListener('change', function(){
+            filterIncompleteOnly = !!incompleteOnlyCheckbox.checked;
             refresh();
           });
         }
@@ -1296,23 +1415,121 @@
         }
 
         if (pdfBtn){
-          pdfBtn.addEventListener('click', function(){
+          pdfBtn.addEventListener('click', async function(){
             if (!SELECTED_EMPLOYEE){
               alert('Selectează mai întâi un angajat din Index sau din filtrul de angajați.');
               return;
             }
-            fetch('config.json?v=' + Date.now(), {cache:'no-store'})
-              .then(r => r.json())
-              .then(cfg => {
-                if (!cfg.adminEventsEndpoint) throw new Error('Lipsește adminEventsEndpoint.');
-                const base = String(cfg.adminEventsEndpoint || '').trim();
-                const hasQ = base.indexOf('?') !== -1;
-                const url = base + (hasQ ? '&' : '?') +
-                  'fn=adminPdf&name=' + encodeURIComponent(SELECTED_EMPLOYEE) +
-                  '&v=' + Date.now();
-                window.open(url, '_blank');
-              })
-              .catch(err => alert('Eroare configurare PDF: ' + (err && err.message ? err.message : err)));
+            try{
+              const cfg = await loadConfig();
+              if (!cfg.adminEventsEndpoint) throw new Error('Lipsește adminEventsEndpoint.');
+              const url = cfg.adminEventsEndpoint +
+                '?fn=adminPdf&name=' + encodeURIComponent(SELECTED_EMPLOYEE) +
+                '&v=' + Date.now();
+              window.open(url, '_blank');
+            }catch(err){
+              alert('Eroare configurare PDF: ' + (err && err.message ? err.message : err));
+            }
+          });
+        }
+
+        if (deptPdfBtn){
+          deptPdfBtn.addEventListener('click', async function(){
+            let dept = CURRENT_DEPT_FILTER && CURRENT_DEPT_FILTER !== 'all'
+              ? CURRENT_DEPT_FILTER
+              : '';
+            if (!dept){
+              const listOpts = Array.from(deptFilter ? deptFilter.options : [])
+                .map(o => o.value)
+                .filter(v => v && v !== 'all');
+              const suggestion = listOpts.length ? listOpts[0] : '';
+              const input = prompt('Introdu numele departamentului pentru raport (exact cum apare în filtrul de departamente):', suggestion);
+              dept = input ? input.trim() : '';
+            }
+            if (!dept){
+              alert('Nu a fost ales niciun departament.');
+              return;
+            }
+            try{
+              const cfg = await loadConfig();
+              if (!cfg.adminEventsEndpoint) throw new Error('Lipsește adminEventsEndpoint.');
+              const url = cfg.adminEventsEndpoint +
+                '?fn=adminPdfDept&dept=' + encodeURIComponent(dept) +
+                '&v=' + Date.now();
+              const r = await fetch(url, {cache:'no-store'});
+              const resp = await r.json();
+              if (!resp.ok || !resp.url){
+                throw new Error(resp.error || 'Nu am primit un URL de raport.');
+              }
+              window.open(resp.url, '_blank');
+            }catch(err){
+              alert('Eroare la generarea raportului departamental: ' + (err.message || err));
+            }
+          });
+        }
+
+        if (employeeExportBtn){
+          employeeExportBtn.addEventListener('click', function(){
+            if (!SELECTED_EMPLOYEE){
+              alert('Selectează mai întâi un angajat din Index sau din filtrul de angajați.');
+              return;
+            }
+            if (!ALL_STATS || !ALL_STATS.employees || !ALL_STATS.employees.has(SELECTED_EMPLOYEE)){
+              alert('Nu găsesc date pentru acest angajat.');
+              return;
+            }
+            const emp = ALL_STATS.employees.get(SELECTED_EMPLOYEE);
+            const t = emp.totals;
+            const daysArr = Array.from(emp.days.values())
+              .sort((a,b)=>a.dateKey < b.dateKey ? -1 : (a.dateKey > b.dateKey ? 1 : 0));
+
+            const totalNormH = msToHours(t.totalWorkMs);
+            const totalExtraH = msToHours(t.totalExtraMs);
+            const totalOverH = msToHours(t.overtimeMs);
+            const pctComplete = t.daysWithStart ? Math.round(100 * t.daysCompleted / t.daysWithStart) : 0;
+
+            const header = [
+              'Nume','Departament','Total ore norma (h)','Total ore extra (h)',
+              'Total overtime (h)','Zile cu START','Zile cu FINISH','Zile complete',
+              'Procent zile complete (%)','Data','Norma (h)','Extra (h)','Overtime (h)','Complet'
+            ];
+
+            const rows = daysArr.map(d => {
+              return [
+                emp.name,
+                emp.dept || '',
+                totalNormH.toFixed(2),
+                totalExtraH.toFixed(2),
+                totalOverH.toFixed(2),
+                t.daysWithStart,
+                t.daysWithFinish,
+                t.daysCompleted,
+                pctComplete,
+                d.dateKey,
+                (msToHours(d.workMs) || 0).toFixed(2),
+                (msToHours(d.extraMs) || 0).toFixed(2),
+                (msToHours(d.overtimeMs) || 0).toFixed(2),
+                d.completed ? 'DA' : ((d.hasStart || d.hasFinish) ? 'INCOMPLETA' : '-')
+              ];
+            });
+
+            const csvLines = [header].concat(rows).map(row => row.map(cell => {
+              const s = String(cell).replace(/"/g,'""');
+              return '"' + s + '"';
+            }).join(','));
+            const csv = csvLines.join('\r\n');
+
+            const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'pontaj-' + SELECTED_EMPLOYEE.replace(/\s+/g,'_') + '.csv';
+            document.body.appendChild(a);
+            a.click();
+            setTimeout(() => {
+              document.body.removeChild(a);
+              URL.revokeObjectURL(url);
+            }, 0);
           });
         }
 
