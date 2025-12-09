@@ -20,12 +20,6 @@
   "guardEndpoint": "https://script.google.com/macros/s/AKfycbzEbPv1oQ31Ge9KNL5w-XH6vUyg3q4BRSuial5Vwz6_Gnj86dZcTRzzYxfcc-X5NgBP/exec",
   "adminEventsEndpoint": "https://script.google.com/macros/s/AKfycbzEbPv1oQ31Ge9KNL5w-XH6vUyg3q4BRSuial5Vwz6_Gnj86dZcTRzzYxfcc-X5NgBP/exec",
 
-  "activeEndpoint": "https://script.google.com/macros/s/AKfycbzEbPv1oQ31Ge9KNL5w-XH6vUyg3q4BRSuial5Vwz6_Gnj86dZcTRzzYxfcc-X5NgBP/exec",
-  "inconsistenciesEndpoint": "https://script.google.com/macros/s/AKfycbzEbPv1oQ31Ge9KNL5w-XH6vUyg3q4BRSuial5Vwz6_Gnj86dZcTRzzYxfcc-X5NgBP/exec",
-  "adminPdfEndpoint": "https://script.google.com/macros/s/AKfycbzEbPv1oQ31Ge9KNL5w-XH6vUyg3q4BRSuial5Vwz6_Gnj86dZcTRzzYxfcc-X5NgBP/exec",
-  "adminPdfDeptEndpoint": "https://script.google.com/macros/s/AKfycbzEbPv1oQ31Ge9KNL5w-XH6vUyg3q4BRSuial5Vwz6_Gnj86dZcTRzzYxfcc-X5NgBP/exec",
-
-  
   "departmentsCsv": "https://raw.githubusercontent.com/mrshoby/timesheet-gps/main/departments.csv",
 
   "employees": [
@@ -36,6 +30,52 @@
   ],
 
   "adminAuthUrl": "https://raw.githubusercontent.com/mrshoby/timesheet-gps/main/admin-auth.json",
+
+  "normSettings": {
+    "timezone": "Europe/Bucharest",
+
+    "default": {
+      "normHours": 8,
+      "pauseMaxMinutes": 40
+    },
+
+    "departments": {
+      "Atelier": {
+        "normHours": 8.5,
+        "pauseMaxMinutes": 40
+      },
+      "Deplasari": {
+        "normHours": 8.5,
+        "pauseMaxMinutes": 40
+      },
+      "pe drum": {
+        "normHours": 8.5,
+        "pauseMaxMinutes": 40
+      }
+    },
+
+    "employees": {
+      "Ion Popescu": {
+        "normHours": 8,
+        "pauseMaxMinutes": 30
+      }
+    }
+  },
+
+  "notifications": {
+    "telegram": {
+      "enabled": false,
+      "botEndpoint": ""
+    }
+  },
+
+  "selfService": {
+    "enabled": true
+  },
+
+  "payroll": {
+    "defaultMonth": "previous"
+  },
 
   "sheet": {
     "gvizUrl": "https://docs.google.com/spreadsheets/d/1Eq7RMyvyj6lZXnkfnQHT0Ol1Y1f-8Ul3SwdOkCkS8s4/gviz/tq?gid=57528208",
