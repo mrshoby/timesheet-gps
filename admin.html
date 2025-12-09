@@ -360,6 +360,160 @@
       background:#fef3c7;
       color:#92400e;
     }
+
+    /* Heatmap normă */
+    .norm-heatmap{
+      max-height:260px;
+      overflow:auto;
+      border-radius:10px;
+      border:1px solid #e2e8f0;
+      background:#ffffff;
+      padding:8px;
+      font-size:11px;
+    }
+    .norm-heatmap-row{
+      display:flex;
+      align-items:center;
+      gap:4px;
+      margin-bottom:4px;
+    }
+    .norm-heatmap-name{
+      width:120px;
+      flex:0 0 auto;
+      font-weight:500;
+      font-size:11px;
+      color:var(--muted);
+    }
+    .norm-heatmap-cells{
+      display:flex;
+      gap:2px;
+      flex-wrap:nowrap;
+      overflow-x:auto;
+    }
+    .norm-heatmap-cell{
+      width:14px;
+      height:14px;
+      border-radius:3px;
+      background:#e5e7eb;
+      border:1px solid #e5e7eb;
+      flex:0 0 auto;
+    }
+    .norm-heatmap-cell.ok{
+      background:#22c55e;
+      border-color:#16a34a;
+    }
+    .norm-heatmap-cell.incomplete{
+      background:#f97316;
+      border-color:#ea580c;
+    }
+    .norm-heatmap-cell.partial{
+      background:#94a3b8;
+      border-color:#64748b;
+    }
+    .norm-heatmap-cell.empty{
+      background:transparent;
+      border-color:transparent;
+    }
+    .norm-heatmap-cell:hover{
+      transform:scale(1.08);
+    }
+
+    /* Timeline */
+    .timeline-controls{
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+      margin-bottom:8px;
+      align-items:flex-end;
+    }
+    .timeline-controls label{
+      display:flex;
+      flex-direction:column;
+      font-size:11px;
+      color:var(--muted);
+    }
+    .timeline-controls select,
+    .timeline-controls input[type="date"]{
+      margin-top:2px;
+      padding:6px 10px;
+      border-radius:999px;
+      border:1px solid #d1d5db;
+      font-size:12px;
+      outline:none;
+      background:#ffffff;
+    }
+    .timeline-content{
+      border-radius:10px;
+      border:1px solid #e2e8f0;
+      background:#020617;
+      color:#e5e7eb;
+      padding:8px 10px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", Courier, monospace;
+      font-size:11px;
+      min-height:60px;
+    }
+    .timeline-row{
+      margin-bottom:6px;
+    }
+    .timeline-label{
+      margin-bottom:4px;
+    }
+    .timeline-bar{
+      position:relative;
+      height:18px;
+      border-radius:4px;
+      background:#0f172a;
+      overflow:hidden;
+    }
+    .timeline-segment{
+      position:absolute;
+      top:0;
+      bottom:0;
+      border-radius:4px;
+      font-size:9px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+    .timeline-segment.work{
+      background:#22c55e;
+    }
+    .timeline-segment.pause{
+      background:#f97316;
+    }
+    .timeline-segment.extra{
+      background:#3b82f6;
+    }
+    .timeline-segment.open{
+      background:#eab308;
+    }
+
+    /* Live board / anomalii */
+    .live-status-dot{
+      width:8px;
+      height:8px;
+      border-radius:999px;
+      background:#22c55e;
+      box-shadow:0 0 0 4px rgba(34,197,94,.35);
+      flex:0 0 auto;
+    }
+    .admin-list-row.offline .live-status-dot{
+      background:#9ca3af;
+      box-shadow:none;
+    }
+    .anomaly-badge{
+      font-size:10px;
+      padding:2px 6px;
+      border-radius:999px;
+      background:#fee2e2;
+      color:#b91c1c;
+      font-weight:600;
+      display:inline-block;
+      margin-bottom:2px;
+    }
   </style>
 </head>
 <body>
@@ -383,7 +537,9 @@
               <span>Perioadă</span>
               <select id="rangeSelect">
                 <option value="today">Astăzi</option>
-                <option value="last7">Ultimele 7 zile</option>
+                <option value="week">Săptămâna curentă</option>
+                <option value="month">Luna curentă</option>
+                <option value="lastMonth">Luna anterioară</option>
                 <option value="all">Toate datele</option>
               </select>
             </label>
@@ -433,6 +589,22 @@
             <div class="card kpi">
               <div class="kpi-label">Norme complete (azi)</div>
               <div class="kpi-value" id="kpiCompletedToday">–</div>
+            </div>
+            <div class="card kpi">
+              <div class="kpi-label">Angajați activi acum</div>
+              <div class="kpi-value" id="kpiActiveNow">–</div>
+            </div>
+            <div class="card kpi">
+              <div class="kpi-label">Ore normă (interval)</div>
+              <div class="kpi-value" id="kpiNormHours">–</div>
+            </div>
+            <div class="card kpi">
+              <div class="kpi-label">Ore extra (interval)</div>
+              <div class="kpi-value" id="kpiExtraHours">–</div>
+            </div>
+            <div class="card kpi">
+              <div class="kpi-label">Overtime (interval)</div>
+              <div class="kpi-value" id="kpiOvertimeHours">–</div>
             </div>
           </div>
 
@@ -524,6 +696,35 @@
             </div>
           </section>
 
+          <section class="card admin-card">
+            <h2>Normă validată – heatmap</h2>
+            <div class="admin-small-text">
+              Pentru perioada și filtrele de mai sus: verde = normă validată, portocaliu = zi incompletă (fără FINISH), gri = START fără normă completă.
+            </div>
+            <div id="normHeatmap" class="norm-heatmap"></div>
+          </section>
+
+          <section class="card admin-card">
+            <h2>Timeline zi / angajat</h2>
+            <div class="admin-small-text">
+              Alege un angajat și o zi pentru a vedea segmentele START / PAUSE / UNPAUSE / FINISH / EXTRA.
+            </div>
+            <div class="timeline-controls">
+              <label>
+                <span>Angajat</span>
+                <select id="timelineEmployee"></select>
+              </label>
+              <label>
+                <span>Data</span>
+                <input type="date" id="timelineDate">
+              </label>
+              <button id="timelineTodayBtn" type="button" class="btn" style="margin-left:auto;">Azi</button>
+            </div>
+            <div id="timelineContent" class="timeline-content">
+              <div class="admin-empty">Selectează angajatul și data.</div>
+            </div>
+          </section>
+
           <div class="admin-grid">
             <section class="card admin-card">
               <h2>Index angajați</h2>
@@ -571,6 +772,22 @@
         </section>
 
         <section class="card admin-card">
+          <h2>Live board</h2>
+          <div class="admin-small-text">
+            Angajați cu sesiune activă acum (START fără FINISH).
+          </div>
+          <div id="liveBoard" class="admin-list"></div>
+        </section>
+
+        <section class="card admin-card">
+          <h2>Anomalii / suspiciuni</h2>
+          <div class="admin-small-text">
+            Înregistrări din foaia <code>Inconsistente</code> (pauze prea lungi, intervale dubioase etc.).
+          </div>
+          <div id="anomaliesList" class="admin-list"></div>
+        </section>
+
+        <section class="card admin-card">
           <h2>Top angajați</h2>
           <div class="admin-small-text">
             După total ore normă lucrate (all time).
@@ -602,11 +819,13 @@
   const ACTIVITATI_NORMA_8H30 = ['deplasare', 'pe drum', 'atelier'];
 
   let ALL_STATS = null;
+  let RANGE_STATS = null;
   let SELECTED_EMPLOYEE = null;
   let CURRENT_DEPT_FILTER = 'all';
   let filterIncompleteOnly = false;
   let GLOBAL_CFG = null;
   let lastEventsRange = 'today';
+  let LIVE_TIMER_ID = null;
 
   // === Admin session ===
   function getAdminSession(){
@@ -625,6 +844,17 @@
     if (!r.ok) throw new Error('Nu pot citi config.json (HTTP ' + r.status + ').');
     GLOBAL_CFG = await r.json();
     return GLOBAL_CFG;
+  }
+
+  // helper pentru URL cu parametri
+  function buildUrl(base, params){
+    const url = new URL(base, window.location.href);
+    Object.keys(params || {}).forEach(k=>{
+      const v = params[k];
+      if (v === undefined || v === null || v === '') return;
+      url.searchParams.set(k, v);
+    });
+    return url.toString();
   }
 
   const session = getAdminSession();
@@ -648,6 +878,10 @@
   const employeeDetailsHeaderEl= document.getElementById('employeeDetailsHeader');
   const employeeDetailsBodyEl  = document.getElementById('employeeDetailsBody');
   const kpiCompletedTodayEl    = document.getElementById('kpiCompletedToday');
+  const kpiNormHoursEl         = document.getElementById('kpiNormHours');
+  const kpiExtraHoursEl        = document.getElementById('kpiExtraHours');
+  const kpiOvertimeHoursEl     = document.getElementById('kpiOvertimeHours');
+  const kpiActiveNowEl         = document.getElementById('kpiActiveNow');
   const dailyPresenceBodyEl    = document.getElementById('dailyPresenceBody');
   const incompleteDaysBodyEl   = document.getElementById('incompleteDaysBody');
   const lastEventsTitleEl      = document.getElementById('lastEventsTitle');
@@ -655,6 +889,13 @@
   const lastEventsRangeSelect  = document.getElementById('lastEventsRange');
   const lastEventsBodyEl       = document.getElementById('lastEventsBody');
   const rawLogTitleEl          = document.getElementById('rawLogTitle');
+  const normHeatmapEl          = document.getElementById('normHeatmap');
+  const timelineEmployeeSelect = document.getElementById('timelineEmployee');
+  const timelineDateInput      = document.getElementById('timelineDate');
+  const timelineTodayBtn       = document.getElementById('timelineTodayBtn');
+  const timelineContentEl      = document.getElementById('timelineContent');
+  const liveBoardEl            = document.getElementById('liveBoard');
+  const anomaliesListEl        = document.getElementById('anomaliesList');
 
   if (!session){
     alert('Nu ești autentificat ca admin. Te redirecționez la pagina principală.');
@@ -740,6 +981,25 @@
     if (empEl)    empEl.textContent = String(uniq.size);
     if (startEl)  startEl.textContent = String(cStart);
     if (finishEl) finishEl.textContent = String(cFinish);
+  }
+
+  function renderAdvancedKpis(statsBase){
+    if (!kpiNormHoursEl || !kpiExtraHoursEl || !kpiOvertimeHoursEl) return;
+    if (!statsBase || !statsBase.employees || !statsBase.employees.size){
+      kpiNormHoursEl.textContent = '0,0 h';
+      kpiExtraHoursEl.textContent = '0,0 h';
+      kpiOvertimeHoursEl.textContent = '0,0 h';
+      return;
+    }
+    let workMs = 0, extraMs = 0, overMs = 0;
+    statsBase.employees.forEach(emp=>{
+      workMs += emp.totals.totalWorkMs || 0;
+      extraMs+= emp.totals.totalExtraMs || 0;
+      overMs += emp.totals.overtimeMs || 0;
+    });
+    kpiNormHoursEl.textContent = fmtHoursShort(workMs);
+    kpiExtraHoursEl.textContent = fmtHoursShort(extraMs);
+    kpiOvertimeHoursEl.textContent = fmtHoursShort(overMs);
   }
 
   function renderDept(events){
@@ -1324,21 +1584,251 @@
     });
   }
 
+  // === Heatmap normă validată ===
+  function renderNormHeatmap(stats){
+    if (!normHeatmapEl) return;
+    normHeatmapEl.innerHTML = '';
+    if (!stats || !stats.employees || !stats.employees.size){
+      normHeatmapEl.innerHTML = '<div class="admin-empty">Nu există date în filtrul curent.</div>';
+      return;
+    }
+
+    const days = stats.perDay ? Array.from(stats.perDay.keys()).sort() : [];
+    if (!days.length){
+      normHeatmapEl.innerHTML = '<div class="admin-empty">Nu există zile în filtrul curent.</div>';
+      return;
+    }
+
+    const emps = Array.from(stats.employees.values())
+      .sort((a,b)=>a.name.localeCompare(b.name,'ro'));
+
+    emps.forEach(emp=>{
+      const row = document.createElement('div');
+      row.className = 'norm-heatmap-row';
+
+      const nameEl = document.createElement('div');
+      nameEl.className = 'norm-heatmap-name';
+      nameEl.textContent = emp.name;
+      row.appendChild(nameEl);
+
+      const cellsWrap = document.createElement('div');
+      cellsWrap.className = 'norm-heatmap-cells';
+
+      days.forEach(dk=>{
+        const day = emp.days.get(dk);
+        const cell = document.createElement('div');
+        cell.className = 'norm-heatmap-cell';
+        if (!day){
+          cell.classList.add('empty');
+          cellsWrap.appendChild(cell);
+          return;
+        }
+        let title = dk;
+        let cls = '';
+        if (isDayIncomplete(day)){
+          cls = 'incomplete';
+          title += ' • Zi incompletă (fără FINISH).';
+        } else if (day.normValidated){
+          cls = 'ok';
+          title += ' • Normă validată.';
+        } else if (day.completed){
+          cls = 'partial';
+          title += ' • Zi completă, dar normă nevalidată (pauză prea mare sau durată prea mică).';
+        } else {
+          cls = 'partial';
+          title += ' • START fără zi completă.';
+        }
+        if (cls) cell.classList.add(cls);
+        cell.title = title;
+        cellsWrap.appendChild(cell);
+      });
+
+      row.appendChild(cellsWrap);
+      normHeatmapEl.appendChild(row);
+    });
+  }
+
+  // === Timeline ===
+  function buildTimelineSegments(evs){
+    const sorted = (evs || []).slice().sort((a,b)=>new Date(a.ts) - new Date(b.ts));
+    const segs = [];
+    let running = false;
+    let paused = false;
+    let extraRunning = false;
+    let lastTs = null;
+
+    function pushSegment(from,to){
+      if (from == null || to == null || to <= from) return;
+      let type = null;
+      if (extraRunning) type = 'extra';
+      else if (running && paused) type = 'pause';
+      else if (running) type = 'work';
+      else return;
+      segs.push({start:from,end:to,type});
+    }
+
+    sorted.forEach(ev=>{
+      const t = new Date(ev.ts).getTime();
+      if (isNaN(t)) return;
+      if (lastTs != null){
+        pushSegment(lastTs, t);
+      }
+      const act = ev.action;
+      if (act === 'start'){
+        running = true;
+        paused  = false;
+      } else if (act === 'pause'){
+        if (running) paused = true;
+      } else if (act === 'unpause'){
+        if (running) paused = false;
+      } else if (act === 'finish'){
+        running = false;
+        paused  = false;
+      } else if (act === 'extra_start'){
+        extraRunning = true;
+      } else if (act === 'extra_finish'){
+        extraRunning = false;
+      }
+      lastTs = t;
+    });
+
+    if (lastTs != null && (running || extraRunning)){
+      const end = lastTs + 60 * 60 * 1000;
+      let type = extraRunning ? 'extra' : (running && paused ? 'pause' : 'open');
+      segs.push({start:lastTs,end:end,type});
+    }
+    return segs;
+  }
+
+  function buildTimelineEmployeeOptions(stats){
+    if (!timelineEmployeeSelect) return;
+    const prev = timelineEmployeeSelect.value;
+    timelineEmployeeSelect.innerHTML = '<option value="">– Selectează –</option>';
+    if (!stats || !stats.employees || !stats.employees.size) return;
+    const names = Array.from(stats.employees.keys()).sort((a,b)=>a.localeCompare(b,'ro'));
+    names.forEach(name=>{
+      const opt = document.createElement('option');
+      opt.value = name;
+      opt.textContent = name;
+      timelineEmployeeSelect.appendChild(opt);
+    });
+    if (prev && timelineEmployeeSelect.querySelector('option[value="'+prev+'"]')){
+      timelineEmployeeSelect.value = prev;
+    }
+  }
+
+  function getTimelineDay(name, dateKey){
+    if (!name || !dateKey) return null;
+    let stats = RANGE_STATS && RANGE_STATS.employees && RANGE_STATS.employees.has(name)
+      ? RANGE_STATS
+      : (ALL_STATS && ALL_STATS.employees && ALL_STATS.employees.has(name) ? ALL_STATS : null);
+    if (!stats) return null;
+    const emp = stats.employees.get(name);
+    if (!emp) return null;
+    return emp.days.get(dateKey) || null;
+  }
+
+  function renderTimeline(){
+    if (!timelineContentEl) return;
+    const empName = timelineEmployeeSelect ? timelineEmployeeSelect.value : '';
+    const dateStr = timelineDateInput ? timelineDateInput.value : '';
+    if (!empName || !dateStr){
+      timelineContentEl.innerHTML = '<div class="admin-empty">Selectează angajatul și data.</div>';
+      return;
+    }
+    const day = getTimelineDay(empName, dateStr);
+    if (!day || !Array.isArray(day.events) || !day.events.length){
+      timelineContentEl.innerHTML = '<div class="admin-empty">Nu există evenimente pentru ' + dateStr + '.</div>';
+      return;
+    }
+
+    const segments = buildTimelineSegments(day.events);
+    if (!segments.length){
+      timelineContentEl.innerHTML = '<div class="admin-empty">Nu s-au putut calcula segmentele pentru această zi.</div>';
+      return;
+    }
+
+    const startTime = segments[0].start;
+    const endTime   = segments[segments.length-1].end || (segments[segments.length-1].start + 60*60*1000);
+    const duration  = Math.max(1, endTime - startTime);
+
+    let html = '';
+    html += '<div class="timeline-row">';
+    html += '<div class="timeline-label">Normă / pauze / extra (' + day.dateKey + ')</div>';
+    html += '<div class="timeline-bar">';
+
+    segments.forEach(seg=>{
+      const leftPct  = ((seg.start - startTime) / duration) * 100;
+      const widthPct = (Math.max(1, (seg.end || seg.start) - seg.start) / duration) * 100;
+      const cls = seg.type === 'extra' ? 'extra'
+                : seg.type === 'pause' ? 'pause'
+                : seg.type === 'open'  ? 'open'
+                : 'work';
+      html += '<div class="timeline-segment ' + cls + '" style="left:' +
+        leftPct.toFixed(2) + '%;width:' + widthPct.toFixed(2) + '%;" ' +
+        'title="' + seg.type + '"></div>';
+    });
+
+    html += '</div></div>';
+    html += '<div style="margin-top:4px;font-size:10px;color:#9ca3af;">' +
+      'Legendă: verde = lucru, albastru = extra, portocaliu = pauză, galben = sesiune deschisă.' +
+      '</div>';
+
+    timelineContentEl.innerHTML = html;
+  }
+
   // === Filtre de perioadă ===
   function filterByRange(events, range){
     if (!events || !events.length) return [];
     const now = new Date();
-    if (range === 'all') return events.slice();
     const endTime = now.getTime();
-    let startTime;
-    if (range === 'last7'){
-      const d = new Date(now);
-      d.setDate(d.getDate() - 6);
-      startTime = d.getTime();
-    } else { // today
-      const d = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0,0,0);
-      startTime = d.getTime();
+    let startTime = null;
+
+    switch(range){
+      case 'today': {
+        const d = new Date(now.getFullYear(), now.getMonth(), now.getDate(),0,0,0);
+        startTime = d.getTime();
+        break;
+      }
+      case 'last7': {
+        const d = new Date(now);
+        d.setDate(d.getDate() - 6);
+        d.setHours(0,0,0,0);
+        startTime = d.getTime();
+        break;
+      }
+      case 'week': {
+        const d = new Date(now.getFullYear(), now.getMonth(), now.getDate(),0,0,0);
+        const day = d.getDay(); // 0 = duminică
+        const diffToMonday = (day + 6) % 7;
+        d.setDate(d.getDate() - diffToMonday);
+        startTime = d.getTime();
+        break;
+      }
+      case 'month': {
+        const d = new Date(now.getFullYear(), now.getMonth(), 1,0,0,0);
+        startTime = d.getTime();
+        break;
+      }
+      case 'lastMonth': {
+        const y = now.getFullYear();
+        const m = now.getMonth();
+        const firstPrev = new Date(y, m-1,1,0,0,0);
+        const firstCurr = new Date(y, m,1,0,0,0);
+        const sTime = firstPrev.getTime();
+        const eTime = firstCurr.getTime();
+        return events.filter(ev=>{
+          if (!ev.ts) return false;
+          const t = new Date(ev.ts).getTime();
+          if (isNaN(t)) return false;
+          return t >= sTime && t < eTime;
+        });
+      }
+      case 'all':
+      default:
+        return events.slice();
     }
+
     return events.filter(ev => {
       if (!ev.ts) return false;
       const t = new Date(ev.ts).getTime();
@@ -1531,6 +2021,115 @@
     });
   }
 
+  // === Live board & anomalii ===
+  async function fetchLiveBoard(){
+    try{
+      const cfg = await loadConfig();
+      const base = cfg.activeEndpoint || cfg.adminEventsEndpoint;
+      if (!base) return null;
+      const url = cfg.activeEndpoint
+        ? buildUrl(cfg.activeEndpoint, { v: Date.now() })
+        : buildUrl(cfg.adminEventsEndpoint, { fn:'active', v: Date.now() });
+      const r = await fetch(url, {cache:'no-store'});
+      const data = await r.json();
+      if (data && data.ok === false) throw new Error(data.error || 'Eroare active.');
+      return data;
+    }catch(err){
+      console.warn('activeEndpoint error', err);
+      return null;
+    }
+  }
+
+  async function fetchAnomalies(){
+    try{
+      const cfg = await loadConfig();
+      const base = cfg.inconsistenciesEndpoint || cfg.adminEventsEndpoint;
+      if (!base) return null;
+      const url = cfg.inconsistenciesEndpoint
+        ? buildUrl(cfg.inconsistenciesEndpoint, { v: Date.now() })
+        : buildUrl(cfg.adminEventsEndpoint, { fn:'inconsistencies', v: Date.now() });
+      const r = await fetch(url, {cache:'no-store'});
+      const data = await r.json();
+      if (data && data.ok === false) throw new Error(data.error || 'Eroare inconsistencies.');
+      return data;
+    }catch(err){
+      console.warn('inconsistenciesEndpoint error', err);
+      return null;
+    }
+  }
+
+  function renderLiveBoard(data){
+    if (!liveBoardEl) return;
+    const list =
+      data && Array.isArray(data.active) ? data.active :
+      data && Array.isArray(data.items) ? data.items :
+      [];
+    liveBoardEl.innerHTML = '';
+    if (!list.length){
+      liveBoardEl.innerHTML = '<div class="admin-empty">Nimeni nu are sesiune activă acum.</div>';
+      if (kpiActiveNowEl) kpiActiveNowEl.textContent = '0';
+      return;
+    }
+    if (kpiActiveNowEl) kpiActiveNowEl.textContent = String(list.length);
+    list.forEach(item=>{
+      const row = document.createElement('div');
+      row.className = 'admin-list-row';
+      const dept = item.dept || '(fără departament)';
+      const activity = item.activity || '';
+      const since = item.since || item.start || '';
+      const sinceLabel = since ? fmtDateTime(since) : '';
+      row.innerHTML =
+        '<div style="display:flex;align-items:center;gap:8px;">' +
+          '<span class="live-status-dot"></span>' +
+          '<div>' +
+            '<div class="admin-list-label">' + (item.name || '') + '</div>' +
+            '<div class="admin-list-sub">' + dept +
+              (activity ? ' • ' + activity : '') +
+            '</div>' +
+          '</div>' +
+        '</div>' +
+        '<div class="admin-list-value">' +
+          (sinceLabel ? '<div style="font-size:10px;">de la</div><div>' + sinceLabel + '</div>' : '') +
+        '</div>';
+      liveBoardEl.appendChild(row);
+    });
+  }
+
+  function renderAnomalies(data){
+    if (!anomaliesListEl) return;
+    const list =
+      data && Array.isArray(data.rows) ? data.rows :
+      data && Array.isArray(data.items) ? data.items :
+      data && Array.isArray(data.anomalies) ? data.anomalies :
+      [];
+    anomaliesListEl.innerHTML = '';
+    if (!list.length){
+      anomaliesListEl.innerHTML = '<div class="admin-empty">Nu există anomalii înregistrate.</div>';
+      return;
+    }
+    list.slice(0,50).forEach(item=>{
+      const row = document.createElement('div');
+      row.className = 'admin-list-row';
+      const when = item.date || item.ts || item.time || '';
+      const labelTs = when ? fmtDateTime(when) : '';
+      const reason = item.reason || item.rule || '';
+      const details = item.details || item.note || '';
+      row.innerHTML =
+        '<div>' +
+          '<div class="admin-list-label">' + (item.name || '') + '</div>' +
+          '<div class="admin-list-sub">' +
+            (item.dept || '') +
+            (labelTs ? ' • ' + labelTs : '') +
+          '</div>' +
+        '</div>' +
+        '<div class="admin-list-value" style="max-width:180px;text-align:left;">' +
+          (reason ? '<div class="anomaly-badge">' + reason + '</div>' : '') +
+          (details ? '<div style="font-size:11px;color:#6b7280;margin-top:2px;">' + details + '</div>' : '') +
+        '</div>';
+      anomaliesListEl.appendChild(row);
+    });
+  }
+
   // === Init ===
   async function init(){
     try{
@@ -1539,7 +2138,7 @@
         throw new Error('config.json nu conține adminEventsEndpoint.');
       }
 
-      const adminUrl = CFG.adminEventsEndpoint + '?fn=adminEvents&v=' + Date.now();
+      const adminUrl = buildUrl(CFG.adminEventsEndpoint, { fn:'adminEvents', v:Date.now() });
       const r2  = await fetch(adminUrl, { cache:'no-store' });
       const txt = await r2.text();
       let data;
@@ -1600,9 +2199,14 @@
         renderRawLog(filteredForMain);
 
         const statsBase = buildStatsFromEvents(baseRange);
+        RANGE_STATS = statsBase;
+        renderAdvancedKpis(statsBase);
         updateCompletedTodayKpiFromStats(statsBase, currentRange);
         renderDailyPresence(statsBase);
         renderIncompleteDays(baseRange);
+        buildTimelineEmployeeOptions(statsBase);
+        renderNormHeatmap(statsBase);
+        renderTimeline();
 
         let lastBase   = applyDeptEmployee(events, currentDept, currentEmployee);
         let lastByRange= filterLastEventsByRange(lastBase, lastEventsRange || 'today');
@@ -1677,6 +2281,34 @@
         });
       }
 
+      if (timelineEmployeeSelect){
+        timelineEmployeeSelect.addEventListener('change', function(){
+          renderTimeline();
+        });
+      }
+      if (timelineDateInput){
+        if (!timelineDateInput.value){
+          const now = new Date();
+          const yyyy = now.getFullYear();
+          const mm   = String(now.getMonth()+1).padStart(2,'0');
+          const dd   = String(now.getDate()).padStart(2,'0');
+          timelineDateInput.value = `${yyyy}-${mm}-${dd}`;
+        }
+        timelineDateInput.addEventListener('change', function(){
+          renderTimeline();
+        });
+      }
+      if (timelineTodayBtn && timelineDateInput){
+        timelineTodayBtn.addEventListener('click', function(){
+          const now = new Date();
+          const yyyy = now.getFullYear();
+          const mm   = String(now.getMonth()+1).padStart(2,'0');
+          const dd   = String(now.getDate()).padStart(2,'0');
+          timelineDateInput.value = `${yyyy}-${mm}-${dd}`;
+          renderTimeline();
+        });
+      }
+
       if (exportCsvBtn){
         exportCsvBtn.addEventListener('click', function(){
           exportCsv(latestFiltered);
@@ -1691,11 +2323,34 @@
           }
           try{
             const cfg = await loadConfig();
-            if (!cfg.adminEventsEndpoint) throw new Error('Lipsește adminEventsEndpoint.');
-            const url = cfg.adminEventsEndpoint +
-              '?fn=adminPdf&name=' + encodeURIComponent(SELECTED_EMPLOYEE) +
-              '&v=' + Date.now();
-            window.open(url, '_blank');
+            const name = SELECTED_EMPLOYEE;
+            const fromMeta = (window.__pontajAdminMeta && window.__pontajAdminMeta.periodFrom) || '';
+            const toMeta   = (window.__pontajAdminMeta && window.__pontajAdminMeta.periodTo) || '';
+            if (cfg.adminPdfEndpoint){
+              const url = buildUrl(cfg.adminPdfEndpoint, {
+                name:name,
+                from:fromMeta,
+                to:toMeta,
+                v:Date.now()
+              });
+              const r   = await fetch(url, {cache:'no-store'});
+              const json= await r.json();
+              if (!json || !json.ok || !json.url){
+                throw new Error(json && json.error ? json.error : 'Nu am primit un URL de raport.');
+              }
+              window.open(json.url, '_blank');
+            } else if (cfg.adminEventsEndpoint){
+              const url = buildUrl(cfg.adminEventsEndpoint, {
+                fn:'adminPdf',
+                name:name,
+                from:fromMeta,
+                to:toMeta,
+                v:Date.now()
+              });
+              window.open(url, '_blank');
+            } else {
+              throw new Error('Nu este configurat niciun endpoint pentru PDF.');
+            }
           }catch(err){
             alert('Eroare configurare PDF: ' + (err && err.message ? err.message : err));
           }
@@ -1721,16 +2376,38 @@
           }
           try{
             const cfg = await loadConfig();
-            if (!cfg.adminEventsEndpoint) throw new Error('Lipsește adminEventsEndpoint.');
-            const url = cfg.adminEventsEndpoint +
-              '?fn=adminPdfDept&dept=' + encodeURIComponent(dept) +
-              '&v=' + Date.now();
-            const r   = await fetch(url, {cache:'no-store'});
-            const resp= await r.json();
-            if (!resp.ok || !resp.url){
-              throw new Error(resp.error || 'Nu am primit un URL de raport.');
+            const periodFrom = (window.__pontajAdminMeta && window.__pontajAdminMeta.lastMonthFrom) || '';
+            const periodTo   = (window.__pontajAdminMeta && window.__pontajAdminMeta.lastMonthTo) || '';
+            if (cfg.adminPdfDeptEndpoint){
+              const url = buildUrl(cfg.adminPdfDeptEndpoint, {
+                dept:dept,
+                from:periodFrom,
+                to:periodTo,
+                v:Date.now()
+              });
+              const r   = await fetch(url, {cache:'no-store'});
+              const json= await r.json();
+              if (!json || !json.ok || !json.url){
+                throw new Error(json && json.error ? json.error : 'Nu am primit un URL de raport.');
+              }
+              window.open(json.url, '_blank');
+            } else if (cfg.adminEventsEndpoint){
+              const url = buildUrl(cfg.adminEventsEndpoint, {
+                fn:'adminPdfDept',
+                dept:dept,
+                from:periodFrom,
+                to:periodTo,
+                v:Date.now()
+              });
+              const r   = await fetch(url, {cache:'no-store'});
+              const resp= await r.json();
+              if (!resp.ok || !resp.url){
+                throw new Error(resp.error || 'Nu am primit un URL de raport.');
+              }
+              window.open(resp.url, '_blank');
+            } else {
+              throw new Error('Nu este configurat endpointul de departament.');
             }
-            window.open(resp.url, '_blank');
           }catch(err){
             alert('Eroare la generarea raportului departamental: ' + (err.message || err));
           }
@@ -1806,7 +2483,24 @@
         });
       }
 
+      // prima randare
       refresh();
+
+      // Live board & anomalii init + refresh periodic
+      (async function(){
+        const liveData = await fetchLiveBoard();
+        if (liveData) renderLiveBoard(liveData);
+      })();
+      (async function(){
+        const aData = await fetchAnomalies();
+        if (aData) renderAnomalies(aData);
+      })();
+
+      LIVE_TIMER_ID = setInterval(async function(){
+        const liveData = await fetchLiveBoard();
+        if (liveData) renderLiveBoard(liveData);
+      }, 60000);
+
     }catch(e){
       showError(e.message || String(e));
     }
@@ -1818,6 +2512,3 @@
 
 </body>
 </html>
-
-
-
