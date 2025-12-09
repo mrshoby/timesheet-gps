@@ -51,6 +51,15 @@
     .brand h1 span{display:block;font-weight:700}
     .brand small{display:block;font-size:12px;color:var(--muted);margin-top:2px}
 
+    /* NOU: container pentru acțiunile din dreapta (chip + buton self-service) */
+    .nav-actions{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      flex-wrap:wrap;
+      justify-content:flex-end;
+    }
+
     .chip{
       display:inline-flex;
       align-items:center;
@@ -321,6 +330,12 @@
       color:var(--fg);
       background:var(--bg);
       font-size:13px;
+      text-decoration:none;
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      justify-content:center;
+      white-space:nowrap;
     }
     .btn:active{ transform:translateY(1px); }
     .btn.primary{
@@ -414,7 +429,14 @@
           <h1><span>SERVELECT</span><small>Pontaj & Management Concedii</small></h1>
         </div>
       </a>
-      <div class="chip">Admin dashboard</div>
+
+      <!-- NOU: acțiuni în dreapta – buton către Self-service + chip Admin -->
+      <div class="nav-actions">
+        <a href="self.html" class="btn" id="selfServiceLink" target="_blank" rel="noopener">
+          🧾 Self-service – raportul meu
+        </a>
+        <div class="chip">Admin dashboard</div>
+      </div>
     </nav>
 
     <main class="admin-layout">
