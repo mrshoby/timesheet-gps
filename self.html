@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+  <meta charset="UTF-8">
+  <title>Pontaj – Self-service: raportul meu</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    :root {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #f2f4f8;
+      color: #111827;
+    }
+    body {
+      margin: 0;
+      padding: 0;
+      display: flex;
+      min-height: 100vh;
+      align-items: center;
+      justify-content: center;
+    }
+    .card {
+      background: #fff;
+      padding: 1.5rem;
+      max-width: 640px;
+      width: 100%;
+      box-shadow: 0 12px 30px rgba(15,23,42,0.12);
+      border-radius: 18px;
+    }
+    h1 {
+      font-size: 1.4rem;
+      margin: 0 0 0.5rem;
+    }
+    p.subtitle {
+      margin: 0 0 1rem;
+      color: #4b5563;
+      font-size: 0.9rem;
+    }
+    label {
+      display: block;
+      margin-top: 0.75rem;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #374151;
+    }
+    input[type="text"] {
+      width: 100%;
+      padding: 0.5rem 0.65rem;
+      border-radius: 10px;
+      border: 1px solid #d1d5db;
+      margin-top: 0.25rem;
+      box-sizing: border-box;
+      font-size: 0.9rem;
+    }
+    .hint {
+      font-size: 0.75rem;
+      color: #6b7280;
+      margin-top: 0.15rem;
+    }
+    .row {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      margin-top: 0.75rem;
+    }
+    button {
+      border: none;
+      border-radius: 999px;
+      padding: 0.45rem 0.9rem;
+      font-size: 0.85rem;
+      cursor: pointer;
+      background: #2563eb;
+      color: white;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+    }
+    button.secondary {
+      background: #e5e7eb;
+      color: #111827;
+    }
+    button:disabled {
+      opacity: 0.6;
+      cursor: default;
+    }
+    pre {
+      background: #0f172a;
+      color: #e5e7eb;
+      border-radius: 12px;
+      padding: 0.75rem;
+      margin-top: 1rem;
+      max-height: 260px;
+      overflow: auto;
+      font-size: 0.8rem;
+    }
+    .status {
+      margin-top: 0.5rem;
+      font-size: 0.8rem;
+      color: #6b7280;
+    }
+  </style>
+</head>
+<body>
+<div class="card">
+  <h1>Self-service – raportul meu</h1>
+  <p class="subtitle">
+    Vizualizezi singur raportul de pontaj (zi / săptămână / lună) folosind același API ca aplicația principală.
+  </p>
+
+  <label for="apiBase">
+    WebApp URL
+  </label>
+  <input id="apiBase" type="text" placeholder="https://script.google.com/macros/s/XXX/exec">
+  <div class="hint">URL-ul WebApp-ului Pontaj (același pe care îl folosești în aplicația principală).</div>
+
+  <label for="nameInput">
+    Nume complet
+  </label>
+  <input id="nameInput" type="text" placeholder="Nume Prenume">
+  <div class="hint">Exact cum apare în pontaj (coloana „Name” / „Nume”).</div>
+
+  <div class="row">
+    <button id="btnToday">Azi</button>
+    <button id="btnWeek" class="secondary">Săptămâna curentă</button>
+    <button id="btnMonth" class="secondary">Luna curentă</button>
+  </div>
+
+  <div class="status" id="status"></div>
+  <pre id="output">{ "hint": "Apasă pe unul dintre butoane pentru a vedea raportul." }</pre>
+</div>
+
+<script>
+  const apiBaseInput = document.getElementById('apiBase');
+  const nameInput = document.getElementById('nameInput');
+  const statusEl = document.getElementById('status');
+  const outputEl = document.getElementById('output');
+  const btnToday = document.getElementById('btnToday');
+  const btnWeek  = document.getElementById('btnWeek');
+  const btnMonth = document.getElementById('btnMonth');
+
+  // opțional: poți precompleta URL-ul WebApp-ului aici:
+  // apiBaseInput.value = "https://script.google.com/macros/s/AKfycb.../exec";
+
+  async function callStats(scope) {
+    const base = apiBaseInput.value.trim();
+    const name = nameInput.value.trim();
+    if (!base) {
+      alert('Completează WebApp URL.');
+      return;
+    }
+    if (!name) {
+      alert('Completează numele tău exact ca în pontaj.');
+      return;
+    }
+
+    const url = new URL(base);
+    url.searchParams.set('fn', 'stats');   // consumă endpoint-ul existent fn=stats
+    url.searchParams.set('name', name);    // presupunem că stats știe să filtreze pe nume
+    url.searchParams.set('scope', scope);  // de ex. "day" | "week" | "month" (adaptezi după API-ul tău)
+
+    setBusy(true, 'Încarc datele (' + scope + ')...');
+    try {
+      const resp = await fetch(url.toString(), { credentials: 'omit' });
+      if (!resp.ok) {
+        throw new Error('HTTP ' + resp.status);
+      }
+      const data = await resp.json();
+      renderStats(data, scope);
+      setBusy(false, 'OK – date încărcate.');
+    } catch (err) {
+      console.error(err);
+      outputEl.textContent = JSON.stringify({ ok:false, error:String(err) }, null, 2);
+      setBusy(false, 'Eroare la apelarea API-ului.');
+    }
+  }
+
+  function setBusy(isBusy, text) {
+    [btnToday, btnWeek, btnMonth].forEach(b => b.disabled = isBusy);
+    statusEl.textContent = text || '';
+  }
+
+  // Rendare simplă: dacă structura nu corespunde, vezi JSON-ul brut
+  function renderStats(data, scope) {
+    // dacă stats deja întoarce ceva de genul { ok:true, day:{...}, week:{...}, month:{...} }
+    // poți face un mic mapping aici:
+    let toShow = data;
+    // exemplu orientativ, ajustezi după structura ta:
+    if (data && (data.day || data.week || data.month)) {
+      if (scope === 'day'   && data.day)   toShow = data.day;
+      if (scope === 'week'  && data.week)  toShow = data.week;
+      if (scope === 'month' && data.month) toShow = data.month;
+    }
+    outputEl.textContent = JSON.stringify(toShow, null, 2);
+  }
+
+  btnToday.addEventListener('click', () => callStats('day'));
+  btnWeek .addEventListener('click', () => callStats('week'));
+  btnMonth.addEventListener('click', () => callStats('month'));
+</script>
+</body>
+</html>
