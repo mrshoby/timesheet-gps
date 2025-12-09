@@ -906,6 +906,24 @@ function sumPausesFromEvents(events, fallbackPair){
   function setEmp(m, c){ setText(empStatus, m, c); }
   function setLeaveStatus(m, c){ setText(leaveStatus, m, c); }
 
+  // >>> HARD GUARD pe click pentru toate .btn (captură)
+  document.addEventListener('click', function(e){
+    const btn = e.target.closest('.btn');
+    if (!btn) return;
+
+    const now = Date.now();
+    if (busy || (now - lastActionAt) < CLICK_COOLDOWN_MS) {
+      e.stopImmediatePropagation();
+      e.preventDefault();
+
+      if (busy) {
+        setStatus('Deja se procesează o acțiune, te rog așteaptă câteva secunde.', 'warn');
+      } else {
+        setStatus('Nu apăsa butoanele atât de repede 😊', 'warn');
+      }
+    }
+  }, true);
+
   // ================= ADMIN HAMBURGER + LOGIN =================
   const cfgMenu = cfgEl;
   const cfgToggle = document.getElementById('cfgToggle');
@@ -1145,18 +1163,29 @@ function sumPausesFromEvents(events, fallbackPair){
   function saveLS(){ try { localStorage.setItem(LS_KEY, JSON.stringify(STATE)); } catch{} }
 
   function updateEmpStatus() {
-    if (!STATE || !STATE.name) {
+    const selectedName = empSel.value;
+
+    // Niciun angajat selectat
+    if (!selectedName) {
       setEmp('', '');
       return;
     }
+
+    // Încă nu avem state pentru acest angajat
+    if (!STATE || !STATE.name || STATE.name !== selectedName) {
+      setEmp('Se verifică starea angajatului…', '');
+      return;
+    }
+
+    // Avem stare sincronizată pentru angajatul selectat
     if (STATE.normal.running && STATE.normal.paused) {
-      setEmp('Ești în PAUSE.', 'warn');
+      setEmp('Stare curentă: PAUZĂ (normă).', 'warn');
     } else if (STATE.normal.running) {
-      setEmp('Ai START activ.', 'ok');
+      setEmp('Stare curentă: LUCREZI (normă).', 'ok');
     } else if (STATE.extra.running) {
-      setEmp('Ai EXTRA activ.', 'ok');
+      setEmp('Stare curentă: LUCREZI (EXTRA).', 'ok');
     } else {
-      setEmp('Nicio sesiune deschisă.', '');
+      setEmp('Stare curentă: niciun pontaj activ.', '');
     }
   }
 
@@ -1304,7 +1333,7 @@ function sumPausesFromEvents(events, fallbackPair){
           if (map.deptList.length){
             DEPTMAP = map;
             fillDepartments(map.deptList);
-            setEmp('Departamente încărcate din departmentsCsv.', 'ok');
+            setStatus('Departamente încărcate din departmentsCsv.', 'ok');
             return;
           }
         }
@@ -1328,7 +1357,7 @@ function sumPausesFromEvents(events, fallbackPair){
     const deptList = ['productie'];
     DEPTMAP = { byDept, byName, deptList };
     fillDepartments(deptList);
-    setEmp('Nu există departmentsCsv — folosesc „productie”.', 'warn');
+    setStatus('Nu există departmentsCsv — folosesc „productie”.', 'warn');
   }
 
   /** ===== STATE (UI + server) ===== */
@@ -1520,7 +1549,7 @@ function sumPausesFromEvents(events, fallbackPair){
     STATE.name = empSel.value || '';
     saveLS();
 
-    setEmp('Se verifică starea...', '');
+    setEmp('Se verifică starea angajatului…', '');
     await refreshServerState();
     reflectState();
     updateEmpStatus();
