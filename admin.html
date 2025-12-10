@@ -51,7 +51,7 @@
     .brand h1 span{display:block;font-weight:700}
     .brand small{display:block;font-size:12px;color:var(--muted);margin-top:2px}
 
-    /* container pentru acțiunile din dreapta (chip + buton self-service) */
+    /* NOU: container pentru acțiunile din dreapta (chip + buton self-service) */
     .nav-actions{
       display:flex;
       align-items:center;
@@ -380,7 +380,7 @@
       color:#075985;
     }
 
-    /* Calendar prezență */
+    /* Calendar prezență (A4) */
     .calendar-grid{
       display:grid;
       grid-template-columns:repeat(7,minmax(0,1fr));
@@ -430,12 +430,12 @@
         </div>
       </a>
 
-      <!-- acțiuni în dreapta – buton către Self-service + chip Admin -->
+      <!-- Buton Self-service + chip Admin -->
       <div class="nav-actions">
         <a href="self.html" class="btn" id="selfServiceLink" target="_blank" rel="noopener">
           🧾 Self-service – raportul meu
         </a>
-        <div class="chip" id="adminRoleChip">Admin dashboard</div>
+        <div class="chip">Admin dashboard</div>
       </div>
     </nav>
 
@@ -478,6 +478,7 @@
         <div id="loading" class="admin-loading">Se încarcă datele din server…</div>
 
         <section id="dashboard" style="display:none">
+          <!-- KPI-uri principale -->
           <div class="admin-kpis">
             <div class="card kpi">
               <div class="kpi-label">Pontaje în filtrul curent</div>
@@ -539,6 +540,7 @@
             </section>
           </div>
 
+          <!-- A3: Zile incomplete -->
           <section class="card admin-card">
             <h2>Zile incomplete</h2>
             <div class="admin-small-text">
@@ -561,6 +563,7 @@
             </div>
           </section>
 
+          <!-- A3: Anomalii -->
           <section class="card admin-card">
             <h2>Anomalii pontaj</h2>
             <div class="admin-small-text">
@@ -583,6 +586,7 @@
             </div>
           </section>
 
+          <!-- Log brut -->
           <section class="card admin-card">
             <h2 id="rawLogTitle">Log brut (filtru curent)</h2>
             <div class="admin-small-text">
@@ -591,6 +595,7 @@
             <pre id="rawLog" class="admin-log">–</pre>
           </section>
 
+          <!-- A3: Prezență pe zile -->
           <section class="card admin-card">
             <h2>Prezență pe zile</h2>
             <div class="admin-small-text">
@@ -612,6 +617,7 @@
             </div>
           </section>
 
+          <!-- A4: Calendar prezență -->
           <section class="card admin-card">
             <h2>Calendar prezență (lună curentă)</h2>
             <div class="admin-small-text">
@@ -620,6 +626,7 @@
             <div id="presenceCalendar" class="calendar-grid"></div>
           </section>
 
+          <!-- A2: Index & detalii angajat -->
           <div class="admin-grid">
             <section class="card admin-card">
               <h2>Index angajați</h2>
@@ -669,6 +676,7 @@
           </p>
         </section>
 
+        <!-- A2: Top angajați -->
         <section class="card admin-card">
           <h2>Top angajați</h2>
           <div class="admin-small-text">
@@ -677,6 +685,7 @@
           <div id="topEmployees" class="admin-list"></div>
         </section>
 
+        <!-- A5: Live azi -->
         <section class="card admin-card">
           <h2>Live azi</h2>
           <div class="admin-small-text">
@@ -685,6 +694,7 @@
           <div id="liveBoard" class="admin-list"></div>
         </section>
 
+        <!-- A6: Alerte sistem -->
         <section class="card admin-card">
           <h2>Alerte sistem</h2>
           <div class="admin-small-text">
@@ -709,18 +719,18 @@
 (function(){
   const ADMIN_LS_KEY = 'pontaj/admin/v1';
 
-  // Normă/pauză implicită (fallback) – vor fi suprascrise din config.json
+  // A1: Normă/pauză implicită (fallback) – suprascrisă din config.json
   let DEFAULT_NORM_MS             = 8   * 60 * 60 * 1000;
   let LONG_NORM_MS                = 8.5 * 60 * 60 * 1000;
   let DEFAULT_PAUSE_MARGIN_MS     = 40  * 60 * 1000;
 
-  // Config normă/pauză per departament / angajat
+  // Config normă/pauză per departament / angajat (A1)
   let NORM_CFG = null;
 
-  // Index concedii: dateKey -> Set(nume)
+  // A2/A3: Index concedii: dateKey -> Set(nume)
   let LEAVE_BY_DAY = new Map();
 
-  // Activitățile care au normă de 8h30 (fallback, dacă nu există config pe departament/angajat)
+  // Activitățile care au normă de 8h30 (fallback)
   const ACTIVITATI_NORMA_8H30 = ['deplasare', 'pe drum', 'atelier'];
 
   let ALL_STATS = null;
@@ -877,7 +887,7 @@
   const presenceCalendarEl     = document.getElementById('presenceCalendar');
   const liveBoardEl            = document.getElementById('liveBoard');
   const alertsListEl           = document.getElementById('alertsList');
-  const adminRoleChipEl        = document.getElementById('adminRoleChip');
+  const selfServiceLink        = document.getElementById('selfServiceLink'); // mic helper pentru A1/A2
 
   if (!session){
     alert('Nu ești autentificat ca admin. Te redirecționez la pagina principală.');
@@ -888,18 +898,6 @@
   ADMIN_DEPT = session.dept || null;
 
   if (adminLabelEl) adminLabelEl.textContent = session.user || 'Admin';
-
-  // Update chip în header cu rolul efectiv
-  if (adminRoleChipEl){
-    let chipText = 'Admin dashboard';
-    if (ADMIN_ROLE === 'teamlead' && ADMIN_DEPT){
-      chipText = 'Team lead • ' + ADMIN_DEPT;
-    } else if (ADMIN_ROLE === 'viewer'){
-      chipText = 'Viewer dashboard';
-    }
-    adminRoleChipEl.textContent = chipText;
-  }
-
   if (logoutBtn){
     logoutBtn.addEventListener('click', function(){
       clearAdminSession();
@@ -2030,10 +2028,27 @@
     });
   }
 
+  function applySelfServiceConfig(cfg){
+    if (!selfServiceLink || !cfg) return;
+    // Dacă în config ai ceva de genul "selfServiceBaseUrl", îl folosim.
+    const base = cfg.selfServiceBaseUrl || cfg.selfUrl || null;
+    if (!base) return;
+    const q = [];
+    if (ADMIN_SESSION && ADMIN_SESSION.userEmail){
+      q.push('email=' + encodeURIComponent(ADMIN_SESSION.userEmail));
+    }
+    if (ADMIN_SESSION && ADMIN_SESSION.user){
+      q.push('name=' + encodeURIComponent(ADMIN_SESSION.user));
+    }
+    const url = base + (q.length ? ('?' + q.join('&')) : '');
+    selfServiceLink.href = url;
+  }
+
   async function init(){
     try{
       const CFG = await loadConfig();
       applyNormSettingsFromConfig(CFG);
+      applySelfServiceConfig(CFG);
 
       const adminUrl = CFG.adminEventsEndpoint + '?fn=adminEvents&v=' + Date.now();
       const r2  = await fetch(adminUrl, { cache:'no-store' });
@@ -2201,20 +2216,10 @@
         }
 
         if (role === 'teamlead' && ADMIN_DEPT && deptFilter){
-          // forțăm departamentul
           deptFilter.value = ADMIN_DEPT;
           deptFilter.disabled = true;
           currentDept = ADMIN_DEPT;
           CURRENT_DEPT_FILTER = ADMIN_DEPT;
-
-          // reconstruim lista de angajați și indexul doar pentru acest departament
-          buildEmployeeFilter(events, currentDept);
-          if (employeeFilter){
-            employeeFilter.value = 'all';
-          }
-          SELECTED_EMPLOYEE = null;
-          renderEmployeeIndex(ALL_STATS, CURRENT_DEPT_FILTER);
-          renderEmployeeDetails(null);
         }
       }
 
