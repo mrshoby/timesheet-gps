@@ -812,30 +812,33 @@
 
       <aside class="admin-side">
         <section class="card admin-card">
-          <h2>Sesiune admin</h2>
-          <p class="admin-small-text">
-            Conectat ca <b id="adminLabel">Admin</b>.
-          </p>
-          <button id="logoutBtn" class="btn primary" type="button">Deconectare</button>
-          <button id="exportCsvBtn" class="btn" type="button" style="margin-top:8px">
-            Export CSV (filtru curent)
-          </button>
-          <button id="pdfBtn" class="btn" type="button" style="margin-top:8px">
-            PDF angajat selectat
-          </button>
-          <button id="deptPdfBtn" class="btn" type="button" style="margin-top:8px">
-            PDF departament (luna precedentă)
-          </button>
-          <button id="employeeExportBtn" class="btn" type="button" style="margin-top:8px">
-            Export CSV angajat (all time)
-          </button>
-          <button id="payrollExportBtn" class="btn" type="button" style="margin-top:8px">
-            Export salarizare (luna precedentă)
-          </button>
-          <p class="admin-small-text" style="margin-top:10px">
-            <a href="index.html" class="admin-link">Înapoi la pontaj</a>
-          </p>
-        </section>
+  <h2>Sesiune admin</h2>
+  <p class="admin-small-text">
+    Conectat ca <b id="adminLabel">Admin</b>.
+  </p>
+  <button id="logoutBtn" class="btn primary" type="button">Deconectare</button>
+  <button id="exportCsvBtn" class="btn" type="button" style="margin-top:8px">
+    Export CSV (filtru curent)
+  </button>
+  <button id="pdfBtn" class="btn" type="button" style="margin-top:8px">
+    PDF angajat selectat
+  </button>
+  <button id="deptPdfBtn" class="btn" type="button" style="margin-top:8px">
+    PDF departament (luna precedentă)
+  </button>
+  <button id="employeeExportBtn" class="btn" type="button" style="margin-top:8px">
+    Export CSV angajat (all time)
+  </button>
+  <button id="payrollExportBtn" class="btn" type="button" style="margin-top:8px">
+    Export salarizare (luna precedentă)
+  </button>
+  <button id="reportsPageBtn" class="btn" type="button" style="margin-top:8px">
+    Pagina rapoarte (zi / săpt. / lună)
+  </button>
+  <p class="admin-small-text" style="margin-top:10px">
+    <a href="index.html" class="admin-link">Înapoi la pontaj</a>
+  </p>
+</section>
 
         <!-- A2: Top angajați -->
         <section class="card admin-card">
@@ -1046,6 +1049,7 @@
   const deptPdfBtn             = document.getElementById('deptPdfBtn');
   const employeeExportBtn      = document.getElementById('employeeExportBtn');
   const payrollExportBtn       = document.getElementById('payrollExportBtn');
+  const reportsPageBtn         = document.getElementById('reportsPageBtn');
   const topEmployeesEl         = document.getElementById('topEmployees');
   const employeeIndexListEl    = document.getElementById('employeeIndexList');
   const employeeDetailsHeaderEl= document.getElementById('employeeDetailsHeader');
@@ -1084,6 +1088,13 @@
     logoutBtn.addEventListener('click', function(){
       clearAdminSession();
       window.location.href = 'index.html';
+    });
+  }
+  
+  if (reportsPageBtn){
+    reportsPageBtn.addEventListener('click', function(){
+      // mergem pe pagina dedicată de rapoarte
+      window.location.href = 'reports.html';
     });
   }
 
@@ -3233,5 +3244,6 @@
 
 </body>
 </html>
+
 
 
