@@ -478,7 +478,37 @@
       outline:2px solid var(--accent);
       outline-offset:1px;
     }
-  </style>
+
+    .calendar-legend{
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+      margin-top:8px;
+      font-size:11px;
+      color:var(--muted);
+      align-items:center;
+    }
+    .calendar-legend-label{
+      font-weight:600;
+      margin-right:4px;
+    }
+    .calendar-legend-item{
+      display:inline-flex;
+      align-items:center;
+      gap:4px;
+    }
+    .calendar-legend-box{
+      width:12px;
+      height:12px;
+      border-radius:4px;
+      border:1px solid rgba(148,163,184,.7);
+    }
+    .calendar-legend-none{ background:#e5e7eb; }
+    .calendar-legend-low{ background:#fee2e2; }
+    .calendar-legend-med{ background:#fef3c7; }
+    .calendar-legend-high{ background:#dcfce7; }
+
+      </style>
 </head>
 <body>
   <div class="shell">
@@ -689,12 +719,28 @@
           </section>
 
           <!-- A4: Calendar prezență -->
-          <section class="card admin-card">
+                  <section class="card admin-card">
             <h2>Calendar prezență (lună curentă)</h2>
             <div class="admin-small-text">
               Fiecare zi arată câți angajați au avut pontaj și câți au normă completă, pentru luna curentă. Click pe o zi pentru a filtra mai jos.
             </div>
             <div id="presenceCalendar" class="calendar-grid"></div>
+
+            <div class="calendar-legend">
+              <span class="calendar-legend-label">Legendă:</span>
+              <span class="calendar-legend-item">
+                <span class="calendar-legend-box calendar-legend-none"></span> fără pontaj
+              </span>
+              <span class="calendar-legend-item">
+                <span class="calendar-legend-box calendar-legend-low"></span> &lt;50% complet
+              </span>
+              <span class="calendar-legend-item">
+                <span class="calendar-legend-box calendar-legend-med"></span> 50–90% complet
+              </span>
+              <span class="calendar-legend-item">
+                <span class="calendar-legend-box calendar-legend-high"></span> &gt;90% complet
+              </span>
+            </div>
           </section>
 
           <!-- A2: Index & detalii angajat -->
@@ -2671,49 +2717,62 @@
         refresh();
       }
 
-      function renderPresenceCalendarMonthly(){
+            function renderPresenceCalendarMonthly(){
         if (!presenceCalendarEl) return;
         presenceCalendarEl.innerHTML = '';
+
         const allEvents = events;
         const now = new Date();
         const year = now.getFullYear();
         const month = now.getMonth();
         const firstDay = new Date(year, month, 1);
-        const lastDay = new Date(year, month+1, 0);
+        const lastDay  = new Date(year, month + 1, 0);
 
-        const filtered = (allEvents || []).filter(ev=>{
+        // Evenimente doar din luna curentă
+        const filtered = (allEvents || []).filter(ev => {
           if (!ev.ts) return false;
           const t = new Date(ev.ts);
           if (isNaN(t.getTime())) return false;
           return t >= firstDay && t <= lastDay;
         });
-        const statsMonth = buildStatsFromEvents(filtered);
-        const perDay = statsMonth.perDay || new Map();
 
+        const statsMonth = buildStatsFromEvents(filtered);
+        const perDay     = statsMonth.perDay || new Map();
+
+        // Header zile săptămână
         const weekdayLabels = ['L','Ma','Mi','J','V','S','D'];
-        weekdayLabels.forEach(lbl=>{
+        weekdayLabels.forEach(lbl => {
           const h = document.createElement('div');
           h.className = 'calendar-day calendar-day-header';
           h.textContent = lbl;
           presenceCalendarEl.appendChild(h);
         });
 
-        const firstWeekday = (firstDay.getDay() + 6) % 7; // luni = 0
-        for (let i=0;i<firstWeekday;i++){
+        // Offset pentru prima zi (luni = 0)
+        const firstWeekday = (firstDay.getDay() + 6) % 7;
+        for (let i = 0; i < firstWeekday; i++){
           const empty = document.createElement('div');
           empty.className = 'calendar-day calendar-day-none';
           empty.innerHTML = '&nbsp;';
           presenceCalendarEl.appendChild(empty);
         }
 
-        for (let d=1; d<=lastDay.getDate(); d++){
+        // Zilele din lună
+        for (let d = 1; d <= lastDay.getDate(); d++){
           const cur = new Date(year, month, d);
-          const dk = dateKeyFromIso(cur.toISOString());
-          const info = perDay.get(dk);
-          const started = info && info.started ? info.started.size : 0;
-          const completed = info && info.completed ? info.completed.size : 0;
-          const pct = started ? Math.round(100 * completed / started) : 0;
+          const dk  = dateKeyFromIso(cur.toISOString());
 
+          const info      = perDay.get(dk);
+          const started   = info && info.started   ? info.started.size   : 0;
+          const completed = info && info.completed ? info.completed.size : 0;
+          const pct       = started ? Math.round(100 * completed / started) : 0;
+
+          // Concedii pe zi din LEAVE_BY_DAY
+          const leaveCount = (LEAVE_BY_DAY && LEAVE_BY_DAY.get(dk))
+            ? LEAVE_BY_DAY.get(dk).size
+            : 0;
+
+          // Clasă de culoare după procent complet
           const dayEl = document.createElement('div');
           let cls = 'calendar-day ';
           if (!started){
@@ -2730,18 +2789,29 @@
           }
           dayEl.className = cls;
           dayEl.dataset.dateKey = dk;
+
+          // Text meta: "3/10 ok, 2 C"
+          const parts = [];
+          if (started){
+            parts.push(completed + '/' + started + ' ok');
+          }
+          if (leaveCount){
+            parts.push(leaveCount + ' C');
+          }
+          const metaText = parts.length ? parts.join(', ') : '–';
+
           dayEl.innerHTML =
             '<span class="calendar-day-label">' + d + '</span>' +
-            '<span class="calendar-day-meta">' +
-              (started ? (completed + '/' + started + ' ok') : '–') +
-            '</span>';
+            '<span class="calendar-day-meta">' + metaText + '</span>';
+
           dayEl.addEventListener('click', function(){
             setSelectedCalendarDay(dk);
           });
+
           presenceCalendarEl.appendChild(dayEl);
         }
       }
-
+      
       function applyRoleVisibility(){
         const role = ADMIN_ROLE || 'admin';
 
@@ -3163,4 +3233,5 @@
 
 </body>
 </html>
+
 
