@@ -110,6 +110,34 @@
       margin:0;
       font-size:20px;
     }
+
+    /* NOU: tabs de pagină în header (Dashboard / Alerts page / Scenarii rapoarte) */
+    .admin-page-tabs{
+      display:flex;
+      flex-wrap:wrap;
+      gap:6px;
+      margin-bottom:4px;
+      flex-basis:100%;
+    }
+    .admin-page-tab{
+      font-size:12px;
+      padding:6px 10px;
+      border-radius:999px;
+      border:1px solid transparent;
+      background:rgba(148,163,184,.15);
+      color:var(--muted);
+      text-decoration:none;
+      font-weight:600;
+    }
+    .admin-page-tab:hover{
+      background:rgba(148,163,184,.25);
+    }
+    .admin-page-tab.active{
+      background:#ffffff;
+      border-color:rgba(148,163,184,.85);
+      color:var(--text);
+    }
+
     .admin-filter-line{
       display:flex;
       flex-wrap:wrap;
@@ -189,7 +217,7 @@
       color:#1d4ed8;
     }
 
-    /* TAB-uri Dashboard / Alerte LIVE */
+    /* TAB-uri Dashboard / Alerte LIVE (în pagina admin) */
     .admin-tabs{
       display:flex;
       gap:8px;
@@ -532,6 +560,13 @@
     <main class="admin-layout">
       <section class="admin-main">
         <header class="admin-header">
+          <!-- Tabs PAGINĂ: Dashboard / Alerts page / Scenarii rapoarte -->
+          <div class="admin-page-tabs">
+            <a href="admin.html" class="admin-page-tab active">Dashboard</a>
+            <a href="alerts.html" class="admin-page-tab">Alerts page</a>
+            <a href="reports.html" class="admin-page-tab">Scenarii rapoarte</a>
+          </div>
+
           <h1>Dashboard pontaj</h1>
           <div class="admin-filter-line">
             <label>
@@ -564,7 +599,7 @@
           </div>
         </header>
 
-        <!-- TAB-uri: Dashboard / Alerte LIVE -->
+        <!-- TAB-uri: Dashboard / Alerte LIVE (în pagina admin) -->
         <div class="admin-tabs">
           <button type="button" class="admin-tab-btn active" data-tab="dashboard">
             📊 Dashboard
@@ -719,7 +754,7 @@
           </section>
 
           <!-- A4: Calendar prezență -->
-                  <section class="card admin-card">
+          <section class="card admin-card">
             <h2>Calendar prezență (lună curentă)</h2>
             <div class="admin-small-text">
               Fiecare zi arată câți angajați au avut pontaj și câți au normă completă, pentru luna curentă. Click pe o zi pentru a filtra mai jos.
@@ -2139,21 +2174,6 @@
     return list;
   }
 
-  function applyIncompleteFilter(events){
-    if (!filterIncompleteOnly) return events;
-    if (!ALL_STATS || !ALL_STATS.employees || !events || !events.length) return events;
-    return events.filter(ev => {
-      if (!ev.name || !ev.ts) return false;
-      const dk = dateKeyFromIso(ev.ts);
-      if (!dk) return false;
-      const emp = ALL_STATS.employees.get(ev.name);
-      if (!emp) return false;
-      const day = emp.days.get(dk);
-      if (!day) return false;
-      return isDayIncomplete(day);
-    });
-  }
-
  function renderLiveBoard(){
   if (!liveBoardEl) return;
   liveBoardEl.innerHTML = '';
@@ -2728,7 +2748,7 @@
         refresh();
       }
 
-            function renderPresenceCalendarMonthly(){
+      function renderPresenceCalendarMonthly(){
         if (!presenceCalendarEl) return;
         presenceCalendarEl.innerHTML = '';
 
@@ -3244,6 +3264,3 @@
 
 </body>
 </html>
-
-
-
