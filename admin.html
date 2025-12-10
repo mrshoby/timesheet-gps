@@ -157,12 +157,6 @@
       gap:8px;
     }
 
-    .filter-summary{
-      margin:4px 0 10px;
-      font-size:12px;
-      color:var(--muted);
-    }
-
     .toggle-incomplete{
       display:inline-flex;
       align-items:center;
@@ -193,6 +187,32 @@
       border:1px solid #bfdbfe;
       font-size:13px;
       color:#1d4ed8;
+    }
+
+    /* TAB-uri Dashboard / Alerte LIVE */
+    .admin-tabs{
+      display:flex;
+      gap:8px;
+      margin:6px 0 10px;
+      flex-wrap:wrap;
+    }
+    .admin-tab-btn{
+      border:0;
+      background:rgba(148,163,184,.18);
+      border-radius:999px;
+      padding:6px 10px;
+      font-size:11px;
+      font-weight:600;
+      cursor:pointer;
+      color:var(--muted);
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+    }
+    .admin-tab-btn.active{
+      background:var(--brand);
+      color:#fff;
+      box-shadow:0 4px 10px rgba(15,23,42,.18);
     }
 
     .admin-kpis{
@@ -336,13 +356,6 @@
     }
     .admin-table tr.clickable:hover td{
       background:#e5f0ff;
-    }
-    .admin-table tr.row-today td{
-      background:#ecfdf3;
-      border-bottom-color:#bbf7d0;
-    }
-    .admin-table tr.row-today.clickable:hover td{
-      background:#d1fae5;
     }
 
     .admin-log{
@@ -521,11 +534,20 @@
           </div>
         </header>
 
-        <div id="filterSummary" class="filter-summary"></div>
+        <!-- TAB-uri: Dashboard / Alerte LIVE -->
+        <div class="admin-tabs">
+          <button type="button" class="admin-tab-btn active" data-tab="dashboard">
+            📊 Dashboard
+          </button>
+          <button type="button" class="admin-tab-btn" data-tab="alerts">
+            ⏰ Alerte LIVE
+          </button>
+        </div>
 
         <div id="error" class="admin-error" style="display:none"></div>
         <div id="loading" class="admin-loading">Se încarcă datele din server…</div>
 
+        <!-- TAB PRINCIPAL: Dashboard -->
         <section id="dashboard" style="display:none">
           <!-- KPI-uri principale -->
           <div class="admin-kpis">
@@ -702,6 +724,44 @@
             </section>
           </div>
         </section>
+
+        <!-- TAB NOU: Alerte LIVE -->
+        <section id="alertsPage" style="display:none">
+          <section class="card admin-card">
+            <h2>Alerte LIVE pe ziua curentă</h2>
+            <div class="admin-small-text">
+              Monitorizare în timp real (client-side) pentru:
+              <ul style="margin:4px 0 0 16px;padding:0;font-size:11px;color:var(--muted);">
+                <li>Pauză &gt; limită (implicit 40 min, din configurare) fără UNPAUSE – notificări din 15 în 15 minute.</li>
+                <li>Normă depășită (8h / 8h30 sau valori din <code>normSettings</code>) fără FINISH – notificări din 30 în 30 de minute.</li>
+                <li>EXTRA în curs &gt; 30 min – notificări din 15 în 15 minute.</li>
+              </ul>
+            </div>
+            <div id="liveAlertsActive" class="admin-list"></div>
+          </section>
+
+          <section class="card admin-card">
+            <h2>Istoric notificări în sesiunea curentă</h2>
+            <div class="admin-small-text">
+              Fiecare depășire generează o notificare inițială, apoi încă una la fiecare interval (15 / 30 min) cât timp condiția rămâne activă.
+              Istoricul este local, doar pentru sesiunea curentă a paginii.
+            </div>
+            <div class="table-wrap">
+              <table class="admin-table">
+                <thead>
+                  <tr>
+                    <th>Moment</th>
+                    <th>Angajat</th>
+                    <th>Departament</th>
+                    <th>Tip</th>
+                    <th>Mesaj</th>
+                  </tr>
+                </thead>
+                <tbody id="liveAlertsHistoryBody"></tbody>
+              </table>
+            </div>
+          </section>
+        </section>
       </section>
 
       <aside class="admin-side">
@@ -725,12 +785,6 @@
           </button>
           <button id="payrollExportBtn" class="btn" type="button" style="margin-top:8px">
             Export salarizare (luna precedentă)
-          </button>
-          <button id="exportIncompleteBtn" class="btn" type="button" style="margin-top:8px">
-            Export Zile incomplete (filtru curent)
-          </button>
-          <button id="exportAnomaliesBtn" class="btn" type="button" style="margin-top:8px">
-            Export Anomalii (filtru curent)
           </button>
           <p class="admin-small-text" style="margin-top:10px">
             <a href="index.html" class="admin-link">Înapoi la pontaj</a>
@@ -757,7 +811,7 @@
           <div id="liveBoard" class="admin-list"></div>
         </section>
 
-        <!-- A6: Alerte sistem -->
+        <!-- A6: Alerte sistem (din Apps Script) -->
         <section class="card admin-card">
           <h2>Alerte sistem</h2>
           <div class="admin-small-text">
@@ -780,18 +834,7 @@
 
  <script>
 (function(){
-  const ADMIN_LS_KEY  = 'pontaj/admin/v1';
-  const FILTER_LS_KEY = 'pontaj/admin/filters/v1';
-  const CSV_SEP       = ';';
-
-  const ACTION_LABEL = {
-    start: '▶ START',
-    finish: '⏹ FINISH',
-    pause: '⏸ PAUSE',
-    unpause: '▶ UNPAUSE',
-    extra_start: '➕ EXTRA START',
-    extra_finish: '✔ EXTRA FINISH'
-  };
+  const ADMIN_LS_KEY = 'pontaj/admin/v1';
 
   // A1: Normă/pauză implicită (fallback) – suprascrisă din config.json
   let DEFAULT_NORM_MS             = 8   * 60 * 60 * 1000;
@@ -803,10 +846,6 @@
 
   // A2/A3: Index concedii: dateKey -> Set(nume)
   let LEAVE_BY_DAY = new Map();
-
-  // Buffere pentru export liste speciale
-  let LAST_INCOMPLETE_ROWS = [];
-  let LAST_ANOMALY_ROWS    = [];
 
   // Activitățile care au normă de 8h30 (fallback)
   const ACTIVITATI_NORMA_8H30 = ['deplasare', 'pe drum', 'atelier'];
@@ -825,6 +864,12 @@
   let ADMIN_ROLE = 'admin';
   let ADMIN_DEPT = null;
 
+  // Alerte LIVE – stocare locală sesiune
+  let LIVE_ALERT_STATE = {}; // key: "nume|tip" -> { firstTriggeredAt, lastSlotIndex }
+  let LIVE_ALERT_LOG   = []; // [{ts,name,dept,type,message}]
+  const ALERT_MAX_LOG  = 200;
+  let LIVE_ALERT_TIMER = null;
+
   function getAdminSession(){
     try{
       const raw = localStorage.getItem(ADMIN_LS_KEY);
@@ -833,20 +878,6 @@
   }
   function clearAdminSession(){
     try{ localStorage.removeItem(ADMIN_LS_KEY); }catch{}
-  }
-
-  function loadSavedFilters(){
-    try{
-      const raw = localStorage.getItem(FILTER_LS_KEY);
-      return raw ? JSON.parse(raw) : {};
-    }catch{
-      return {};
-    }
-  }
-  function saveFiltersToStorage(data){
-    try{
-      localStorage.setItem(FILTER_LS_KEY, JSON.stringify(data));
-    }catch{}
   }
 
   async function loadConfig(){
@@ -955,6 +986,9 @@
   const errorEl                = document.getElementById('error');
   const loadingEl              = document.getElementById('loading');
   const dashboardEl            = document.getElementById('dashboard');
+  const alertsPageEl           = document.getElementById('alertsPage');
+  const tabButtons             = document.querySelectorAll('.admin-tab-btn');
+
   const rangeSelect            = document.getElementById('rangeSelect');
   const deptFilter             = document.getElementById('deptFilter');
   const employeeFilter         = document.getElementById('employeeFilter');
@@ -966,8 +1000,6 @@
   const deptPdfBtn             = document.getElementById('deptPdfBtn');
   const employeeExportBtn      = document.getElementById('employeeExportBtn');
   const payrollExportBtn       = document.getElementById('payrollExportBtn');
-  const exportIncompleteBtn    = document.getElementById('exportIncompleteBtn');
-  const exportAnomaliesBtn     = document.getElementById('exportAnomaliesBtn');
   const topEmployeesEl         = document.getElementById('topEmployees');
   const employeeIndexListEl    = document.getElementById('employeeIndexList');
   const employeeDetailsHeaderEl= document.getElementById('employeeDetailsHeader');
@@ -988,6 +1020,10 @@
   const employeeSearchInput    = document.getElementById('employeeSearch');
   const topModeHoursBtn        = document.getElementById('topModeHours');
   const topModeAnomaliesBtn    = document.getElementById('topModeAnomalies');
+
+  // Elemente pentru pagina de Alerte LIVE
+  const liveAlertsActiveEl     = document.getElementById('liveAlertsActive');
+  const liveAlertsHistoryBodyEl= document.getElementById('liveAlertsHistoryBody');
 
   if (!session){
     alert('Nu ești autentificat ca admin. Te redirecționez la pagina principală.');
@@ -1012,6 +1048,7 @@
     }
     if (loadingEl) loadingEl.style.display = 'none';
     if (dashboardEl) dashboardEl.style.display = 'none';
+    if (alertsPageEl) alertsPageEl.style.display = 'none';
   }
 
   function _norm(s){ return String(s==null?'':s).trim(); }
@@ -1067,35 +1104,6 @@
     if (isNaN(dt.getTime())) return false;
     const wd = dt.getDay(); // 0 = duminică, 6 = sâmbătă
     return wd === 0 || wd === 6;
-  }
-
-  function describeRangeLabel(value){
-    switch(value){
-      case 'today': return 'Astăzi';
-      case 'last7': return 'Ultimele 7 zile';
-      case 'all':
-      default: return 'Toate datele';
-    }
-  }
-
-  function updateFilterSummaryUI(rangeValue, deptValue, empValue, incompleteOnly, selectedDay){
-    const el = document.getElementById('filterSummary');
-    if (!el) return;
-    const rangeLabel = describeRangeLabel(rangeValue || 'today');
-    const deptLabel  = (!deptValue || deptValue === 'all') ? 'Toate' : deptValue;
-    const empLabel   = (!empValue || empValue === 'all') ? 'Toți' : empValue;
-    const daysLabel  = incompleteOnly ? 'doar zile incomplete' : 'toate zilele';
-
-    let text = 'Perioadă: ' + rangeLabel +
-      ' • Departament: ' + deptLabel +
-      ' • Angajat: ' + empLabel +
-      ' • Zile: ' + daysLabel;
-
-    if (selectedDay){
-      text += ' • Calendar: ziua ' + selectedDay;
-    }
-
-    el.textContent = text;
   }
 
   function renderKpis(events){
@@ -1163,12 +1171,11 @@
     }
     list.forEach(ev=>{
       const tr = document.createElement('tr');
-      const label = ACTION_LABEL[ev.action] || (ev.action || '');
       tr.innerHTML =
         '<td>' + fmtDateTime(ev.ts) + '</td>' +
         '<td>' + (ev.name || '') + '</td>' +
         '<td>' + (ev.dept || '') + '</td>' +
-        '<td>' + label + '</td>' +
+        '<td>' + (ev.action || '') + '</td>' +
         '<td>' + (ev.activity || '') + '</td>';
       lastEventsBodyEl.appendChild(tr);
     });
@@ -1266,7 +1273,7 @@
     const csvLines = [header].concat(rows).map(row => row.map(cell => {
       const s = String(cell).replace(/"/g,'""');
       return '"' + s + '"';
-    }).join(CSV_SEP));
+    }).join(','));
     const csv = csvLines.join('\r\n');
     const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
     const url  = URL.createObjectURL(blob);
@@ -1289,13 +1296,7 @@
       day.pauseCount || day.unpauseCount ||
       day.extraStartCount || day.extraFinishCount;
     if (!hasAnyEvent) return false;
-    return (
-      !day.hasFinish ||
-      day.openRunning ||
-      day.openExtra ||
-      day.hasPauseMismatch ||
-      day.hasExtraMismatch
-    );
+    return !day.hasFinish;
   }
 
   function buildStatsFromEvents(events){
@@ -1409,6 +1410,12 @@
             sumPauseMs   = 0;
             startTs      = t;
             pauseStartTs = null;
+          } else {
+            // nou: dacă există deja o sesiune, considerăm că începe o nouă sesiune
+            startTs      = t;
+            paused       = false;
+            pauseStartTs = null;
+            sumPauseMs   = 0;
           }
         } else if (act === 'pause') {
           day.pauseCount++;
@@ -1447,6 +1454,8 @@
           day.extraStartCount++;
           if (!extraRunning) {
             extraRunning = true;
+            extraStartTs = t;
+          } else {
             extraStartTs = t;
           }
         } else if (act === 'extra_finish') {
@@ -1643,7 +1652,7 @@
       const compStatus = d.completed
         ? '<span class="badge badge-ok">DA</span>'
         : (isDayIncomplete(d)
-            ? '<span class="badge badge-warn">INCOMPLETĂ (START / PAUSE / EXTRA deschise)</span>'
+            ? '<span class="badge badge-warn">INCOMPLETĂ (fără FINISH)</span>'
             : '-');
 
       let normStatus = '-';
@@ -1861,7 +1870,6 @@
     }
     const entries = Array.from(stats.perDay.values())
       .sort((a,b)=>a.dateKey < b.dateKey ? -1 : (a.dateKey > b.dateKey ? 1 : 0));
-    const todayKey = dateKeyFromIso(new Date().toISOString());
     entries.forEach(day => {
       const started   = day.started   ? day.started.size   : 0;
       const completed = day.completed ? day.completed.size : 0;
@@ -1870,9 +1878,6 @@
         ? LEAVE_BY_DAY.get(day.dateKey).size
         : 0;
       const tr = document.createElement('tr');
-      if (day.dateKey === todayKey){
-        tr.classList.add('row-today');
-      }
       tr.innerHTML =
         '<td>' + day.dateKey + '</td>' +
         '<td>' + started + '</td>' +
@@ -1886,7 +1891,6 @@
   function renderIncompleteDays(baseEvents){
     if (!incompleteDaysBodyEl) return;
     incompleteDaysBodyEl.innerHTML = '';
-    LAST_INCOMPLETE_ROWS = [];
 
     if (!baseEvents || !baseEvents.length || !ALL_STATS || !ALL_STATS.employees || !ALL_STATS.employees.size){
       const tr = document.createElement('tr');
@@ -1920,33 +1924,13 @@
       const day = emp.days.get(info.dateKey);
       if (!day) return;
       if (!isDayIncomplete(day)) return;
-
-      const reasons = [];
-      if (!day.hasFinish && (day.hasStart || day.startCount || (day.events && day.events.length))){
-        reasons.push('START fără FINISH');
-      }
-      if (day.hasPauseMismatch){
-        reasons.push('PAUSE / UNPAUSE nu se potrivesc');
-      }
-      if (day.hasExtraMismatch){
-        reasons.push('EXTRA START / EXTRA FINISH nu se potrivesc');
-      }
-      if (day.openRunning){
-        reasons.push('sesiune normă deschisă');
-      }
-      if (day.openExtra){
-        reasons.push('sesiune EXTRA deschisă');
-      }
-      const statusText = reasons.length ? reasons.join('; ') : 'Zi marcată ca incompletă.';
-
       rows.push({
         dateKey: info.dateKey,
         name: info.name,
         dept: day.dept || emp.dept || info.deptHint || '',
         workMs: day.workMs,
         extraMs: day.extraMs,
-        day,
-        statusText
+        day
       });
     });
 
@@ -1968,15 +1952,10 @@
       return 0;
     });
 
-    LAST_INCOMPLETE_ROWS = rows;
-
-    const todayKey = dateKeyFromIso(new Date().toISOString());
     rows.forEach(item => {
+      const statusText = 'Zi cu pontaj, dar fără FINISH (nu s-a apăsat FINISH)';
       const tr = document.createElement('tr');
       tr.className = 'clickable';
-      if (item.dateKey === todayKey){
-        tr.classList.add('row-today');
-      }
       tr.dataset.name = item.name;
       tr.dataset.dateKey = item.dateKey;
       tr.innerHTML =
@@ -1985,7 +1964,7 @@
         '<td>' + item.dept + '</td>' +
         '<td>' + (item.workMs ? fmtHoursHM(item.workMs) : '-') + '</td>' +
         '<td>' + (item.extraMs ? fmtHoursHM(item.extraMs) : '-') + '</td>' +
-        '<td>' + item.statusText + '</td>';
+        '<td>' + statusText + '</td>';
       incompleteDaysBodyEl.appendChild(tr);
     });
   }
@@ -1993,7 +1972,6 @@
   function renderAnomalies(baseEvents){
     if (!anomaliesBodyEl) return;
     anomaliesBodyEl.innerHTML = '';
-    LAST_ANOMALY_ROWS = [];
 
     if (!baseEvents || !baseEvents.length || !ALL_STATS || !ALL_STATS.employees || !ALL_STATS.employees.size){
       const tr = document.createElement('tr');
@@ -2077,15 +2055,9 @@
       return a.name.localeCompare(b.name,'ro');
     });
 
-    LAST_ANOMALY_ROWS = rows;
-
-    const todayKey = dateKeyFromIso(new Date().toISOString());
     rows.forEach(item=>{
       const tr = document.createElement('tr');
       tr.className = 'clickable';
-      if (item.dateKey === todayKey){
-        tr.classList.add('row-today');
-      }
       tr.dataset.name = item.name;
       tr.dataset.dateKey = item.dateKey;
       tr.innerHTML =
@@ -2235,7 +2207,6 @@
     rows.forEach(r=>{
       const row = document.createElement('div');
       row.className = 'admin-list-row';
-      row.dataset.empName = r.name;
       row.innerHTML =
         '<div>' +
           '<div class="admin-list-label">' + r.name + '</div>' +
@@ -2291,6 +2262,264 @@
     }
     const url = base + (q.length ? ('?' + q.join('&')) : '');
     selfServiceLink.href = url;
+  }
+
+  // --- HELPER pentru calculul stării de azi (pentru alerte LIVE) ---
+  function buildTodayStates(allEvents){
+    const now = new Date();
+    const todayKey = dateKeyFromIso(now.toISOString());
+    if (!todayKey) return { byName:new Map(), todayKey:null };
+
+    const todayEvents = (allEvents || []).filter(ev => dateKeyFromIso(ev.ts) === todayKey);
+    if (!todayEvents.length) return { byName:new Map(), todayKey };
+
+    todayEvents.sort((a,b)=>new Date(a.ts) - new Date(b.ts));
+    const byName = new Map();
+
+    todayEvents.forEach(ev=>{
+      if (!ev.name) return;
+      if (!byName.has(ev.name)){
+        byName.set(ev.name, {
+          name: ev.name,
+          dept: ev.dept || '',
+          hasLongActivity: false,
+          firstStartTs: null,
+          lastStartTs: null,
+          running: false,
+          paused: false,
+          pauseStartTs: null,
+          extraRunning: false,
+          extraStartTs: null
+        });
+      }
+      const st = byName.get(ev.name);
+      const t = new Date(ev.ts).getTime();
+      if (isNaN(t)) return;
+
+      if (ev.dept) st.dept = ev.dept;
+      if (ev.activity && ACTIVITATI_NORMA_8H30.indexOf(ev.activity) !== -1){
+        st.hasLongActivity = true;
+      }
+
+      if (ev.action === 'start'){
+        if (st.firstStartTs == null) st.firstStartTs = t;
+        st.lastStartTs = t;
+        st.running = true;
+        st.paused = false;
+        st.pauseStartTs = null;
+      } else if (ev.action === 'pause'){
+        if (st.running){
+          st.paused = true;
+          st.pauseStartTs = t;
+        }
+      } else if (ev.action === 'unpause'){
+        if (st.running){
+          st.paused = false;
+          st.pauseStartTs = null;
+        }
+      } else if (ev.action === 'finish'){
+        // închidem sesiunea curentă
+        st.running = false;
+        st.paused = false;
+        st.pauseStartTs = null;
+      } else if (ev.action === 'extra_start'){
+        st.extraRunning = true;
+        st.extraStartTs = t;
+      } else if (ev.action === 'extra_finish'){
+        st.extraRunning = false;
+        st.extraStartTs = null;
+      }
+    });
+
+    return { byName, todayKey };
+  }
+
+  function registerAlertSlot(key, overdueMs, freqMs, nowMs){
+    if (!LIVE_ALERT_STATE[key]){
+      LIVE_ALERT_STATE[key] = {
+        firstTriggeredAt: nowMs - overdueMs,
+        lastSlotIndex: -1
+      };
+    }
+    const slot = Math.floor(overdueMs / freqMs);
+    if (slot > LIVE_ALERT_STATE[key].lastSlotIndex){
+      LIVE_ALERT_STATE[key].lastSlotIndex = slot;
+      return true; // notificare nouă în acest interval
+    }
+    return false;
+  }
+
+  function pushAlertLog(entry){
+    LIVE_ALERT_LOG.unshift(entry);
+    if (LIVE_ALERT_LOG.length > ALERT_MAX_LOG){
+      LIVE_ALERT_LOG.length = ALERT_MAX_LOG;
+    }
+  }
+
+  function renderLiveAlertsActive(active){
+    if (!liveAlertsActiveEl) return;
+    liveAlertsActiveEl.innerHTML = '';
+    if (!active || !active.length){
+      liveAlertsActiveEl.innerHTML =
+        '<div class="admin-empty">Nu există alerte active în acest moment (în funcție de evenimentele încărcate).</div>';
+      return;
+    }
+    active.sort((a,b)=>a.name.localeCompare(b.name,'ro'));
+    active.forEach(item=>{
+      const row = document.createElement('div');
+      row.className = 'admin-list-row';
+      let badgesHtml = '';
+      item.alerts.forEach(a=>{
+        badgesHtml += '<div><span class="badge badge-warn">' + a.label + '</span></div>';
+        if (a.detail){
+          badgesHtml += '<div style="font-size:11px;color:#6b7280;margin-top:2px;">' + a.detail + '</div>';
+        }
+      });
+      row.innerHTML =
+        '<div>' +
+          '<div class="admin-list-label">' + item.name + '</div>' +
+          '<div class="admin-list-sub">' + (item.dept || '(fără departament)') + '</div>' +
+        '</div>' +
+        '<div class="admin-list-value">' +
+          badgesHtml +
+        '</div>';
+      liveAlertsActiveEl.appendChild(row);
+    });
+  }
+
+  function renderLiveAlertsHistory(){
+    if (!liveAlertsHistoryBodyEl) return;
+    liveAlertsHistoryBodyEl.innerHTML = '';
+    if (!LIVE_ALERT_LOG.length){
+      const tr = document.createElement('tr');
+      const td = document.createElement('td');
+      td.colSpan = 5;
+      td.textContent = 'Nu există notificări în această sesiune.';
+      tr.appendChild(td);
+      liveAlertsHistoryBodyEl.appendChild(tr);
+      return;
+    }
+    LIVE_ALERT_LOG.forEach(entry=>{
+      const tr = document.createElement('tr');
+      let typeLabel = '';
+      if (entry.type === 'pause') typeLabel = 'Pauză';
+      else if (entry.type === 'norm') typeLabel = 'Normă';
+      else if (entry.type === 'extra') typeLabel = 'Extra';
+      else typeLabel = entry.type || '-';
+      tr.innerHTML =
+        '<td>' + fmtDateTime(entry.ts) + '</td>' +
+        '<td>' + entry.name + '</td>' +
+        '<td>' + (entry.dept || '') + '</td>' +
+        '<td>' + typeLabel + '</td>' +
+        '<td>' + (entry.message || '') + '</td>';
+      liveAlertsHistoryBodyEl.appendChild(tr);
+    });
+  }
+
+  function scanAndUpdateLiveAlerts(){
+    const allEvents = window.__pontajAdminEvents || [];
+    const nowMs = Date.now();
+    const { byName } = buildTodayStates(allEvents);
+    const active = [];
+
+    byName.forEach(st=>{
+      const dept = st.dept || '';
+      const alertsForThis = [];
+
+      // Pauză > limită fără UNPAUSE
+      if (st.paused && st.pauseStartTs){
+        const thresholdMs = getPauseMarginMsFor(st.name, dept);
+        const elapsed = nowMs - st.pauseStartTs;
+        if (elapsed > thresholdMs){
+          const key = st.name + '|pause';
+          const freq = 15 * 60 * 1000; // la 15 minute
+          const overdueMs = elapsed - thresholdMs;
+          const newNotif = registerAlertSlot(key, overdueMs, freq, nowMs);
+          const baseMinutes = Math.round(thresholdMs / 60000);
+          const overMin = Math.round(elapsed / 60000);
+          if (newNotif){
+            pushAlertLog({
+              ts:new Date(nowMs).toISOString(),
+              name:st.name,
+              dept,
+              type:'pause',
+              message:'Pauză mai mare de ' + baseMinutes + ' min (în pauză de ' + overMin + ' min, fără UNPAUSE).'
+            });
+          }
+          alertsForThis.push({
+            type:'pause',
+            label:'Pauză > ' + baseMinutes + ' min',
+            detail:'În pauză de ' + overMin + ' min fără UNPAUSE.'
+          });
+        }
+      }
+
+      // Normă depășită (în funcție de normă configurată) fără FINISH
+      if ((st.running || st.paused) && st.firstStartTs){
+        const normMs = getNormMsFor(st.name, dept, st.hasLongActivity);
+        const elapsedNorm = nowMs - st.firstStartTs;
+        if (elapsedNorm > normMs){
+          const key = st.name + '|norm';
+          const freq = 30 * 60 * 1000; // din 30 în 30 de minute
+          const overdueMs = elapsedNorm - normMs;
+          const newNotif = registerAlertSlot(key, overdueMs, freq, nowMs);
+          const baseHours = (normMs/3600000).toFixed(1).replace('.', ',');
+          const elapsedHours = (elapsedNorm/3600000).toFixed(2).replace('.', ',');
+          if (newNotif){
+            pushAlertLog({
+              ts:new Date(nowMs).toISOString(),
+              name:st.name,
+              dept,
+              type:'norm',
+              message:'Normă depășită (' + elapsedHours + 'h de la primul START, peste ' + baseHours + 'h, fără FINISH).'
+            });
+          }
+          alertsForThis.push({
+            type:'norm',
+            label:'Normă depășită',
+            detail:'Peste ' + baseHours + 'h fără FINISH (acum ~' + elapsedHours + 'h).'
+          });
+        }
+      }
+
+      // EXTRA în curs > 30 min
+      if (st.extraRunning && st.extraStartTs){
+        const thresholdMs = 30 * 60 * 1000;
+        const elapsedExtra = nowMs - st.extraStartTs;
+        if (elapsedExtra > thresholdMs){
+          const key = st.name + '|extra';
+          const freq = 15 * 60 * 1000; // la 15 minute
+          const overdueMs = elapsedExtra - thresholdMs;
+          const newNotif = registerAlertSlot(key, overdueMs, freq, nowMs);
+          const overMin = Math.round(elapsedExtra / 60000);
+          if (newNotif){
+            pushAlertLog({
+              ts:new Date(nowMs).toISOString(),
+              name:st.name,
+              dept,
+              type:'extra',
+              message:'Sesiune EXTRA peste 30 min (în curs de ' + overMin + ' min).'
+            });
+          }
+          alertsForThis.push({
+            type:'extra',
+            label:'EXTRA > 30 min',
+            detail:'Sesiune EXTRA în curs de ' + overMin + ' min.'
+          });
+        }
+      }
+
+      if (alertsForThis.length){
+        active.push({
+          name:st.name,
+          dept,
+          alerts:alertsForThis
+        });
+      }
+    });
+
+    renderLiveAlertsActive(active);
+    renderLiveAlertsHistory();
   }
 
   async function init(){
@@ -2383,43 +2612,9 @@
       let latestFiltered  = [];
 
       buildDeptFilter(events);
-
-      const savedFilters = loadSavedFilters();
-      if (savedFilters && typeof savedFilters === 'object'){
-        if (savedFilters.range && rangeSelect){
-          currentRange = savedFilters.range;
-          rangeSelect.value = savedFilters.range;
-        }
-        if (savedFilters.dept && deptFilter && deptFilter.querySelector('option[value="'+savedFilters.dept+'"]')){
-          currentDept = savedFilters.dept;
-          deptFilter.value = savedFilters.dept;
-        }
-      }
-      CURRENT_DEPT_FILTER = currentDept;
-
       buildEmployeeFilter(events, currentDept);
-
-      if (savedFilters && typeof savedFilters === 'object'){
-        if (savedFilters.emp && employeeFilter && employeeFilter.querySelector('option[value="'+savedFilters.emp+'"]')){
-          currentEmployee   = savedFilters.emp;
-          SELECTED_EMPLOYEE = savedFilters.emp;
-          employeeFilter.value = savedFilters.emp;
-        }
-        if (typeof savedFilters.incompleteOnly === 'boolean' && incompleteOnlyCheckbox){
-          filterIncompleteOnly = !!savedFilters.incompleteOnly;
-          incompleteOnlyCheckbox.checked = filterIncompleteOnly;
-        }
-        if (savedFilters.lastEventsRange && lastEventsRangeSelect){
-          lastEventsRange = savedFilters.lastEventsRange;
-          lastEventsRangeSelect.value = savedFilters.lastEventsRange;
-        }
-      }
-
       renderEmployeeIndex(ALL_STATS, CURRENT_DEPT_FILTER, EMPLOYEE_SEARCH_TEXT);
-      renderEmployeeDetails(SELECTED_EMPLOYEE);
-      if (SELECTED_EMPLOYEE){
-        markSelectedEmployee(SELECTED_EMPLOYEE);
-      }
+      renderEmployeeDetails(null);
 
       function setSelectedCalendarDay(dateKey){
         if (SELECTED_CALENDAR_DAY === dateKey){
@@ -2427,6 +2622,7 @@
         } else {
           SELECTED_CALENDAR_DAY = dateKey;
         }
+        refresh();
       }
 
       function renderPresenceCalendarMonthly(){
@@ -2495,7 +2691,6 @@
             '</span>';
           dayEl.addEventListener('click', function(){
             setSelectedCalendarDay(dk);
-            refresh();
           });
           presenceCalendarEl.appendChild(dayEl);
         }
@@ -2510,8 +2705,6 @@
           if (deptPdfBtn) deptPdfBtn.style.display = 'none';
           if (employeeExportBtn) employeeExportBtn.style.display = 'none';
           if (payrollExportBtn) payrollExportBtn.style.display = 'none';
-          if (exportIncompleteBtn) exportIncompleteBtn.style.display = 'none';
-          if (exportAnomaliesBtn) exportAnomaliesBtn.style.display = 'none';
         }
 
         if (role === 'teamlead' && ADMIN_DEPT && deptFilter){
@@ -2522,20 +2715,7 @@
         }
       }
 
-      function persistFilters(){
-        const data = {
-          range: rangeSelect ? rangeSelect.value : 'today',
-          dept: deptFilter ? deptFilter.value : 'all',
-          emp: employeeFilter ? employeeFilter.value : 'all',
-          incompleteOnly: !!(incompleteOnlyCheckbox && incompleteOnlyCheckbox.checked),
-          lastEventsRange: lastEventsRangeSelect ? lastEventsRangeSelect.value : 'today'
-        };
-        saveFiltersToStorage(data);
-      }
-
       function refresh(){
-        updateFilterSummaryUI(currentRange, currentDept, currentEmployee, filterIncompleteOnly, SELECTED_CALENDAR_DAY);
-
         let baseAll   = applyDeptEmployee(events, currentDept, currentEmployee);
         let baseRange = filterByRange(baseAll, currentRange || 'today');
         if (SELECTED_CALENDAR_DAY){
@@ -2564,7 +2744,7 @@
 
         if (lastEventsTitleEl && lastEventsHintTextEl && rawLogTitleEl){
           let baseHint = filterIncompleteOnly
-            ? 'Toate înregistrările din zilele incomplete (START / PAUSE / EXTRA deschise) pentru perioada aleasă și filtrul curent.'
+            ? 'Toate înregistrările din zilele fără FINISH pentru perioada aleasă și filtrul curent.'
             : 'Toate înregistrările din perioada aleasă, după filtrele de mai sus.';
           if (SELECTED_CALENDAR_DAY){
             baseHint += ' (Filtrat pe ziua ' + SELECTED_CALENDAR_DAY + ' din calendar.)';
@@ -2572,8 +2752,8 @@
           lastEventsHintTextEl.textContent = baseHint;
 
           if (filterIncompleteOnly){
-            lastEventsTitleEl.textContent = 'Ultimele pontaje (doar zile incomplete)';
-            rawLogTitleEl.textContent = 'Log brut (doar zile incomplete)';
+            lastEventsTitleEl.textContent = 'Ultimele pontaje (doar zile fără FINISH)';
+            rawLogTitleEl.textContent = 'Log brut (doar zile fără FINISH)';
           } else {
             lastEventsTitleEl.textContent = 'Ultimele pontaje';
             rawLogTitleEl.textContent = 'Log brut (filtru curent)';
@@ -2607,7 +2787,6 @@
 
         markSelectedEmployee(name);
         renderEmployeeDetails(name);
-        persistFilters();
         refresh();
 
         if (employeeDetailsBodyEl && employeeDetailsBodyEl.scrollIntoView){
@@ -2618,7 +2797,6 @@
       if (rangeSelect){
         rangeSelect.addEventListener('change', function(){
           currentRange = rangeSelect.value || 'today';
-          persistFilters();
           refresh();
         });
       }
@@ -2638,7 +2816,6 @@
           }
           renderEmployeeIndex(ALL_STATS, CURRENT_DEPT_FILTER, EMPLOYEE_SEARCH_TEXT);
           renderEmployeeDetails(SELECTED_EMPLOYEE);
-          persistFilters();
           refresh();
         });
       }
@@ -2653,21 +2830,18 @@
             markSelectedEmployee(SELECTED_EMPLOYEE);
             renderEmployeeDetails(SELECTED_EMPLOYEE);
           }
-          persistFilters();
           refresh();
         });
       }
       if (incompleteOnlyCheckbox){
         incompleteOnlyCheckbox.addEventListener('change', function(){
           filterIncompleteOnly = !!incompleteOnlyCheckbox.checked;
-          persistFilters();
           refresh();
         });
       }
       if (lastEventsRangeSelect){
         lastEventsRangeSelect.addEventListener('change', function(){
           lastEventsRange = lastEventsRangeSelect.value || 'today';
-          persistFilters();
           refresh();
         });
       }
@@ -2696,129 +2870,9 @@
         });
       }
 
-      if (topEmployeesEl){
-        topEmployeesEl.addEventListener('click', function(e){
-          const row = e.target.closest('.admin-list-row');
-          if (!row || !row.dataset.empName) return;
-          const name = row.dataset.empName;
-          SELECTED_EMPLOYEE = name;
-          if (employeeFilter){
-            if (!employeeFilter.querySelector('option[value="'+name+'"]')){
-              const o = document.createElement('option');
-              o.value = name;
-              o.textContent = name;
-              employeeFilter.appendChild(o);
-            }
-            employeeFilter.value = name;
-          }
-          currentEmployee = name;
-          markSelectedEmployee(name);
-          renderEmployeeDetails(name);
-          persistFilters();
-          refresh();
-          if (employeeDetailsBodyEl && employeeDetailsBodyEl.scrollIntoView){
-            employeeDetailsBodyEl.scrollIntoView({behavior:'smooth', block:'start'});
-          }
-        });
-      }
-
-      if (liveBoardEl){
-        liveBoardEl.addEventListener('click', function(e){
-          const row = e.target.closest('.admin-list-row');
-          if (!row || !row.dataset.empName) return;
-          const name = row.dataset.empName;
-          SELECTED_EMPLOYEE = name;
-          if (employeeFilter){
-            if (!employeeFilter.querySelector('option[value="'+name+'"]')){
-              const o = document.createElement('option');
-              o.value = name;
-              o.textContent = name;
-              employeeFilter.appendChild(o);
-            }
-            employeeFilter.value = name;
-          }
-          currentEmployee = name;
-          markSelectedEmployee(name);
-          renderEmployeeDetails(name);
-          persistFilters();
-          refresh();
-          if (employeeDetailsBodyEl && employeeDetailsBodyEl.scrollIntoView){
-            employeeDetailsBodyEl.scrollIntoView({behavior:'smooth', block:'start'});
-          }
-        });
-      }
-
       if (exportCsvBtn){
         exportCsvBtn.addEventListener('click', function(){
           exportCsv(latestFiltered);
-        });
-      }
-
-      if (exportIncompleteBtn){
-        exportIncompleteBtn.addEventListener('click', function(){
-          if (!LAST_INCOMPLETE_ROWS || !LAST_INCOMPLETE_ROWS.length){
-            alert('Nu există zile incomplete în filtrul curent pentru export.');
-            return;
-          }
-          const header = ['Data','Angajat','Departament','Normă (h)','Extra (h)','Stare'];
-          const rows = LAST_INCOMPLETE_ROWS.map(item => [
-            item.dateKey,
-            item.name,
-            item.dept,
-            (msToHours(item.workMs) || 0).toFixed(2),
-            (msToHours(item.extraMs) || 0).toFixed(2),
-            item.statusText || ''
-          ]);
-          const csvLines = [header].concat(rows).map(row => row.map(cell => {
-            const s = String(cell).replace(/"/g,'""');
-            return '"' + s + '"';
-          }).join(CSV_SEP));
-          const csv = csvLines.join('\r\n');
-          const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
-          const url  = URL.createObjectURL(blob);
-          const a    = document.createElement('a');
-          a.href = url;
-          a.download = 'pontaj-zile-incomplete.csv';
-          document.body.appendChild(a);
-          a.click();
-          setTimeout(() => {
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-          }, 0);
-        });
-      }
-
-      if (exportAnomaliesBtn){
-        exportAnomaliesBtn.addEventListener('click', function(){
-          if (!LAST_ANOMALY_ROWS || !LAST_ANOMALY_ROWS.length){
-            alert('Nu există anomalii în filtrul curent pentru export.');
-            return;
-          }
-          const header = ['Data','Angajat','Departament','Normă (h)','Extra (h)','Detalii'];
-          const rows = LAST_ANOMALY_ROWS.map(item => [
-            item.dateKey,
-            item.name,
-            item.dept,
-            (msToHours(item.workMs) || 0).toFixed(2),
-            (msToHours(item.extraMs) || 0).toFixed(2),
-            item.reasons || ''
-          ]);
-          const csvLines = [header].concat(rows).map(row => row.map(cell => {
-            const s = String(cell).replace(/"/g,'""');
-            return '"' + s + '"';
-          }).join(CSV_SEP));
-          const csv = csvLines.join('\r\n');
-          const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
-          const url  = URL.createObjectURL(blob);
-          const a    = document.createElement('a');
-          a.href = url;
-          a.download = 'pontaj-anomalii.csv';
-          document.body.appendChild(a);
-          a.click();
-          setTimeout(() => {
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-          }, 0);
         });
       }
 
@@ -2920,7 +2974,7 @@
               (msToHours(d.workMs) || 0).toFixed(2),
               (msToHours(d.extraMs) || 0).toFixed(2),
               (msToHours(d.overtimeMs) || 0).toFixed(2),
-              d.completed ? 'DA' : (flagIncomplete ? 'INCOMPLETA (START/PAUSE/EXTRA deschise)' : '-'),
+              d.completed ? 'DA' : (flagIncomplete ? 'INCOMPLETA (fara FINISH)' : '-'),
               d.normValidated ? 'VALIDATA' : 'NU'
             ];
           });
@@ -2928,7 +2982,7 @@
           const csvLines = [header].concat(rows).map(row => row.map(cell => {
             const s = String(cell).replace(/"/g,'""');
             return '"' + s + '"';
-          }).join(CSV_SEP));
+          }).join(','));
           const csv = csvLines.join('\r\n');
 
           const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
@@ -3010,7 +3064,7 @@
           const csvLines = [header].concat(rows).map(row => row.map(cell => {
             const s = String(cell).replace(/"/g,'""');
             return '"' + s + '"';
-          }).join(CSV_SEP));
+          }).join(','));
           const csv = csvLines.join('\r\n');
 
           const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
@@ -3027,9 +3081,31 @@
         });
       }
 
+      // TAB-uri Dashboard / Alerte LIVE
+      if (tabButtons && tabButtons.length){
+        tabButtons.forEach(btn=>{
+          btn.addEventListener('click', function(){
+            const tab = btn.dataset.tab;
+            tabButtons.forEach(b=>b.classList.toggle('active', b === btn));
+            if (tab === 'alerts'){
+              if (dashboardEl) dashboardEl.style.display = 'none';
+              if (alertsPageEl) alertsPageEl.style.display = '';
+            } else {
+              if (dashboardEl) dashboardEl.style.display = '';
+              if (alertsPageEl) alertsPageEl.style.display = 'none';
+            }
+          });
+        });
+      }
+
       applyRoleVisibility();
-      persistFilters();
       refresh();
+
+      // PORNIM motorul de alerte LIVE (scan la fiecare 60s)
+      scanAndUpdateLiveAlerts();
+      if (LIVE_ALERT_TIMER) clearInterval(LIVE_ALERT_TIMER);
+      LIVE_ALERT_TIMER = setInterval(scanAndUpdateLiveAlerts, 60 * 1000);
+
     }catch(e){
       showError(e.message || String(e));
     }
