@@ -846,6 +846,94 @@
     }
   }
 
+  function applyNormSettingsFromConfig(cfg){
+    NORM_CFG = {
+      timezone: (cfg.normSettings && cfg.normSettings.timezone) || 'Europe/Bucharest',
+      defaultNormMs: DEFAULT_NORM_MS,
+      defaultLongNormMs: LONG_NORM_MS,
+      defaultPauseMarginMs: DEFAULT_PAUSE_MARGIN_MS,
+      perDept: {},
+      perEmployee: {}
+    };
+    if (cfg.normSettings){
+      if (cfg.normSettings.default){
+        if (typeof cfg.normSettings.default.normHours === 'number'){
+          NORM_CFG.defaultNormMs = cfg.normSettings.default.normHours * 60 * 60 * 1000;
+        }
+        if (typeof cfg.normSettings.default.pauseMaxMinutes === 'number'){
+          NORM_CFG.defaultPauseMarginMs = cfg.normSettings.default.pauseMaxMinutes * 60 * 1000;
+        }
+      }
+      if (cfg.normSettings.departments){
+        Object.keys(cfg.normSettings.departments).forEach(dep=>{
+          const nd = cfg.normSettings.departments[dep] || {};
+          NORM_CFG.perDept[dep] = {
+            normMs: (typeof nd.normHours === 'number' ? nd.normHours * 60 * 60 * 1000 : null),
+            pauseMarginMs: (typeof nd.pauseMaxMinutes === 'number' ? nd.pauseMaxMinutes * 60 * 1000 : null)
+          };
+        });
+      }
+      if (cfg.normSettings.employees){
+        Object.keys(cfg.normSettings.employees).forEach(name=>{
+          const ne = cfg.normSettings.employees[name] || {};
+          NORM_CFG.perEmployee[name] = {
+            normMs: (typeof ne.normHours === 'number' ? ne.normHours * 60 * 60 * 1000 : null),
+            pauseMarginMs: (typeof ne.pauseMaxMinutes === 'number' ? ne.pauseMaxMinutes * 60 * 1000 : null)
+          };
+        });
+      }
+    }
+  }
+
+  // 🔹 FUNCȚIE NOUĂ: calculează norma zilnică (în ms) pentru un angajat + dept + „zi lungă”
+  function getNormMsFor(name, dept, hasLongActivity){
+    // Dacă nu avem config încă, folosim fallback global.
+    if (!NORM_CFG){
+      return hasLongActivity ? LONG_NORM_MS : DEFAULT_NORM_MS;
+    }
+
+    const perEmp  = NORM_CFG.perEmployee || {};
+    const perDept = NORM_CFG.perDept || {};
+
+    // 1) Override pe angajat
+    if (name && perEmp[name] && perEmp[name].normMs != null){
+      return perEmp[name].normMs;
+    }
+
+    // 2) Override pe departament
+    if (dept && perDept[dept] && perDept[dept].normMs != null){
+      return perDept[dept].normMs;
+    }
+
+    // 3) Fallback global (normă „lungă” pentru zile cu activitate specială)
+    const defNorm = NORM_CFG.defaultNormMs || DEFAULT_NORM_MS;
+    const defLong = NORM_CFG.defaultLongNormMs || LONG_NORM_MS;
+    return hasLongActivity ? defLong : defNorm;
+  }
+
+  // 🔹 FUNCȚIE NOUĂ: calculează limita maximă de pauză pentru un angajat + dept
+  function getPauseMarginMsFor(name, dept){
+    if (!NORM_CFG){
+      return DEFAULT_PAUSE_MARGIN_MS;
+    }
+
+    const perEmp  = NORM_CFG.perEmployee || {};
+    const perDept = NORM_CFG.perDept || {};
+
+    // 1) Override pe angajat
+    if (name && perEmp[name] && perEmp[name].pauseMarginMs != null){
+      return perEmp[name].pauseMarginMs;
+    }
+
+    // 2) Override pe departament
+    if (dept && perDept[dept] && perDept[dept].pauseMarginMs != null){
+      return perDept[dept].pauseMarginMs;
+    }
+
+    // 3) Fallback global
+    return NORM_CFG.defaultPauseMarginMs || DEFAULT_PAUSE_MARGIN_MS;
+  }
+  
   function buildLeaveIndex(leaves){
     LEAVE_BY_DAY = new Map();
     if (!Array.isArray(leaves)) return;
@@ -2818,3 +2906,4 @@
 
 </body>
 </html>
+
