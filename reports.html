@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SERVELECT • Rapoarte pontaj</title>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="icon" href="favicon.png" />
+  <meta name="theme-color" content="#516A75"/>
+  <style>
+    :root{
+      --brand:#516B74;
+      --accent:#95CA4B;
+      --text:#0f172a;
+      --muted:#5b6b73;
+      --bg:#f4f7f9;
+      --card:#ffffff;
+      --ring:#cfe0e7;
+      --danger:#ef4444;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%;width:100%}
+    body{
+      margin:0;
+      font-family: Montserrat, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      color:var(--text);
+      background:
+        linear-gradient(180deg, rgba(149, 202, 75, 0.91) 0%, rgba(81, 106, 117, 0.88) 66%),
+        url('background.jpg');
+      background-size: cover;
+      background-position: center center;
+      background-repeat: no-repeat;
+      background-attachment: fixed;
+      min-height:100vh;
+    }
+    .shell{max-width:900px;margin:0 auto;padding:24px;}
+    .card{
+      background:var(--card);
+      border-radius:18px;
+      box-shadow: 0 20px 60px rgba(2,132,199,.08);
+      border:1px solid rgba(148,163,184,.25);
+    }
+    .nav{
+      display:flex;align-items:center;justify-content:space-between;
+      gap:16px;padding:14px 16px;border-radius:16px;
+      background:linear-gradient(180deg, rgba(255,255,255,.95), rgba(255,255,255,.80));
+      backdrop-filter: blur(8px);
+      box-shadow: 0 8px 30px rgba(81,106,117,.18);
+      border:1px solid rgba(81,106,117,.18);
+      margin-bottom:20px;
+    }
+    .brand{display:flex;align-items:center;gap:12px;text-decoration:none;color:inherit}
+    .brand img{ width:38px;height:38px;object-fit:contain;aspect-ratio:1/1;border-radius:10px;box-shadow:0 3px 10px rgba(81,106,117,.25) }
+    .brand h1{font-size:18px;letter-spacing:.2px;margin:0;line-height:1.1}
+    .brand h1 span{display:block;font-weight:700}
+    .brand small{display:block;font-size:12px;color:var(--muted);margin-top:2px}
+
+    .chip{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:8px 10px;
+      border-radius:999px;
+      background:rgba(81,106,117,.10);
+      color:#2f3e45;
+      font-weight:600;
+      font-size:12px;
+    }
+
+    .btn{
+      --bg:#e2e8f0;
+      --fg:#0f172a;
+      appearance:none;
+      border:0;
+      border-radius:12px;
+      padding:10px 14px;
+      font-weight:600;
+      cursor:pointer;
+      transition: transform .06s ease, box-shadow .2s ease, background .2s;
+      box-shadow:0 6px 16px rgba(15,23,42,.08);
+      color:var(--fg);
+      background:var(--bg);
+      font-size:13px;
+      text-decoration:none;
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      justify-content:center;
+      white-space:nowrap;
+    }
+    .btn:active{ transform:translateY(1px); }
+    .btn.primary{
+      --bg:var(--accent);
+      --fg:#fff;
+    }
+    .btn.danger{
+      --bg:var(--danger);
+      --fg:#fff;
+    }
+
+    .admin-main{
+      padding:20px 18px 18px;
+    }
+    h2{margin-top:0;margin-bottom:8px;}
+    .admin-small-text{
+      font-size:13px;
+      color:var(--muted);
+      margin-bottom:14px;
+    }
+
+    .btn-row{
+      display:flex;
+      flex-wrap:wrap;
+      gap:10px;
+      margin-bottom:10px;
+    }
+
+    .status{
+      margin-top:10px;
+      font-size:13px;
+      padding:8px 10px;
+      border-radius:10px;
+      background:#eff6ff;
+      border:1px solid #bfdbfe;
+      color:#1d4ed8;
+      white-space:pre-line;
+    }
+    .status.error{
+      background:#fef2f2;
+      border-color:#fecaca;
+      color:#991b1b;
+    }
+    .status.success{
+      background:#ecfdf3;
+      border-color:#bbf7d0;
+      color:#166534;
+    }
+
+    .footer-links{
+      margin-top:16px;
+      font-size:13px;
+      display:flex;
+      justify-content:space-between;
+      flex-wrap:wrap;
+      gap:10px;
+      color:var(--muted);
+    }
+    .footer-links a{
+      color:var(--brand);
+      text-decoration:none;
+      font-weight:600;
+    }
+    .footer-links a:hover{text-decoration:underline;}
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <nav class="nav card">
+      <a class="brand" href="admin.html" aria-label="Înapoi la dashboard admin">
+        <img src="favicon.png" alt="Siglă SERVELECT" />
+        <div>
+          <h1><span>SERVELECT</span><small>Rapoarte pontaj</small></h1>
+        </div>
+      </a>
+      <div class="chip" id="adminChip">Admin</div>
+    </nav>
+
+    <main class="card admin-main">
+      <h2>Forțare generare rapoarte</h2>
+      <p class="admin-small-text">
+        De aici poți porni manual generarea rapoartelor de tip
+        <b>zi</b>, <b>săptămână</b> și <b>lună</b>, similar cu butoanele din Google Drive / Apps Script.
+        Serverul (Apps Script) trebuie să expună funcțiile <code>reportDay</code>, <code>reportWeek</code> și <code>reportMonth</code>
+        pe același <code>adminEventsEndpoint</code> din <code>config.json</code>.
+      </p>
+
+      <div class="btn-row">
+        <button id="btnReportDay" class="btn primary" type="button">
+          📅 Raport ZI (azi)
+        </button>
+        <button id="btnReportWeek" class="btn" type="button">
+          📆 Raport SĂPTĂMÂNĂ
+        </button>
+        <button id="btnReportMonth" class="btn" type="button">
+          📊 Raport LUNĂ
+        </button>
+      </div>
+
+      <div id="statusBox" class="status" style="display:none;"></div>
+
+      <div class="footer-links">
+        <span>
+          <a href="admin.html">← Înapoi la dashboard admin</a>
+        </span>
+        <span>
+          <a href="index.html">Spre pontaj angajat</a>
+        </span>
+      </div>
+    </main>
+  </div>
+
+  <script>
+  (function(){
+    const ADMIN_LS_KEY = 'pontaj/admin/v1';
+
+    function getAdminSession(){
+      try{
+        const raw = localStorage.getItem(ADMIN_LS_KEY);
+        return raw ? JSON.parse(raw) : null;
+      }catch{
+        return null;
+      }
+    }
+
+    const session = getAdminSession();
+    if (!session){
+      alert('Nu ești autentificat ca admin. Te redirecționez la pagina principală.');
+      window.location.href = 'index.html';
+      return;
+    }
+
+    const adminChipEl   = document.getElementById('adminChip');
+    const statusBox     = document.getElementById('statusBox');
+    const btnReportDay  = document.getElementById('btnReportDay');
+    const btnReportWeek = document.getElementById('btnReportWeek');
+    const btnReportMonth= document.getElementById('btnReportMonth');
+
+    if (adminChipEl){
+      adminChipEl.textContent = 'Admin: ' + (session.user || 'Admin');
+    }
+
+    let GLOBAL_CFG = null;
+    async function loadConfig(){
+      if (GLOBAL_CFG) return GLOBAL_CFG;
+      const r = await fetch('config.json?v=' + Date.now(), {cache:'no-store'});
+      if (!r.ok) throw new Error('Nu pot citi config.json (HTTP ' + r.status + ').');
+      GLOBAL_CFG = await r.json();
+      return GLOBAL_CFG;
+    }
+
+    function setStatus(msg, type){
+      if (!statusBox) return;
+      statusBox.style.display = 'block';
+      statusBox.textContent = msg;
+      statusBox.classList.remove('error','success');
+      if (type === 'error') statusBox.classList.add('error');
+      if (type === 'success') statusBox.classList.add('success');
+    }
+
+    async function callReport(mode){
+      let label = 'raport';
+      let fn = 'reportDay';
+      if (mode === 'day'){
+        label = 'raport ZI';
+        fn = 'reportDay';
+      } else if (mode === 'week'){
+        label = 'raport SĂPTĂMÂNĂ';
+        fn = 'reportWeek';
+      } else if (mode === 'month'){
+        label = 'raport LUNĂ';
+        fn = 'reportMonth';
+      }
+
+      setStatus('Se generează ' + label + '... (se apelează Apps Script)', null);
+
+      try{
+        const cfg = await loadConfig();
+        if (!cfg.adminEventsEndpoint){
+          throw new Error('Lipsește adminEventsEndpoint în config.json.');
+        }
+        const url = cfg.adminEventsEndpoint +
+          '?fn=' + encodeURIComponent(fn) +
+          '&v=' + Date.now();
+
+        const r   = await fetch(url, {cache:'no-store'});
+        const txt = await r.text();
+        let data = null;
+        try{ data = JSON.parse(txt); }catch(e){}
+
+        if (!data || !data.ok){
+          throw new Error(data && data.error ? data.error : 'Răspuns invalid de la server.');
+        }
+
+        // dacă Apps Script întoarce un URL, îl deschidem
+        if (data.url){
+          setStatus('✔ ' + label + ' generat cu succes. Deschid raportul...', 'success');
+          window.open(data.url, '_blank');
+        }else{
+          setStatus('✔ ' + label + ' generat cu succes (serverul nu a trimis un URL).', 'success');
+        }
+      }catch(err){
+        setStatus('Eroare la generarea ' + label + ': ' + (err && err.message ? err.message : err), 'error');
+      }
+    }
+
+    if (btnReportDay){
+      btnReportDay.addEventListener('click', function(){
+        callReport('day');
+      });
+    }
+    if (btnReportWeek){
+      btnReportWeek.addEventListener('click', function(){
+        callReport('week');
+      });
+    }
+    if (btnReportMonth){
+      btnReportMonth.addEventListener('click', function(){
+        callReport('month');
+      });
+    }
+
+  })();
+  </script>
+</body>
+</html>
