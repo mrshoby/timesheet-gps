@@ -51,7 +51,7 @@
     .brand h1 span{display:block;font-weight:700}
     .brand small{display:block;font-size:12px;color:var(--muted);margin-top:2px}
 
-    /* NOU: container pentru acțiunile din dreapta (chip + buton self-service) */
+    /* container pentru acțiunile din dreapta (chip + buton self-service) */
     .nav-actions{
       display:flex;
       align-items:center;
@@ -135,22 +135,6 @@
       border-color:var(--brand);
       box-shadow:0 0 0 2px var(--ring);
     }
-    /* NOU: input de căutare globală */
-    .admin-filter-line input[type="text"]{
-      margin-top:2px;
-      padding:6px 10px;
-      border-radius:999px;
-      border:1px solid #d1d5db;
-      font-size:13px;
-      outline:none;
-      background:#ffffff;
-      min-width:200px;
-    }
-    .admin-filter-line input[type="text"]:focus{
-      border-color:var(--brand);
-      box-shadow:0 0 0 2px var(--ring);
-    }
-
     .admin-last-update{
       font-size:12px;
       color:var(--muted);
@@ -446,12 +430,12 @@
         </div>
       </a>
 
-      <!-- NOU: acțiuni în dreapta – buton către Self-service + chip Admin -->
+      <!-- acțiuni în dreapta – buton către Self-service + chip Admin -->
       <div class="nav-actions">
         <a href="self.html" class="btn" id="selfServiceLink" target="_blank" rel="noopener">
           🧾 Self-service – raportul meu
         </a>
-        <div class="chip">Admin dashboard</div>
+        <div class="chip" id="adminRoleChip">Admin dashboard</div>
       </div>
     </nav>
 
@@ -479,10 +463,6 @@
               <select id="employeeFilter">
                 <option value="all">Toți</option>
               </select>
-            </label>
-            <label>
-              <span>Căutare</span>
-              <input id="globalSearch" type="text" placeholder="Nume / client / activitate..." />
             </label>
             <div class="admin-last-update">
               <label class="toggle-incomplete">
@@ -595,7 +575,6 @@
                     <th>Departament</th>
                     <th>Normă</th>
                     <th>Extra</th>
-                    <th>Severitate</th>
                     <th>Detalii</th>
                   </tr>
                 </thead>
@@ -645,7 +624,7 @@
             <section class="card admin-card">
               <h2>Index angajați</h2>
               <div class="admin-small-text">
-                Listă angajați (după filtrul de departament). Click pe un nume pentru a vedea statistici detaliate (all time / lună etc).
+                Listă angajați (după filtrul de departament). Click pe un nume pentru a vedea statistici detaliate (all time).
               </div>
               <div id="employeeIndexList" class="admin-list"></div>
             </section>
@@ -654,16 +633,6 @@
               <h2>Detalii angajat</h2>
               <div class="admin-small-text" id="employeeDetailsHeader">
                 Selectează un angajat din listă pentru a vedea situația pe toate zilele (normă, extra, overtime, zile complete, concediu).
-              </div>
-              <div class="admin-filter-line" style="margin-bottom:8px;">
-                <label>
-                  <span>Perioadă detalii angajat</span>
-                  <select id="employeeDetailsRange">
-                    <option value="all">Toată perioada</option>
-                    <option value="currentMonth">Luna curentă</option>
-                    <option value="lastMonth">Luna precedentă</option>
-                  </select>
-                </label>
               </div>
               <div id="employeeDetailsBody">
                 <div class="admin-empty">Niciun angajat selectat.</div>
@@ -729,8 +698,7 @@
           <p class="admin-small-text">
             Pagina citește datele prin Apps Script (<code>adminEventsEndpoint</code> din <code>config.json</code>).
             Foaia de pontaj rămâne privată; serverul întoarce un JSON cu evenimente, concedii și meta (alerte, versiune),
-            iar aici calculăm statistici, ore pe zi, overtime și rapoarte PDF/CSV.<br/>
-            Filtrele de sus se pot salva în URL (deep-link), astfel încât poți trimite altcuiva exact aceeași vizualizare.
+            iar aici calculăm statistici, ore pe zi, overtime și rapoarte PDF/CSV.
           </p>
         </section>
       </aside>
@@ -761,9 +729,6 @@
   let filterIncompleteOnly = false;
   let GLOBAL_CFG = null;
   let lastEventsRange = 'today';
-  let employeeDetailsRange = 'all';
-  let globalSearchTerm = '';
-  let SELECTED_CALENDAR_DAY = null;
 
   let ADMIN_SESSION = null;
   let ADMIN_ROLE = 'admin';
@@ -912,8 +877,7 @@
   const presenceCalendarEl     = document.getElementById('presenceCalendar');
   const liveBoardEl            = document.getElementById('liveBoard');
   const alertsListEl           = document.getElementById('alertsList');
-  const globalSearchEl         = document.getElementById('globalSearch');
-  const employeeDetailsRangeSelect = document.getElementById('employeeDetailsRange');
+  const adminRoleChipEl        = document.getElementById('adminRoleChip');
 
   if (!session){
     alert('Nu ești autentificat ca admin. Te redirecționez la pagina principală.');
@@ -924,6 +888,18 @@
   ADMIN_DEPT = session.dept || null;
 
   if (adminLabelEl) adminLabelEl.textContent = session.user || 'Admin';
+
+  // Update chip în header cu rolul efectiv
+  if (adminRoleChipEl){
+    let chipText = 'Admin dashboard';
+    if (ADMIN_ROLE === 'teamlead' && ADMIN_DEPT){
+      chipText = 'Team lead • ' + ADMIN_DEPT;
+    } else if (ADMIN_ROLE === 'viewer'){
+      chipText = 'Viewer dashboard';
+    }
+    adminRoleChipEl.textContent = chipText;
+  }
+
   if (logoutBtn){
     logoutBtn.addEventListener('click', function(){
       clearAdminSession();
@@ -1459,10 +1435,9 @@
             employeeFilter.appendChild(o);
           }
           employeeFilter.value = emp.name;
-          employeeFilter.dispatchEvent(new Event('change', { bubbles:true }));
-        } else {
-          renderEmployeeDetails(emp.name);
         }
+        markSelectedEmployee(emp.name);
+        renderEmployeeDetails(emp.name);
       });
       employeeIndexListEl.appendChild(row);
     });
@@ -1483,80 +1458,29 @@
     }
     if (!ALL_STATS || !ALL_STATS.employees || !ALL_STATS.employees.has(name)){
       employeeDetailsHeaderEl.textContent = 'Nu găsesc statistici pentru ' + name + '.';
-      employeeDetailsBodyEl.innerHTML = '<div class="admin-empty">Nu există date pentru acest angajat.');
+      employeeDetailsBodyEl.innerHTML = '<div class="admin-empty">Nu există date pentru acest angajat.</div>';
       return;
     }
     const emp  = ALL_STATS.employees.get(name);
     const dept = emp.dept || '(fără departament)';
-    const tAll = emp.totals;
-
-    const allDaysArr = Array.from(emp.days.values()).sort((a,b)=>a.dateKey < b.dateKey ? -1 : (a.dateKey > b.dateKey ? 1 : 0));
-
-    let filteredDays = allDaysArr;
-    if (employeeDetailsRange !== 'all'){
-      const now = new Date();
-      let from = null, to = null;
-      if (employeeDetailsRange === 'currentMonth'){
-        from = new Date(now.getFullYear(), now.getMonth(), 1, 0,0,0);
-        to   = new Date(now.getFullYear(), now.getMonth()+1, 0, 23,59,59,999);
-      } else if (employeeDetailsRange === 'lastMonth'){
-        let y = now.getFullYear();
-        let m = now.getMonth() - 1;
-        if (m < 0){ m = 11; y--; }
-        from = new Date(y, m, 1, 0,0,0);
-        to   = new Date(y, m+1, 0, 23,59,59,999);
-      }
-      if (from && to){
-        filteredDays = allDaysArr.filter(d => {
-          const dt = new Date(d.dateKey + 'T00:00:00');
-          return dt >= from && dt <= to;
-        });
-      }
-    }
-
-    const rangeTotals = {
-      totalWorkMs:0,
-      totalExtraMs:0,
-      totalOverMs:0,
-      daysWithStart:0,
-      daysWithFinish:0,
-      daysCompleted:0,
-      normValidatedDays:0
-    };
-    filteredDays.forEach(d => {
-      rangeTotals.totalWorkMs  += d.workMs || 0;
-      rangeTotals.totalExtraMs += d.extraMs || 0;
-      rangeTotals.totalOverMs  += d.overtimeMs || 0;
-      if (d.hasStart)       rangeTotals.daysWithStart++;
-      if (d.hasFinish)      rangeTotals.daysWithFinish++;
-      if (d.completed)      rangeTotals.daysCompleted++;
-      if (d.normValidated)  rangeTotals.normValidatedDays++;
-    });
-
-    const rangeLabel =
-      employeeDetailsRange === 'currentMonth' ? 'luna curentă' :
-      employeeDetailsRange === 'lastMonth'    ? 'luna precedentă' :
-      'toată perioada';
-
+    const t    = emp.totals;
     employeeDetailsHeaderEl.innerHTML =
-      'Statistici pentru <b>' + name + '</b> (' + dept + '), <b>' + rangeLabel + '</b>. ' +
-      'Zile cu normă completă (START + FINISH): <b>' + rangeTotals.daysCompleted +
-      '</b> din <b>' + rangeTotals.daysWithStart + '</b> cu START. ' +
-      'Zile cu <b>normă validată</b>: <b>' + rangeTotals.normValidatedDays + '</b>. ' +
-      '<br/><span style="font-size:11px;color:#6b7280;">(Total all time: ' +
-      fmtHoursShort(tAll.totalWorkMs) + ' normă, ' + fmtHoursShort(tAll.totalExtraMs) +
-      ' extra, ' + fmtHoursShort(tAll.overtimeMs) + ' overtime.)</span>';
+      'Statistici all time pentru <b>' + name + '</b> (' + dept + '). ' +
+      'Zile cu normă completă (START + FINISH): <b>' + t.daysCompleted + '</b> din <b>' + t.daysWithStart + '</b> cu START. ' +
+      'Zile cu <b>normă validată</b> (cu pauză până la limita din configurare): <b>' + t.normValidatedDays + '</b>.';
+
+    const daysArr = Array.from(emp.days.values()).sort((a,b)=>a.dateKey < b.dateKey ? -1 : (a.dateKey > b.dateKey ? 1 : 0));
 
     let html = '';
     html += '<div style="margin-bottom:10px;font-size:13px;">';
-    html += '<div><b>Total ore normă (interval):</b> ' + fmtHoursShort(rangeTotals.totalWorkMs) + '</div>';
-    html += '<div><b>Total ore extra (interval):</b> ' + fmtHoursShort(rangeTotals.totalExtraMs) + '</div>';
-    html += '<div><b>Total overtime (interval):</b> ' + fmtHoursShort(rangeTotals.totalOverMs) + '</div>';
-    html += '<div><b>Zile cu START:</b> ' + rangeTotals.daysWithStart + ' • <b>Zile cu FINISH:</b> ' + rangeTotals.daysWithFinish + '</div>';
+    html += '<div><b>Total ore normă:</b> ' + fmtHoursShort(t.totalWorkMs) + '</div>';
+    html += '<div><b>Total ore extra:</b> ' + fmtHoursShort(t.totalExtraMs) + '</div>';
+    html += '<div><b>Total overtime:</b> ' + fmtHoursShort(t.overtimeMs) + '</div>';
+    html += '<div><b>Zile cu START:</b> ' + t.daysWithStart + ' • <b>Zile cu FINISH:</b> ' + t.daysWithFinish + '</div>';
     html += '</div>';
 
-    if (!filteredDays.length){
-      html += '<div class="admin-empty">Nu există zile înregistrate pentru acest angajat în intervalul selectat.</div>';
+    if (!daysArr.length){
+      html += '<div class="admin-empty">Nu există zile înregistrate pentru acest angajat.</div>';
       employeeDetailsBodyEl.innerHTML = html;
       return;
     }
@@ -1574,7 +1498,7 @@
       '<th>Overtime</th>' +
     '</tr></thead><tbody>';
 
-    filteredDays.forEach(d => {
+    daysArr.forEach(d => {
       const compStatus = d.completed
         ? '<span class="badge badge-ok">DA</span>'
         : (isDayIncomplete(d)
@@ -1747,10 +1671,6 @@
         '<td>' + completed + '</td>' +
         '<td>' + (started ? pct + '%' : '–') + '</td>' +
         '<td>' + (leaveCount || 0) + '</td>';
-      tr.addEventListener('click', () => {
-        setSelectedCalendarDay(day.dateKey);
-        if (rawLogEl) rawLogEl.scrollIntoView({ behavior:'smooth', block:'start' });
-      });
       dailyPresenceBodyEl.appendChild(tr);
     });
   }
@@ -1820,8 +1740,8 @@
     });
 
     rows.forEach(item => {
-      const tr = document.createElement('tr');
       const statusText = 'Zi cu pontaj, dar fără FINISH (nu s-a apăsat FINISH)';
+      const tr = document.createElement('tr');
       tr.innerHTML =
         '<td>' + item.dateKey + '</td>' +
         '<td>' + item.name + '</td>' +
@@ -1829,23 +1749,6 @@
         '<td>' + (item.workMs ? fmtHoursHM(item.workMs) : '-') + '</td>' +
         '<td>' + (item.extraMs ? fmtHoursHM(item.extraMs) : '-') + '</td>' +
         '<td>' + statusText + '</td>';
-      tr.addEventListener('click', () => {
-        SELECTED_EMPLOYEE = item.name;
-        if (employeeFilter){
-          if (!employeeFilter.querySelector('option[value="'+item.name+'"]')){
-            const o = document.createElement('option');
-            o.value = item.name;
-            o.textContent = item.name;
-            employeeFilter.appendChild(o);
-          }
-          employeeFilter.value = item.name;
-          employeeFilter.dispatchEvent(new Event('change', { bubbles:true }));
-        } else {
-          renderEmployeeDetails(item.name);
-        }
-        setSelectedCalendarDay(item.dateKey);
-        if (rawLogEl) rawLogEl.scrollIntoView({ behavior:'smooth', block:'start' });
-      });
       incompleteDaysBodyEl.appendChild(tr);
     });
   }
@@ -1857,7 +1760,7 @@
     if (!baseEvents || !baseEvents.length || !ALL_STATS || !ALL_STATS.employees || !ALL_STATS.employees.size){
       const tr = document.createElement('tr');
       const td = document.createElement('td');
-      td.colSpan = 7;
+      td.colSpan = 6;
       td.textContent = 'Nu există anomalii în filtrul curent.';
       tr.appendChild(td);
       anomaliesBodyEl.appendChild(tr);
@@ -1883,42 +1786,29 @@
       if (!day) return;
 
       const reasons = [];
-      let severity = 'info';
-      const raise = (level) => {
-        const order = { info:0, warning:1, critical:2 };
-        if (order[level] > order[severity]) severity = level;
-      };
-
       const normForDay = day.normMs || getNormMsFor(info.name, day.dept || emp.dept || '', false);
       const pauseMarginMs = getPauseMarginMsFor(info.name, day.dept || emp.dept || '');
 
       if (day.hasPauseMismatch){
         reasons.push('PAUSE / UNPAUSE nu se potrivesc');
-        raise('warning');
       }
       if (day.hasExtraMismatch){
         reasons.push('EXTRA START / EXTRA FINISH nu se potrivesc');
-        raise('warning');
       }
       if (day.openRunning){
         reasons.push('Sesiune normă rămasă deschisă (START fără FINISH)');
-        raise('critical');
       }
       if (day.openExtra){
         reasons.push('Sesiune EXTRA rămasă deschisă');
-        raise('critical');
       }
       if (day.pauseMs && day.pauseMs > pauseMarginMs){
         reasons.push('Pauză mai mare decât limita (' + fmtHoursHM(day.pauseMs) + ' > ' + fmtHoursHM(pauseMarginMs) + ')');
-        raise('warning');
       }
       if (day.workMs && day.workMs > 12 * 60 * 60 * 1000){
         reasons.push('Normă foarte mare în aceeași zi (>12h)');
-        raise('critical');
       }
       if (isWeekend(info.dateKey) && (day.workMs || day.extraMs)){
         reasons.push('Pontaj în weekend');
-        raise('warning');
       }
 
       if (!reasons.length) return;
@@ -1929,7 +1819,6 @@
         dept: day.dept || emp.dept || info.deptHint || '',
         workMs: day.workMs,
         extraMs: day.extraMs,
-        severity,
         reasons: reasons.join('; ')
       });
     });
@@ -1937,7 +1826,7 @@
     if (!rows.length){
       const tr = document.createElement('tr');
       const td = document.createElement('td');
-      td.colSpan = 7;
+      td.colSpan = 6;
       td.textContent = 'Nu există anomalii în filtrul curent.';
       tr.appendChild(td);
       anomaliesBodyEl.appendChild(tr);
@@ -1952,37 +1841,13 @@
 
     rows.forEach(item=>{
       const tr = document.createElement('tr');
-      const severityBadge =
-        item.severity === 'critical'
-          ? '<span class="badge badge-warn">CRITIC</span>'
-          : item.severity === 'warning'
-            ? '<span class="badge badge-info">AVERTISMENT</span>'
-            : '<span class="badge badge-info">INFO</span>';
       tr.innerHTML =
         '<td>' + item.dateKey + '</td>' +
         '<td>' + item.name + '</td>' +
         '<td>' + item.dept + '</td>' +
         '<td>' + (item.workMs ? fmtHoursHM(item.workMs) : '-') + '</td>' +
         '<td>' + (item.extraMs ? fmtHoursHM(item.extraMs) : '-') + '</td>' +
-        '<td>' + severityBadge + '</td>' +
         '<td>' + item.reasons + '</td>';
-      tr.addEventListener('click', () => {
-        SELECTED_EMPLOYEE = item.name;
-        if (employeeFilter){
-          if (!employeeFilter.querySelector('option[value="'+item.name+'"]')){
-            const o = document.createElement('option');
-            o.value = item.name;
-            o.textContent = item.name;
-            employeeFilter.appendChild(o);
-          }
-          employeeFilter.value = item.name;
-          employeeFilter.dispatchEvent(new Event('change', { bubbles:true }));
-        } else {
-          renderEmployeeDetails(item.name);
-        }
-        setSelectedCalendarDay(item.dateKey);
-        if (rawLogEl) rawLogEl.scrollIntoView({ behavior:'smooth', block:'start' });
-      });
       anomaliesBodyEl.appendChild(tr);
     });
   }
@@ -2010,16 +1875,6 @@
       const day = emp.days.get(dk);
       if (!day) return false;
       return isDayIncomplete(day);
-    });
-  }
-
-  function applySearchFilter(events){
-    if (!globalSearchTerm) return events;
-    const q = globalSearchTerm.toLowerCase();
-    return events.filter(ev => {
-      return (ev.name && ev.name.toLowerCase().includes(q)) ||
-             (ev.location && ev.location.toLowerCase().includes(q)) ||
-             (ev.activity && ev.activity.toLowerCase().includes(q));
     });
   }
 
@@ -2056,7 +1911,6 @@
       let running=false, paused=false, extraRunning=false;
       let lastStartTs=null, lastPauseTs=null, lastExtraStartTs=null;
       let lastDept='';
-
       list.forEach(ev=>{
         const t = new Date(ev.ts).getTime();
         if (isNaN(t)) return;
@@ -2176,54 +2030,6 @@
     });
   }
 
-  function readInitialFiltersFromUrl(){
-    try{
-      const params = new URLSearchParams(window.location.search);
-      return {
-        range: params.get('range') || null,
-        dept: params.get('dept') || null,
-        emp: params.get('emp') || null,
-        incomplete: params.get('incomplete') === '1' || params.get('incomplete') === 'true',
-        lastRange: params.get('lastRange') || null,
-        search: params.get('search') || null,
-        day: params.get('day') || null,
-        empRange: params.get('empRange') || null
-      };
-    }catch{
-      return {};
-    }
-  }
-
-  function updateUrlFromFilters(range, dept, emp){
-    try{
-      const params = new URLSearchParams(window.location.search);
-      if (range) params.set('range', range); else params.delete('range');
-      if (dept && dept !== 'all') params.set('dept', dept); else params.delete('dept');
-      if (emp && emp !== 'all') params.set('emp', emp); else params.delete('emp');
-      if (filterIncompleteOnly) params.set('incomplete','1'); else params.delete('incomplete');
-      if (lastEventsRange && lastEventsRange !== 'today') params.set('lastRange', lastEventsRange); else params.delete('lastRange');
-      if (globalSearchTerm && globalSearchTerm.trim()) params.set('search', globalSearchTerm.trim()); else params.delete('search');
-      if (SELECTED_CALENDAR_DAY) params.set('day', SELECTED_CALENDAR_DAY); else params.delete('day');
-      if (employeeDetailsRange && employeeDetailsRange !== 'all') params.set('empRange', employeeDetailsRange); else params.delete('empRange');
-
-      const newUrl = window.location.pathname + (params.toString() ? '?' + params.toString() : '');
-      window.history.replaceState(null, '', newUrl);
-    }catch(e){
-      // ignori dacă nu poți actualiza URL
-    }
-  }
-
-  function setSelectedCalendarDay(dateKey){
-    if (SELECTED_CALENDAR_DAY === dateKey){
-      SELECTED_CALENDAR_DAY = null;
-    } else {
-      SELECTED_CALENDAR_DAY = dateKey;
-    }
-    if (typeof window.__pontajAdminRefresh === 'function'){
-      window.__pontajAdminRefresh();
-    }
-  }
-
   async function init(){
     try{
       const CFG = await loadConfig();
@@ -2291,72 +2097,26 @@
 
       ALL_STATS = buildStatsFromEvents(events);
       renderTopEmployees(ALL_STATS);
-      renderAlertsFromMeta();
 
-      const urlFilters = readInitialFiltersFromUrl();
-
-      let currentRange    = rangeSelect ? (urlFilters.range || rangeSelect.value || 'today') : (urlFilters.range || 'today');
+      let currentRange    = rangeSelect ? rangeSelect.value : 'today';
       let currentDept     = 'all';
       let currentEmployee = 'all';
       let latestFiltered  = [];
-
-      if (rangeSelect && currentRange){
-        if ([...rangeSelect.options].some(o => o.value === currentRange)){
-          rangeSelect.value = currentRange;
-        } else {
-          currentRange = rangeSelect.value || 'today';
-        }
-      }
-
-      if (globalSearchEl && urlFilters.search){
-        globalSearchEl.value = urlFilters.search;
-        globalSearchTerm = urlFilters.search;
-      }
-      if (urlFilters.day){
-        SELECTED_CALENDAR_DAY = urlFilters.day;
-      }
-      if (employeeDetailsRangeSelect && urlFilters.empRange &&
-          ['all','currentMonth','lastMonth'].includes(urlFilters.empRange)){
-        employeeDetailsRange = urlFilters.empRange;
-        employeeDetailsRangeSelect.value = employeeDetailsRange;
-      }
+      let SELECTED_CALENDAR_DAY = null;
 
       buildDeptFilter(events);
-
-      if (deptFilter && urlFilters.dept &&
-          [...deptFilter.options].some(o => o.value === urlFilters.dept)){
-        currentDept = urlFilters.dept;
-        CURRENT_DEPT_FILTER = currentDept;
-        deptFilter.value = currentDept;
-      }
-
       buildEmployeeFilter(events, currentDept);
-
-      if (employeeFilter && urlFilters.emp){
-        if (!employeeFilter.querySelector('option[value="'+urlFilters.emp+'"]')){
-          const o = document.createElement('option');
-          o.value = urlFilters.emp;
-          o.textContent = urlFilters.emp;
-          employeeFilter.appendChild(o);
-        }
-        currentEmployee = urlFilters.emp;
-        SELECTED_EMPLOYEE = urlFilters.emp;
-        employeeFilter.value = urlFilters.emp;
-      }
-
-      if (incompleteOnlyCheckbox && urlFilters.incomplete){
-        filterIncompleteOnly = true;
-        incompleteOnlyCheckbox.checked = true;
-      }
-
-      if (lastEventsRangeSelect && urlFilters.lastRange &&
-          [...lastEventsRangeSelect.options].some(o => o.value === urlFilters.lastRange)){
-        lastEventsRange = urlFilters.lastRange;
-        lastEventsRangeSelect.value = lastEventsRange;
-      }
-
       renderEmployeeIndex(ALL_STATS, CURRENT_DEPT_FILTER);
-      renderEmployeeDetails(SELECTED_EMPLOYEE);
+      renderEmployeeDetails(null);
+
+      function setSelectedCalendarDay(dateKey){
+        if (SELECTED_CALENDAR_DAY === dateKey){
+          SELECTED_CALENDAR_DAY = null;
+        } else {
+          SELECTED_CALENDAR_DAY = dateKey;
+        }
+        refresh();
+      }
 
       function renderPresenceCalendarMonthly(){
         if (!presenceCalendarEl) return;
@@ -2424,7 +2184,6 @@
             '</span>';
           dayEl.addEventListener('click', function(){
             setSelectedCalendarDay(dk);
-            if (rawLogEl) rawLogEl.scrollIntoView({ behavior:'smooth', block:'start' });
           });
           presenceCalendarEl.appendChild(dayEl);
         }
@@ -2442,17 +2201,26 @@
         }
 
         if (role === 'teamlead' && ADMIN_DEPT && deptFilter){
+          // forțăm departamentul
           deptFilter.value = ADMIN_DEPT;
           deptFilter.disabled = true;
           currentDept = ADMIN_DEPT;
           CURRENT_DEPT_FILTER = ADMIN_DEPT;
+
+          // reconstruim lista de angajați și indexul doar pentru acest departament
+          buildEmployeeFilter(events, currentDept);
+          if (employeeFilter){
+            employeeFilter.value = 'all';
+          }
+          SELECTED_EMPLOYEE = null;
+          renderEmployeeIndex(ALL_STATS, CURRENT_DEPT_FILTER);
+          renderEmployeeDetails(null);
         }
       }
 
       function refresh(){
         let baseAll   = applyDeptEmployee(events, currentDept, currentEmployee);
         let baseRange = filterByRange(baseAll, currentRange || 'today');
-        baseRange     = applySearchFilter(baseRange);
         if (SELECTED_CALENDAR_DAY){
           baseRange = baseRange.filter(ev => dateKeyFromIso(ev.ts) === SELECTED_CALENDAR_DAY);
         }
@@ -2471,7 +2239,6 @@
 
         let lastBase   = applyDeptEmployee(events, currentDept, currentEmployee);
         let lastByRange= filterLastEventsByRange(lastBase, lastEventsRange || 'today');
-        lastByRange    = applySearchFilter(lastByRange);
         if (SELECTED_CALENDAR_DAY){
           lastByRange = lastByRange.filter(ev => dateKeyFromIso(ev.ts) === SELECTED_CALENDAR_DAY);
         }
@@ -2499,7 +2266,6 @@
         renderPresenceCalendarMonthly();
         renderLiveBoard();
         renderAlertsFromMeta();
-        updateUrlFromFilters(currentRange, currentDept, currentEmployee);
       }
 
       if (rangeSelect){
@@ -2766,59 +2532,7 @@
       }
 
       applyRoleVisibility();
-      window.__pontajAdminRefresh = refresh;
-
-      if (globalSearchEl){
-        globalSearchEl.addEventListener('input', function(){
-          globalSearchTerm = globalSearchEl.value || '';
-          refresh();
-        });
-      }
-
-      if (employeeDetailsRangeSelect){
-        employeeDetailsRangeSelect.addEventListener('change', function(){
-          employeeDetailsRange = employeeDetailsRangeSelect.value || 'all';
-          renderEmployeeDetails(SELECTED_EMPLOYEE);
-          updateUrlFromFilters(currentRange, currentDept, currentEmployee);
-        });
-      }
-
       refresh();
-
-      // Auto-refresh soft pentru Live & Alerte (la 60s)
-      setInterval(async () => {
-        try{
-          const cfg = await loadConfig();
-          if (!cfg.adminEventsEndpoint) return;
-          const lightUrl = cfg.adminEventsEndpoint + '?fn=adminEvents&light=1&v=' + Date.now();
-          const r  = await fetch(lightUrl, { cache:'no-store' });
-          const txt= await r.text();
-          let d;
-          try{ d = JSON.parse(txt); }catch{ return; }
-          if (!d || !d.ok || !Array.isArray(d.events)) return;
-          const eventsLight = d.events.map(ev => ({
-            ts: ev.ts,
-            name: ev.name || '',
-            action: _normAction(ev.action),
-            dept: ev.dept || '',
-            activity: ev.activity || '',
-            location: ev.location || ''
-          })).filter(ev => ev.ts);
-          window.__pontajAdminEvents = eventsLight;
-          if (d.meta) window.__pontajAdminMeta = d.meta;
-          renderLiveBoard();
-          renderAlertsFromMeta();
-          if (lastUpdateEl && d.meta && d.meta.generatedAt){
-            const dMeta = new Date(d.meta.generatedAt);
-            if (!isNaN(dMeta.getTime())){
-              const hh = String(dMeta.getHours()).padStart(2,'0');
-              const mi = String(dMeta.getMinutes()).padStart(2,'0');
-              lastUpdateEl.textContent = 'Actualizat la ' + hh + ':' + mi + ' (live)';
-            }
-          }
-        }catch(e){}
-      }, 60000);
-
     }catch(e){
       showError(e.message || String(e));
     }
