@@ -2097,128 +2097,174 @@
     });
   }
 
-  function renderLiveBoard(){
-    if (!liveBoardEl) return;
-    liveBoardEl.innerHTML = '';
-    const now = new Date();
-    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0,0,0);
-    const todayEnd   = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23,59,59,999);
+ function renderLiveBoard(){
+  if (!liveBoardEl) return;
+  liveBoardEl.innerHTML = '';
 
-    const allEvents = window.__pontajAdminEvents || [];
-    const todayEvents = allEvents.filter(ev=>{
-      if (!ev.ts) return false;
-      const t = new Date(ev.ts);
-      if (isNaN(t.getTime())) return false;
-      return t >= todayStart && t <= todayEnd;
-    });
+  const now = new Date();
+  const todayStart = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate(),
+    0, 0, 0, 0
+  );
+  const todayEnd = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate(),
+    23, 59, 59, 999
+  );
 
-    if (!todayEvents.length){
-      liveBoardEl.innerHTML = '<div class="admin-empty">Niciun pontaj înregistrat azi.</div>';
-      return;
-    }
+  // Pornim de la toate evenimentele încărcate
+  let allEvents = window.__pontajAdminEvents || [];
 
-    const byName = new Map();
-    todayEvents.forEach(ev=>{
-      if (!ev.name) return;
-      if (!byName.has(ev.name)) byName.set(ev.name, []);
-      byName.get(ev.name).push(ev);
-    });
-
-    const rows = [];
-    byName.forEach((list, name)=>{
-      list.sort((a,b)=>new Date(a.ts) - new Date(b.ts));
-      let running=false, paused=false, extraRunning=false;
-      let lastStartTs=null, lastPauseTs=null, lastExtraStartTs=null;
-      let lastDept='';
-      list.forEach(ev=>{
-        const t = new Date(ev.ts).getTime();
-        if (isNaN(t)) return;
-        if (ev.dept) lastDept = ev.dept;
-        if (ev.action === 'start'){
-          running=true; paused=false;
-          lastStartTs=t;
-        } else if (ev.action === 'pause'){
-          if (running){
-            paused=true;
-            lastPauseTs=t;
-          }
-        } else if (ev.action === 'unpause'){
-          if (running){
-            paused=false;
-          }
-        } else if (ev.action === 'finish'){
-          running=false;
-          paused=false;
-        } else if (ev.action === 'extra_start'){
-          extraRunning=true;
-          lastExtraStartTs=t;
-        } else if (ev.action === 'extra_finish'){
-          extraRunning=false;
-        }
-      });
-
-      let state = 'Fără pontaj azi';
-      let badgeClass = 'badge-info';
-      let sinceLabel = '';
-
-      function fmtSince(ts){
-        if (!ts) return '';
-        const diffMs = now.getTime() - ts;
-        if (diffMs <= 0) return '';
-        const mins = Math.round(diffMs/60000);
-        const h = Math.floor(mins/60);
-        const m = mins%60;
-        if (h>0) return h + 'h ' + String(m).padStart(2,'0') + 'm';
-        return m + ' min';
-      }
-
-      if (running && !paused){
-        state = 'Lucrează';
-        badgeClass = 'badge-ok';
-        sinceLabel = fmtSince(lastStartTs);
-      } else if (running && paused){
-        state = 'În pauză';
-        badgeClass = 'badge-warn';
-        sinceLabel = fmtSince(lastPauseTs || lastStartTs);
-      } else if (extraRunning){
-        state = 'Extra în curs';
-        badgeClass = 'badge-ok';
-        sinceLabel = fmtSince(lastExtraStartTs);
-      } else if (list.length){
-        state = 'Închis azi';
-        badgeClass = 'badge-info';
-      }
-
-      rows.push({
-        name,
-        dept:lastDept || '',
-        state,
-        badgeClass,
-        sinceLabel
-      });
-    });
-
-    if (!rows.length){
-      liveBoardEl.innerHTML = '<div class="admin-empty">Niciun pontaj înregistrat azi.</div>';
-      return;
-    }
-
-    rows.sort((a,b)=>a.name.localeCompare(b.name,'ro'));
-    rows.forEach(r=>{
-      const row = document.createElement('div');
-      row.className = 'admin-list-row';
-      row.innerHTML =
-        '<div>' +
-          '<div class="admin-list-label">' + r.name + '</div>' +
-          '<div class="admin-list-sub">' + (r.dept || '(fără departament)') + '</div>' +
-        '</div>' +
-        '<div class="admin-list-value">' +
-          '<div><span class="badge ' + r.badgeClass + '">' + r.state + '</span></div>' +
-          (r.sinceLabel ? '<div style="font-size:11px;color:#6b7280;">de ' + r.sinceLabel + '</div>' : '') +
-        '</div>';
-      liveBoardEl.appendChild(row);
-    });
+  // Dacă ai rol de teamlead, poți (opțional) să vezi doar departamentul tău
+  const role = ADMIN_ROLE || 'admin';
+  if (role === 'teamlead' && ADMIN_DEPT){
+    allEvents = allEvents.filter(ev => (ev.dept || '') === ADMIN_DEPT);
   }
+
+  // Filtrăm doar evenimentele de AZI
+  const todayEvents = allEvents.filter(ev => {
+    if (!ev.ts) return false;
+    const t = new Date(ev.ts);
+    if (isNaN(t.getTime())) return false;
+    return t >= todayStart && t <= todayEnd;
+  });
+
+  if (!todayEvents.length){
+    liveBoardEl.innerHTML = '<div class="admin-empty">Niciun pontaj înregistrat azi.</div>';
+    return;
+  }
+
+  // Grupăm pe angajat
+  const byName = new Map();
+  todayEvents.forEach(ev => {
+    if (!ev.name) return;
+    if (!byName.has(ev.name)) byName.set(ev.name, []);
+    byName.get(ev.name).push(ev);
+  });
+
+  const rows = [];
+
+  byName.forEach((list, name) => {
+    // sortăm cronologic
+    list.sort((a, b) => new Date(a.ts) - new Date(b.ts));
+
+    // stare baza: start/pause/unpause/finish
+    let baseState   = 'none';  // 'working' | 'paused' | 'closed' | 'none'
+    let baseTs      = null;
+
+    // stare extra: extra_start / extra_finish
+    let extraState  = 'none';  // 'extra_running' | 'none'
+    let extraTs     = null;
+
+    let lastDept    = '';
+
+    list.forEach(ev => {
+      const t = new Date(ev.ts).getTime();
+      if (isNaN(t)) return;
+      if (ev.dept) lastDept = ev.dept;
+
+      const act = ev.action;
+
+      // baza (normă)
+      if (act === 'start' || act === 'unpause'){
+        baseState = 'working';
+        baseTs    = t;
+      } else if (act === 'pause'){
+        baseState = 'paused';
+        baseTs    = t;
+      } else if (act === 'finish'){
+        baseState = 'closed';
+        baseTs    = t;
+      }
+
+      // extra
+      if (act === 'extra_start'){
+        extraState = 'extra_running';
+        extraTs    = t;
+      } else if (act === 'extra_finish'){
+        extraState = 'none';
+        extraTs    = t;
+      }
+    });
+
+    function fmtSince(ts){
+      if (!ts) return '';
+      const diffMs = now.getTime() - ts;
+      if (diffMs <= 0) return '';
+      const mins = Math.round(diffMs / 60000);
+      const h = Math.floor(mins / 60);
+      const m = mins % 60;
+      if (h > 0) return h + 'h ' + String(m).padStart(2, '0') + 'm';
+      return m + ' min';
+    }
+
+    let state      = 'Fără pontaj azi';
+    let badgeClass = 'badge-info';
+    let sinceLabel = '';
+
+    // PRIORITATE:
+    // 1) EXTRA în curs
+    // 2) PAUZĂ
+    // 3) LUCREAZĂ
+    // 4) ÎNCHIS AZI
+    // 5) fallback
+
+    if (extraState === 'extra_running'){
+      state      = 'Extra în curs';
+      badgeClass = 'badge-ok';
+      sinceLabel = fmtSince(extraTs);
+    } else if (baseState === 'paused'){
+      state      = 'În pauză';
+      badgeClass = 'badge-warn';
+      sinceLabel = fmtSince(baseTs);
+    } else if (baseState === 'working'){
+      state      = 'Lucrează';
+      badgeClass = 'badge-ok';
+      sinceLabel = fmtSince(baseTs);
+    } else if (baseState === 'closed' || list.length){
+      // dacă ultima acțiune e FINISH sau avem totuși înregistrări, dar fără stare clară
+      state      = 'Închis azi';
+      badgeClass = 'badge-info';
+      sinceLabel = ''; // aici nu punem "de X min", ca să nu inducem în eroare
+    }
+
+    rows.push({
+      name,
+      dept: lastDept || '',
+      state,
+      badgeClass,
+      sinceLabel
+    });
+  });
+
+  if (!rows.length){
+    liveBoardEl.innerHTML = '<div class="admin-empty">Niciun pontaj înregistrat azi.</div>';
+    return;
+  }
+
+  rows.sort((a, b) => a.name.localeCompare(b.name, 'ro'));
+
+  rows.forEach(r => {
+    const row = document.createElement('div');
+    row.className = 'admin-list-row';
+    row.innerHTML =
+      '<div>' +
+        '<div class="admin-list-label">' + r.name + '</div>' +
+        '<div class="admin-list-sub">' + (r.dept || '(fără departament)') + '</div>' +
+      '</div>' +
+      '<div class="admin-list-value">' +
+        '<div><span class="badge ' + r.badgeClass + '">' + r.state + '</span></div>' +
+        (r.sinceLabel
+          ? '<div style="font-size:11px;color:#6b7280;">de ' + r.sinceLabel + '</div>'
+          : ''
+        ) +
+      '</div>';
+    liveBoardEl.appendChild(row);
+  });
+}
 
   function renderAlertsFromMeta(){
     if (!alertsListEl) return;
@@ -3117,3 +3163,4 @@
 
 </body>
 </html>
+
