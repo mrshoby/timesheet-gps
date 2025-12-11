@@ -1349,6 +1349,29 @@
     return !day.hasFinish;
   }
 
+  function applyIncompleteFilter(events){
+    // Dacă checkbox-ul "doar zile incomplete" NU e bifat → întoarcem lista originală
+    if (!filterIncompleteOnly) return events;
+
+    // Dacă nu avem statistici construite sau nu avem evenimente → nu filtrăm
+    if (!ALL_STATS || !ALL_STATS.employees || !events || !events.length) return events;
+
+    return events.filter(ev => {
+      if (!ev.name || !ev.ts) return false;
+      const dk = dateKeyFromIso(ev.ts);
+      if (!dk) return false;
+
+      const emp = ALL_STATS.employees.get(ev.name);
+      if (!emp) return false;
+
+      const day = emp.days.get(dk);
+      if (!day) return false;
+
+      // Folosim logica existentă de "zi incompletă"
+      return isDayIncomplete(day);
+    });
+  }
+  
   function buildStatsFromEvents(events){
     const employees = new Map();
     const perDay    = new Map();
@@ -3222,3 +3245,4 @@
 
 </body>
 </html>
+
