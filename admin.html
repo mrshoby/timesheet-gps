@@ -110,34 +110,6 @@
       margin:0;
       font-size:20px;
     }
-
-    /* NOU: tabs de pagină în header (Dashboard / Alerts page / Scenarii rapoarte) */
-    .admin-page-tabs{
-      display:flex;
-      flex-wrap:wrap;
-      gap:6px;
-      margin-bottom:4px;
-      flex-basis:100%;
-    }
-    .admin-page-tab{
-      font-size:12px;
-      padding:6px 10px;
-      border-radius:999px;
-      border:1px solid transparent;
-      background:rgba(148,163,184,.15);
-      color:var(--muted);
-      text-decoration:none;
-      font-weight:600;
-    }
-    .admin-page-tab:hover{
-      background:rgba(148,163,184,.25);
-    }
-    .admin-page-tab.active{
-      background:#ffffff;
-      border-color:rgba(148,163,184,.85);
-      color:var(--text);
-    }
-
     .admin-filter-line{
       display:flex;
       flex-wrap:wrap;
@@ -217,7 +189,7 @@
       color:#1d4ed8;
     }
 
-    /* TAB-uri Dashboard / Alerte LIVE (în pagina admin) */
+    /* TAB-uri Dashboard / Alerte LIVE */
     .admin-tabs{
       display:flex;
       gap:8px;
@@ -236,6 +208,7 @@
       display:inline-flex;
       align-items:center;
       gap:6px;
+      text-decoration:none;
     }
     .admin-tab-btn.active{
       background:var(--brand);
@@ -560,13 +533,6 @@
     <main class="admin-layout">
       <section class="admin-main">
         <header class="admin-header">
-          <!-- Tabs PAGINĂ: Dashboard / Alerts page / Scenarii rapoarte -->
-          <div class="admin-page-tabs">
-            <a href="admin.html" class="admin-page-tab active">Dashboard</a>
-            <a href="alerts.html" class="admin-page-tab">Alerts page</a>
-            <a href="reports.html" class="admin-page-tab">Scenarii rapoarte</a>
-          </div>
-
           <h1>Dashboard pontaj</h1>
           <div class="admin-filter-line">
             <label>
@@ -599,7 +565,7 @@
           </div>
         </header>
 
-        <!-- TAB-uri: Dashboard / Alerte LIVE (în pagina admin) -->
+        <!-- TAB-uri: Dashboard / Alerte LIVE / Rapoarte -->
         <div class="admin-tabs">
           <button type="button" class="admin-tab-btn active" data-tab="dashboard">
             📊 Dashboard
@@ -607,6 +573,9 @@
           <button type="button" class="admin-tab-btn" data-tab="alerts">
             ⏰ Alerte LIVE
           </button>
+          <a href="reports.html" class="admin-tab-btn" role="button">
+            📑 Rapoarte
+          </a>
         </div>
 
         <div id="error" class="admin-error" style="display:none"></div>
@@ -847,33 +816,30 @@
 
       <aside class="admin-side">
         <section class="card admin-card">
-  <h2>Sesiune admin</h2>
-  <p class="admin-small-text">
-    Conectat ca <b id="adminLabel">Admin</b>.
-  </p>
-  <button id="logoutBtn" class="btn primary" type="button">Deconectare</button>
-  <button id="exportCsvBtn" class="btn" type="button" style="margin-top:8px">
-    Export CSV (filtru curent)
-  </button>
-  <button id="pdfBtn" class="btn" type="button" style="margin-top:8px">
-    PDF angajat selectat
-  </button>
-  <button id="deptPdfBtn" class="btn" type="button" style="margin-top:8px">
-    PDF departament (luna precedentă)
-  </button>
-  <button id="employeeExportBtn" class="btn" type="button" style="margin-top:8px">
-    Export CSV angajat (all time)
-  </button>
-  <button id="payrollExportBtn" class="btn" type="button" style="margin-top:8px">
-    Export salarizare (luna precedentă)
-  </button>
-  <button id="reportsPageBtn" class="btn" type="button" style="margin-top:8px">
-    Pagina rapoarte (zi / săpt. / lună)
-  </button>
-  <p class="admin-small-text" style="margin-top:10px">
-    <a href="index.html" class="admin-link">Înapoi la pontaj</a>
-  </p>
-</section>
+          <h2>Sesiune admin</h2>
+          <p class="admin-small-text">
+            Conectat ca <b id="adminLabel">Admin</b>.
+          </p>
+          <button id="logoutBtn" class="btn primary" type="button">Deconectare</button>
+          <button id="exportCsvBtn" class="btn" type="button" style="margin-top:8px">
+            Export CSV (filtru curent)
+          </button>
+          <button id="pdfBtn" class="btn" type="button" style="margin-top:8px">
+            PDF angajat selectat
+          </button>
+          <button id="deptPdfBtn" class="btn" type="button" style="margin-top:8px">
+            PDF departament (luna precedentă)
+          </button>
+          <button id="employeeExportBtn" class="btn" type="button" style="margin-top:8px">
+            Export CSV angajat (all time)
+          </button>
+          <button id="payrollExportBtn" class="btn" type="button" style="margin-top:8px">
+            Export salarizare (luna precedentă)
+          </button>
+          <p class="admin-small-text" style="margin-top:10px">
+            <a href="index.html" class="admin-link">Înapoi la pontaj</a>
+          </p>
+        </section>
 
         <!-- A2: Top angajați -->
         <section class="card admin-card">
@@ -1071,7 +1037,7 @@
   const loadingEl              = document.getElementById('loading');
   const dashboardEl            = document.getElementById('dashboard');
   const alertsPageEl           = document.getElementById('alertsPage');
-  const tabButtons             = document.querySelectorAll('.admin-tab-btn');
+  const tabButtons             = document.querySelectorAll('button.admin-tab-btn'); // DOAR butoanele, nu și link-ul spre reports.html
 
   const rangeSelect            = document.getElementById('rangeSelect');
   const deptFilter             = document.getElementById('deptFilter');
@@ -1084,7 +1050,6 @@
   const deptPdfBtn             = document.getElementById('deptPdfBtn');
   const employeeExportBtn      = document.getElementById('employeeExportBtn');
   const payrollExportBtn       = document.getElementById('payrollExportBtn');
-  const reportsPageBtn         = document.getElementById('reportsPageBtn');
   const topEmployeesEl         = document.getElementById('topEmployees');
   const employeeIndexListEl    = document.getElementById('employeeIndexList');
   const employeeDetailsHeaderEl= document.getElementById('employeeDetailsHeader');
@@ -1123,13 +1088,6 @@
     logoutBtn.addEventListener('click', function(){
       clearAdminSession();
       window.location.href = 'index.html';
-    });
-  }
-  
-  if (reportsPageBtn){
-    reportsPageBtn.addEventListener('click', function(){
-      // mergem pe pagina dedicată de rapoarte
-      window.location.href = 'reports.html';
     });
   }
 
@@ -3228,7 +3186,7 @@
         });
       }
 
-      // TAB-uri Dashboard / Alerte LIVE
+      // TAB-uri Dashboard / Alerte LIVE (link-ul spre reports.html e tratat separat, e <a>, nu intră aici)
       if (tabButtons && tabButtons.length){
         tabButtons.forEach(btn=>{
           btn.addEventListener('click', function(){
