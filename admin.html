@@ -812,25 +812,24 @@
             </div>
           </section>
 
-          <!-- NOU: Alerte LIVE – istoric pe toate zilele -->
+          <!-- NOU: Alerte istorice din sistem (toate zilele anterioare) -->
           <section class="card admin-card">
-            <h2>Alerte LIVE – istoric (toate zilele)</h2>
+            <h2>Alerte istorice din sistem</h2>
             <div class="admin-small-text">
-              Alerte calculate retrospectiv din pontaj pentru toate zilele anterioare: pauze peste limită, norme depășite,
-              EXTRA prelungit și zile cu START fără FINISH. Se ține cont de filtrele de departament și angajat de sus.
+              Alerte generate de Apps Script pentru toate zilele (inclusiv cele anterioare), pe baza datelor salvate în foaia de pontaj.
             </div>
             <div class="table-wrap">
               <table class="admin-table">
                 <thead>
                   <tr>
-                    <th>Data</th>
+                    <th>Moment</th>
                     <th>Angajat</th>
                     <th>Departament</th>
                     <th>Tip</th>
-                    <th>Detalii</th>
+                    <th>Mesaj</th>
                   </tr>
                 </thead>
-                <tbody id="historicalAlertsBody"></tbody>
+                <tbody id="systemAlertsHistoryBody"></tbody>
               </table>
             </div>
           </section>
@@ -875,12 +874,15 @@
           <div id="topEmployees" class="admin-list"></div>
         </section>
 
-        <!-- A5: Live board (azi + zile anterioare fără FINISH) -->
+        <!-- A5: Live board cu două moduri (azi / zile anterioare) -->
         <section class="card admin-card">
-          <h2>Live board</h2>
-          <div class="admin-small-text">
-            Starea curentă a pontajului pentru ziua de azi și eventualele zile anterioare în care nu s-a dat FINISH.
-            Dacă toate zilele până azi sunt închise corect, lista de mai jos va fi goală.
+          <h2>Live pontaj</h2>
+          <div class="admin-small-text" id="liveBoardHint">
+            Starea curentă a pontajului pentru ziua de azi (START / PAUSE / EXTRA / FINISH).
+          </div>
+          <div style="margin:6px 0 8px;display:flex;gap:6px;flex-wrap:wrap;">
+            <button type="button" class="top-toggle active" id="liveBoardTodayBtn">Azi</button>
+            <button type="button" class="top-toggle" id="liveBoardPastBtn">Zile anterioare</button>
           </div>
           <div id="liveBoard" class="admin-list"></div>
         </section>
@@ -933,6 +935,7 @@
   let SELECTED_CALENDAR_DAY = null;
   let EMPLOYEE_SEARCH_TEXT = '';
   let TOP_MODE = 'hours';
+  let LIVE_BOARD_MODE = 'today';
 
   let ADMIN_SESSION = null;
   let ADMIN_ROLE = 'admin';
@@ -1089,6 +1092,9 @@
   const rawLogTitleEl          = document.getElementById('rawLogTitle');
   const presenceCalendarEl     = document.getElementById('presenceCalendar');
   const liveBoardEl            = document.getElementById('liveBoard');
+  const liveBoardHintEl        = document.getElementById('liveBoardHint');
+  const liveBoardTodayBtn      = document.getElementById('liveBoardTodayBtn');
+  const liveBoardPastBtn       = document.getElementById('liveBoardPastBtn');
   const alertsListEl           = document.getElementById('alertsList');
   const selfServiceLink        = document.getElementById('selfServiceLink'); // mic helper pentru A1/A2
   const employeeSearchInput    = document.getElementById('employeeSearch');
@@ -1098,7 +1104,7 @@
   // Elemente pentru pagina de Alerte LIVE
   const liveAlertsActiveEl     = document.getElementById('liveAlertsActive');
   const liveAlertsHistoryBodyEl= document.getElementById('liveAlertsHistoryBody');
-  const historicalAlertsBodyEl = document.getElementById('historicalAlertsBody');
+  const systemAlertsHistoryBodyEl = document.getElementById('systemAlertsHistoryBody');
 
   if (!session){
     alert('Nu ești autentificat ca admin. Te redirecționez la pagina principală.');
@@ -1396,7 +1402,7 @@
       return isDayIncomplete(day);
     });
   }
-
+  
   function buildStatsFromEvents(events){
     const employees = new Map();
     const perDay    = new Map();
@@ -1509,6 +1515,7 @@
             startTs      = t;
             pauseStartTs = null;
           } else {
+            // nou: dacă există deja o sesiune, considerăm că începe o nouă sesiune
             startTs      = t;
             paused       = false;
             pauseStartTs = null;
@@ -2179,19 +2186,83 @@
     return list;
   }
 
-  // NOU: Live board care include și zilele anterioare fără FINISH
+  // LIVE BOARD: două moduri (azi / zile anterioare)
   function renderLiveBoard(){
     if (!liveBoardEl) return;
     liveBoardEl.innerHTML = '';
 
     let allEvents = window.__pontajAdminEvents || [];
 
+    // Dacă ai rol de teamlead, restricționezi la departamentul tău
     const role = ADMIN_ROLE || 'admin';
     if (role === 'teamlead' && ADMIN_DEPT){
       allEvents = allEvents.filter(ev => (ev.dept || '') === ADMIN_DEPT);
     }
 
     const now = new Date();
+    const todayKey = dateKeyFromIso(now.toISOString());
+    if (!todayKey){
+      liveBoardEl.innerHTML = '<div class="admin-empty">Nu pot determina data curentă.</div>';
+      return;
+    }
+
+    // MODUL "Zile anterioare": afișăm doar zilele cu pontaj fără FINISH (incomplete) de până ieri
+    if (LIVE_BOARD_MODE === 'past'){
+      if (!ALL_STATS || !ALL_STATS.employees || !ALL_STATS.employees.size){
+        liveBoardEl.innerHTML = '<div class="admin-empty">Nu există date pentru a calcula zilele anterioare.</div>';
+        return;
+      }
+
+      const rows = [];
+
+      ALL_STATS.employees.forEach(emp => {
+        const deptEmp = emp.dept || '';
+        emp.days.forEach(day => {
+          if (!day || !day.incomplete) return;
+          const dk = day.dateKey;
+          if (!dk || dk >= todayKey) return; // doar zile strict înainte de azi
+
+          let dept = day.dept || deptEmp || '';
+          if (role === 'teamlead' && ADMIN_DEPT && dept !== ADMIN_DEPT) return;
+
+          rows.push({
+            dateKey: dk,
+            name: emp.name,
+            dept,
+            info: 'START fără FINISH (zi rămasă deschisă)'
+          });
+        });
+      });
+
+      if (!rows.length){
+        liveBoardEl.innerHTML = '<div class="admin-empty">Toate zilele anterioare sunt închise (FINISH pentru toți angajații până la ziua de azi).</div>';
+        return;
+      }
+
+      rows.sort((a,b)=>{
+        if (a.dateKey < b.dateKey) return -1;
+        if (a.dateKey > b.dateKey) return 1;
+        return a.name.localeCompare(b.name, 'ro');
+      });
+
+      rows.forEach(r => {
+        const row = document.createElement('div');
+        row.className = 'admin-list-row';
+        row.innerHTML =
+          '<div>' +
+            '<div class="admin-list-label">' + r.name + '</div>' +
+            '<div class="admin-list-sub">' + r.dateKey + ' • ' + (r.dept || '(fără departament)') + '</div>' +
+          '</div>' +
+          '<div class="admin-list-value">' +
+            '<span class="badge badge-warn">' + r.info + '</span>' +
+          '</div>';
+        liveBoardEl.appendChild(row);
+      });
+
+      return;
+    }
+
+    // MODUL "Azi": starea curentă a pontajului pe ziua de azi
     const todayStart = new Date(
       now.getFullYear(),
       now.getMonth(),
@@ -2212,7 +2283,12 @@
       return t >= todayStart && t <= todayEnd;
     });
 
-    // Grupăm evenimentele de azi pe angajat
+    if (!todayEvents.length){
+      liveBoardEl.innerHTML = '<div class="admin-empty">Niciun pontaj înregistrat azi.</div>';
+      return;
+    }
+
+    // Grupăm pe angajat
     const byName = new Map();
     todayEvents.forEach(ev => {
       if (!ev.name) return;
@@ -2220,42 +2296,30 @@
       byName.get(ev.name).push(ev);
     });
 
-    // Filtre active de departament / angajat
-    const deptFilterValue = CURRENT_DEPT_FILTER || 'all';
-    let employeeFilterValue = 'all';
-    if (employeeFilter && employeeFilter.value && employeeFilter.value !== 'all'){
-      employeeFilterValue = employeeFilter.value;
-    }
+    const rows = [];
 
-    const rowsMap = new Map();
-
-    function fmtSince(ts){
-      if (!ts) return '';
-      const diffMs = now.getTime() - ts;
-      if (diffMs <= 0) return '';
-      const mins = Math.round(diffMs / 60000);
-      const h = Math.floor(mins / 60);
-      const m = mins % 60;
-      if (h > 0) return h + 'h ' + String(m).padStart(2, '0') + 'm';
-      return m + ' min';
-    }
-
-    // 1) Starea de AZI
     byName.forEach((list, name) => {
+      // sortăm cronologic
       list.sort((a, b) => new Date(a.ts) - new Date(b.ts));
 
-      let baseState  = 'none'; // working / paused / closed / none
-      let baseTs     = null;
-      let extraState = 'none';
-      let extraTs    = null;
-      let lastDept   = '';
+      // stare baza: start/pause/unpause/finish
+      let baseState   = 'none';  // 'working' | 'paused' | 'closed' | 'none'
+      let baseTs      = null;
+
+      // stare extra: extra_start / extra_finish
+      let extraState  = 'none';  // 'extra_running' | 'none'
+      let extraTs     = null;
+
+      let lastDept    = '';
 
       list.forEach(ev => {
         const t = new Date(ev.ts).getTime();
         if (isNaN(t)) return;
         if (ev.dept) lastDept = ev.dept;
+
         const act = ev.action;
 
+        // baza (normă)
         if (act === 'start' || act === 'unpause'){
           baseState = 'working';
           baseTs    = t;
@@ -2267,6 +2331,7 @@
           baseTs    = t;
         }
 
+        // extra
         if (act === 'extra_start'){
           extraState = 'extra_running';
           extraTs    = t;
@@ -2276,139 +2341,79 @@
         }
       });
 
+      function fmtSince(ts){
+        if (!ts) return '';
+        const diffMs = now.getTime() - ts;
+        if (diffMs <= 0) return '';
+        const mins = Math.round(diffMs / 60000);
+        const h = Math.floor(mins / 60);
+        const m = mins % 60;
+        if (h > 0) return h + 'h ' + String(m).padStart(2, '0') + 'm';
+        return m + ' min';
+      }
+
       let state      = 'Fără pontaj azi';
       let badgeClass = 'badge-info';
       let sinceLabel = '';
 
+      // PRIORITATE:
+      // 1) EXTRA în curs
+      // 2) PAUZĂ
+      // 3) LUCREAZĂ
+      // 4) ÎNCHIS AZI
+      // 5) fallback
+
       if (extraState === 'extra_running'){
-        state      = 'Extra în curs (azi)';
+        state      = 'Extra în curs';
         badgeClass = 'badge-ok';
         sinceLabel = fmtSince(extraTs);
       } else if (baseState === 'paused'){
-        state      = 'În pauză (azi)';
+        state      = 'În pauză';
         badgeClass = 'badge-warn';
         sinceLabel = fmtSince(baseTs);
       } else if (baseState === 'working'){
-        state      = 'Lucrează (azi)';
+        state      = 'Lucrează';
         badgeClass = 'badge-ok';
         sinceLabel = fmtSince(baseTs);
       } else if (baseState === 'closed' || list.length){
+        // dacă ultima acțiune e FINISH sau avem totuși înregistrări, dar fără stare clară
         state      = 'Închis azi';
         badgeClass = 'badge-info';
-        sinceLabel = '';
+        sinceLabel = ''; // aici nu punem "de X min", ca să nu inducem în eroare
       }
 
-      const dept = lastDept || '';
-
-      if (deptFilterValue !== 'all' && dept !== deptFilterValue) return;
-      if (employeeFilterValue !== 'all' && name !== employeeFilterValue) return;
-
-      rowsMap.set(name, {
+      rows.push({
         name,
-        dept,
-        todayState: state,
-        todayBadgeClass: badgeClass,
-        todaySinceLabel: sinceLabel,
-        pastText: '',
-        hasOpenPast: false
+        dept: lastDept || '',
+        state,
+        badgeClass,
+        sinceLabel
       });
     });
 
-    // 2) Zile anterioare fără FINISH (din ALL_STATS)
-    if (ALL_STATS && ALL_STATS.employees && ALL_STATS.employees.size){
-      const todayKey = dateKeyFromIso(now.toISOString());
-
-      ALL_STATS.employees.forEach((emp, name) => {
-        let dept = emp.dept || '';
-
-        // Restricție teamlead
-        if (role === 'teamlead' && ADMIN_DEPT && dept !== ADMIN_DEPT) return;
-
-        if (deptFilterValue !== 'all' && dept !== deptFilterValue) return;
-        if (employeeFilterValue !== 'all' && name !== employeeFilterValue) return;
-
-        const openPastDays = [];
-        emp.days.forEach(day => {
-          if (!day || !day.dateKey) return;
-          if (todayKey && day.dateKey >= todayKey) return;
-          if (isDayIncomplete(day)){
-            openPastDays.push(day.dateKey);
-          }
-        });
-
-        if (!openPastDays.length) return;
-
-        openPastDays.sort();
-        let pastText;
-        if (openPastDays.length === 1){
-          pastText = 'Zi anterioară fără FINISH: ' + openPastDays[0];
-        } else {
-          pastText = 'Zile anterioare fără FINISH: ' + openPastDays.slice(0,3).join(', ');
-          if (openPastDays.length > 3){
-            pastText += ' +' + (openPastDays.length - 3) + ' zile';
-          }
-        }
-
-        if (!rowsMap.has(name)){
-          rowsMap.set(name, {
-            name,
-            dept,
-            todayState: null,
-            todayBadgeClass: '',
-            todaySinceLabel: '',
-            pastText,
-            hasOpenPast: true
-          });
-        } else {
-          const row = rowsMap.get(name);
-          row.pastText = pastText;
-          row.hasOpenPast = true;
-        }
-      });
-    }
-
-    const rows = Array.from(rowsMap.values());
-
     if (!rows.length){
-      liveBoardEl.innerHTML =
-        '<div class="admin-empty">Nu există pontaje active azi și nici zile anterioare fără FINISH.</div>';
+      liveBoardEl.innerHTML = '<div class="admin-empty">Niciun pontaj înregistrat azi.</div>';
       return;
     }
 
     rows.sort((a, b) => a.name.localeCompare(b.name, 'ro'));
 
     rows.forEach(r => {
-      const rowEl = document.createElement('div');
-      rowEl.className = 'admin-list-row';
-
-      let valueHtml = '';
-
-      if (r.todayState){
-        const badgeCls = r.todayBadgeClass || 'badge-info';
-        valueHtml += '<div><span class="badge ' + badgeCls + '">' + r.todayState + '</span></div>';
-        if (r.todaySinceLabel){
-          valueHtml += '<div style="font-size:11px;color:#6b7280;">de ' + r.todaySinceLabel + '</div>';
-        }
-      }
-
-      if (r.pastText){
-        valueHtml += '<div style="font-size:11px;color:#b91c1c;margin-top:4px;">' + r.pastText + '</div>';
-      }
-
-      if (!valueHtml){
-        valueHtml = '<div><span class="badge badge-info">Fără pontaj azi</span></div>';
-      }
-
-      rowEl.innerHTML =
+      const row = document.createElement('div');
+      row.className = 'admin-list-row';
+      row.innerHTML =
         '<div>' +
           '<div class="admin-list-label">' + r.name + '</div>' +
           '<div class="admin-list-sub">' + (r.dept || '(fără departament)') + '</div>' +
         '</div>' +
         '<div class="admin-list-value">' +
-          valueHtml +
+          '<div><span class="badge ' + r.badgeClass + '">' + r.state + '</span></div>' +
+          (r.sinceLabel
+            ? '<div style="font-size:11px;color:#6b7280;">de ' + r.sinceLabel + '</div>'
+            : ''
+          ) +
         '</div>';
-
-      liveBoardEl.appendChild(rowEl);
+      liveBoardEl.appendChild(row);
     });
   }
 
@@ -2441,124 +2446,44 @@
     });
   }
 
-  // NOU: Alerte LIVE istorice (toate zilele anterioare)
-  function renderHistoricalLiveAlerts(){
-    if (!historicalAlertsBodyEl) return;
-    historicalAlertsBodyEl.innerHTML = '';
+  // NOU: istoric detaliat de alerte din meta.alerts (toate zilele)
+  function renderSystemAlertsHistory(){
+    if (!systemAlertsHistoryBodyEl) return;
+    systemAlertsHistoryBodyEl.innerHTML = '';
 
-    if (!ALL_STATS || !ALL_STATS.employees || !ALL_STATS.employees.size){
+    const meta = window.__pontajAdminMeta || null;
+    const alerts = meta && Array.isArray(meta.alerts) ? meta.alerts : [];
+
+    if (!alerts.length){
       const tr = document.createElement('tr');
       const td = document.createElement('td');
       td.colSpan = 5;
-      td.textContent = 'Nu există alerte istorice (nu sunt date încărcate).';
+      td.textContent = 'Nu există alerte înregistrate în istoric.';
       tr.appendChild(td);
-      historicalAlertsBodyEl.appendChild(tr);
+      systemAlertsHistoryBodyEl.appendChild(tr);
       return;
     }
 
-    const now = new Date();
-    const todayKey = dateKeyFromIso(now.toISOString());
-    const role = ADMIN_ROLE || 'admin';
-
-    const deptFilterValue = CURRENT_DEPT_FILTER || 'all';
-    let employeeFilterValue = 'all';
-    if (employeeFilter && employeeFilter.value && employeeFilter.value !== 'all'){
-      employeeFilterValue = employeeFilter.value;
-    }
-
-    const rows = [];
-
-    ALL_STATS.employees.forEach((emp, name) => {
-      const empDept = emp.dept || '';
-
-      // Restricție teamlead
-      if (role === 'teamlead' && ADMIN_DEPT && empDept !== ADMIN_DEPT) return;
-
-      if (deptFilterValue !== 'all' && empDept !== deptFilterValue) return;
-      if (employeeFilterValue !== 'all' && name !== employeeFilterValue) return;
-
-      emp.days.forEach(day => {
-        if (!day || !day.dateKey) return;
-        if (todayKey && day.dateKey >= todayKey) return;
-
-        const dept = day.dept || empDept;
-        const pauseMarginMs = getPauseMarginMsFor(name, dept);
-        const normMs        = day.normMs || getNormMsFor(name, dept, false);
-        const extraThresholdMs = 30 * 60 * 1000;
-
-        // Pauză peste limită
-        if (day.pauseMs && day.pauseMs > pauseMarginMs){
-          rows.push({
-            dateKey: day.dateKey,
-            name,
-            dept,
-            type: 'Pauză',
-            detail: 'Pauză totală ' + fmtHoursHM(day.pauseMs) +
-                    ' (limita ' + fmtHoursHM(pauseMarginMs) + ').'
-          });
-        }
-
-        // Normă depășită
-        if (day.workMs && day.workMs > normMs){
-          rows.push({
-            dateKey: day.dateKey,
-            name,
-            dept,
-            type: 'Normă',
-            detail: 'Normă înregistrată ' + fmtHoursHM(day.workMs) +
-                    ' (peste ' + fmtHoursHM(normMs) + ').'
-          });
-        }
-
-        // EXTRA > 30 min
-        if (day.extraMs && day.extraMs > extraThresholdMs){
-          rows.push({
-            dateKey: day.dateKey,
-            name,
-            dept,
-            type: 'Extra',
-            detail: 'Extra lucrat ' + fmtHoursHM(day.extraMs) + ' (> 30 min).'
-          });
-        }
-
-        // Zi fără FINISH
-        if (isDayIncomplete(day)){
-          rows.push({
-            dateKey: day.dateKey,
-            name,
-            dept,
-            type: 'Fără FINISH',
-            detail: 'Zi cu START dar fără FINISH (sesiune rămasă deschisă).'
-          });
-        }
-      });
+    const sorted = alerts.slice().sort((a,b)=>{
+      const ta = a.ts ? new Date(a.ts).getTime() : 0;
+      const tb = b.ts ? new Date(b.ts).getTime() : 0;
+      return tb - ta;
     });
 
-    if (!rows.length){
+    sorted.forEach(a=>{
       const tr = document.createElement('tr');
-      const td = document.createElement('td');
-      td.colSpan = 5;
-      td.textContent = 'Nu există alerte istorice pentru filtrele curente.';
-      tr.appendChild(td);
-      historicalAlertsBodyEl.appendChild(tr);
-      return;
-    }
+      const level = (a.level || 'info').toLowerCase();
+      let typeLabel = 'Info';
+      if (level === 'warn' || level === 'warning') typeLabel = 'Avertizare';
+      if (level === 'error' || level === 'danger')  typeLabel = 'Eroare';
 
-    rows.sort((a,b)=>{
-      if (a.dateKey < b.dateKey) return 1;
-      if (a.dateKey > b.dateKey) return -1;
-      return a.name.localeCompare(b.name,'ro');
-    });
-
-    rows.forEach(item=>{
-      const tr = document.createElement('tr');
       tr.innerHTML =
-        '<td>' + item.dateKey + '</td>' +
-        '<td>' + item.name + '</td>' +
-        '<td>' + (item.dept || '') + '</td>' +
-        '<td>' + item.type + '</td>' +
-        '<td>' + item.detail + '</td>';
-      historicalAlertsBodyEl.appendChild(tr);
+        '<td>' + (a.ts ? fmtDateTime(a.ts) : '') + '</td>' +
+        '<td>' + (a.name || '') + '</td>' +
+        '<td>' + (a.dept || '') + '</td>' +
+        '<td>' + typeLabel + '</td>' +
+        '<td>' + (a.message || a.title || '') + '</td>';
+      systemAlertsHistoryBodyEl.appendChild(tr);
     });
   }
 
@@ -2631,6 +2556,7 @@
           st.pauseStartTs = null;
         }
       } else if (ev.action === 'finish'){
+        // închidem sesiunea curentă
         st.running = false;
         st.paused = false;
         st.pauseStartTs = null;
@@ -2948,6 +2874,7 @@
         const firstDay = new Date(year, month, 1);
         const lastDay  = new Date(year, month + 1, 0);
 
+        // Evenimente doar din luna curentă
         const filtered = (allEvents || []).filter(ev => {
           if (!ev.ts) return false;
           const t = new Date(ev.ts);
@@ -2958,6 +2885,7 @@
         const statsMonth = buildStatsFromEvents(filtered);
         const perDay     = statsMonth.perDay || new Map();
 
+        // Header zile săptămână
         const weekdayLabels = ['L','Ma','Mi','J','V','S','D'];
         weekdayLabels.forEach(lbl => {
           const h = document.createElement('div');
@@ -2966,6 +2894,7 @@
           presenceCalendarEl.appendChild(h);
         });
 
+        // Offset pentru prima zi (luni = 0)
         const firstWeekday = (firstDay.getDay() + 6) % 7;
         for (let i = 0; i < firstWeekday; i++){
           const empty = document.createElement('div');
@@ -2974,6 +2903,7 @@
           presenceCalendarEl.appendChild(empty);
         }
 
+        // Zilele din lună
         for (let d = 1; d <= lastDay.getDate(); d++){
           const cur = new Date(year, month, d);
           const dk  = dateKeyFromIso(cur.toISOString());
@@ -2983,10 +2913,12 @@
           const completed = info && info.completed ? info.completed.size : 0;
           const pct       = started ? Math.round(100 * completed / started) : 0;
 
+          // Concedii pe zi din LEAVE_BY_DAY
           const leaveCount = (LEAVE_BY_DAY && LEAVE_BY_DAY.get(dk))
             ? LEAVE_BY_DAY.get(dk).size
             : 0;
 
+          // Clasă de culoare după procent complet
           const dayEl = document.createElement('div');
           let cls = 'calendar-day ';
           if (!started){
@@ -3004,6 +2936,7 @@
           dayEl.className = cls;
           dayEl.dataset.dateKey = dk;
 
+          // Text meta: "3/10 ok, 2 C"
           const parts = [];
           if (started){
             parts.push(completed + '/' + started + ' ok');
@@ -3024,7 +2957,7 @@
           presenceCalendarEl.appendChild(dayEl);
         }
       }
-
+      
       function applyRoleVisibility(){
         const role = ADMIN_ROLE || 'admin';
 
@@ -3092,7 +3025,7 @@
         renderPresenceCalendarMonthly();
         renderLiveBoard();
         renderAlertsFromMeta();
-        renderHistoricalLiveAlerts();
+        renderSystemAlertsHistory();
       }
 
       function handleDayRowClick(tr){
@@ -3425,6 +3358,28 @@
               if (alertsPageEl) alertsPageEl.style.display = 'none';
             }
           });
+        });
+      }
+
+      // Butoane pentru Live board: azi / zile anterioare
+      if (liveBoardTodayBtn && liveBoardPastBtn){
+        liveBoardTodayBtn.addEventListener('click', function(){
+          LIVE_BOARD_MODE = 'today';
+          liveBoardTodayBtn.classList.add('active');
+          liveBoardPastBtn.classList.remove('active');
+          if (liveBoardHintEl){
+            liveBoardHintEl.textContent = 'Starea curentă a pontajului pentru ziua de azi (START / PAUSE / EXTRA / FINISH).';
+          }
+          renderLiveBoard();
+        });
+        liveBoardPastBtn.addEventListener('click', function(){
+          LIVE_BOARD_MODE = 'past';
+          liveBoardPastBtn.classList.add('active');
+          liveBoardTodayBtn.classList.remove('active');
+          if (liveBoardHintEl){
+            liveBoardHintEl.textContent = 'Zile anterioare până la azi în care lipsesc acțiuni de FINISH pentru cel puțin un angajat.';
+          }
+          renderLiveBoard();
         });
       }
 
