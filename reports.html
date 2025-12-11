@@ -210,28 +210,35 @@
         <header class="admin-header">
           <h1>Rapoarte pontaj – executare manuală</h1>
           <p>
-            Aici poți forța rularea rapoartelor de tip <b>dailyreports</b>, <b>weeklyreports</b> și <b>monthlyreports</b>,
-            exact ca triggerele din Apps Script. E util când trebuie „forțate” rapoartele sau testezi modificări.
+            Aici poți forța rularea rapoartelor de tip <b>dailyReports</b>, <b>weeklyReports</b>,
+            <b>monthlyReports</b> și <b>rebuildAllReports</b>, exact ca triggerele din Apps Script.
+            E util când trebuie „forțate” rapoartele sau testezi modificări.
           </p>
         </header>
 
         <section class="card admin-card">
           <h2>Generează rapoarte</h2>
           <p class="admin-small-text">
-            Fiecare buton apelează endpoint-ul Apps Script (<code>adminEventsEndpoint</code>) cu parametrii:
-            <code>?fn=dailyreports</code>, <code>?fn=weeklyreports</code>, <code>?fn=monthlyreports</code>.
-            Pe backend, aceste <code>fn</code>-uri trebuie mapate la funcțiile tale care se execută și pe trigger.
+            Fiecare buton apelează endpoint-ul Apps Script (<code>adminEventsEndpoint</code>)
+            al WebApp-ului cu parametrii direcți:
+            <code>?fn=dailyReports</code>, <code>?fn=weeklyReports</code>,
+            <code>?fn=monthlyReports</code>, <code>?fn=rebuildReports</code>.
+            Alternativ se poate folosi și endpoint-ul generic:
+            <code>?fn=reports&amp;type=daily|weekly|monthly|rebuild</code>.
           </p>
 
           <div class="reports-actions" style="margin-bottom:10px;">
             <button id="dailyReportBtn" type="button" class="btn primary">
-              📅 Raport zi (dailyreports)
+              📅 Raport zi (dailyReports)
             </button>
             <button id="weeklyReportBtn" type="button" class="btn">
-              🗓 Raport săptămână (weeklyreports)
+              🗓 Raport săptămână (weeklyReports)
             </button>
             <button id="monthlyReportBtn" type="button" class="btn">
-              📆 Raport lună (monthlyreports)
+              📆 Raport lună (monthlyReports)
+            </button>
+            <button id="rebuildReportBtn" type="button" class="btn">
+              ♻️ Rebuild statistici (rebuildReports)
             </button>
           </div>
 
@@ -260,7 +267,7 @@
           <p class="admin-small-text">
             Răspunsul de la server este afișat mai jos în log. Ideal, Apps Script ar trebui să
             returneze un JSON de forma:
-            <code>{"ok":true,"message":"Raport generat"}</code> sau <code>{"ok":false,"error":"..."}</code>.
+            <code>{"ok":true,"msg":"Raport generat"}</code> sau <code>{"ok":false,"error":"..."}</code>.
           </p>
         </section>
       </aside>
@@ -292,6 +299,15 @@
       return GLOBAL_CFG;
     }
 
+    function getWebAppBaseUrl() {
+      if (!GLOBAL_CFG || !GLOBAL_CFG.adminEventsEndpoint) {
+        throw new Error('Lipsește adminEventsEndpoint în config.json.');
+      }
+      // ex: https://script.google.com/macros/s/.../exec?fn=adminEvents
+      // -> baza devine .../exec
+      return GLOBAL_CFG.adminEventsEndpoint.split('?')[0].replace(/\/$/, '');
+    }
+
     function appendLogLine(logEl, text){
       if (!logEl) return;
       const now = new Date();
@@ -318,6 +334,7 @@
     const dailyBtn         = document.getElementById('dailyReportBtn');
     const weeklyBtn        = document.getElementById('weeklyReportBtn');
     const monthlyBtn       = document.getElementById('monthlyReportBtn');
+    const rebuildBtn       = document.getElementById('rebuildReportBtn');
     const statusEl         = document.getElementById('reportsStatus');
     const logEl            = document.getElementById('reportsLog');
 
@@ -335,25 +352,27 @@
       if (dailyBtn) dailyBtn.disabled = true;
       if (weeklyBtn) weeklyBtn.disabled = true;
       if (monthlyBtn) monthlyBtn.disabled = true;
+      if (rebuildBtn) rebuildBtn.disabled = true;
       if (statusEl) statusEl.textContent = 'Rolul tău nu permite rularea manuală a rapoartelor.';
     }
 
-    async function callReport(fnKey, label){
+    async function callReport(fnKey, label, extraQuery){
       if (!statusEl) return;
       statusEl.textContent = 'Se rulează ' + label + '...';
       statusEl.style.color = 'var(--muted)';
 
-      const btns = [dailyBtn, weeklyBtn, monthlyBtn].filter(Boolean);
+      const btns = [dailyBtn, weeklyBtn, monthlyBtn, rebuildBtn].filter(Boolean);
       btns.forEach(b => b.disabled = true);
 
       try{
         const cfg = await loadConfig();
-        if (!cfg.adminEventsEndpoint){
-          throw new Error('Lipsește adminEventsEndpoint în config.json.');
+        const base = getWebAppBaseUrl();
+
+        let url = base + '?fn=' + encodeURIComponent(fnKey) + '&v=' + Date.now();
+        if (extraQuery) {
+          if (extraQuery[0] !== '&') extraQuery = '&' + extraQuery;
+          url += extraQuery;
         }
-        const url = cfg.adminEventsEndpoint +
-          '?fn=' + encodeURIComponent(fnKey) +
-          '&v=' + Date.now();
 
         appendLogLine(logEl, 'Trimit cerere către: ' + url);
 
@@ -364,7 +383,7 @@
         try{
           data = JSON.parse(text);
         }catch(e){
-          // nu e JSON, dar poate totuși s-a executat
+          appendLogLine(logEl, 'Răspuns ne-JSON: ' + text);
         }
 
         if (!resp.ok){
@@ -375,7 +394,16 @@
           throw new Error(data.error || 'Serverul a întors ok=false.');
         }
 
-        const msg = (data && (data.message || data.status)) || 'Rulare finalizată (vezi log/Drive).';
+        let msg;
+        // Suportă atât endpoint-urile directe (dailyReports, etc.), cât și ?fn=reports
+        if (Array.isArray(data && data.results) && data.results.length){
+          const okCount = data.results.filter(r => r.ok).length;
+          msg = 'Rulate ' + okCount + '/' + data.results.length + ' rapoarte.';
+        } else {
+          msg = (data && (data.msg || data.message || data.status)) ||
+                'Rulare finalizată (vezi log/Drive).';
+        }
+
         statusEl.textContent = label + ': ' + msg;
         statusEl.style.color = '#166534';
         appendLogLine(logEl, label + ' OK: ' + msg);
@@ -391,17 +419,24 @@
 
     if (dailyBtn){
       dailyBtn.addEventListener('click', function(){
-        callReport('dailyreports', 'Raport zi (dailyreports)');
+        // doGet: fn === 'dailyReports' -> dailyReports()
+        callReport('dailyReports', 'Raport zi (dailyReports)');
       });
     }
     if (weeklyBtn){
       weeklyBtn.addEventListener('click', function(){
-        callReport('weeklyreports', 'Raport săptămână (weeklyreports)');
+        callReport('weeklyReports', 'Raport săptămână (weeklyReports)');
       });
     }
     if (monthlyBtn){
       monthlyBtn.addEventListener('click', function(){
-        callReport('monthlyreports', 'Raport lună (monthlyreports)');
+        callReport('monthlyReports', 'Raport lună (monthlyReports)');
+      });
+    }
+    if (rebuildBtn){
+      rebuildBtn.addEventListener('click', function(){
+        // rulează rebuildAllReports() prin doGet (fn === 'rebuildReports')
+        callReport('rebuildReports', 'Rebuild statistici (rebuildReports)');
       });
     }
   })();
