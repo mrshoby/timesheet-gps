@@ -359,7 +359,6 @@
     const statusEl         = document.getElementById('reportsStatus');
     const logEl            = document.getElementById('reportsLog');
     const filesEl          = document.getElementById('reportsFiles');
-    const rebuildBtn       = document.getElementById('rebuildReportsBtn'); // doar dacă ai buton
 
     if (adminLabelEl) adminLabelEl.textContent = session.user || 'Admin';
 
@@ -379,7 +378,7 @@
       if (statusEl) statusEl.textContent = 'Rolul tău nu permite rularea manuală a rapoartelor.';
     }
 
-        async function callReport(fnKey, label){
+         async function callReport(fnKey, label){
       if (!statusEl) return;
       statusEl.textContent = 'Se rulează ' + label + '...';
       statusEl.style.color = 'var(--muted)';
@@ -396,7 +395,11 @@
         if (!cfg.adminEventsEndpoint){
           throw new Error('Lipsește adminEventsEndpoint în config.json.');
         }
-        const url = cfg.adminEventsEndpoint +
+
+        // *** AICI E SCHIMBAREA IMPORTANTĂ ***
+        // Luăm baza URL-ului (fără ?fn=adminEvents) și construim direct ?fn=dailyReports|weeklyReports|...
+        const baseUrl = getWebAppBaseUrl();
+        const url = baseUrl +
           '?fn=' + encodeURIComponent(fnKey) +
           '&v=' + Date.now();
 
@@ -494,6 +497,7 @@
   </script>
 </body>
 </html>
+
 
 
 
