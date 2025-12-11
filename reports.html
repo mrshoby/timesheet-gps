@@ -358,6 +358,8 @@
     const rebuildBtn       = document.getElementById('rebuildReportBtn');
     const statusEl         = document.getElementById('reportsStatus');
     const logEl            = document.getElementById('reportsLog');
+    const filesEl          = document.getElementById('reportsFiles');
+    const rebuildBtn       = document.getElementById('rebuildReportsBtn'); // doar dacă ai buton
 
     if (adminLabelEl) adminLabelEl.textContent = session.user || 'Admin';
 
@@ -377,23 +379,26 @@
       if (statusEl) statusEl.textContent = 'Rolul tău nu permite rularea manuală a rapoartelor.';
     }
 
-    async function callReport(fnKey, label, extraQuery){
+        async function callReport(fnKey, label){
       if (!statusEl) return;
       statusEl.textContent = 'Se rulează ' + label + '...';
       statusEl.style.color = 'var(--muted)';
+
+      if (filesEl){
+        filesEl.textContent = 'Aștept răspuns de la server pentru ' + label + '...';
+      }
 
       const btns = [dailyBtn, weeklyBtn, monthlyBtn, rebuildBtn].filter(Boolean);
       btns.forEach(b => b.disabled = true);
 
       try{
         const cfg = await loadConfig();
-        const base = getWebAppBaseUrl();
-
-        let url = base + '?fn=' + encodeURIComponent(fnKey) + '&v=' + Date.now();
-        if (extraQuery) {
-          if (extraQuery[0] !== '&') extraQuery = '&' + extraQuery;
-          url += extraQuery;
+        if (!cfg.adminEventsEndpoint){
+          throw new Error('Lipsește adminEventsEndpoint în config.json.');
         }
+        const url = cfg.adminEventsEndpoint +
+          '?fn=' + encodeURIComponent(fnKey) +
+          '&v=' + Date.now();
 
         appendLogLine(logEl, 'Trimit cerere către: ' + url);
 
@@ -404,7 +409,7 @@
         try{
           data = JSON.parse(text);
         }catch(e){
-          appendLogLine(logEl, 'Răspuns ne-JSON: ' + text);
+          // nu e JSON, dar poate totuși s-a executat
         }
 
         if (!resp.ok){
@@ -415,24 +420,49 @@
           throw new Error(data.error || 'Serverul a întors ok=false.');
         }
 
-        let msg;
-        // Suportă atât endpoint-urile directe (dailyReports, etc.), cât și ?fn=reports
-        if (Array.isArray(data && data.results) && data.results.length){
-          const okCount = data.results.filter(r => r.ok).length;
-          msg = 'Rulate ' + okCount + '/' + data.results.length + ' rapoarte.';
-        } else {
-          msg = (data && (data.msg || data.message || data.status)) ||
-                'Rulare finalizată (vezi log/Drive).';
-        }
-
+        const msg = (data && (data.message || data.status || data.msg)) || 'Rulare finalizată.';
         statusEl.textContent = label + ': ' + msg;
         statusEl.style.color = '#166534';
         appendLogLine(logEl, label + ' OK: ' + msg);
+
+        // === Afișează linkurile către PDF-urile generate ===
+        if (filesEl){
+          const files = data && Array.isArray(data.files) ? data.files : [];
+          if (!files.length){
+            filesEl.textContent = 'Rularea a fost finalizată, dar nu am primit linkuri de rapoarte (vezi Google Drive).';
+          } else {
+            const items = files.map(function(f){
+              const url = f.fileUrl || f.url;
+              if (!url) return '';
+              const parts = [];
+              if (f.employee) parts.push(f.employee);
+              if (f.dept) parts.push('[' + f.dept + ']');
+              if (f.date) parts.push(f.date);
+              if (f.weekLabel) parts.push(f.weekLabel);
+              if (f.yearMonth) parts.push(f.yearMonth);
+              const labelText = (f.fileName || parts.join(' • ') || 'Descarcă raport')
+                .replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+              return '<li><a href="' + url +
+                     '" target="_blank" rel="noopener">' +
+                     labelText + '</a></li>';
+            }).filter(Boolean).join('');
+
+            filesEl.innerHTML =
+              '<div class="admin-small-text" style="margin-top:4px;margin-bottom:2px;">' +
+                'Rapoarte generate la ultima rulare:' +
+              '</div>' +
+              '<ul class="reports-files-list">' + items + '</ul>';
+          }
+        }
       }catch(err){
         const m = err && err.message ? err.message : String(err);
         statusEl.textContent = label + ' – eroare: ' + m;
         statusEl.style.color = '#b91c1c';
         appendLogLine(logEl, label + ' EROARE: ' + m);
+        if (filesEl){
+          filesEl.textContent = 'Nu am putut genera linkurile (eroare la rulare).';
+        }
       }finally{
         btns.forEach(b => b.disabled = false);
       }
@@ -464,5 +494,6 @@
   </script>
 </body>
 </html>
+
 
 
