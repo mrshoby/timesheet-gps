@@ -1469,6 +1469,30 @@ function sumPausesFromEvents(events, fallbackPair){
   }
 
   const minutesFromMs = (ms)=> Math.round(ms / 60000);
+// ===== FORMAT helpers (ore zecimale -> h + m) =====
+function fmtHoursToHM(val){
+  const raw = String(val ?? '').trim();
+  if (!raw) return '';
+
+  // dacă deja e HH:MM sau conține "h", îl lăsăm așa
+  if (/^\d{1,3}:\d{2}$/.test(raw) || /\bh\b/i.test(raw)) return raw;
+
+  // acceptă și virgulă: "7,5"
+  const num = parseFloat(raw.replace(',', '.').replace(/[^0-9.]+/g, ''));
+  if (!isFinite(num)) return raw;
+
+  const totalMin = Math.max(0, Math.round(num * 60));
+  const h = Math.floor(totalMin / 60);
+  const m = totalMin % 60;
+  return `${h}h ${String(m).padStart(2,'0')}m`;
+}
+
+function fmtMinToHM(min){
+  const mm = Math.max(0, Math.round(Number(min) || 0));
+  const h = Math.floor(mm / 60);
+  const m = mm % 60;
+  return `${h}h ${String(m).padStart(2,'0')}m`;
+}
 
   function applyLocalTransition(action, ts){
     action = _normAction(action);
@@ -1581,11 +1605,16 @@ function sumPausesFromEvents(events, fallbackPair){
       }catch{}
     }
 
-    setStatus(`Pauză încheiată — interval curent: ${curMin} min • total azi: ${totMin} min.`, 'ok');
-    showToast(
-      `<b>Pauză încheiată</b><div class="small">Curent: <b>${curMin}</b> min • Total azi: <b>${totMin}</b> min</div>`,
-      'ok'
-    );
+ setStatus(
+  `Pauză încheiată — interval curent: ${fmtMinToHM(curMin)} • total azi: ${fmtMinToHM(totMin)}.`,
+  'ok'
+);
+
+showToast(
+  `<b>Pauză încheiată</b><div class="small">Curent: <b>${fmtMinToHM(curMin)}</b> • Total azi: <b>${fmtMinToHM(totMin)}</b></div>`,
+  'ok'
+);
+
   }
 
   // ==================== ACTION SUBMIT cu LOCK ANTISPAM IMEDIAT ====================
@@ -1687,11 +1716,26 @@ function sumPausesFromEvents(events, fallbackPair){
       try {
         const stats = await fetchStats(empSel.value.trim());
         if (stats){
-          if (actNorm === 'finish'){
-            showToast(`<b>${empSel.value}</b><div class="small">Azi — Ore: <b>${stats.totalHours}</b> h • Suplimentar: <b>${stats.overtime}</b> h</div>`, 'ok');
-          } else if (actNorm === 'extra_finish'){
-            showToast(`<b>${empSel.value}</b><div class="small">Azi — Extra: <b>${stats.extra}</b> h</div>`, 'ok');
-          }
+       if (actNorm === 'finish'){
+  const ore = fmtHoursToHM(stats.totalHours);
+  const supl = fmtHoursToHM(stats.overtime);
+
+  setStatus(`Finish ✓ — Azi: ${ore} • Suplimentar: ${supl}.`, 'ok');
+  showToast(
+    `<b>${empSel.value}</b><div class="small">Azi — Ore: <b>${ore}</b> • Suplimentar: <b>${supl}</b></div>`,
+    'ok'
+  );
+
+} else if (actNorm === 'extra_finish'){
+  const extra = fmtHoursToHM(stats.extra);
+
+  setStatus(`Extra Finish ✓ — Azi: Extra: ${extra}.`, 'ok');
+  showToast(
+    `<b>${empSel.value}</b><div class="small">Azi — Extra: <b>${extra}</b></div>`,
+    'ok'
+  );
+}
+
         }
       } catch {}
     } catch (err) {
