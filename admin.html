@@ -1217,6 +1217,13 @@
       errorEl.textContent = msg;
       errorEl.style.display = 'block';
     }
+    window.addEventListener('error', function(e){
+  try{ showError('Eroare JS: ' + (e.message || e.error || e)); }catch(_){}
+});
+window.addEventListener('unhandledrejection', function(e){
+  try{ showError('Promise reject: ' + (e.reason && e.reason.message ? e.reason.message : e.reason)); }catch(_){}
+});
+
     if (loadingEl) loadingEl.style.display = 'none';
     if (dashboardEl) dashboardEl.style.display = 'none';
     if (alertsPageEl) alertsPageEl.style.display = 'none';
@@ -2539,161 +2546,6 @@
     });
   }
 
-    // MODUL "Azi": starea curentă a pontajului pe ziua de azi
-    const todayStart = new Date(
-      now.getFullYear(),
-      now.getMonth(),
-      now.getDate(),
-      0, 0, 0, 0
-    );
-    const todayEnd = new Date(
-      now.getFullYear(),
-      now.getMonth(),
-      now.getDate(),
-      23, 59, 59, 999
-    );
-
-    const todayEvents = allEvents.filter(ev => {
-      if (!ev.ts) return false;
-      const t = new Date(ev.ts);
-      if (isNaN(t.getTime())) return false;
-      return t >= todayStart && t <= todayEnd;
-    });
-
-    if (!todayEvents.length){
-      liveBoardEl.innerHTML = '<div class="admin-empty">Niciun pontaj înregistrat azi.</div>';
-      return;
-    }
-
-    // Grupăm pe angajat
-    const byName = new Map();
-    todayEvents.forEach(ev => {
-      if (!ev.name) return;
-      if (!byName.has(ev.name)) byName.set(ev.name, []);
-      byName.get(ev.name).push(ev);
-    });
-
-    const rows = [];
-
-    byName.forEach((list, name) => {
-      // sortăm cronologic
-      list.sort((a, b) => new Date(a.ts) - new Date(b.ts));
-
-      // stare baza: start/pause/unpause/finish
-      let baseState   = 'none';  // 'working' | 'paused' | 'closed' | 'none'
-      let baseTs      = null;
-
-      // stare extra: extra_start / extra_finish
-      let extraState  = 'none';  // 'extra_running' | 'none'
-      let extraTs     = null;
-
-      let lastDept    = '';
-
-      list.forEach(ev => {
-        const t = new Date(ev.ts).getTime();
-        if (isNaN(t)) return;
-        if (ev.dept) lastDept = ev.dept;
-
-        const act = ev.action;
-
-        // baza (normă)
-        if (act === 'start' || act === 'unpause'){
-          baseState = 'working';
-          baseTs    = t;
-        } else if (act === 'pause'){
-          baseState = 'paused';
-          baseTs    = t;
-        } else if (act === 'finish'){
-          baseState = 'closed';
-          baseTs    = t;
-        }
-
-        // extra
-        if (act === 'extra_start'){
-          extraState = 'extra_running';
-          extraTs    = t;
-        } else if (act === 'extra_finish'){
-          extraState = 'none';
-          extraTs    = t;
-        }
-      });
-
-      function fmtSince(ts){
-        if (!ts) return '';
-        const diffMs = now.getTime() - ts;
-        if (diffMs <= 0) return '';
-        const mins = Math.round(diffMs / 60000);
-        const h = Math.floor(mins / 60);
-        const m = mins % 60;
-        if (h > 0) return h + 'h ' + String(m).padStart(2, '0') + 'm';
-        return m + ' min';
-      }
-
-      let state      = 'Fără pontaj azi';
-      let badgeClass = 'badge-info';
-      let sinceLabel = '';
-
-      // PRIORITATE:
-      // 1) EXTRA în curs
-      // 2) PAUZĂ
-      // 3) LUCREAZĂ
-      // 4) ÎNCHIS AZI
-      // 5) fallback
-
-      if (extraState === 'extra_running'){
-        state      = 'Extra în curs';
-        badgeClass = 'badge-ok';
-        sinceLabel = fmtSince(extraTs);
-      } else if (baseState === 'paused'){
-        state      = 'În pauză';
-        badgeClass = 'badge-warn';
-        sinceLabel = fmtSince(baseTs);
-      } else if (baseState === 'working'){
-        state      = 'Lucrează';
-        badgeClass = 'badge-ok';
-        sinceLabel = fmtSince(baseTs);
-      } else if (baseState === 'closed' || list.length){
-        // dacă ultima acțiune e FINISH sau avem totuși înregistrări, dar fără stare clară
-        state      = 'Închis azi';
-        badgeClass = 'badge-info';
-        sinceLabel = ''; // aici nu punem "de X min", ca să nu inducem în eroare
-      }
-
-      rows.push({
-        name,
-        dept: lastDept || '',
-        state,
-        badgeClass,
-        sinceLabel
-      });
-    });
-
-    if (!rows.length){
-      liveBoardEl.innerHTML = '<div class="admin-empty">Niciun pontaj înregistrat azi.</div>';
-      return;
-    }
-
-    rows.sort((a, b) => a.name.localeCompare(b.name, 'ro'));
-
-    rows.forEach(r => {
-      const row = document.createElement('div');
-      row.className = 'admin-list-row';
-      row.innerHTML =
-        '<div>' +
-          '<div class="admin-list-label">' + r.name + '</div>' +
-          '<div class="admin-list-sub">' + (r.dept || '(fără departament)') + '</div>' +
-        '</div>' +
-        '<div class="admin-list-value">' +
-          '<div><span class="badge ' + r.badgeClass + '">' + r.state + '</span></div>' +
-          (r.sinceLabel
-            ? '<div style="font-size:11px;color:#6b7280;">de ' + r.sinceLabel + '</div>'
-            : ''
-          ) +
-        '</div>';
-      liveBoardEl.appendChild(row);
-    });
-  }
-
   function renderAlertsFromMeta(){
     if (!alertsListEl) return;
     alertsListEl.innerHTML = '';
@@ -3364,158 +3216,6 @@
         });
 
         const statsMonth = buildStatsFromEvents(filtered);
-        const perDay     = statsMonth.perDay || new Map();
-
-        // tooltip: cine are zi incompletă pe dk în luna asta
-        const incompleteNamesByDay = new Map();
-        if (statsMonth.employees){
-          statsMonth.employees.forEach(emp=>{
-            emp.days.forEach(day=>{
-              if (day && day.incomplete){
-                if (!incompleteNamesByDay.has(day.dateKey)) incompleteNamesByDay.set(day.dateKey, []);
-                incompleteNamesByDay.get(day.dateKey).push(emp.name);
-              }
-            });
-          });
-        }
-
-        const weekdayLabels = ['L','Ma','Mi','J','V','S','D'];
-        weekdayLabels.forEach(lbl=>{
-          const h = document.createElement('div');
-          h.className = 'calendar-day calendar-day-header';
-          h.textContent = lbl;
-          presenceCalendarEl.appendChild(h);
-        });
-
-        const firstWeekday = (firstDay.getDay() + 6) % 7; // luni=0
-        for (let i=0;i<firstWeekday;i++){
-          const empty = document.createElement('div');
-          empty.className = 'calendar-day calendar-day-none';
-          empty.innerHTML = '&nbsp;';
-          presenceCalendarEl.appendChild(empty);
-        }
-
-        for (let d=1; d<=lastDay.getDate(); d++){
-          const cur = new Date(CALENDAR_YEAR, CALENDAR_MONTH, d);
-          const dk  = dateKeyFromIso(cur.toISOString());
-
-          const info      = perDay.get(dk);
-          const started   = info && info.started   ? info.started.size   : 0;
-          const completed = info && info.completed ? info.completed.size : 0;
-          const pct       = started ? Math.round(100 * completed / started) : 0;
-
-          const leaveCount = (LEAVE_BY_DAY && LEAVE_BY_DAY.get(dk)) ? LEAVE_BY_DAY.get(dk).size : 0;
-
-          const dayEl = document.createElement('div');
-          let cls = 'calendar-day ';
-          if (!started) cls += 'calendar-day-none';
-          else if (pct < 50) cls += 'calendar-day-low';
-          else if (pct < 90) cls += 'calendar-day-med';
-          else cls += 'calendar-day-high';
-
-          if (SELECTED_CALENDAR_DAY === dk) cls += ' calendar-day-selected';
-          dayEl.className = cls;
-          dayEl.dataset.dateKey = dk;
-
-          const parts = [];
-          if (started) parts.push(completed + '/' + started + ' ok');
-          if (leaveCount) parts.push(leaveCount + ' C');
-          const metaText = parts.length ? parts.join(', ') : '–';
-
-          dayEl.innerHTML =
-            '<span class="calendar-day-label">' + d + '</span>' +
-            '<span class="calendar-day-meta">' + metaText + '</span>';
-
-          const inc = incompleteNamesByDay.get(dk) || [];
-          if (inc.length){
-            const shown = inc.slice(0, 10);
-            const more  = inc.length > shown.length ? ' …' : '';
-            dayEl.title = 'Zile incomplete: ' + shown.join(', ') + more;
-          }
-
-          dayEl.addEventListener('click', function(){
-            setSelectedCalendarDay(dk);
-          });
-
-          presenceCalendarEl.appendChild(dayEl);
-        }
-      }
-
-        const statsMonth = buildStatsFromEvents(filtered);
-        const perDay     = statsMonth.perDay || new Map();
-
-        // Header zile săptămână
-        const weekdayLabels = ['L','Ma','Mi','J','V','S','D'];
-        weekdayLabels.forEach(lbl => {
-          const h = document.createElement('div');
-          h.className = 'calendar-day calendar-day-header';
-          h.textContent = lbl;
-          presenceCalendarEl.appendChild(h);
-        });
-
-        // Offset pentru prima zi (luni = 0)
-        const firstWeekday = (firstDay.getDay() + 6) % 7;
-        for (let i = 0; i < firstWeekday; i++){
-          const empty = document.createElement('div');
-          empty.className = 'calendar-day calendar-day-none';
-          empty.innerHTML = '&nbsp;';
-          presenceCalendarEl.appendChild(empty);
-        }
-
-        // Zilele din lună
-        for (let d = 1; d <= lastDay.getDate(); d++){
-          const cur = new Date(year, month, d);
-          const dk  = dateKeyFromIso(cur.toISOString());
-
-          const info      = perDay.get(dk);
-          const started   = info && info.started   ? info.started.size   : 0;
-          const completed = info && info.completed ? info.completed.size : 0;
-          const pct       = started ? Math.round(100 * completed / started) : 0;
-
-          // Concedii pe zi din LEAVE_BY_DAY
-          const leaveCount = (LEAVE_BY_DAY && LEAVE_BY_DAY.get(dk))
-            ? LEAVE_BY_DAY.get(dk).size
-            : 0;
-
-          // Clasă de culoare după procent complet
-          const dayEl = document.createElement('div');
-          let cls = 'calendar-day ';
-          if (!started){
-            cls += 'calendar-day-none';
-          } else if (pct < 50){
-            cls += 'calendar-day-low';
-          } else if (pct < 90){
-            cls += 'calendar-day-med';
-          } else {
-            cls += 'calendar-day-high';
-          }
-          if (SELECTED_CALENDAR_DAY === dk){
-            cls += ' calendar-day-selected';
-          }
-          dayEl.className = cls;
-          dayEl.dataset.dateKey = dk;
-
-          // Text meta: "3/10 ok, 2 C"
-          const parts = [];
-          if (started){
-            parts.push(completed + '/' + started + ' ok');
-          }
-          if (leaveCount){
-            parts.push(leaveCount + ' C');
-          }
-          const metaText = parts.length ? parts.join(', ') : '–';
-
-          dayEl.innerHTML =
-            '<span class="calendar-day-label">' + d + '</span>' +
-            '<span class="calendar-day-meta">' + metaText + '</span>';
-
-          dayEl.addEventListener('click', function(){
-            setSelectedCalendarDay(dk);
-          });
-
-          presenceCalendarEl.appendChild(dayEl);
-        }
-      }
       
       function applyRoleVisibility(){
         const role = ADMIN_ROLE || 'admin';
@@ -3542,6 +3242,7 @@
         if (SELECTED_CALENDAR_DAY){
           baseRange = baseRange.filter(ev => dateKeyFromIso(ev.ts) === SELECTED_CALENDAR_DAY);
         }
+         window.__pontajAdminRefresh = refresh;
         let filteredForMain = applyIncompleteFilter(baseRange);
         latestFiltered = filteredForMain;
 
@@ -3581,7 +3282,7 @@
           }
         }
 
-       window.__pontajAdminRefresh = refresh;
+      
 
         
         renderPresenceCalendarMonthly();
@@ -4046,4 +3747,5 @@
 
 </body>
 </html>
+
 
