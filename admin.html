@@ -925,11 +925,13 @@
         <!-- A5: Live board cu două moduri (azi / zile anterioare) -->
         <section class="card admin-card">
           <h2>Live pontaj</h2>
-          <div class="admin-small-text" id="liveBoardHint">
-            <div id="liveBoardSummary" class="admin-small-text" style="margin:6px 0 8px;"></div>
+         <div class="admin-small-text" id="liveBoardHint">
+  <div id="liveBoardSummary" class="admin-small-text" style="margin:6px 0 8px;"></div>
 
-            Starea curentă a pontajului pentru ziua de azi (START / PAUSE / EXTRA / FINISH).
-          </div>
+  <span id="liveBoardHintText">
+    Starea curentă a pontajului pentru ziua de azi (START / PAUSE / EXTRA / FINISH).
+  </span>
+</div>
           <div style="margin:6px 0 8px;display:flex;gap:6px;flex-wrap:wrap;">
             <button type="button" class="top-toggle active" id="liveBoardTodayBtn">Azi</button>
             <button type="button" class="top-toggle" id="liveBoardPastBtn">Zile anterioare</button>
@@ -1161,6 +1163,7 @@
   const liveBoardEl            = document.getElementById('liveBoard');
   const liveBoardHintEl        = document.getElementById('liveBoardHint');
   const liveBoardSummaryEl     = document.getElementById('liveBoardSummary');
+  const liveBoardHintTextEl    = document.getElementById('liveBoardHintText');
 
   const alertsTypeFilterEl     = document.getElementById('alertsTypeFilter');
   const alertsDeptFilterEl     = document.getElementById('alertsDeptFilter');
@@ -1466,16 +1469,25 @@ window.addEventListener('unhandledrejection', function(e){
     }, 0);
   }
 
-  function isDayIncomplete(day){
-    if (!day) return false;
-    const hasAnyEvent =
-      (day.events && day.events.length) ||
-      day.hasStart || day.hasFinish ||
-      day.pauseCount || day.unpauseCount ||
-      day.extraStartCount || day.extraFinishCount;
-    if (!hasAnyEvent) return false;
-    return !day.hasFinish;
-  }
+function isDayIncomplete(day){
+  if (!day) return false;
+
+  const hasAnyEvent =
+    (day.events && day.events.length) ||
+    day.hasStart || day.hasFinish ||
+    day.pauseCount || day.unpauseCount ||
+    day.extraStartCount || day.extraFinishCount;
+
+  if (!hasAnyEvent) return false;
+
+  return (
+    !day.hasFinish ||
+    day.hasPauseMismatch ||
+    day.hasExtraMismatch ||
+    day.openExtra
+  );
+}
+
 
   function applyIncompleteFilter(events){
     // Dacă checkbox-ul "doar zile incomplete" NU e bifat → întoarcem lista originală
@@ -3216,7 +3228,7 @@ window.addEventListener('unhandledrejection', function(e){
         });
 
         const statsMonth = buildStatsFromEvents(filtered);
-      
+       }
       function applyRoleVisibility(){
         const role = ADMIN_ROLE || 'admin';
 
@@ -3630,18 +3642,20 @@ window.addEventListener('unhandledrejection', function(e){
           LIVE_BOARD_MODE = 'today';
           liveBoardTodayBtn.classList.add('active');
           liveBoardPastBtn.classList.remove('active');
-          if (liveBoardHintEl){
-            liveBoardHintEl.textContent = 'Starea curentă a pontajului pentru ziua de azi (START / PAUSE / EXTRA / FINISH).';
-          }
+        if (liveBoardHintTextEl){
+  liveBoardHintTextEl.textContent = 'Starea curentă a pontajului pentru ziua de azi (START / PAUSE / EXTRA / FINISH).';
+}
+
           renderLiveBoard();
         });
         liveBoardPastBtn.addEventListener('click', function(){
           LIVE_BOARD_MODE = 'past';
           liveBoardPastBtn.classList.add('active');
           liveBoardTodayBtn.classList.remove('active');
-          if (liveBoardHintEl){
-            liveBoardHintEl.textContent = 'Zile anterioare până la azi în care lipsesc acțiuni de FINISH pentru cel puțin un angajat.';
-          }
+       if (liveBoardHintTextEl){
+  liveBoardHintTextEl.textContent = 'Zile anterioare până la azi în care lipsesc acțiuni de FINISH pentru cel puțin un angajat.';
+}
+
           renderLiveBoard();
         });
       }
@@ -3747,5 +3761,6 @@ window.addEventListener('unhandledrejection', function(e){
 
 </body>
 </html>
+
 
 
