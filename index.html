@@ -459,6 +459,7 @@
         </div>
 
         <div id="status" class="status" role="status" aria-live="polite"></div>
+        <div id="liveStats" class="status mono" style="margin-top:10px"></div>
 
         <div id="last" class="status mono" style="display:none"></div>
       </div>
@@ -740,6 +741,55 @@ function geolocateOnce(){
   });
 }
 function randomNonce(){ return Math.random().toString(36).slice(2) + Date.now().toString(36); }
+function fmtIsoToHM(iso){
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (isNaN(d)) return '';
+  return d.toLocaleTimeString('ro-RO', { hour:'2-digit', minute:'2-digit' });
+}
+
+async function fetchStatsRetry(name, untilIso, tries=8, delay=350){
+  for (let i=0;i<tries;i++){
+    const s = await fetchStats(name, untilIso);
+    if (s) return s;
+    await sleep(delay);
+  }
+  return await fetchStats(name, untilIso);
+}
+function renderLiveStats(stats){
+  const el = document.getElementById('liveStats');
+  if (!el) return;
+  if (!stats){ el.textContent = ''; return; }
+
+  const nowHM = fmtIsoToHM(stats.until);
+  const day = stats.dayKey || dayKeyLocal(stats.until);
+
+  const n = stats.session && stats.session.normal;
+  const x = stats.session && stats.session.extra;
+
+  const lines = [];
+  lines.push(`Azi (${day}) @ ${nowHM}`);
+  lines.push(`Normă — total: ${fmtHoursToHM(stats.totalHours)} | suplim azi: ${fmtHoursToHM(stats.overtime)}`);
+
+  if (n && n.startIso && n.endIso){
+    lines.push(`Normă — sesiune: ${fmtIsoToHM(n.startIso)}–${fmtIsoToHM(n.endIso)} = ${fmtHoursToHM(n.hours)} | suplim sesiune: ${fmtHoursToHM(n.overtime)}`);
+  }
+
+  lines.push(`Extra — total: ${fmtHoursToHM(stats.extra)}`);
+  if (x && x.startIso && x.endIso){
+    lines.push(`Extra — sesiune: ${fmtIsoToHM(x.startIso)}–${fmtIsoToHM(x.endIso)} = ${fmtHoursToHM(x.hours)}`);
+  }
+
+  el.textContent = lines.join('\n');
+}
+
+let LIVE_TIMER = null;
+async function updateLiveStats(){
+  if (!empSel.value) { renderLiveStats(null); return; }
+  const untilIso = new Date().toISOString();
+  const s = await fetchStats(empSel.value.trim(), untilIso);
+  renderLiveStats(s);
+}
 
 /* ============ READ Google Sheet (CSV / GViz) + calc pauze ============ */
 function parseGvizDateStr(s){
@@ -1434,15 +1484,18 @@ function sumPausesFromEvents(events, fallbackPair){
       return JSON.parse(txt).state || null;
     }catch{ return null; }
   }
-  async function fetchStats(name){
-    const url = baseEndpoint() + '?fn=stats&name=' + encodeURIComponent(name);
-    try{
-      const r = await fetch(url, { cache:'no-store' });
-      const txt = await r.text();
-      const data = JSON.parse(txt);
-      return (data && data.ok) ? data.stats : null;
-    }catch{ return null; }
-  }
+async function fetchStats(name, untilIso){
+  const url = baseEndpoint()
+    + '?fn=stats&name=' + encodeURIComponent(name)
+    + (untilIso ? ('&until=' + encodeURIComponent(untilIso)) : '');
+  try{
+    const r = await fetch(url, { cache:'no-store' });
+    const txt = await r.text();
+    const data = JSON.parse(txt);
+    return (data && data.ok) ? data.stats : null;
+  }catch{ return null; }
+}
+
   async function fetchPauseTotals(name, untilIso){
     const url = baseEndpoint() + '?fn=pausetotals&name=' + encodeURIComponent(name) + (untilIso ? ('&until=' + encodeURIComponent(untilIso)) : '');
     try{
@@ -1582,6 +1635,10 @@ function fmtHoursToHM(hours){
     await refreshServerState();
     reflectState();
     updateEmpStatus();
+    await updateLiveStats();
+clearInterval(LIVE_TIMER);
+LIVE_TIMER = setInterval(updateLiveStats, 30000);
+
   }
 
   function isComercialDept(){
@@ -1661,6 +1718,7 @@ showToast(
       setStatus('Sincronizez starea…', '');
       await refreshServerState();
       reflectState();
+  await updateLiveStats();
 
       {
         const running = STATE.normal.running;
@@ -1715,34 +1773,55 @@ showToast(
       await refreshServerState();
       reflectState();
 
-      try {
-        const stats = await fetchStats(empSel.value.trim());
-       if (stats){
-  if (actNorm === 'finish'){
-    const th = fmtHoursToHM(stats.totalHours);
-    const ot = fmtHoursToHM(stats.overtime);
+      try{
+  const name = empSel.value.trim();
+  const untilIso = ts; // timestamp-ul click-ului
+  const st = await fetchStatsRetry(name, untilIso);
 
-    showToast(
-      `<b>${empSel.value}</b><div class="small">Azi — Ore: <b>${th}</b> • Suplimentar: <b>${ot}</b></div>`,
-      'ok'
-    );
+  if (st){
+    renderLiveStats(st);
 
-    // (opțional) și în statusul de sub butoane:
-    setStatus(`Finish ✓ Azi — Ore: ${th} • Suplimentar: ${ot}.`, 'ok');
+    if (actNorm === 'finish'){
+      const n = st.session && st.session.normal;
+      const endHM = fmtIsoToHM(untilIso);
+      const startHM = n ? fmtIsoToHM(n.startIso) : '';
+      const sesH = n ? fmtHoursToHM(n.hours) : '0h 00m';
+      const sesOT = n ? fmtHoursToHM(n.overtime) : '0h 00m';
 
-  } else if (actNorm === 'extra_finish'){
-    const ex = fmtHoursToHM(stats.extra);
+      showToast(
+        `<b>${name}</b><div class="small">
+          Finish: <b>${endHM}</b> • Interval: <b>${startHM}–${endHM}</b><br>
+          Sesiune: <b>${sesH}</b> • Suplim sesiune: <b>${sesOT}</b><br>
+          Azi: <b>${fmtHoursToHM(st.totalHours)}</b> • Suplim azi: <b>${fmtHoursToHM(st.overtime)}</b>
+        </div>`,
+        'ok'
+      );
 
-    showToast(
-      `<b>${empSel.value}</b><div class="small">Azi — Extra: <b>${ex}</b></div>`,
-      'ok'
-    );
+      setStatus(`Finish ${endHM} ✓ Sesiune ${sesH} (suplim ${sesOT}) • Azi ${fmtHoursToHM(st.totalHours)} (suplim ${fmtHoursToHM(st.overtime)}).`, 'ok');
+    }
 
-    // (opțional)
-    setStatus(`Extra Finish ✓ Azi — Extra: ${ex}.`, 'ok');
+    if (actNorm === 'extra_finish'){
+      const x = st.session && st.session.extra;
+      const endHM = fmtIsoToHM(untilIso);
+      const startHM = x ? fmtIsoToHM(x.startIso) : '';
+      const sesEx = x ? fmtHoursToHM(x.hours) : '0h 00m';
+
+      showToast(
+        `<b>${name}</b><div class="small">
+          Extra Finish: <b>${endHM}</b> • Interval: <b>${startHM}–${endHM}</b><br>
+          Extra sesiune: <b>${sesEx}</b><br>
+          Extra azi: <b>${fmtHoursToHM(st.extra)}</b>
+        </div>`,
+        'ok'
+      );
+
+      setStatus(`Extra Finish ${endHM} ✓ Sesiune ${sesEx} • Extra azi ${fmtHoursToHM(st.extra)}.`, 'ok');
+    }
   }
+}catch(e){
+  // dacă stats pică, măcar nu mai afișăm 0 forțat
 }
-      } catch {}
+
     } catch (err) {
       setStatus(String(err && err.message ? err.message : err), 'err');
     } finally {
