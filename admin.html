@@ -50,6 +50,7 @@
     .brand h1{font-size:18px;letter-spacing:.2px;margin:0;line-height:1.1}
     .brand h1 span{display:block;font-weight:700}
     .brand small{display:block;font-size:12px;color:var(--muted);margin-top:2px}
+    .liveboard-summary{display:flex;flex-wrap:wrap;gap:8px;}
 
     /* NOU: container pentru acțiunile din dreapta (chip + buton self-service) */
     .nav-actions{
@@ -264,7 +265,7 @@
       color:var(--muted);
       margin-bottom:10px;
     }
-
+    
     .admin-list{
       display:flex;
       flex-direction:column;
@@ -651,6 +652,11 @@
             <div class="admin-small-text">
               Zile în care există probleme de închidere: START fără FINISH, PAUSE fără UNPAUSE, EXTRA START fără EXTRA FINISH sau sesiune rămasă deschisă (după filtrul curent).
             </div>
+            <div style="margin:6px 0 10px;display:flex;gap:6px;flex-wrap:wrap;">
+  <button type="button" class="top-toggle active" id="incompleteDayAllBtn">Toate</button>
+  <button type="button" class="top-toggle" id="incompleteDayWeekendBtn">Doar weekend</button>
+  <button type="button" class="top-toggle" id="incompleteDayWorkBtn">Doar zile lucrătoare</button>
+</div>
             <div class="table-wrap">
               <table class="admin-table">
                 <thead>
@@ -674,6 +680,11 @@
             <div class="admin-small-text">
               Zile cu posibile probleme de pontaj: pauze neînchise, EXTRA neînchis, pauze prea lungi, ore foarte multe sau pontaj în weekend.
             </div>
+            <div style="margin:6px 0 10px;display:flex;gap:6px;flex-wrap:wrap;">
+  <button type="button" class="top-toggle active" id="anomalyDayAllBtn">Toate</button>
+  <button type="button" class="top-toggle" id="anomalyDayWeekendBtn">Doar weekend</button>
+  <button type="button" class="top-toggle" id="anomalyDayWorkBtn">Doar zile lucrătoare</button>
+</div>
             <div class="table-wrap">
               <table class="admin-table">
                 <thead>
@@ -728,8 +739,13 @@
             <div class="admin-small-text">
               Fiecare zi arată câți angajați au avut pontaj și câți au normă completă, pentru luna curentă. Click pe o zi pentru a filtra mai jos.
             </div>
+            <div style="margin:6px 0 10px;display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap;">
+  <button type="button" class="top-toggle" id="calPrevBtn">‹ Luna anterioară</button>
+  <div class="chip" id="calendarMonthLabel">–</div>
+  <button type="button" class="top-toggle" id="calNextBtn">Luna următoare ›</button>
+</div>
             <div id="presenceCalendar" class="calendar-grid"></div>
-
+            
             <div class="calendar-legend">
               <span class="calendar-legend-label">Legendă:</span>
               <span class="calendar-legend-item">
@@ -768,6 +784,10 @@
               <div class="admin-small-text" id="employeeDetailsHeader">
                 Selectează un angajat din listă pentru a vedea situația pe toate zilele (normă, extra, overtime, zile complete, concediu).
               </div>
+              <a href="#" class="btn" id="employeeSelfLink" target="_blank" rel="noopener"
+   style="display:none;margin:8px 0 10px">
+  🧾 Deschide pontajul angajatului
+</a>
               <div id="employeeDetailsBody">
                 <div class="admin-empty">Niciun angajat selectat.</div>
               </div>
@@ -777,6 +797,28 @@
 
         <!-- TAB NOU: Alerte LIVE -->
         <section id="alertsPage" style="display:none">
+          <div class="admin-filter-line" style="margin:0 0 10px;">
+  <label>
+    <span>Tip alertă</span>
+    <select id="alertsTypeFilter">
+      <option value="all">Toate</option>
+      <option value="pause">Pauză</option>
+      <option value="norm">Normă</option>
+      <option value="extra">Extra</option>
+      <option value="system">Sistem</option>
+    </select>
+  </label>
+  <label>
+    <span>Departament</span>
+    <select id="alertsDeptFilter">
+      <option value="all">Toate</option>
+    </select>
+  </label>
+  <label style="flex:1;min-width:220px;">
+    <span>Caută</span>
+    <input type="text" id="alertsSearch" placeholder="Nume / mesaj..." />
+  </label>
+</div>
           <section class="card admin-card">
             <h2>Alerte LIVE pe ziua curentă</h2>
             <div class="admin-small-text">
@@ -846,6 +888,12 @@
           <button id="exportCsvBtn" class="btn" type="button" style="margin-top:8px">
             Export CSV (filtru curent)
           </button>
+          <button id="exportIncompleteBtn" class="btn" type="button" style="margin-top:8px">
+  Export zile incomplete
+</button>
+<button id="exportAnomaliesBtn" class="btn" type="button" style="margin-top:8px">
+  Export anomalii
+</button>
           <button id="pdfBtn" class="btn" type="button" style="margin-top:8px">
             PDF angajat selectat
           </button>
@@ -878,6 +926,8 @@
         <section class="card admin-card">
           <h2>Live pontaj</h2>
           <div class="admin-small-text" id="liveBoardHint">
+            <div id="liveBoardSummary" class="admin-small-text" style="margin:6px 0 8px;"></div>
+
             Starea curentă a pontajului pentru ziua de azi (START / PAUSE / EXTRA / FINISH).
           </div>
           <div style="margin:6px 0 8px;display:flex;gap:6px;flex-wrap:wrap;">
@@ -937,6 +987,23 @@
   let TOP_MODE = 'hours';
   let LIVE_BOARD_MODE = 'today';
 
+  let INCOMPLETE_DAY_FILTER = 'all'; // all | weekend | workday
+  let ANOMALY_DAY_FILTER    = 'all'; // all | weekend | workday
+
+  let CALENDAR_YEAR  = (new Date()).getFullYear();
+  let CALENDAR_MONTH = (new Date()).getMonth();
+
+  let ALERTS_FILTER_TYPE = 'all'; // all|pause|norm|extra|system
+  let ALERTS_FILTER_DEPT = 'all';
+  let ALERTS_FILTER_Q    = '';
+
+  let LAST_LIVE_ACTIVE = [];
+  let LATEST_INCOMPLETE_ROWS = [];
+  let LATEST_ANOMALY_ROWS    = [];
+
+  let SELF_SERVICE_BASE = null;
+
+  
   let ADMIN_SESSION = null;
   let ADMIN_ROLE = 'admin';
   let ADMIN_DEPT = null;
@@ -1093,6 +1160,29 @@
   const presenceCalendarEl     = document.getElementById('presenceCalendar');
   const liveBoardEl            = document.getElementById('liveBoard');
   const liveBoardHintEl        = document.getElementById('liveBoardHint');
+  const liveBoardSummaryEl     = document.getElementById('liveBoardSummary');
+
+  const alertsTypeFilterEl     = document.getElementById('alertsTypeFilter');
+  const alertsDeptFilterEl     = document.getElementById('alertsDeptFilter');
+  const alertsSearchEl         = document.getElementById('alertsSearch');
+
+  const incompleteDayAllBtn    = document.getElementById('incompleteDayAllBtn');
+  const incompleteDayWeekendBtn= document.getElementById('incompleteDayWeekendBtn');
+  const incompleteDayWorkBtn   = document.getElementById('incompleteDayWorkBtn');
+
+  const anomalyDayAllBtn       = document.getElementById('anomalyDayAllBtn');
+  const anomalyDayWeekendBtn   = document.getElementById('anomalyDayWeekendBtn');
+  const anomalyDayWorkBtn      = document.getElementById('anomalyDayWorkBtn');
+
+  const calPrevBtn             = document.getElementById('calPrevBtn');
+  const calNextBtn             = document.getElementById('calNextBtn');
+  const calendarMonthLabelEl   = document.getElementById('calendarMonthLabel');
+
+  const exportIncompleteBtn    = document.getElementById('exportIncompleteBtn');
+  const exportAnomaliesBtn     = document.getElementById('exportAnomaliesBtn');
+
+  const employeeSelfLinkEl     = document.getElementById('employeeSelfLink');
+
   const liveBoardTodayBtn      = document.getElementById('liveBoardTodayBtn');
   const liveBoardPastBtn       = document.getElementById('liveBoardPastBtn');
   const alertsListEl           = document.getElementById('alertsList');
@@ -1708,6 +1798,7 @@
     if (!name){
       employeeDetailsHeaderEl.textContent = 'Selectează un angajat din listă pentru a vedea situația pe toate zilele.';
       employeeDetailsBodyEl.innerHTML = '<div class="admin-empty">Niciun angajat selectat.</div>';
+      if (employeeSelfLinkEl) employeeSelfLinkEl.style.display = 'none';
       return;
     }
     if (!ALL_STATS || !ALL_STATS.employees || !ALL_STATS.employees.has(name)){
@@ -1716,6 +1807,15 @@
       return;
     }
     const emp  = ALL_STATS.employees.get(name);
+        if (employeeSelfLinkEl){
+      // Dacă vrei baza din config, trebuie să setezi SELF_SERVICE_BASE în applySelfServiceConfig.
+      // Dacă nu ai făcut asta încă, poți folosi temporar 'self.html' ca bază.
+      const base = (typeof SELF_SERVICE_BASE === 'string' && SELF_SERVICE_BASE) ? SELF_SERVICE_BASE : 'self.html';
+      const join = base.includes('?') ? '&' : '?';
+      employeeSelfLinkEl.href = base + join + 'name=' + encodeURIComponent(name);
+      employeeSelfLinkEl.style.display = '';
+    }
+
     const dept = emp.dept || '(fără departament)';
     const t    = emp.totals;
     employeeDetailsHeaderEl.innerHTML =
@@ -2056,8 +2156,18 @@
       return 0;
     });
 
+    LATEST_INCOMPLETE_ROWS = [];
+
     rows.forEach(item => {
-      const statusText = 'Zi cu pontaj, dar fără FINISH (nu s-a apăsat FINISH)';
+      const wk = isWeekend(item.dateKey);
+      if (INCOMPLETE_DAY_FILTER === 'weekend' && !wk) return;
+      if (INCOMPLETE_DAY_FILTER === 'workday' && wk) return;
+
+      const isLeave = isEmployeeOnLeave(item.name, item.dateKey);
+      const leaveBadge = isLeave ? '<span class="badge badge-info">CONCEDIU</span> ' : '';
+
+      const statusText = leaveBadge + 'Zi cu pontaj, dar fără FINISH (nu s-a apăsat FINISH)';
+
       const tr = document.createElement('tr');
       tr.className = 'clickable';
       tr.dataset.name = item.name;
@@ -2069,6 +2179,17 @@
         '<td>' + (item.workMs ? fmtHoursHM(item.workMs) : '-') + '</td>' +
         '<td>' + (item.extraMs ? fmtHoursHM(item.extraMs) : '-') + '</td>' +
         '<td>' + statusText + '</td>';
+
+      LATEST_INCOMPLETE_ROWS.push({
+        dateKey:item.dateKey,
+        name:item.name,
+        dept:item.dept,
+        work:item.workMs ? fmtHoursHM(item.workMs) : '',
+        extra:item.extraMs ? fmtHoursHM(item.extraMs) : '',
+        leave:isLeave ? 'DA' : 'NU',
+        status:'Fără FINISH'
+      });
+
       incompleteDaysBodyEl.appendChild(tr);
     });
   }
@@ -2159,7 +2280,16 @@
       return a.name.localeCompare(b.name,'ro');
     });
 
+    LATEST_ANOMALY_ROWS = [];
+
     rows.forEach(item=>{
+      const wk = isWeekend(item.dateKey);
+      if (ANOMALY_DAY_FILTER === 'weekend' && !wk) return;
+      if (ANOMALY_DAY_FILTER === 'workday' && wk) return;
+
+      const isLeave = isEmployeeOnLeave(item.name, item.dateKey);
+      const leaveBadge = isLeave ? '<span class="badge badge-info">CONCEDIU</span> ' : '';
+
       const tr = document.createElement('tr');
       tr.className = 'clickable';
       tr.dataset.name = item.name;
@@ -2170,7 +2300,18 @@
         '<td>' + item.dept + '</td>' +
         '<td>' + (item.workMs ? fmtHoursHM(item.workMs) : '-') + '</td>' +
         '<td>' + (item.extraMs ? fmtHoursHM(item.extraMs) : '-') + '</td>' +
-        '<td>' + item.reasons + '</td>';
+        '<td>' + leaveBadge + item.reasons + '</td>';
+
+      LATEST_ANOMALY_ROWS.push({
+        dateKey:item.dateKey,
+        name:item.name,
+        dept:item.dept,
+        work:item.workMs ? fmtHoursHM(item.workMs) : '',
+        extra:item.extraMs ? fmtHoursHM(item.extraMs) : '',
+        leave:isLeave ? 'DA' : 'NU',
+        reasons:item.reasons
+      });
+
       anomaliesBodyEl.appendChild(tr);
     });
   }
@@ -2187,13 +2328,16 @@
   }
 
   // LIVE BOARD: două moduri (azi / zile anterioare)
-  function renderLiveBoard(){
+    function renderLiveBoard(){
     if (!liveBoardEl) return;
     liveBoardEl.innerHTML = '';
 
+    if (liveBoardSummaryEl){
+      liveBoardSummaryEl.innerHTML = '';
+    }
+
     let allEvents = window.__pontajAdminEvents || [];
 
-    // Dacă ai rol de teamlead, restricționezi la departamentul tău
     const role = ADMIN_ROLE || 'admin';
     if (role === 'teamlead' && ADMIN_DEPT){
       allEvents = allEvents.filter(ev => (ev.dept || '') === ADMIN_DEPT);
@@ -2206,7 +2350,7 @@
       return;
     }
 
-    // MODUL "Zile anterioare": afișăm doar zilele cu pontaj fără FINISH (incomplete) de până ieri
+    // --- MODE: PAST (angajat -> ultima zi incompletă) ---
     if (LIVE_BOARD_MODE === 'past'){
       if (!ALL_STATS || !ALL_STATS.employees || !ALL_STATS.employees.size){
         liveBoardEl.innerHTML = '<div class="admin-empty">Nu există date pentru a calcula zilele anterioare.</div>';
@@ -2214,53 +2358,186 @@
       }
 
       const rows = [];
+      ALL_STATS.employees.forEach(emp=>{
+        let latest = null;
+        let count  = 0;
 
-      ALL_STATS.employees.forEach(emp => {
-        const deptEmp = emp.dept || '';
-        emp.days.forEach(day => {
+        emp.days.forEach(day=>{
           if (!day || !day.incomplete) return;
           const dk = day.dateKey;
-          if (!dk || dk >= todayKey) return; // doar zile strict înainte de azi
+          if (!dk || dk >= todayKey) return;
 
-          let dept = day.dept || deptEmp || '';
+          const dept = day.dept || emp.dept || '';
           if (role === 'teamlead' && ADMIN_DEPT && dept !== ADMIN_DEPT) return;
 
-          rows.push({
-            dateKey: dk,
-            name: emp.name,
-            dept,
-            info: 'START fără FINISH (zi rămasă deschisă)'
-          });
+          count++;
+          if (!latest || dk > latest) latest = dk;
         });
+
+        if (count){
+          rows.push({
+            name: emp.name,
+            dept: emp.dept || '(fără departament)',
+            count,
+            dateKey: latest
+          });
+        }
       });
 
       if (!rows.length){
-        liveBoardEl.innerHTML = '<div class="admin-empty">Toate zilele anterioare sunt închise (FINISH pentru toți angajații până la ziua de azi).</div>';
+        liveBoardEl.innerHTML = '<div class="admin-empty">Toate zilele anterioare sunt închise (FINISH pentru toți până la azi).</div>';
         return;
       }
 
-      rows.sort((a,b)=>{
-        if (a.dateKey < b.dateKey) return -1;
-        if (a.dateKey > b.dateKey) return 1;
-        return a.name.localeCompare(b.name, 'ro');
-      });
+      rows.sort((a,b)=>a.name.localeCompare(b.name,'ro'));
 
-      rows.forEach(r => {
+      if (liveBoardSummaryEl){
+        liveBoardSummaryEl.innerHTML =
+          '<div class="liveboard-summary">' +
+            '<span class="chip">⚠ Angajați cu zile neînchise: <b>' + rows.length + '</b></span>' +
+          '</div>';
+      }
+
+      rows.forEach(r=>{
         const row = document.createElement('div');
         row.className = 'admin-list-row';
+        row.dataset.empName = r.name;
         row.innerHTML =
           '<div>' +
             '<div class="admin-list-label">' + r.name + '</div>' +
-            '<div class="admin-list-sub">' + r.dateKey + ' • ' + (r.dept || '(fără departament)') + '</div>' +
+            '<div class="admin-list-sub">' + r.dept + (r.dateKey ? (' • ultima: ' + r.dateKey) : '') + '</div>' +
           '</div>' +
           '<div class="admin-list-value">' +
-            '<span class="badge badge-warn">' + r.info + '</span>' +
+            '<span class="badge badge-warn">⚠ ' + r.count + ' zile fără FINISH</span>' +
           '</div>';
+
+        row.addEventListener('click', function(){
+          focusEmployeeAndMaybeDay(r.name, r.dateKey || null);
+        });
+
         liveBoardEl.appendChild(row);
       });
 
       return;
     }
+
+    // --- MODE: TODAY ---
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0,0,0,0);
+    const todayEnd   = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23,59,59,999);
+
+    const todayEvents = allEvents.filter(ev=>{
+      if (!ev.ts) return false;
+      const t = new Date(ev.ts);
+      if (isNaN(t.getTime())) return false;
+      return t >= todayStart && t <= todayEnd;
+    });
+
+    if (!todayEvents.length){
+      liveBoardEl.innerHTML = '<div class="admin-empty">Niciun pontaj înregistrat azi.</div>';
+      return;
+    }
+
+    const byName = new Map();
+    todayEvents.forEach(ev=>{
+      if (!ev.name) return;
+      if (!byName.has(ev.name)) byName.set(ev.name, []);
+      byName.get(ev.name).push(ev);
+    });
+
+    const rows = [];
+    byName.forEach((list, name)=>{
+      list.sort((a,b)=>new Date(a.ts) - new Date(b.ts));
+
+      let baseState = 'none'; // working|paused|closed|none
+      let baseTs = null;
+
+      let extraState = 'none'; // extra_running|none
+      let extraTs = null;
+
+      let lastDept = '';
+
+      list.forEach(ev=>{
+        const t = new Date(ev.ts).getTime();
+        if (isNaN(t)) return;
+        if (ev.dept) lastDept = ev.dept;
+
+        const act = ev.action;
+
+        if (act === 'start' || act === 'unpause'){ baseState='working'; baseTs=t; }
+        else if (act === 'pause'){ baseState='paused'; baseTs=t; }
+        else if (act === 'finish'){ baseState='closed'; baseTs=t; }
+
+        if (act === 'extra_start'){ extraState='extra_running'; extraTs=t; }
+        else if (act === 'extra_finish'){ extraState='none'; extraTs=t; }
+      });
+
+      function fmtSince(ts){
+        if (!ts) return '';
+        const diffMs = now.getTime() - ts;
+        if (diffMs <= 0) return '';
+        const mins = Math.round(diffMs / 60000);
+        const h = Math.floor(mins / 60);
+        const m = mins % 60;
+        if (h > 0) return h + 'h ' + String(m).padStart(2,'0') + 'm';
+        return m + ' min';
+      }
+
+      let state='Fără pontaj azi', badgeClass='badge-info', sinceLabel='';
+
+      if (extraState === 'extra_running'){
+        state='Extra în curs'; badgeClass='badge-ok'; sinceLabel=fmtSince(extraTs);
+      } else if (baseState === 'paused'){
+        state='În pauză'; badgeClass='badge-warn'; sinceLabel=fmtSince(baseTs);
+      } else if (baseState === 'working'){
+        state='Lucrează'; badgeClass='badge-ok'; sinceLabel=fmtSince(baseTs);
+      } else if (baseState === 'closed' || list.length){
+        state='Închis azi'; badgeClass='badge-info'; sinceLabel='';
+      }
+
+      rows.push({ name, dept:lastDept||'', state, badgeClass, sinceLabel });
+    });
+
+    rows.sort((a,b)=>a.name.localeCompare(b.name,'ro'));
+
+    // summary counters
+    let cWorking=0, cPaused=0, cExtra=0, cClosed=0;
+    rows.forEach(r=>{
+      if (r.state === 'Lucrează') cWorking++;
+      else if (r.state === 'În pauză') cPaused++;
+      else if (r.state === 'Extra în curs') cExtra++;
+      else if (r.state === 'Închis azi') cClosed++;
+    });
+    if (liveBoardSummaryEl){
+      liveBoardSummaryEl.innerHTML =
+        '<div class="liveboard-summary">' +
+          '<span class="chip">Lucrează: <b>' + cWorking + '</b></span>' +
+          '<span class="chip">În pauză: <b>' + cPaused + '</b></span>' +
+          '<span class="chip">Extra: <b>' + cExtra + '</b></span>' +
+          '<span class="chip">Închis: <b>' + cClosed + '</b></span>' +
+        '</div>';
+    }
+
+    rows.forEach(r=>{
+      const row = document.createElement('div');
+      row.className = 'admin-list-row';
+      row.dataset.empName = r.name;
+      row.innerHTML =
+        '<div>' +
+          '<div class="admin-list-label">' + r.name + '</div>' +
+          '<div class="admin-list-sub">' + (r.dept || '(fără departament)') + '</div>' +
+        '</div>' +
+        '<div class="admin-list-value">' +
+          '<div><span class="badge ' + r.badgeClass + '">' + r.state + '</span></div>' +
+          (r.sinceLabel ? '<div style="font-size:11px;color:#6b7280;">de ' + r.sinceLabel + '</div>' : '') +
+        '</div>';
+
+      row.addEventListener('click', function(){
+        focusEmployeeAndMaybeDay(r.name, null);
+      });
+
+      liveBoardEl.appendChild(row);
+    });
+  }
 
     // MODUL "Azi": starea curentă a pontajului pe ziua de azi
     const todayStart = new Date(
@@ -2447,7 +2724,7 @@
   }
 
   // NOU: istoric detaliat de alerte din meta.alerts (toate zilele)
-  function renderSystemAlertsHistory(){
+    function renderSystemAlertsHistory(){
     if (!systemAlertsHistoryBodyEl) return;
     systemAlertsHistoryBodyEl.innerHTML = '';
 
@@ -2464,14 +2741,43 @@
       return;
     }
 
-    const sorted = alerts.slice().sort((a,b)=>{
+    const q = (ALERTS_FILTER_Q || '').trim().toLowerCase();
+
+    let sorted = alerts.slice().sort((a,b)=>{
       const ta = a.ts ? new Date(a.ts).getTime() : 0;
       const tb = b.ts ? new Date(b.ts).getTime() : 0;
       return tb - ta;
     });
 
+    // Tip alertă: meta.alerts e considerat "system"
+    if (ALERTS_FILTER_TYPE !== 'all' && ALERTS_FILTER_TYPE !== 'system'){
+      sorted = [];
+    }
+
+    if (ALERTS_FILTER_DEPT !== 'all'){
+      sorted = sorted.filter(x => (x.dept || '') === ALERTS_FILTER_DEPT);
+    }
+
+    if (q){
+      sorted = sorted.filter(x => alertHaystack(x).includes(q));
+    }
+
+    if (!sorted.length){
+      const tr = document.createElement('tr');
+      const td = document.createElement('td');
+      td.colSpan = 5;
+      td.textContent = 'Nu există alerte sistem pentru filtrele curente.';
+      tr.appendChild(td);
+      systemAlertsHistoryBodyEl.appendChild(tr);
+      return;
+    }
+
     sorted.forEach(a=>{
       const tr = document.createElement('tr');
+      tr.className = 'clickable';
+      tr.dataset.name = (a.name || '');
+      tr.dataset.dateKey = (a.dateKey || (a.ts ? (dateKeyFromIso(a.ts) || '') : ''));
+
       const level = (a.level || 'info').toLowerCase();
       let typeLabel = 'Info';
       if (level === 'warn' || level === 'warning') typeLabel = 'Avertizare';
@@ -2483,6 +2789,7 @@
         '<td>' + (a.dept || '') + '</td>' +
         '<td>' + typeLabel + '</td>' +
         '<td>' + (a.message || a.title || '') + '</td>';
+
       systemAlertsHistoryBodyEl.appendChild(tr);
     });
   }
@@ -2490,6 +2797,7 @@
   function applySelfServiceConfig(cfg){
     if (!selfServiceLink || !cfg) return;
     const base = cfg.selfServiceBaseUrl || cfg.selfUrl || null;
+    SELF_SERVICE_BASE = base;
     if (!base) return;
     const q = [];
     if (ADMIN_SESSION && ADMIN_SESSION.userEmail){
@@ -2502,6 +2810,90 @@
     selfServiceLink.href = url;
   }
 
+    function setActiveTab(tab){
+    // tab: 'dashboard' | 'alerts'
+    if (!tabButtons || !tabButtons.length) return;
+    tabButtons.forEach(b=>{
+      const isActive = (b.dataset.tab === tab);
+      b.classList.toggle('active', isActive);
+    });
+    if (tab === 'alerts'){
+      if (dashboardEl) dashboardEl.style.display = 'none';
+      if (alertsPageEl) alertsPageEl.style.display = '';
+    } else {
+      if (dashboardEl) dashboardEl.style.display = '';
+      if (alertsPageEl) alertsPageEl.style.display = 'none';
+    }
+  }
+
+  function ensureEmployeeOption(name){
+    if (!employeeFilter || !name) return;
+    if (!employeeFilter.querySelector('option[value="'+name+'"]')){
+      const o = document.createElement('option');
+      o.value = name;
+      o.textContent = name;
+      employeeFilter.appendChild(o);
+    }
+  }
+
+  function focusEmployeeAndMaybeDay(name, dateKey){
+    if (!name) return;
+    setActiveTab('dashboard');
+
+    SELECTED_EMPLOYEE = name;
+    if (dateKey) SELECTED_CALENDAR_DAY = dateKey;
+
+    if (employeeFilter){
+      ensureEmployeeOption(name);
+      employeeFilter.value = name;
+      employeeFilter.dispatchEvent(new Event('change'));
+    } else {
+      renderEmployeeDetails(name);
+      if (window.__pontajAdminRefresh) window.__pontajAdminRefresh();
+    }
+
+    // scroll către detalii
+    setTimeout(()=>{
+      if (employeeDetailsBodyEl && employeeDetailsBodyEl.scrollIntoView){
+        employeeDetailsBodyEl.scrollIntoView({behavior:'smooth', block:'start'});
+      }
+    }, 0);
+  }
+
+  function exportCsvGeneric(filename, header, rows){
+    if (!rows || !rows.length){
+      alert('Nu există date pentru export.');
+      return;
+    }
+    const csvLines = [header].concat(rows).map(row => row.map(cell => {
+      const s = String(cell == null ? '' : cell).replace(/"/g,'""');
+      return '"' + s + '"';
+    }).join(','));
+    const csv = csvLines.join('\r\n');
+    const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(()=>{
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    },0);
+  }
+
+  function alertHaystack(obj){
+    const s = [
+      obj && obj.name ? obj.name : '',
+      obj && obj.dept ? obj.dept : '',
+      obj && obj.message ? obj.message : '',
+      obj && obj.title ? obj.title : '',
+      obj && obj.detail ? obj.detail : ''
+    ].join(' ').toLowerCase();
+    return s;
+  }
+  
   // --- HELPER pentru calculul stării de azi (pentru alerte LIVE) ---
   function buildTodayStates(allEvents){
     const now = new Date();
@@ -2587,8 +2979,19 @@
     return false;
   }
 
-  function pushAlertLog(entry){
-    LIVE_ALERT_LOG.unshift(entry);
+  function pushAlertLogCollapsed(key, entry){
+    const idx = LIVE_ALERT_LOG.findIndex(e => e.key === key);
+    if (idx !== -1){
+      const ex = LIVE_ALERT_LOG[idx];
+      ex.repeatCount = (ex.repeatCount || 0) + 1;
+      ex.ts = entry.ts;
+      ex.message = entry.message;
+      ex.dept = entry.dept || ex.dept;
+      LIVE_ALERT_LOG.splice(idx, 1);
+      LIVE_ALERT_LOG.unshift(ex);
+    } else {
+      LIVE_ALERT_LOG.unshift(Object.assign({ key, repeatCount:0 }, entry));
+    }
     if (LIVE_ALERT_LOG.length > ALERT_MAX_LOG){
       LIVE_ALERT_LOG.length = ALERT_MAX_LOG;
     }
@@ -2597,59 +3000,135 @@
   function renderLiveAlertsActive(active){
     if (!liveAlertsActiveEl) return;
     liveAlertsActiveEl.innerHTML = '';
-    if (!active || !active.length){
+
+    const q = (ALERTS_FILTER_Q || '').trim().toLowerCase();
+    let list = (active || []).slice();
+
+    // dept filter
+    if (ALERTS_FILTER_DEPT !== 'all'){
+      list = list.filter(x => (x.dept || '') === ALERTS_FILTER_DEPT);
+    }
+
+    // text filter (nume sau alert text)
+    if (q){
+      list = list.filter(x =>
+        (x.name || '').toLowerCase().includes(q) ||
+        (x.alerts || []).some(a => alertHaystack(a).includes(q))
+      );
+    }
+
+    // type filter (doar pentru LIVE; dacă e "system", LIVE devine gol)
+    if (ALERTS_FILTER_TYPE !== 'all'){
+      if (ALERTS_FILTER_TYPE === 'system'){
+        list = [];
+      } else {
+        list = list
+          .map(x => Object.assign({}, x, {
+            alerts: (x.alerts || []).filter(a => a.type === ALERTS_FILTER_TYPE)
+          }))
+          .filter(x => x.alerts && x.alerts.length);
+      }
+    }
+
+    if (!list.length){
       liveAlertsActiveEl.innerHTML =
-        '<div class="admin-empty">Nu există alerte active în acest moment (în funcție de evenimentele încărcate).</div>';
+        '<div class="admin-empty">Nu există alerte active pentru filtrele curente.</div>';
       return;
     }
-    active.sort((a,b)=>a.name.localeCompare(b.name,'ro'));
-    active.forEach(item=>{
+
+    list.sort((a,b)=>a.name.localeCompare(b.name,'ro'));
+
+    list.forEach(item=>{
       const row = document.createElement('div');
-      row.className = 'admin-list-row';
+      row.className = 'admin-list-row clickable';
+      row.dataset.name = item.name || '';
+      row.dataset.dateKey = dateKeyFromIso(new Date().toISOString()) || '';
+
       let badgesHtml = '';
-      item.alerts.forEach(a=>{
-        badgesHtml += '<div><span class="badge badge-warn">' + a.label + '</span></div>';
+      (item.alerts || []).forEach(a=>{
+        badgesHtml += '<div><span class="badge badge-warn">' + (a.label || a.type || 'Alertă') + '</span></div>';
         if (a.detail){
           badgesHtml += '<div style="font-size:11px;color:#6b7280;margin-top:2px;">' + a.detail + '</div>';
         }
       });
+
       row.innerHTML =
         '<div>' +
-          '<div class="admin-list-label">' + item.name + '</div>' +
+          '<div class="admin-list-label">' + (item.name || '') + '</div>' +
           '<div class="admin-list-sub">' + (item.dept || '(fără departament)') + '</div>' +
         '</div>' +
-        '<div class="admin-list-value">' +
-          badgesHtml +
-        '</div>';
+        '<div class="admin-list-value">' + badgesHtml + '</div>';
+
+      row.addEventListener('click', function(){
+        focusEmployeeAndMaybeDay(item.name, null);
+      });
+
       liveAlertsActiveEl.appendChild(row);
     });
   }
 
+
   function renderLiveAlertsHistory(){
     if (!liveAlertsHistoryBodyEl) return;
     liveAlertsHistoryBodyEl.innerHTML = '';
-    if (!LIVE_ALERT_LOG.length){
+
+    const q = (ALERTS_FILTER_Q || '').trim().toLowerCase();
+
+    let list = (LIVE_ALERT_LOG || []).slice();
+
+    // type filter
+    if (ALERTS_FILTER_TYPE !== 'all'){
+      if (ALERTS_FILTER_TYPE === 'system'){
+        list = [];
+      } else {
+        list = list.filter(e => e.type === ALERTS_FILTER_TYPE);
+      }
+    }
+
+    // dept filter
+    if (ALERTS_FILTER_DEPT !== 'all'){
+      list = list.filter(e => (e.dept || '') === ALERTS_FILTER_DEPT);
+    }
+
+    // text filter
+    if (q){
+      list = list.filter(e =>
+        (e.name || '').toLowerCase().includes(q) ||
+        (e.message || '').toLowerCase().includes(q)
+      );
+    }
+
+    if (!list.length){
       const tr = document.createElement('tr');
       const td = document.createElement('td');
       td.colSpan = 5;
-      td.textContent = 'Nu există notificări în această sesiune.';
+      td.textContent = 'Nu există notificări pentru filtrele curente.';
       tr.appendChild(td);
       liveAlertsHistoryBodyEl.appendChild(tr);
       return;
     }
-    LIVE_ALERT_LOG.forEach(entry=>{
+
+    list.forEach(entry=>{
       const tr = document.createElement('tr');
+      tr.className = 'clickable';
+      tr.dataset.name = entry.name || '';
+      tr.dataset.dateKey = entry.ts ? (dateKeyFromIso(entry.ts) || '') : '';
+
       let typeLabel = '';
       if (entry.type === 'pause') typeLabel = 'Pauză';
       else if (entry.type === 'norm') typeLabel = 'Normă';
       else if (entry.type === 'extra') typeLabel = 'Extra';
       else typeLabel = entry.type || '-';
+
+      const rep = entry.repeatCount ? ` (repetată de ${entry.repeatCount} ori)` : '';
+
       tr.innerHTML =
         '<td>' + fmtDateTime(entry.ts) + '</td>' +
-        '<td>' + entry.name + '</td>' +
+        '<td>' + (entry.name || '') + '</td>' +
         '<td>' + (entry.dept || '') + '</td>' +
         '<td>' + typeLabel + '</td>' +
-        '<td>' + (entry.message || '') + '</td>';
+        '<td>' + (entry.message || '') + rep + '</td>';
+
       liveAlertsHistoryBodyEl.appendChild(tr);
     });
   }
@@ -2676,7 +3155,7 @@
           const baseMinutes = Math.round(thresholdMs / 60000);
           const overMin = Math.round(elapsed / 60000);
           if (newNotif){
-            pushAlertLog({
+            pushAlertLogCollapsed(key,{
               ts:new Date(nowMs).toISOString(),
               name:st.name,
               dept,
@@ -2704,7 +3183,7 @@
           const baseHours = (normMs/3600000).toFixed(1).replace('.', ',');
           const elapsedHours = (elapsedNorm/3600000).toFixed(2).replace('.', ',');
           if (newNotif){
-            pushAlertLog({
+            pushAlertLogCollapsed(key,{
               ts:new Date(nowMs).toISOString(),
               name:st.name,
               dept,
@@ -2731,7 +3210,7 @@
           const newNotif = registerAlertSlot(key, overdueMs, freq, nowMs);
           const overMin = Math.round(elapsedExtra / 60000);
           if (newNotif){
-            pushAlertLog({
+            pushAlertLogCollapsed(key,{
               ts:new Date(nowMs).toISOString(),
               name:st.name,
               dept,
@@ -2755,7 +3234,7 @@
         });
       }
     });
-
+    LAST_LIVE_ACTIVE = active.slice();
     renderLiveAlertsActive(active);
     renderLiveAlertsHistory();
   }
@@ -2863,24 +3342,104 @@
         refresh();
       }
 
-      function renderPresenceCalendarMonthly(){
+       function renderPresenceCalendarMonthly(){
         if (!presenceCalendarEl) return;
         presenceCalendarEl.innerHTML = '';
 
-        const allEvents = events;
-        const now = new Date();
-        const year = now.getFullYear();
-        const month = now.getMonth();
-        const firstDay = new Date(year, month, 1);
-        const lastDay  = new Date(year, month + 1, 0);
+        const monthNames = ['Ianuarie','Februarie','Martie','Aprilie','Mai','Iunie','Iulie','August','Septembrie','Octombrie','Noiembrie','Decembrie'];
+        if (calendarMonthLabelEl){
+          calendarMonthLabelEl.textContent = monthNames[CALENDAR_MONTH] + ' ' + CALENDAR_YEAR;
+        }
 
-        // Evenimente doar din luna curentă
-        const filtered = (allEvents || []).filter(ev => {
+        const baseForCalendar = applyDeptEmployee(events, currentDept, currentEmployee);
+
+        const firstDay = new Date(CALENDAR_YEAR, CALENDAR_MONTH, 1);
+        const lastDay  = new Date(CALENDAR_YEAR, CALENDAR_MONTH + 1, 0);
+
+        const filtered = (baseForCalendar || []).filter(ev=>{
           if (!ev.ts) return false;
           const t = new Date(ev.ts);
           if (isNaN(t.getTime())) return false;
-          return t >= firstDay && t <= lastDay;
+          return t >= firstDay && t <= new Date(CALENDAR_YEAR, CALENDAR_MONTH, lastDay.getDate(), 23,59,59,999);
         });
+
+        const statsMonth = buildStatsFromEvents(filtered);
+        const perDay     = statsMonth.perDay || new Map();
+
+        // tooltip: cine are zi incompletă pe dk în luna asta
+        const incompleteNamesByDay = new Map();
+        if (statsMonth.employees){
+          statsMonth.employees.forEach(emp=>{
+            emp.days.forEach(day=>{
+              if (day && day.incomplete){
+                if (!incompleteNamesByDay.has(day.dateKey)) incompleteNamesByDay.set(day.dateKey, []);
+                incompleteNamesByDay.get(day.dateKey).push(emp.name);
+              }
+            });
+          });
+        }
+
+        const weekdayLabels = ['L','Ma','Mi','J','V','S','D'];
+        weekdayLabels.forEach(lbl=>{
+          const h = document.createElement('div');
+          h.className = 'calendar-day calendar-day-header';
+          h.textContent = lbl;
+          presenceCalendarEl.appendChild(h);
+        });
+
+        const firstWeekday = (firstDay.getDay() + 6) % 7; // luni=0
+        for (let i=0;i<firstWeekday;i++){
+          const empty = document.createElement('div');
+          empty.className = 'calendar-day calendar-day-none';
+          empty.innerHTML = '&nbsp;';
+          presenceCalendarEl.appendChild(empty);
+        }
+
+        for (let d=1; d<=lastDay.getDate(); d++){
+          const cur = new Date(CALENDAR_YEAR, CALENDAR_MONTH, d);
+          const dk  = dateKeyFromIso(cur.toISOString());
+
+          const info      = perDay.get(dk);
+          const started   = info && info.started   ? info.started.size   : 0;
+          const completed = info && info.completed ? info.completed.size : 0;
+          const pct       = started ? Math.round(100 * completed / started) : 0;
+
+          const leaveCount = (LEAVE_BY_DAY && LEAVE_BY_DAY.get(dk)) ? LEAVE_BY_DAY.get(dk).size : 0;
+
+          const dayEl = document.createElement('div');
+          let cls = 'calendar-day ';
+          if (!started) cls += 'calendar-day-none';
+          else if (pct < 50) cls += 'calendar-day-low';
+          else if (pct < 90) cls += 'calendar-day-med';
+          else cls += 'calendar-day-high';
+
+          if (SELECTED_CALENDAR_DAY === dk) cls += ' calendar-day-selected';
+          dayEl.className = cls;
+          dayEl.dataset.dateKey = dk;
+
+          const parts = [];
+          if (started) parts.push(completed + '/' + started + ' ok');
+          if (leaveCount) parts.push(leaveCount + ' C');
+          const metaText = parts.length ? parts.join(', ') : '–';
+
+          dayEl.innerHTML =
+            '<span class="calendar-day-label">' + d + '</span>' +
+            '<span class="calendar-day-meta">' + metaText + '</span>';
+
+          const inc = incompleteNamesByDay.get(dk) || [];
+          if (inc.length){
+            const shown = inc.slice(0, 10);
+            const more  = inc.length > shown.length ? ' …' : '';
+            dayEl.title = 'Zile incomplete: ' + shown.join(', ') + more;
+          }
+
+          dayEl.addEventListener('click', function(){
+            setSelectedCalendarDay(dk);
+          });
+
+          presenceCalendarEl.appendChild(dayEl);
+        }
+      }
 
         const statsMonth = buildStatsFromEvents(filtered);
         const perDay     = statsMonth.perDay || new Map();
@@ -3022,6 +3581,9 @@
           }
         }
 
+       window.__pontajAdminRefresh = refresh;
+
+        
         renderPresenceCalendarMonthly();
         renderLiveBoard();
         renderAlertsFromMeta();
@@ -3383,6 +3945,88 @@
         });
       }
 
+          // --- Live alerts filters ---
+      function rerenderAlertsUI(){
+        // LIVE
+        renderLiveAlertsActive(LAST_LIVE_ACTIVE);
+        renderLiveAlertsHistory();
+        // SYSTEM
+        renderAlertsFromMeta();
+        renderSystemAlertsHistory();
+      }
+
+      if (alertsTypeFilterEl){
+        alertsTypeFilterEl.addEventListener('change', function(){
+          ALERTS_FILTER_TYPE = alertsTypeFilterEl.value || 'all';
+          rerenderAlertsUI();
+        });
+      }
+      if (alertsDeptFilterEl){
+        alertsDeptFilterEl.addEventListener('change', function(){
+          ALERTS_FILTER_DEPT = alertsDeptFilterEl.value || 'all';
+          rerenderAlertsUI();
+        });
+      }
+      if (alertsSearchEl){
+        alertsSearchEl.addEventListener('input', function(){
+          ALERTS_FILTER_Q = (alertsSearchEl.value || '').trim();
+          rerenderAlertsUI();
+        });
+      }
+
+      // Umple dropdown-ul de departamente din tab-ul Alerte (reuse din deptFilter)
+      function syncAlertsDeptFilter(){
+        if (!alertsDeptFilterEl || !deptFilter) return;
+
+        const cur = alertsDeptFilterEl.value || 'all';
+        alertsDeptFilterEl.innerHTML = '';
+
+        const optAll = document.createElement('option');
+        optAll.value = 'all';
+        optAll.textContent = 'Toate';
+        alertsDeptFilterEl.appendChild(optAll);
+
+        Array.from(deptFilter.options).forEach(o=>{
+          if (!o.value || o.value === 'all') return;
+          const x = document.createElement('option');
+          x.value = o.value;
+          x.textContent = o.textContent;
+          alertsDeptFilterEl.appendChild(x);
+        });
+
+        // teamlead -> lock pe dept
+        if (ADMIN_ROLE === 'teamlead' && ADMIN_DEPT){
+          alertsDeptFilterEl.value = ADMIN_DEPT;
+          alertsDeptFilterEl.disabled = true;
+          ALERTS_FILTER_DEPT = ADMIN_DEPT;
+        } else {
+          alertsDeptFilterEl.value = (cur && alertsDeptFilterEl.querySelector('option[value="'+cur+'"]')) ? cur : 'all';
+        }
+      }
+      syncAlertsDeptFilter();
+
+      // click pe LIVE alerts history -> focus
+      if (liveAlertsHistoryBodyEl){
+        liveAlertsHistoryBodyEl.addEventListener('click', function(e){
+          const tr = e.target.closest('tr');
+          if (!tr) return;
+          const name = tr.dataset.name;
+          const dk   = tr.dataset.dateKey;
+          if (name) focusEmployeeAndMaybeDay(name, dk || null);
+        });
+      }
+
+      // click pe SYSTEM alerts history -> focus
+      if (systemAlertsHistoryBodyEl){
+        systemAlertsHistoryBodyEl.addEventListener('click', function(e){
+          const tr = e.target.closest('tr');
+          if (!tr) return;
+          const name = tr.dataset.name;
+          const dk   = tr.dataset.dateKey;
+          if (name) focusEmployeeAndMaybeDay(name, dk || null);
+        });
+      }
+    
       applyRoleVisibility();
       refresh();
 
@@ -3402,3 +4046,4 @@
 
 </body>
 </html>
+
