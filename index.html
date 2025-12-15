@@ -1470,6 +1470,35 @@ function sumPausesFromEvents(events, fallbackPair){
 
   const minutesFromMs = (ms)=> Math.round(ms / 60000);
 
+  // ===== Format helpers: afișare "Xh YYm" (nu zecimale) =====
+const _pad2 = (n)=> String(n).padStart(2,'0');
+
+function fmtMinutesToHM(min){
+  const sign = min < 0 ? '-' : '';
+  const abs = Math.abs(Math.round(min));
+  const h = Math.floor(abs / 60);
+  const m = abs % 60;
+  return `${sign}${h}h ${_pad2(m)}m`;
+}
+
+// Acceptă "7.75", "7,75", număr, sau chiar "07:45"
+function fmtHoursToHM(hours){
+  if (hours == null) return '0h 00m';
+  const s = String(hours).trim();
+  if (!s) return '0h 00m';
+
+  if (s.includes(':')){
+    const [hh, mm] = s.split(':');
+    const h = parseInt(hh, 10);
+    const m = parseInt(mm, 10);
+    if (!isNaN(h) && !isNaN(m)) return `${h}h ${_pad2(m)}m`;
+  }
+
+  const n = parseFloat(s.replace(',', '.'));
+  if (isNaN(n)) return s; // fallback: afișează ce vine
+  return fmtMinutesToHM(n * 60);
+}
+  
   function applyLocalTransition(action, ts){
     action = _normAction(action);
     switch(action){
@@ -1581,11 +1610,13 @@ function sumPausesFromEvents(events, fallbackPair){
       }catch{}
     }
 
-    setStatus(`Pauză încheiată — interval curent: ${curMin} min • total azi: ${totMin} min.`, 'ok');
-    showToast(
-      `<b>Pauză încheiată</b><div class="small">Curent: <b>${curMin}</b> min • Total azi: <b>${totMin}</b> min</div>`,
-      'ok'
-    );
+ setStatus(`Pauză încheiată — interval curent: ${fmtMinutesToHM(curMin)} • total azi: ${fmtMinutesToHM(totMin)}.`, 'ok');
+
+showToast(
+  `<b>Pauză încheiată</b><div class="small">Curent: <b>${fmtMinutesToHM(curMin)}</b> • Total azi: <b>${fmtMinutesToHM(totMin)}</b></div>`,
+  'ok'
+);
+
   }
 
   // ==================== ACTION SUBMIT cu LOCK ANTISPAM IMEDIAT ====================
@@ -1686,13 +1717,31 @@ function sumPausesFromEvents(events, fallbackPair){
 
       try {
         const stats = await fetchStats(empSel.value.trim());
-        if (stats){
-          if (actNorm === 'finish'){
-            showToast(`<b>${empSel.value}</b><div class="small">Azi — Ore: <b>${stats.totalHours}</b> h • Suplimentar: <b>${stats.overtime}</b> h</div>`, 'ok');
-          } else if (actNorm === 'extra_finish'){
-            showToast(`<b>${empSel.value}</b><div class="small">Azi — Extra: <b>${stats.extra}</b> h</div>`, 'ok');
-          }
-        }
+       if (stats){
+  if (actNorm === 'finish'){
+    const th = fmtHoursToHM(stats.totalHours);
+    const ot = fmtHoursToHM(stats.overtime);
+
+    showToast(
+      `<b>${empSel.value}</b><div class="small">Azi — Ore: <b>${th}</b> • Suplimentar: <b>${ot}</b></div>`,
+      'ok'
+    );
+
+    // (opțional) și în statusul de sub butoane:
+    setStatus(`Finish ✓ Azi — Ore: ${th} • Suplimentar: ${ot}.`, 'ok');
+
+  } else if (actNorm === 'extra_finish'){
+    const ex = fmtHoursToHM(stats.extra);
+
+    showToast(
+      `<b>${empSel.value}</b><div class="small">Azi — Extra: <b>${ex}</b></div>`,
+      'ok'
+    );
+
+    // (opțional)
+    setStatus(`Extra Finish ✓ Azi — Extra: ${ex}.`, 'ok');
+  }
+}
       } catch {}
     } catch (err) {
       setStatus(String(err && err.message ? err.message : err), 'err');
