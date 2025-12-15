@@ -1426,23 +1426,6 @@ function sumPausesFromEvents(events, fallbackPair){
     const base = (fromCfg || location.href).replace(/\?.*$/,'');
     return base;
   }
-  async function fetchStats2(name, untilIso){
-  const url = baseEndpoint() + '?fn=stats2&name=' + encodeURIComponent(name) +
-    (untilIso ? ('&until=' + encodeURIComponent(untilIso)) : '');
-  try{
-    const r = await fetch(url, { cache:'no-store' });
-    const txt = await r.text();
-    const data = JSON.parse(txt);
-    return (data && data.ok) ? data : null;
-  }catch{ return null; }
-}
-
-function fmtIsoHM(iso){
-  if (!iso) return '—';
-  const d = new Date(iso);
-  return d.toLocaleTimeString('ro-RO', {hour:'2-digit', minute:'2-digit'});
-}
-
   async function fetchState(name){
     const url = baseEndpoint() + '?fn=state&name=' + encodeURIComponent(name);
     try{
@@ -1732,61 +1715,34 @@ showToast(
       await refreshServerState();
       reflectState();
 
-      try{
-  const s2 = await fetchStats2(empSel.value.trim(), ts);
-  if (!s2) return;
-
-  const aziOre   = fmtMinutesToHM(s2.today.workMin);
-  const aziSup   = fmtMinutesToHM(s2.today.overtimeMin);
-  const aziExtra = fmtMinutesToHM(s2.today.extraMin);
-
+      try {
+        const stats = await fetchStats(empSel.value.trim());
+       if (stats){
   if (actNorm === 'finish'){
-    // “sesiunea curentă” = ori last.normal (dacă a ajuns deja în foaie), ori current (dacă încă nu)
-    const seg = (s2.last && s2.last.normal) ? s2.last.normal : null;
-
-    const startIso = (seg && seg.startIso) || (s2.current && s2.current.startIso) || STATE.lastNormalStart;
-    const finishIso = ts;
-
-    const sesiOre = seg ? fmtMinutesToHM(seg.workMin) : fmtMinutesToHM(s2.current.workMin);
-    const sesiSup = seg ? fmtMinutesToHM(seg.overtimeMin) : fmtMinutesToHM(s2.current.overtimeMin);
+    const th = fmtHoursToHM(stats.totalHours);
+    const ot = fmtHoursToHM(stats.overtime);
 
     showToast(
-      `<b>${empSel.value}</b>
-       <div class="small">
-         Finish la <b>${fmtIsoHM(finishIso)}</b><br>
-         Interval: <b>${fmtIsoHM(startIso)}</b>–<b>${fmtIsoHM(finishIso)}</b><br>
-         Sesiune: <b>${sesiOre}</b> • Suplim sesiune: <b>${sesiSup}</b><br>
-         Azi: <b>${aziOre}</b> • Suplim azi: <b>${aziSup}</b>
-       </div>`,
+      `<b>${empSel.value}</b><div class="small">Azi — Ore: <b>${th}</b> • Suplimentar: <b>${ot}</b></div>`,
       'ok'
     );
 
-    setStatus(`Finish ✓ Interval ${fmtIsoHM(startIso)}–${fmtIsoHM(finishIso)} • Sesiune ${sesiOre} (Suplim ${sesiSup}) • Azi ${aziOre} (Suplim ${aziSup}).`, 'ok');
-  }
+    // (opțional) și în statusul de sub butoane:
+    setStatus(`Finish ✓ Azi — Ore: ${th} • Suplimentar: ${ot}.`, 'ok');
 
-  if (actNorm === 'extra_finish'){
-    const segE = (s2.last && s2.last.extra) ? s2.last.extra : null;
-
-    const startIso = (segE && segE.startIso) || (s2.current && s2.current.extraStartIso) || STATE.lastExtraStart;
-    const finishIso = ts;
-
-    const sesiExtra = segE ? fmtMinutesToHM(segE.extraMin) : fmtMinutesToHM(s2.current.extraMin);
+  } else if (actNorm === 'extra_finish'){
+    const ex = fmtHoursToHM(stats.extra);
 
     showToast(
-      `<b>${empSel.value}</b>
-       <div class="small">
-         Extra Finish la <b>${fmtIsoHM(finishIso)}</b><br>
-         Interval: <b>${fmtIsoHM(startIso)}</b>–<b>${fmtIsoHM(finishIso)}</b><br>
-         Extra sesiune: <b>${sesiExtra}</b><br>
-         Extra azi: <b>${aziExtra}</b>
-       </div>`,
+      `<b>${empSel.value}</b><div class="small">Azi — Extra: <b>${ex}</b></div>`,
       'ok'
     );
 
-    setStatus(`Extra Finish ✓ Interval ${fmtIsoHM(startIso)}–${fmtIsoHM(finishIso)} • Extra sesiune ${sesiExtra} • Extra azi ${aziExtra}.`, 'ok');
+    // (opțional)
+    setStatus(`Extra Finish ✓ Azi — Extra: ${ex}.`, 'ok');
   }
-
-} catch {}
+}
+      } catch {}
     } catch (err) {
       setStatus(String(err && err.message ? err.message : err), 'err');
     } finally {
