@@ -1325,24 +1325,35 @@
       window.location.href = 'index.html';
     });
   }
-
-  function showError(msg){
-    if (errorEl){
-      errorEl.textContent = msg;
-      errorEl.style.display = 'block';
-    }
-window.addEventListener('error', function(e){
-  try{ showError('Eroare JS: ' + (e.message || e.error || e)); }catch(_){}
-});
-window.addEventListener('unhandledrejection', function(e){
-  try{ showError('Promise reject: ' + (e.reason && e.reason.message ? e.reason.message : e.reason)); }catch(_){}
-});
-
-
-    if (loadingEl) loadingEl.style.display = 'none';
-    if (dashboardEl) dashboardEl.style.display = 'none';
-    if (alertsPageEl) alertsPageEl.style.display = 'none';
+function showError(msg){
+  if (errorEl){
+    errorEl.textContent = msg;
+    errorEl.style.display = 'block';
   }
+  if (loadingEl) loadingEl.style.display = 'none';
+  if (dashboardEl) dashboardEl.style.display = 'none';
+  if (alertsPageEl) alertsPageEl.style.display = 'none';
+}
+
+// bind o singură dată
+if (!window.__pontajAdminErrBound){
+  window.__pontajAdminErrBound = true;
+
+  window.addEventListener('error', function(e){
+    try{
+      const m = e && e.message ? e.message : (e && e.error && e.error.message ? e.error.message : String(e));
+      showError('Eroare JS: ' + m);
+    }catch(_){}
+  });
+
+  window.addEventListener('unhandledrejection', function(e){
+    try{
+      const r = e && e.reason;
+      const m = r && r.message ? r.message : String(r);
+      showError('Promise reject: ' + m);
+    }catch(_){}
+  });
+}
 
   function _norm(s){ return String(s==null?'':s).trim(); }
   function _normAction(a){
@@ -1598,6 +1609,18 @@ function isDayIncomplete(day){
     day.hasExtraMismatch ||
     day.openExtra
   );
+}
+  
+function getIncompleteReasons(day){
+  const reasons = [];
+  if (!day) return reasons;
+
+  if (!day.hasFinish) reasons.push('Fără FINISH');
+  if (day.hasPauseMismatch) reasons.push('PAUSE/UNPAUSE neînchise');
+  if (day.hasExtraMismatch) reasons.push('EXTRA START/FINISH neînchise');
+  if (day.openExtra) reasons.push('EXTRA rămas în curs');
+
+  return reasons;
 }
 
 
@@ -1984,11 +2007,13 @@ function isDayIncomplete(day){
     '</tr></thead><tbody>';
 
     daysArr.forEach(d => {
-      const compStatus = d.completed
-        ? '<span class="badge badge-ok">DA</span>'
-        : (isDayIncomplete(d)
-            ? '<span class="badge badge-warn">INCOMPLETĂ (fără FINISH)</span>'
-            : '-');
+     const reasons = getIncompleteReasons(d);
+const compStatus = d.completed
+  ? '<span class="badge badge-ok">DA</span>'
+  : (reasons.length
+      ? '<span class="badge badge-warn">INCOMPLETĂ (' + reasons.join('; ') + ')</span>'
+      : '-');
+
 
       let normStatus = '-';
       if (d.completed){
@@ -2297,7 +2322,9 @@ function isDayIncomplete(day){
       const isLeave = isEmployeeOnLeave(item.name, item.dateKey);
       const leaveBadge = isLeave ? '<span class="badge badge-info">CONCEDIU</span> ' : '';
 
-      const statusText = leaveBadge + 'Zi cu pontaj, dar fără FINISH (nu s-a apăsat FINISH)';
+      const reasons = getIncompleteReasons(item.day);
+      const statusText = leaveBadge + (reasons.length ? reasons.join('; ') : 'Incomplet');
+
 
       const tr = document.createElement('tr');
       tr.className = 'clickable';
@@ -2318,7 +2345,7 @@ function isDayIncomplete(day){
         work:item.workMs ? fmtHoursHM(item.workMs) : '',
         extra:item.extraMs ? fmtHoursHM(item.extraMs) : '',
         leave:isLeave ? 'DA' : 'NU',
-        status:'Fără FINISH'
+        status: (reasons.length ? reasons.join('; ') : 'Incomplet')
       });
 
       incompleteDaysBodyEl.appendChild(tr);
@@ -2516,7 +2543,7 @@ function isDayIncomplete(day){
       });
 
       if (!rows.length){
-        liveBoardEl.innerHTML = '<div class="admin-empty">Toate zilele anterioare sunt închise (FINISH pentru toți până la azi).</div>';
+        liveBoardEl.innerHTML = '<div class="admin-empty">Toate zilele anterioare sunt complete (nu există zile incomplete până la azi).</div>';
         return;
       }
 
@@ -2525,7 +2552,7 @@ function isDayIncomplete(day){
       if (liveBoardSummaryEl){
         liveBoardSummaryEl.innerHTML =
           '<div class="liveboard-summary">' +
-            '<span class="chip">⚠ Angajați cu zile neînchise: <b>' + rows.length + '</b></span>' +
+            '<span class="chip">⚠ Angajați cu zile incomplete: <b>' + rows.length + '</b></span>' +
           '</div>';
       }
 
@@ -2539,7 +2566,7 @@ function isDayIncomplete(day){
             '<div class="admin-list-sub">' + r.dept + (r.dateKey ? (' • ultima: ' + r.dateKey) : '') + '</div>' +
           '</div>' +
           '<div class="admin-list-value">' +
-            '<span class="badge badge-warn">⚠ ' + r.count + ' zile fără FINISH</span>' +
+            '<span class="badge badge-warn">⚠ ' + r.count + ' zile incomplete</span>' +
           '</div>';
 
         row.addEventListener('click', function(){
@@ -3708,6 +3735,26 @@ if (calNextBtn && !calNextBtn.dataset.bound){
         });
       }
 
+      if (exportIncompleteBtn){
+  exportIncompleteBtn.addEventListener('click', function(){
+    const header = ['Data','Nume','Departament','Norma','Extra','Concediu','Stare'];
+    const rows = (LATEST_INCOMPLETE_ROWS || []).map(x => [
+      x.dateKey, x.name, x.dept, x.work, x.extra, x.leave, x.status
+    ]);
+    exportCsvGeneric('pontaj-zile-incomplete.csv', header, rows);
+  });
+}
+
+if (exportAnomaliesBtn){
+  exportAnomaliesBtn.addEventListener('click', function(){
+    const header = ['Data','Nume','Departament','Norma','Extra','Concediu','Detalii'];
+    const rows = (LATEST_ANOMALY_ROWS || []).map(x => [
+      x.dateKey, x.name, x.dept, x.work, x.extra, x.leave, x.reasons
+    ]);
+    exportCsvGeneric('pontaj-anomalii.csv', header, rows);
+  });
+}
+
       if (pdfBtn){
         pdfBtn.addEventListener('click', async function(){
           if (!SELECTED_EMPLOYEE){
@@ -3806,7 +3853,7 @@ if (calNextBtn && !calNextBtn.dataset.bound){
               (msToHours(d.workMs) || 0).toFixed(2),
               (msToHours(d.extraMs) || 0).toFixed(2),
               (msToHours(d.overtimeMs) || 0).toFixed(2),
-              d.completed ? 'DA' : (flagIncomplete ? 'INCOMPLETA (fara FINISH)' : '-'),
+              d.completed ? 'DA' : (flagIncomplete ? ('INCOMPLETA: ' + getIncompleteReasons(d).join('; ')) : '-'),
               d.normValidated ? 'VALIDATA' : 'NU'
             ];
           });
@@ -3947,7 +3994,7 @@ if (calNextBtn && !calNextBtn.dataset.bound){
           liveBoardPastBtn.classList.add('active');
           liveBoardTodayBtn.classList.remove('active');
        if (liveBoardHintTextEl){
-  liveBoardHintTextEl.textContent = 'Zile anterioare până la azi în care lipsesc acțiuni de FINISH pentru cel puțin un angajat.';
+  liveBoardHintTextEl.textContent = 'Zile anterioare până la azi în care există zile incomplete pentru cel puțin un angajat.';
 }
 
           renderLiveBoard();
@@ -4055,3 +4102,4 @@ if (calNextBtn && !calNextBtn.dataset.bound){
 
 </body>
 </html>
+
