@@ -484,7 +484,6 @@
 .calendar-day-label{ font-weight:700; display:block; }
 .calendar-day-meta{ display:block; font-size:9px; color:var(--muted); }
 
-    .calendar-day-none{ background:#e5e7eb; }
     .calendar-day-low{ background:#fee2e2; }
     .calendar-day-med{ background:#fef3c7; }
     .calendar-day-high{ background:#dcfce7; }
@@ -493,6 +492,11 @@
       outline-offset:1px;
     }
 
+    .calendar-legend-nodata{
+  background:#f1f5f9;
+  border:1px dashed rgba(148,163,184,.75);
+}
+    
     .calendar-legend{
       display:flex;
       flex-wrap:wrap;
@@ -522,6 +526,93 @@
     .calendar-legend-med{ background:#fef3c7; }
     .calendar-legend-high{ background:#dcfce7; }
 
+    /* mic buton */
+.btn.sm{
+  padding:8px 10px;
+  border-radius:999px;
+  font-size:12px;
+  box-shadow:0 4px 12px rgba(15,23,42,.08);
+}
+.btn.sm:disabled{ opacity:.65; cursor:not-allowed; }
+
+/* calendar: header să nu ia background-ul de .calendar-day */
+.calendar-day.calendar-day-header{
+  background:transparent !important;
+  border:0;
+  cursor:default;
+}
+
+/* weekend greyed */
+.calendar-day-weekend{
+  opacity:.55;
+  filter:saturate(.75);
+}
+
+/* azi marcat */
+.calendar-day-today{
+  outline:2px solid var(--brand);
+  outline-offset:1px;
+  position:relative;
+}
+.calendar-day-today::after{
+  content:"•";
+  position:absolute;
+  top:2px;
+  right:6px;
+  font-size:16px;
+  color:var(--brand);
+}
+
+/* tooltip hover */
+.calendar-day{ position:relative; }
+
+.calendar-tooltip{
+  position:absolute;
+  left:50%;
+  transform:translateX(-50%);
+  bottom:calc(100% + 6px);
+  width:240px;
+  max-width:240px;
+
+  background:#0f172a;
+  color:#fff;
+  border-radius:12px;
+  padding:8px 10px;
+  font-size:11px;
+  line-height:1.35;
+
+  box-shadow:0 12px 30px rgba(2,6,23,.35);
+  opacity:0;
+  visibility:hidden;
+  pointer-events:none;
+  z-index:20;
+}
+.calendar-tooltip .muted{
+  color:rgba(255,255,255,.72);
+  font-size:10px;
+  margin-top:4px;
+}
+.calendar-day:hover .calendar-tooltip{
+  opacity:1;
+  visibility:visible;
+}
+
+/* goluri (padding) înainte de prima zi */
+.calendar-day-empty{
+  background:transparent !important;
+  border:0 !important;
+  cursor:default;
+  min-height:44px;
+}
+
+/* zi validă, dar fără pontaj */
+.calendar-day-nodata{
+  background:#f1f5f9;
+  border:1px dashed rgba(148,163,184,.75);
+  color:var(--muted);
+}
+    
+    
       </style>
 </head>
 <body>
@@ -568,13 +659,19 @@
                 <option value="all">Toți</option>
               </select>
             </label>
-            <div class="admin-last-update">
-              <label class="toggle-incomplete">
-                <input type="checkbox" id="incompleteOnly" />
-                <span>Doar zile incomplete (START / PAUSE / EXTRA deschise)</span>
-              </label>
-              <span id="lastUpdate">–</span>
-            </div>
+          <div class="admin-last-update">
+  <label class="toggle-incomplete">
+    <input type="checkbox" id="incompleteOnly" />
+    <span>Doar zile incomplete (START / PAUSE / EXTRA deschise)</span>
+  </label>
+
+  <button type="button" class="btn sm" id="adminRefreshBtn" title="Reîncarcă datele din server">
+    🔄 Refresh
+  </button>
+
+  <span id="lastUpdate">–</span>
+</div>
+
           </div>
         </header>
 
@@ -761,7 +858,7 @@
             <div class="calendar-legend">
               <span class="calendar-legend-label">Legendă:</span>
               <span class="calendar-legend-item">
-                <span class="calendar-legend-box calendar-legend-none"></span> fără pontaj
+                <span class="calendar-legend-box calendar-legend-nodata"></span> fără pontaj
               </span>
               <span class="calendar-legend-item">
                 <span class="calendar-legend-box calendar-legend-low"></span> &lt;50% complet
@@ -1211,6 +1308,8 @@
   const liveAlertsHistoryBodyEl= document.getElementById('liveAlertsHistoryBody');
   const systemAlertsHistoryBodyEl = document.getElementById('systemAlertsHistoryBody');
 
+  const adminRefreshBtn = document.getElementById('adminRefreshBtn');
+
   if (!session){
     alert('Nu ești autentificat ca admin. Te redirecționez la pagina principală.');
     window.location.href = 'index.html';
@@ -1232,12 +1331,13 @@
       errorEl.textContent = msg;
       errorEl.style.display = 'block';
     }
-    window.addEventListener('error', function(e){
+window.addEventListener('error', function(e){
   try{ showError('Eroare JS: ' + (e.message || e.error || e)); }catch(_){}
 });
 window.addEventListener('unhandledrejection', function(e){
   try{ showError('Promise reject: ' + (e.reason && e.reason.message ? e.reason.message : e.reason)); }catch(_){}
 });
+
 
     if (loadingEl) loadingEl.style.display = 'none';
     if (dashboardEl) dashboardEl.style.display = 'none';
@@ -3154,7 +3254,7 @@ function isDayIncomplete(day){
         buildLeaveIndex([]);
       }
 
-      const events = data.events.map(ev => ({
+      let events = data.events.map(ev => ({
         ts: ev.ts,
         name: ev.name || '',
         action: _normAction(ev.action),
@@ -3209,6 +3309,84 @@ function isDayIncomplete(day){
       renderEmployeeIndex(ALL_STATS, CURRENT_DEPT_FILTER, EMPLOYEE_SEARCH_TEXT);
       renderEmployeeDetails(null);
 
+    async function reloadAdminData(){
+  const CFG = await loadConfig();
+
+  // refetch admin events
+  const adminUrl = CFG.adminEventsEndpoint + '?fn=adminEvents&v=' + Date.now();
+  const r2  = await fetch(adminUrl, { cache:'no-store' });
+  const txt = await r2.text();
+  let data;
+  try { data = JSON.parse(txt); } catch(e){ throw new Error('Răspuns invalid de la adminEventsEndpoint.'); }
+  if (!data || !data.ok || !Array.isArray(data.events)){
+    throw new Error('adminEventsEndpoint nu a întors un obiect ok cu events[].');
+  }
+
+  window.__pontajAdminMeta = data.meta || null;
+
+  // leaves (opțional)
+  let leavesData = null;
+  if (CFG.leaveEndpoint){
+    try{
+      const leaveUrl = CFG.leaveEndpoint + '?fn=adminLeave&v=' + Date.now();
+      const lr = await fetch(leaveUrl, {cache:'no-store'});
+      const ltxt = await lr.text();
+      let ljson = null;
+      try{ ljson = JSON.parse(ltxt); }catch(e){}
+      if (ljson && ljson.ok && Array.isArray(ljson.leaves)) leavesData = ljson.leaves;
+    }catch(_){}
+  }
+  buildLeaveIndex(leavesData || []);
+
+  events = data.events.map(ev => ({
+    ts: ev.ts,
+    name: ev.name || '',
+    action: _normAction(ev.action),
+    dept: ev.dept || '',
+    activity: ev.activity || '',
+    location: ev.location || ''
+  })).filter(ev => ev.ts);
+
+  window.__pontajAdminEvents = events;
+
+  // update stamp
+  if (lastUpdateEl){
+    let stamp = new Date();
+    if (window.__pontajAdminMeta && window.__pontajAdminMeta.generatedAt){
+      const dMeta = new Date(window.__pontajAdminMeta.generatedAt);
+      if (!isNaN(dMeta.getTime())) stamp = dMeta;
+    }
+    lastUpdateEl.textContent = 'Actualizat la ' +
+      String(stamp.getHours()).padStart(2,'0') + ':' +
+      String(stamp.getMinutes()).padStart(2,'0');
+  }
+
+  // rebuild stats + UI
+  ALL_STATS = buildStatsFromEvents(events);
+  buildDeptFilter(events);
+  buildEmployeeFilter(events, currentDept);
+
+  renderTopEmployees(ALL_STATS);
+  renderEmployeeIndex(ALL_STATS, CURRENT_DEPT_FILTER, EMPLOYEE_SEARCH_TEXT);
+  renderEmployeeDetails(SELECTED_EMPLOYEE);
+
+  refresh();
+  scanAndUpdateLiveAlerts();
+}
+
+if (adminRefreshBtn){
+  adminRefreshBtn.addEventListener('click', async function(){
+    adminRefreshBtn.disabled = true;
+    try{
+      await reloadAdminData();
+    }catch(err){
+      showError(err && err.message ? err.message : String(err));
+    }finally{
+      adminRefreshBtn.disabled = false;
+    }
+  });
+}
+      
       function setSelectedCalendarDay(dateKey){
         if (SELECTED_CALENDAR_DAY === dateKey){
           SELECTED_CALENDAR_DAY = null;
@@ -3218,7 +3396,7 @@ function isDayIncomplete(day){
         refresh();
       }
 
- function renderPresenceCalendarMonthly(){
+function renderPresenceCalendarMonthly(){
   if (!presenceCalendarEl) return;
   presenceCalendarEl.innerHTML = '';
 
@@ -3227,91 +3405,96 @@ function isDayIncomplete(day){
     calendarMonthLabelEl.textContent = monthNames[CALENDAR_MONTH] + ' ' + CALENDAR_YEAR;
   }
 
-  // Headere (Lun..Dum) – calendar cu săptămâna pornind de luni
-  const wd = ['Lun','Mar','Mie','Joi','Vin','Sâm','Dum'];
-  wd.forEach(x=>{
-    const h = document.createElement('div');
-    h.className = 'calendar-day calendar-day-header';
-    h.textContent = x;
-    presenceCalendarEl.appendChild(h);
-  });
-
-  // Evenimentele pentru luna curentă (respectând filtrele dept/employee, dar NU “Perioadă”)
   const baseForCalendar = applyDeptEmployee(events, currentDept, currentEmployee);
 
+  const firstDay = new Date(CALENDAR_YEAR, CALENDAR_MONTH, 1);
+  const lastDay  = new Date(CALENDAR_YEAR, CALENDAR_MONTH + 1, 0);
   const monthStart = new Date(CALENDAR_YEAR, CALENDAR_MONTH, 1, 0,0,0,0);
-  const monthEnd   = new Date(CALENDAR_YEAR, CALENDAR_MONTH + 1, 0, 23,59,59,999);
-  const monthEvents = (baseForCalendar || []).filter(ev=>{
+  const monthEnd   = new Date(CALENDAR_YEAR, CALENDAR_MONTH, lastDay.getDate(), 23,59,59,999);
+
+  const filtered = (baseForCalendar || []).filter(ev=>{
     if (!ev.ts) return false;
     const t = new Date(ev.ts);
     if (isNaN(t.getTime())) return false;
     return t >= monthStart && t <= monthEnd;
   });
 
-  const statsMonth = buildStatsFromEvents(monthEvents);
+  const statsMonth = buildStatsFromEvents(filtered);
   const perDay = (statsMonth && statsMonth.perDay) ? statsMonth.perDay : new Map();
 
-  function dkOf(y,m,dd){
-    const mm = String(m+1).padStart(2,'0');
-    const d2 = String(dd).padStart(2,'0');
-    return `${y}-${mm}-${d2}`;
-  }
+  const todayKey = dateKeyFromIso(new Date().toISOString());
 
-  // Aliniere: Luni=0 ... Duminică=6
-  const first = new Date(CALENDAR_YEAR, CALENDAR_MONTH, 1);
-  const firstOffset = (first.getDay() + 6) % 7;
+  const headers = ['Lu','Ma','Mi','Jo','Vi','Sâ','Du'];
+  headers.forEach(h=>{
+    const el = document.createElement('div');
+    el.className = 'calendar-day calendar-day-header';
+    el.textContent = h;
+    presenceCalendarEl.appendChild(el);
+  });
 
-  // celule goale înainte de 1 ale lunii
-  for (let i=0; i<firstOffset; i++){
+  const firstWeekday = (firstDay.getDay() + 6) % 7;
+  for (let i=0;i<firstWeekday;i++){
     const empty = document.createElement('div');
-    empty.className = 'calendar-day calendar-day-none';
+    empty.className = 'calendar-day calendar-day-empty';
     empty.innerHTML = '&nbsp;';
     presenceCalendarEl.appendChild(empty);
   }
 
-  const daysInMonth = new Date(CALENDAR_YEAR, CALENDAR_MONTH + 1, 0).getDate();
+  function namesList(set){
+    const arr = Array.from(set || []).sort((a,b)=>a.localeCompare(b,'ro'));
+    if (!arr.length) return '—';
+    const max = 12;
+    const shown = arr.slice(0,max);
+    return shown.join(', ') + (arr.length > max ? ' …' : '');
+  }
 
-  for (let day=1; day<=daysInMonth; day++){
-    const dk = dkOf(CALENDAR_YEAR, CALENDAR_MONTH, day);
-    const info = perDay.get(dk);
+  for (let dayNum=1; dayNum<=lastDay.getDate(); dayNum++){
+    const d = new Date(CALENDAR_YEAR, CALENDAR_MONTH, dayNum);
+    const dk = dateKeyFromIso(d.toISOString());
 
-    const started = info && info.started ? info.started.size : 0;
-    const completed = info && info.completed ? info.completed.size : 0;
+    const summary = perDay.get(dk);
+    const startedSet   = summary && summary.started   ? summary.started   : new Set();
+    const completedSet = summary && summary.completed ? summary.completed : new Set();
+
+    const started   = startedSet.size;
+    const completed = completedSet.size;
     const pct = started ? Math.round(100 * completed / started) : 0;
 
-    let cls = 'calendar-day-none';
-    if (started > 0){
-      if (pct < 50) cls = 'calendar-day-low';
-      else if (pct <= 90) cls = 'calendar-day-med';
-      else cls = 'calendar-day-high';
-    }
+    let cls = 'calendar-day ';
+    if (!started) cls += 'calendar-day-nodata';
+    else if (pct < 50) cls += 'calendar-day-low';
+    else if (pct < 90) cls += 'calendar-day-med';
+    else cls += 'calendar-day-high';
 
-    const leaveCount = (LEAVE_BY_DAY && LEAVE_BY_DAY.get(dk)) ? LEAVE_BY_DAY.get(dk).size : 0;
+    if (dk === todayKey) cls += ' calendar-day-today';
+    if (isWeekend(dk)) cls += ' calendar-day-weekend';
+    if (SELECTED_CALENDAR_DAY && dk === SELECTED_CALENDAR_DAY) cls += ' calendar-day-selected';
+
+    const leaveSet = (LEAVE_BY_DAY && LEAVE_BY_DAY.get(dk)) ? LEAVE_BY_DAY.get(dk) : null;
+    const leaveCount = leaveSet ? leaveSet.size : 0;
 
     const cell = document.createElement('div');
-    cell.className = `calendar-day ${cls}` + (SELECTED_CALENDAR_DAY === dk ? ' calendar-day-selected' : '');
+    cell.className = cls;
     cell.dataset.dateKey = dk;
 
+    const metaLine = started ? `${completed}/${started} complet` : 'fără pontaj';
+
     cell.innerHTML =
-      `<span class="calendar-day-label">${day}</span>` +
-      `<span class="calendar-day-meta">${started} pontaj • ${completed} complet</span>` +
-      (leaveCount ? `<span class="calendar-day-meta">${leaveCount} concediu</span>` : '');
+      `<span class="calendar-day-label">${dayNum}</span>` +
+      `<span class="calendar-day-meta">${metaLine}${leaveCount ? ` • concediu ${leaveCount}` : ''}</span>` +
+      `<div class="calendar-tooltip">` +
+        `<div><b>${dk}</b></div>` +
+        `<div><b>Cu START:</b> ${started} • <b>Complet:</b> ${completed}${started ? ` • ${pct}%` : ''}</div>` +
+        `<div class="muted"><b>Angajați (START):</b> ${namesList(startedSet)}</div>` +
+        (completed ? `<div class="muted"><b>Complet (FINISH):</b> ${namesList(completedSet)}</div>` : '') +
+        (leaveCount ? `<div class="muted"><b>Concediu:</b> ${namesList(leaveSet)}</div>` : '') +
+      `</div>`;
 
     cell.addEventListener('click', function(){
       setSelectedCalendarDay(dk);
     });
 
     presenceCalendarEl.appendChild(cell);
-  }
-
-  // celule goale după final, ca să închidă rândul
-  const used = firstOffset + daysInMonth;
-  const trailing = (7 - (used % 7)) % 7;
-  for (let i=0; i<trailing; i++){
-    const empty = document.createElement('div');
-    empty.className = 'calendar-day calendar-day-none';
-    empty.innerHTML = '&nbsp;';
-    presenceCalendarEl.appendChild(empty);
   }
 }
 
@@ -3391,8 +3574,9 @@ if (SELECTED_CALENDAR_DAY){
         renderAlertsFromMeta();
         renderSystemAlertsHistory();
       }
-
-if (calPrevBtn){
+      
+if (calPrevBtn && !calPrevBtn.dataset.bound){
+  calPrevBtn.dataset.bound = '1';
   calPrevBtn.addEventListener('click', function(){
     CALENDAR_MONTH--;
     if (CALENDAR_MONTH < 0){ CALENDAR_MONTH = 11; CALENDAR_YEAR--; }
@@ -3400,7 +3584,8 @@ if (calPrevBtn){
     refresh();
   });
 }
-if (calNextBtn){
+if (calNextBtn && !calNextBtn.dataset.bound){
+  calNextBtn.dataset.bound = '1';
   calNextBtn.addEventListener('click', function(){
     CALENDAR_MONTH++;
     if (CALENDAR_MONTH > 11){ CALENDAR_MONTH = 0; CALENDAR_YEAR++; }
@@ -3408,6 +3593,8 @@ if (calNextBtn){
     refresh();
   });
 }
+
+
       
       function handleDayRowClick(tr){
         if (!tr || !tr.dataset || !tr.dataset.name || !tr.dataset.dateKey) return;
@@ -3500,6 +3687,7 @@ if (calNextBtn){
         });
       }
 
+    
       if (incompleteDaysBodyEl){
         incompleteDaysBodyEl.addEventListener('click', function(e){
           const tr = e.target.closest('tr');
@@ -3847,7 +4035,7 @@ if (calNextBtn){
           if (name) focusEmployeeAndMaybeDay(name, dk || null);
         });
       }
-    
+   
       applyRoleVisibility();
       refresh();
 
@@ -3867,7 +4055,3 @@ if (calNextBtn){
 
 </body>
 </html>
-
-
-
-
