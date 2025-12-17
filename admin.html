@@ -3577,7 +3577,7 @@ if (SELECTED_CALENDAR_DAY){
 
         if (lastEventsTitleEl && lastEventsHintTextEl && rawLogTitleEl){
           let baseHint = filterIncompleteOnly
-            ? 'Toate înregistrările din zilele fără FINISH pentru perioada aleasă și filtrul curent.'
+            ? 'Toate înregistrările din zilele incomplete pentru perioada aleasă și filtrul curent.'
             : 'Toate înregistrările din perioada aleasă, după filtrele de mai sus.';
           if (SELECTED_CALENDAR_DAY){
             baseHint += ' (Filtrat pe ziua ' + SELECTED_CALENDAR_DAY + ' din calendar.)';
@@ -3585,8 +3585,8 @@ if (SELECTED_CALENDAR_DAY){
           lastEventsHintTextEl.textContent = baseHint;
 
           if (filterIncompleteOnly){
-            lastEventsTitleEl.textContent = 'Ultimele pontaje (doar zile fără FINISH)';
-            rawLogTitleEl.textContent = 'Log brut (doar zile fără FINISH)';
+            lastEventsTitleEl.textContent = 'Ultimele pontaje (doar zile incomplete)';
+            rawLogTitleEl.textContent = 'Log brut (doar zile incomplete)';
           } else {
             lastEventsTitleEl.textContent = 'Ultimele pontaje';
             rawLogTitleEl.textContent = 'Log brut (filtru curent)';
@@ -4102,4 +4102,5 @@ if (exportAnomaliesBtn){
 
 </body>
 </html>
+
 
