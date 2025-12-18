@@ -73,6 +73,39 @@
       font-size:12px;
     }
 
+    /* chip cu X (removable) */
+.chip-removable{
+  padding-right:6px;
+}
+
+.chip-x{
+  appearance:none;
+  border:0;
+  background:rgba(15,23,42,.08);
+  width:18px;
+  height:18px;
+  border-radius:999px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  cursor:pointer;
+  line-height:1;
+  font-weight:800;
+  color:var(--muted);
+  padding:0;
+  flex:0 0 auto;
+}
+
+.chip-x:hover{
+  background:rgba(239,68,68,.12);
+  color:var(--danger);
+}
+
+.chip-x:focus{
+  outline:none;
+  box-shadow:0 0 0 2px var(--ring);
+}
+
     .card{
       background:var(--card);
       border:1px solid rgba(14,165,233,.12);
@@ -1337,6 +1370,22 @@
   const filterChipsEl   = document.getElementById('filterChips');
   const resetFiltersBtn = document.getElementById('resetFiltersBtn');
 
+  // X pe chip-ul "Zi" -> scoate doar filtrul de zi
+if (filterChipsEl && !filterChipsEl.dataset.boundX){
+  filterChipsEl.dataset.boundX = '1';
+  filterChipsEl.addEventListener('click', function(e){
+    const btn = e.target.closest('[data-action="clear-day"]');
+    if (!btn) return;
+
+    e.preventDefault();
+    e.stopPropagation();
+
+    SELECTED_CALENDAR_DAY = null;
+
+    // refresh fără să reseteze restul filtre-lor
+    if (window.__pontajAdminRefresh) window.__pontajAdminRefresh();
+  });
+}
   
   if (!session){
     alert('Nu ești autentificat ca admin. Te redirecționez la pagina principală.');
@@ -2931,34 +2980,47 @@ function updateFilterChips(){
 
   // Perioadă
   const rVal = (rangeSelect && rangeSelect.value) || 'today';
-  chips.push('Perioadă: ' + getSelectLabel(rangeSelect, rVal));
+  chips.push({ text: 'Perioadă: ' + getSelectLabel(rangeSelect, rVal) });
 
   // Dept
   const dVal = (deptFilter && deptFilter.value) || 'all';
-  chips.push('Dept: ' + (dVal !== 'all' ? dVal : 'Toate'));
+  chips.push({ text: 'Dept: ' + (dVal !== 'all' ? dVal : 'Toate') });
 
   // Angajat
   const eVal = (employeeFilter && employeeFilter.value) || 'all';
-  chips.push('Angajat: ' + (eVal !== 'all' ? eVal : 'Toți'));
+  chips.push({ text: 'Angajat: ' + (eVal !== 'all' ? eVal : 'Toți') });
 
-  // Zi calendar
+  // Zi calendar (removable)
   if (SELECTED_CALENDAR_DAY){
-    chips.push('Zi: ' + SELECTED_CALENDAR_DAY);
+    chips.push({
+      text: 'Zi: ' + SELECTED_CALENDAR_DAY,
+      removable: true,
+      action: 'clear-day'
+    });
   }
 
   // Doar incomplete
   if (filterIncompleteOnly){
-    chips.push('Doar zile incomplete');
+    chips.push({ text: 'Doar zile incomplete' });
   }
 
   // rol
   if (ADMIN_ROLE === 'teamlead' && ADMIN_DEPT){
-    chips.push('Rol: Teamlead (' + ADMIN_DEPT + ')');
+    chips.push({ text: 'Rol: Teamlead (' + ADMIN_DEPT + ')' });
   }
 
-  filterChipsEl.innerHTML = chips
-    .map(t => `<span class="chip">${escapeHtml(t)}</span>`)
-    .join('');
+  filterChipsEl.innerHTML = chips.map(c => {
+    if (c.removable){
+      return `
+        <span class="chip chip-removable">
+          <span>${escapeHtml(c.text)}</span>
+          <button type="button" class="chip-x" data-action="${c.action}"
+                  aria-label="Scoate filtrul de zi">×</button>
+        </span>
+      `;
+    }
+    return `<span class="chip">${escapeHtml(c.text)}</span>`;
+  }).join('');
 }
 
 function resetAllFilters(){
@@ -4204,4 +4266,5 @@ if (exportAnomaliesBtn){
 
 </body>
 </html>
+
 
