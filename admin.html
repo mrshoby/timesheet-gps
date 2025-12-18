@@ -611,7 +611,23 @@
   border:1px dashed rgba(148,163,184,.75);
   color:var(--muted);
 }
-    
+
+.admin-filter-summary{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  flex-wrap:wrap;
+  margin:8px 0 0;
+}
+
+.filter-chips{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  align-items:center;
+}
+
     
       </style>
 </head>
@@ -639,6 +655,15 @@
         <header class="admin-header">
           <h1>Dashboard pontaj</h1>
           <div class="admin-filter-line">
+            <div class="admin-filter-summary">
+  <div id="filterChips" class="filter-chips"></div>
+
+  <button type="button" class="btn sm" id="resetFiltersBtn"
+          title="Reset: perioadă=astăzi, dept=toate, angajat=toți, zi=null, incomplete=off">
+    ♻ Reset filtre
+  </button>
+</div>
+
             <label>
               <span>Perioadă</span>
               <select id="rangeSelect">
@@ -1309,7 +1334,10 @@
   const systemAlertsHistoryBodyEl = document.getElementById('systemAlertsHistoryBody');
 
   const adminRefreshBtn = document.getElementById('adminRefreshBtn');
+  const filterChipsEl   = document.getElementById('filterChips');
+  const resetFiltersBtn = document.getElementById('resetFiltersBtn');
 
+  
   if (!session){
     alert('Nu ești autentificat ca admin. Te redirecționez la pagina principală.');
     window.location.href = 'index.html';
@@ -1419,6 +1447,7 @@ function dateKeyFromIso(iso){
     const empEl    = document.getElementById('kpiEmployees');
     const startEl  = document.getElementById('kpiStart');
     const finishEl = document.getElementById('kpiFinish');
+
     const list = events || [];
     if (totalEl) totalEl.textContent = String(list.length);
     const uniq = new Set();
@@ -2882,7 +2911,95 @@ const compStatus = d.completed
     ].join(' ').toLowerCase();
     return s;
   }
-  
+
+  function escapeHtml(s){
+  return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+  }[c]));
+}
+
+function getSelectLabel(selectEl, value){
+  if (!selectEl) return String(value || '');
+  const opt = selectEl.querySelector(`option[value="${CSS.escape(String(value))}"]`);
+  return opt ? opt.textContent : String(value || '');
+}
+
+function updateFilterChips(){
+  if (!filterChipsEl) return;
+
+  const chips = [];
+
+  // Perioadă
+  const rVal = (rangeSelect && rangeSelect.value) || 'today';
+  chips.push('Perioadă: ' + getSelectLabel(rangeSelect, rVal));
+
+  // Dept
+  const dVal = (deptFilter && deptFilter.value) || 'all';
+  chips.push('Dept: ' + (dVal !== 'all' ? dVal : 'Toate'));
+
+  // Angajat
+  const eVal = (employeeFilter && employeeFilter.value) || 'all';
+  chips.push('Angajat: ' + (eVal !== 'all' ? eVal : 'Toți'));
+
+  // Zi calendar
+  if (SELECTED_CALENDAR_DAY){
+    chips.push('Zi: ' + SELECTED_CALENDAR_DAY);
+  }
+
+  // Doar incomplete
+  if (filterIncompleteOnly){
+    chips.push('Doar zile incomplete');
+  }
+
+  // rol
+  if (ADMIN_ROLE === 'teamlead' && ADMIN_DEPT){
+    chips.push('Rol: Teamlead (' + ADMIN_DEPT + ')');
+  }
+
+  filterChipsEl.innerHTML = chips
+    .map(t => `<span class="chip">${escapeHtml(t)}</span>`)
+    .join('');
+}
+
+function resetAllFilters(){
+  // zi calendar = null
+  SELECTED_CALENDAR_DAY = null;
+
+  // Perioadă = today
+  if (rangeSelect){
+    rangeSelect.value = 'today';
+    rangeSelect.dispatchEvent(new Event('change'));
+  }
+
+  // Dept = all (sau dept-ul teamlead)
+  if (deptFilter){
+    const dept = (ADMIN_ROLE === 'teamlead' && ADMIN_DEPT) ? ADMIN_DEPT : 'all';
+    deptFilter.value = dept;
+    deptFilter.dispatchEvent(new Event('change'));
+  }
+
+  // Angajat = all
+  if (employeeFilter){
+    employeeFilter.value = 'all';
+    employeeFilter.dispatchEvent(new Event('change'));
+  }
+
+  // incompleteOnly = off
+  if (incompleteOnlyCheckbox){
+    incompleteOnlyCheckbox.checked = false;
+    incompleteOnlyCheckbox.dispatchEvent(new Event('change'));
+  }
+
+  // search index = gol
+  if (employeeSearchInput){
+    employeeSearchInput.value = '';
+    employeeSearchInput.dispatchEvent(new Event('input'));
+  }
+
+  // failsafe: forțează refresh o dată
+  if (window.__pontajAdminRefresh) window.__pontajAdminRefresh();
+}
+
   // --- HELPER pentru calculul stării de azi (pentru alerte LIVE) ---
   function buildTodayStates(allEvents){
     const now = new Date();
@@ -3399,7 +3516,11 @@ if (adminRefreshBtn){
     }
   });
 }
-      
+  if (resetFiltersBtn && !resetFiltersBtn.dataset.bound){
+  resetFiltersBtn.dataset.bound = '1';
+  resetFiltersBtn.addEventListener('click', resetAllFilters);
+}
+    
       function setSelectedCalendarDay(dateKey){
         if (SELECTED_CALENDAR_DAY === dateKey){
           SELECTED_CALENDAR_DAY = null;
@@ -3587,6 +3708,7 @@ if (SELECTED_CALENDAR_DAY){
         renderLiveBoard();
         renderAlertsFromMeta();
         renderSystemAlertsHistory();
+        updateFilterChips();
       }
       
 if (calPrevBtn && !calPrevBtn.dataset.bound){
@@ -4082,6 +4204,3 @@ if (exportAnomaliesBtn){
 
 </body>
 </html>
-
-
-
