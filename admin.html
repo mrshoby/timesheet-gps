@@ -2165,10 +2165,10 @@ const compStatus = d.completed
     const endTime = now.getTime();
     let startTime;
     if (range === 'last7'){
-      const d = new Date(now);
-      d.setDate(d.getDate() - 6);
-      startTime = d.getTime();
-    } else { // today
+  const d = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0,0,0,0);
+  d.setDate(d.getDate() - 6);
+  startTime = d.getTime();
+} else { // today
       const d = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0,0,0);
       startTime = d.getTime();
     }
@@ -2968,7 +2968,7 @@ function resetAllFilters(){
   // Perioadă = today
   if (rangeSelect){
     rangeSelect.value = 'today';
-    rangeSelect.dispatchEvent(new Event('change'));
+    rangeSelect.dispatchEvent(new Event('change', { bubbles:true }));
   }
 
   // Dept = all (sau dept-ul teamlead)
@@ -2993,7 +2993,7 @@ function resetAllFilters(){
   // search index = gol
   if (employeeSearchInput){
     employeeSearchInput.value = '';
-    employeeSearchInput.dispatchEvent(new Event('input'));
+    employeeSearchInput.dispatchEvent(new Event('input', { bubbles:true }));
   }
 
   // failsafe: forțează refresh o dată
@@ -3662,7 +3662,7 @@ if (SELECTED_CALENDAR_DAY){
 
          window.__pontajAdminRefresh = refresh;
         const statsBase = buildStatsFromEvents(baseRange);
-        let filteredForMain = applyIncompleteFilter(baseRange);
+        let filteredForMain = applyIncompleteFilter(baseRange, statsBase);
         latestFiltered = filteredForMain;
 
         renderKpis(filteredForMain);
@@ -4204,3 +4204,4 @@ if (exportAnomaliesBtn){
 
 </body>
 </html>
+
