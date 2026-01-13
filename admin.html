@@ -44,6 +44,7 @@
       backdrop-filter: blur(8px);
       box-shadow: 0 8px 30px rgba(81,106,117,.18);
       border:1px solid rgba(81,106,117,.18);
+      position:relative;
     }
     .brand{display:flex;align-items:center;gap:12px;text-decoration:none;color:inherit}
     .brand img{ width:38px;height:38px;object-fit:contain;aspect-ratio:1/1;border-radius:10px;box-shadow:0 3px 10px rgba(81,106,117,.25) }
@@ -76,14 +77,48 @@
       box-shadow:none;
       color:#000000;
     }
-    .nav-icon-btn:disabled{
-      opacity:.4;
-      cursor:not-allowed;
-    }
-    .nav-icon-btn:focus{
-      outline:none;
-      box-shadow:0 0 0 2px var(--ring);
-    }
+    .nav-icon-btn{
+  appearance:none;
+  border:1px solid rgba(149,202,75,.35);
+  background:rgba(149,202,75,.08);
+  padding:6px;
+  border-radius:999px;
+  cursor:pointer;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  font-size:0;
+  line-height:1;
+  box-shadow:0 4px 12px rgba(15,23,42,.08);
+  color:var(--accent);
+}
+.nav-icon-btn:hover{
+  background:rgba(149,202,75,.16);
+}
+.nav-icon-btn:disabled{
+  opacity:.4;
+  cursor:not-allowed;
+}
+.nav-icon-btn:focus{
+  outline:none;
+  box-shadow:0 0 0 2px var(--ring);
+}
+
+.nav-icon{
+  width:22px;
+  height:22px;
+  display:block;
+}
+.nav-icon svg{
+  width:100%;
+  height:100%;
+}
+
+/* ascundem butonul Self-service din header */
+#selfServiceLink{
+  display:none !important;
+}
+    
     .nav-status{
       font-size:12px;
       color:var(--muted);
@@ -744,56 +779,237 @@
   align-items:center;
 }
 
+ .nav-menu-wrapper{
+  position:relative;
+}
+
+.hamburger-btn{
+  appearance:none;
+  border:0;
+  background:rgba(81,106,117,.06);
+  border-radius:999px;
+  padding:8px 10px;
+  cursor:pointer;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  box-shadow:0 4px 14px rgba(15,23,42,.12);
+}
+.hamburger-btn:focus{
+  outline:none;
+  box-shadow:0 0 0 2px var(--ring);
+}
+
+.hamburger-box{
+  width:20px;
+  height:14px;
+  display:inline-block;
+  position:relative;
+}
+.hamburger-inner,
+.hamburger-inner::before,
+.hamburger-inner::after{
+  position:absolute;
+  left:0;
+  width:20px;
+  height:2px;
+  border-radius:999px;
+  background:var(--brand);
+  transition:transform .18s ease, top .18s ease, opacity .18s ease;
+}
+.hamburger-inner{
+  top:50%;
+  transform:translateY(-50%);
+}
+.hamburger-inner::before,
+.hamburger-inner::after{
+  content:"";
+}
+.hamburger-inner::before{
+  top:-5px;
+}
+.hamburger-inner::after{
+  top:5px;
+}
+.hamburger-btn.is-active .hamburger-inner{
+  transform:rotate(45deg);
+}
+.hamburger-btn.is-active .hamburger-inner::before{
+  top:0;
+  transform:rotate(90deg);
+}
+.hamburger-btn.is-active .hamburger-inner::after{
+  top:0;
+  opacity:0;
+}
+
+/* dropdown hamburger */
+.nav-menu{
+  position:absolute;
+  right:0;
+  top:100%;
+  margin-top:8px;
+  min-width:220px;
+  padding:10px 10px 8px;
+  border-radius:16px;
+  background:linear-gradient(180deg, rgba(255,255,255,.98), rgba(248,250,252,.98));
+  border:1px solid rgba(148,163,184,.35);
+  box-shadow:0 18px 40px rgba(15,23,42,.24);
+  transform-origin:top right;
+  transform:scale(.96) translateY(-4px);
+  opacity:0;
+  pointer-events:none;
+  transition:opacity .16s ease, transform .16s ease;
+  z-index:40;
+}
+.nav-menu.open{
+  opacity:1;
+  pointer-events:auto;
+  transform:scale(1) translateY(0);
+}
+
+.nav-menu-section{
+  padding:6px 6px 4px;
+  border-bottom:1px solid #e5e7eb;
+  margin-bottom:6px;
+}
+.nav-menu-section:last-child{
+  border-bottom:0;
+  margin-bottom:0;
+}
+
+.nav-menu-user-label{
+  font-size:11px;
+  color:var(--muted);
+  margin-bottom:4px;
+}
+
+.nav-menu-actions{
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+}
+
+.nav-menu-item{
+  width:100%;
+  border:0;
+  background:transparent;
+  border-radius:10px;
+  padding:8px 10px;
+  font-size:13px;
+  font-weight:600;
+  text-align:left;
+  cursor:pointer;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  color:var(--text);
+}
+.nav-menu-item:hover{
+  background:#f1f5f9;
+}
+.nav-menu-item-danger{
+  color:#b91c1c;
+}
+.nav-menu-item-danger:hover{
+  background:#fee2e2;
+}
+   
     
       </style>
 </head>
 <body>
   <div class="shell">
-       <nav class="nav card">
-      <a class="brand" href="index.html" aria-label="Spre pontaj">
-        <img src="favicon.png" alt="Siglă SERVELECT" />
-        <div>
-          <h1><span>SERVELECT</span><small>Pontaj & Management Concedii</small></h1>
+      <nav class="nav card">
+  <a class="brand" href="index.html" aria-label="Spre pontaj">
+    <img src="favicon.png" alt="Siglă SERVELECT" />
+    <div>
+      <h1><span>SERVELECT</span><small>Pontaj & Management Concedii</small></h1>
+    </div>
+  </a>
+
+  <div class="nav-actions">
+    <!-- Refresh (icon stilizat, verde) -->
+    <button type="button"
+            class="nav-icon-btn"
+            id="adminRefreshBtn"
+            title="Reîncarcă datele din server">
+      <span class="nav-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M5 11a7 7 0 0 1 7-7h3"/>
+            <polyline points="11 4 15 4 15 8"/>
+            <path d="M19 13a7 7 0 0 1-7 7H9"/>
+            <polyline points="13 20 9 20 9 16"/>
+          </g>
+        </svg>
+      </span>
+    </button>
+
+    <!-- Reset filtre (icon panou fotovoltaic + X) -->
+    <button type="button"
+            class="nav-icon-btn"
+            id="resetFiltersBtn"
+            title="Reset: perioadă=astăzi, dept=toate, angajat=toți, zi=null, incomplete=off">
+      <span class="nav-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <!-- panou -->
+            <rect x="4" y="5" width="10" height="8" rx="1"/>
+            <path d="M4 9h10M9 5v8"/>
+            <!-- X de reset -->
+            <path d="M16.5 15.5l3 3m0-3l-3 3"/>
+          </g>
+        </svg>
+      </span>
+    </button>
+
+    <!-- Text „Actualizat la …” -->
+    <span id="lastUpdate" class="nav-status"></span>
+
+    <!-- Înapoi la pontaj (rămâne vizibil) -->
+    <a href="index.html" class="btn" id="backToTimesheetLink">
+      ← Înapoi la pontaj
+    </a>
+
+    <!-- Badge de context -->
+    <div class="chip">Admin dashboard</div>
+
+    <!-- Meniu hamburger (user + Deconectare) -->
+    <div class="nav-menu-wrapper">
+      <button type="button"
+              class="hamburger-btn"
+              id="adminHamburgerBtn"
+              aria-label="Meniu admin"
+              aria-expanded="false">
+        <span class="hamburger-box">
+          <span class="hamburger-inner"></span>
+        </span>
+      </button>
+
+      <div class="nav-menu" id="adminHamburgerMenu">
+        <div class="nav-menu-section">
+          <div class="nav-menu-user-label">Utilizator logat</div>
+          <!-- chip-ul cu numele adminului mutat aici -->
+          <div class="chip" id="adminLabel">Admin</div>
         </div>
-      </a>
-
-      <div class="nav-actions">
-        <!-- Refresh (icon only) -->
-        <button type="button"
-                class="nav-icon-btn"
-                id="adminRefreshBtn"
-                title="Reîncarcă datele din server">
-          🔄
-        </button>
-
-        <!-- Reset filtre (icon only) -->
-        <button type="button"
-                class="nav-icon-btn"
-                id="resetFiltersBtn"
-                title="Reset: perioadă=astăzi, dept=toate, angajat=toți, zi=null, incomplete=off">
-          ♻
-        </button>
-
-        <!-- Text „Actualizat la …” – apare 5 secunde după refresh -->
-        <span id="lastUpdate" class="nav-status"></span>
-
-        <!-- Self-service -->
-        <a href="self.html" class="btn" id="selfServiceLink" target="_blank" rel="noopener">
-          🧾 Self-service – raportul meu
-        </a>
-
-        <!-- Înapoi la pontaj -->
-        <a href="index.html" class="btn" id="backToTimesheetLink">
-          ← Înapoi la pontaj
-        </a>
-
-        <!-- Deconectare -->
-        <button id="logoutBtn" class="btn primary" type="button">Deconectare</button>
-
-        <div class="chip">Admin dashboard</div>
-        <div class="chip" id="adminLabel">Admin</div>
+        <div class="nav-menu-section nav-menu-actions">
+          <button id="logoutBtn"
+                  class="nav-menu-item nav-menu-item-danger"
+                  type="button">
+            <span>Deconectare</span>
+          </button>
+        </div>
       </div>
-    </nav>
+    </div>
+
+    <!-- Self-service: lăsat în DOM pentru script, dar ascuns prin CSS -->
+    <a href="self.html" class="btn" id="selfServiceLink" target="_blank" rel="noopener">
+      🧾 Self-service – raportul meu
+    </a>
+  </div>
+</nav>
+
 
     <main class="admin-layout">
       <section class="admin-main">
@@ -1395,8 +1611,11 @@
 
   const adminLabelEl           = document.getElementById('adminLabel');
   const logoutBtn              = document.getElementById('logoutBtn');
+  const hamburgerBtn           = document.getElementById('adminHamburgerBtn');
+  const hamburgerMenu          = document.getElementById('adminHamburgerMenu');
   const errorEl                = document.getElementById('error');
   const loadingEl              = document.getElementById('loading');
+
   const dashboardEl            = document.getElementById('dashboard');
   const alertsPageEl           = document.getElementById('alertsPage');
   const tabButtons             = document.querySelectorAll('button.admin-tab-btn'); // DOAR butoanele, nu și link-ul spre reports.html
@@ -1491,6 +1710,49 @@ if (filterChipsEl && !filterChipsEl.dataset.boundX){
     window.location.href = 'index.html';
     return;
   }
+
+    // Meniu hamburger (user + Deconectare)
+  if (hamburgerBtn && hamburgerMenu && !window.__pontajAdminHamburgerBound){
+    window.__pontajAdminHamburgerBound = true;
+
+    function closeHamburgerMenu(){
+      hamburgerMenu.classList.remove('open');
+      hamburgerBtn.classList.remove('is-active');
+      hamburgerBtn.setAttribute('aria-expanded','false');
+    }
+
+    function toggleHamburgerMenu(){
+      const willOpen = !hamburgerMenu.classList.contains('open');
+      if (willOpen){
+        hamburgerMenu.classList.add('open');
+        hamburgerBtn.classList.add('is-active');
+        hamburgerBtn.setAttribute('aria-expanded','true');
+      } else {
+        closeHamburgerMenu();
+      }
+    }
+
+    hamburgerBtn.addEventListener('click', function(e){
+      e.stopPropagation();
+      toggleHamburgerMenu();
+    });
+
+    // click în afara meniului => închide
+    document.addEventListener('click', function(e){
+      if (!hamburgerMenu.classList.contains('open')) return;
+      if (hamburgerMenu.contains(e.target) || hamburgerBtn.contains(e.target)) return;
+      closeHamburgerMenu();
+    });
+
+    // ESC => închide
+    document.addEventListener('keydown', function(e){
+      if (e.key === 'Escape'){
+        closeHamburgerMenu();
+      }
+    });
+  }
+
+  
   ADMIN_ROLE = session.role || 'admin';
   ADMIN_DEPT = session.dept || null;
 
@@ -4455,6 +4717,7 @@ if (exportAnomaliesBtn){
 
 </body>
 </html>
+
 
 
 
