@@ -62,25 +62,10 @@
       justify-content:flex-end;
     }
 
-        .nav-icon-btn{
-      appearance:none;
-      border:0;
-      background:transparent;
-      padding:6px;
-      border-radius:999px;
-      cursor:pointer;
-      display:inline-flex;
-      align-items:center;
-      justify-content:center;
-      font-size:18px;
-      line-height:1;
-      box-shadow:none;
-      color:#000000;
-    }
-    .nav-icon-btn{
+.nav-icon-btn{
   appearance:none;
-  border:1px solid rgba(149,202,75,.35);
-  background:rgba(149,202,75,.08);
+  border:1px solid #d1d5db;
+  background:#ffffff;
   padding:6px;
   border-radius:999px;
   cursor:pointer;
@@ -89,15 +74,20 @@
   justify-content:center;
   font-size:0;
   line-height:1;
-  box-shadow:0 4px 12px rgba(15,23,42,.08);
-  color:var(--accent);
+  box-shadow:0 4px 10px rgba(15,23,42,.08);
+  color:#000000; /* iconiță NEAGRĂ */
 }
 .nav-icon-btn:hover{
-  background:rgba(149,202,75,.16);
+  background:#f3f4f6;
+}
+.nav-icon-btn:active{
+  transform:translateY(1px);
+  box-shadow:0 2px 6px rgba(15,23,42,.08);
 }
 .nav-icon-btn:disabled{
   opacity:.4;
   cursor:not-allowed;
+  box-shadow:none;
 }
 .nav-icon-btn:focus{
   outline:none;
@@ -105,14 +95,15 @@
 }
 
 .nav-icon{
-  width:22px;
-  height:22px;
+  width:20px;
+  height:20px;
   display:block;
 }
 .nav-icon svg{
   width:100%;
   height:100%;
 }
+
 
 /* ascundem butonul Self-service din header */
 #selfServiceLink{
@@ -205,6 +196,13 @@
       gap:12px;
       margin-bottom:14px;
     }
+    .admin-header-actions{
+  margin-left:auto;
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+
     .admin-header h1{
       margin:0;
       font-size:20px;
@@ -921,53 +919,8 @@
 <body>
   <div class="shell">
       <nav class="nav card">
-  <a class="brand" href="index.html" aria-label="Spre pontaj">
-    <img src="favicon.png" alt="Siglă SERVELECT" />
-    <div>
-      <h1><span>SERVELECT</span><small>Pontaj & Management Concedii</small></h1>
-    </div>
-  </a>
-
   <div class="nav-actions">
-    <!-- Refresh (icon stilizat, verde) -->
-    <button type="button"
-            class="nav-icon-btn"
-            id="adminRefreshBtn"
-            title="Reîncarcă datele din server">
-      <span class="nav-icon" aria-hidden="true">
-        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-          <g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M5 11a7 7 0 0 1 7-7h3"/>
-            <polyline points="11 4 15 4 15 8"/>
-            <path d="M19 13a7 7 0 0 1-7 7H9"/>
-            <polyline points="13 20 9 20 9 16"/>
-          </g>
-        </svg>
-      </span>
-    </button>
-
-    <!-- Reset filtre (icon panou fotovoltaic + X) -->
-    <button type="button"
-            class="nav-icon-btn"
-            id="resetFiltersBtn"
-            title="Reset: perioadă=astăzi, dept=toate, angajat=toți, zi=null, incomplete=off">
-      <span class="nav-icon" aria-hidden="true">
-        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-          <g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-            <!-- panou -->
-            <rect x="4" y="5" width="10" height="8" rx="1"/>
-            <path d="M4 9h10M9 5v8"/>
-            <!-- X de reset -->
-            <path d="M16.5 15.5l3 3m0-3l-3 3"/>
-          </g>
-        </svg>
-      </span>
-    </button>
-
-    <!-- Text „Actualizat la …” -->
-    <span id="lastUpdate" class="nav-status"></span>
-
-    <!-- Înapoi la pontaj (rămâne vizibil) -->
+    <!-- Înapoi la pontaj -->
     <a href="index.html" class="btn" id="backToTimesheetLink">
       ← Înapoi la pontaj
     </a>
@@ -990,7 +943,6 @@
       <div class="nav-menu" id="adminHamburgerMenu">
         <div class="nav-menu-section">
           <div class="nav-menu-user-label">Utilizator logat</div>
-          <!-- chip-ul cu numele adminului mutat aici -->
           <div class="chip" id="adminLabel">Admin</div>
         </div>
         <div class="nav-menu-section nav-menu-actions">
@@ -1015,6 +967,49 @@
       <section class="admin-main">
              <header class="admin-header">
           <h1>Dashboard pontaj</h1>
+  <!-- ACȚIUNI HEADER: status + reset filtre + refresh -->
+  <div class="admin-header-actions">
+    <span id="lastUpdate" class="nav-status"></span>
+
+    <!-- Reset filtre (icon „filter reset”) -->
+    <button type="button"
+            class="nav-icon-btn"
+            id="resetFiltersBtn"
+            title="Reset: perioadă=astăzi, dept=toate, angajat=toți, zi=null, incomplete=off">
+      <span class="nav-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <!-- linii tip „filter / slider” -->
+            <path d="M6 7h8" />
+            <circle cx="17" cy="7" r="1.5" />
+            <path d="M6 12h5" />
+            <circle cx="14" cy="12" r="1.5" />
+            <path d="M6 17h3" />
+            <circle cx="12" cy="17" r="1.5" />
+            <!-- X de reset în colț -->
+            <path d="M18 9l3 3m0-3l-3 3" />
+          </g>
+        </svg>
+      </span>
+    </button>
+
+    <!-- Refresh (icon „circular arrows”) -->
+    <button type="button"
+            class="nav-icon-btn"
+            id="adminRefreshBtn"
+            title="Reîncarcă datele din server">
+      <span class="nav-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 10a7 7 0 0 1 11-5l2 2" />
+            <path d="M9 4h8V3" />
+            <path d="M20 14a7 7 0 0 1-11 5l-2-2" />
+            <path d="M15 20H7v1" />
+          </g>
+        </svg>
+      </span>
+    </button>
+  </div>
           <div class="admin-filter-line">
             <div class="admin-filter-summary">
               <div id="filterChips" class="filter-chips"></div>
@@ -4240,6 +4235,39 @@ if (incompleteDayWorkBtn && !incompleteDayWorkBtn.dataset.bound) {
     refresh();
   });
 }
+// Filtre pentru ANOMALII: toate / weekend / zile lucrătoare
+if (anomalyDayAllBtn && !anomalyDayAllBtn.dataset.bound) {
+  anomalyDayAllBtn.dataset.bound = '1';
+  anomalyDayAllBtn.addEventListener('click', () => {
+    ANOMALY_DAY_FILTER = 'all';
+    anomalyDayAllBtn.classList.add('active');
+    anomalyDayWeekendBtn.classList.remove('active');
+    anomalyDayWorkBtn.classList.remove('active');
+    refresh();
+  });
+}
+
+if (anomalyDayWeekendBtn && !anomalyDayWeekendBtn.dataset.bound) {
+  anomalyDayWeekendBtn.dataset.bound = '1';
+  anomalyDayWeekendBtn.addEventListener('click', () => {
+    ANOMALY_DAY_FILTER = 'weekend';
+    anomalyDayWeekendBtn.classList.add('active');
+    anomalyDayAllBtn.classList.remove('active');
+    anomalyDayWorkBtn.classList.remove('active');
+    refresh();
+  });
+}
+
+if (anomalyDayWorkBtn && !anomalyDayWorkBtn.dataset.bound) {
+  anomalyDayWorkBtn.dataset.bound = '1';
+  anomalyDayWorkBtn.addEventListener('click', () => {
+    ANOMALY_DAY_FILTER = 'workday';
+    anomalyDayWorkBtn.classList.add('active');
+    anomalyDayAllBtn.classList.remove('active');
+    anomalyDayWeekendBtn.classList.remove('active');
+    refresh();
+  });
+}
 
 
       
@@ -4717,6 +4745,7 @@ if (exportAnomaliesBtn){
 
 </body>
 </html>
+
 
 
 
