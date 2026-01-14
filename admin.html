@@ -4348,7 +4348,7 @@ function renderPresenceCalendarMonthly(){
         `<div class="muted"><b>Angajați (START):</b> ${namesList(startedSet)}</div>` +
         (completed ? `<div class="muted"><b>Complet (FINISH):</b> ${namesList(completedSet)}</div>` : '') +
         (leaveCount ? `<div class="muted"><b>Concediu:</b> ${namesList(leaveSet)}</div>` : '') +
-        (inactiveSet.size ? `<div class="muted"><b>Inactivi:</b> ${namesList(inactiveSet)}</div>` : '')
+        (inactiveSet.size ? `<div class="muted"><b>Inactivi:</b> ${namesList(inactiveSet)}</div>` : '')+
       `</div>`;
 
     cell.addEventListener('click', function(){
@@ -5077,6 +5077,7 @@ if (exportAnomaliesBtn){
 
 </body>
 </html>
+
 
 
 
