@@ -1826,16 +1826,20 @@ if (filterChipsEl && !filterChipsEl.dataset.boundX){
       window.location.href = 'index.html';
     });
   }
-function showError(msg){
-  console.error('[ADMIN ERROR]', msg); // <-- IMPORTANT
+function showError(err){
+  const msg = (err && err.message) ? err.message : String(err);
+  const stack = (err && err.stack) ? err.stack : '';
+  console.error('[ADMIN ERROR]', err);
+
   if (errorEl){
-    errorEl.textContent = msg;
+    errorEl.textContent = msg + (stack ? '\n\n' + stack : '');
     errorEl.style.display = 'block';
   }
   if (loadingEl) loadingEl.style.display = 'none';
   if (dashboardEl) dashboardEl.style.display = 'none';
   if (alertsPageEl) alertsPageEl.style.display = 'none';
 }
+
 
 
 // bind o singură dată
@@ -5063,7 +5067,7 @@ if (exportAnomaliesBtn){
       LIVE_ALERT_TIMER = setInterval(scanAndUpdateLiveAlerts, 60 * 1000);
 
     }catch(e){
-      showError(e.message || String(e));
+      showError(e);
     }
   }
 
@@ -5073,6 +5077,7 @@ if (exportAnomaliesBtn){
 
 </body>
 </html>
+
 
 
 
