@@ -2208,18 +2208,23 @@ function applyIncompleteFilter(events, stats){
           name,
           dept:'',
           days:new Map(),
-          totals:{
-            daysWithStart:0,
-            daysWithFinish:0,
-            daysCompleted:0,
-            totalWorkMs:0,
-            totalExtraMs:0,
-            overtimeMs:0,
-            firstEvent:null,
-            lastEvent:null,
-            normValidatedDays:0,
-            incompleteDays:0
-          }
+   totals:{
+      daysWithStart:0,
+      daysWithFinish:0,
+      daysCompleted:0,
+      totalWorkMs:0,
+      totalExtraMs:0,
+      overtimeMs:0,
+      firstEvent:null,
+      lastEvent:null,
+
+  // NOU:
+  normMetDays:0,            // muncă efectivă >= normă (chiar dacă pauza e mare)
+  normValidatedDays:0,      // normă + pauză în limită
+
+  incompleteDays:0
+}
+
         });
       }
       return employees.get(name);
@@ -2268,6 +2273,11 @@ function applyIncompleteFilter(events, stats){
           openExtra:false,
           hasPauseMismatch:false,
           hasExtraMismatch:false
+          // NOU (pentru afișare în Detalii angajat)
+          normMet:false,
+          pauseOk:true,
+          pauseOverMs:0,
+          pauseMarginMsUsed:0
         };
         emp.days.set(dk, day);
       } else {
@@ -2402,25 +2412,36 @@ function applyIncompleteFilter(events, stats){
         emp.totals.overtimeMs += day.overtimeMs;
       }
 
+// ========= NORMA (nou) =========
+// 1) normMet = muncă efectivă >= normă (indiferent de pauză)
+// 2) normValidated = normMet + pauză în limită
+
+day.normMet = false;
 day.normValidated = false;
+day.pauseOk = true;
+day.pauseOverMs = 0;
+day.pauseMarginMsUsed = pauseMarginMs;
+
 if (!day.incomplete && day.completed){
   const pauseMs = day.pauseMs || 0;
 
-  // acceptăm "normă validată" DOAR dacă norma e 8h sau 8h30 (după activitate)
-  const isNorm8h   = Math.abs(normForDay - (8   * 60 * 60 * 1000)) < 60 * 1000;   // toleranță 1 min
-  const isNorm8h30 = Math.abs(normForDay - (8.5 * 60 * 60 * 1000)) < 60 * 1000;
+  day.pauseOk = pauseMs <= pauseMarginMs;
+  day.pauseOverMs = Math.max(0, pauseMs - pauseMarginMs);
+  day.pauseMarginMsUsed = pauseMarginMs;
 
-  const pauseOk    = pauseMs <= pauseMarginMs;
+  // ✅ AICI e regula ta:
+  // dacă după scăderea pauzei, munca efectivă >= normă -> normă îndeplinită
+  day.normMet = workMs >= normForDay;
+  if (day.normMet){
+    emp.totals.normMetDays++;
+  }
 
-  // IMPORTANT: muncă efectivă (fără pauză) trebuie să fie MINIM norma completă
-  const hasFullNormWork = workMs >= normForDay;
-
-  if ((isNorm8h || isNorm8h30) && hasFullNormWork && pauseOk){
+  // ✅ normă VALIDATĂ doar dacă pauza e în limită
+  if (day.normMet && day.pauseOk){
     day.normValidated = true;
     emp.totals.normValidatedDays++;
   }
 }
-
 
       let daySummary = perDay.get(dk);
       if (!daySummary) {
@@ -2524,10 +2545,17 @@ if (!day.incomplete && day.completed){
 
     const dept = emp.dept || '(fără departament)';
     const t    = emp.totals;
-    employeeDetailsHeaderEl.innerHTML =
-      'Statistici all time pentru <b>' + name + '</b> (' + dept + '). ' +
-      'Zile cu normă completă (START + FINISH): <b>' + t.daysCompleted + '</b> din <b>' + t.daysWithStart + '</b> cu START. ' +
-      'Zile cu <b>normă validată</b> (cu pauză până la limita din configurare): <b>' + t.normValidatedDays + '</b>.';
+    const met = t.normMetDays || 0;
+const validated = t.normValidatedDays || 0;
+const compensated = Math.max(0, met - validated);
+
+employeeDetailsHeaderEl.innerHTML =
+  'Statistici all time pentru <b>' + name + '</b> (' + dept + '). ' +
+  'Zile închise (START + FINISH): <b>' + t.daysCompleted + '</b> din <b>' + t.daysWithStart + '</b> cu START. ' +
+  'Zile cu <b>normă îndeplinită</b> (muncă efectivă ≥ normă): <b>' + met + '</b>. ' +
+  'Din acestea: <b>validată</b> (pauză în limită): <b>' + validated + '</b>, ' +
+  '<b>compensată</b> (pauză depășită, dar normă făcută): <b>' + compensated + '</b>.';
+
 
     const daysArr = Array.from(emp.days.values()).sort((a,b)=>a.dateKey < b.dateKey ? -1 : (a.dateKey > b.dateKey ? 1 : 0));
 
@@ -2547,16 +2575,18 @@ if (!day.incomplete && day.completed){
 
     html += '<div class="table-wrap">';
     html += '<table class="admin-table">';
-    html += '<thead><tr>' +
-      '<th>Data</th>' +
-      '<th>Departament</th>' +
-      '<th>Concediu</th>' +
-      '<th>Normă</th>' +
-      '<th>Extra</th>' +
-      '<th>Completă</th>' +
-      '<th>Normă validată</th>' +
-      '<th>Overtime</th>' +
-    '</tr></thead><tbody>';
+  html += '<thead><tr>' +
+  '<th>Data</th>' +
+  '<th>Departament</th>' +
+  '<th>Concediu</th>' +
+  '<th>Muncă (fără pauză)</th>' +
+  '<th>Pauză</th>' +
+  '<th>Extra</th>' +
+  '<th>Completă</th>' +
+  '<th>Normă</th>' +
+  '<th>Overtime</th>' +
+'</tr></thead><tbody>';
+
 
     daysArr.forEach(d => {
      const reasons = getIncompleteReasons(d);
@@ -2567,27 +2597,50 @@ const compStatus = d.completed
       : '-');
 
 
-      let normStatus = '-';
-      if (d.completed){
-        if (d.normValidated){
-          normStatus = '<span class="badge badge-ok">VALIDATĂ</span>';
-        }else{
-          normStatus = '<span class="badge badge-warn">NU</span>';
-        }
-      }
+    let normStatus = '-';
+if (d.completed){
+  if (d.normValidated){
+    normStatus = '<span class="badge badge-ok">VALIDATĂ</span>';
+  } else if (d.normMet){
+    normStatus =
+      '<span class="badge badge-info">ÎNDEPLINITĂ</span>' +
+      '<div style="font-size:10px;color:#92400e;">pauză depășită, compensată</div>';
+  } else {
+    normStatus = '<span class="badge badge-warn">NU</span>';
+  }
+}
+
 
       const isLeave = isEmployeeOnLeave(name, d.dateKey);
+      const pauseMs = d.pauseMs || 0;
+const pauseLimitMs = (typeof d.pauseMarginMsUsed === 'number' && !isNaN(d.pauseMarginMsUsed))
+  ? d.pauseMarginMsUsed
+  : getPauseMarginMsFor(name, d.dept || dept);
+
+const pauseOverMs = Math.max(0, pauseMs - pauseLimitMs);
+
+const pauseCell =
+  (pauseMs ? fmtHoursHM(pauseMs) : '0h 00m') +
+  '<div style="font-size:10px;color:#6b7280;">limită ' + fmtHoursHM(pauseLimitMs) +
+  (pauseOverMs > 0 ? (' • +' + fmtHoursHM(pauseOverMs)) : ' • OK') +
+  '</div>';
+
+const workCell =
+  (d.workMs ? fmtHoursHM(d.workMs) : '-') +
+  '<div style="font-size:10px;color:#6b7280;">normă ' + fmtHoursHM(d.normMs || 0) + '</div>';
 
       html += '<tr>' +
-        '<td>' + d.dateKey + '</td>' +
-        '<td>' + (d.dept || '') + '</td>' +
-        '<td>' + (isLeave ? '<span class="badge badge-info">CONCEDIU</span>' : '-') + '</td>' +
-        '<td>' + (d.workMs ? fmtHoursHM(d.workMs) : '-') + '</td>' +
-        '<td>' + (d.extraMs ? fmtHoursHM(d.extraMs) : '-') + '</td>' +
-        '<td>' + compStatus + '</td>' +
-        '<td>' + normStatus + '</td>' +
-        '<td>' + (d.overtimeMs ? fmtHoursHM(d.overtimeMs) : '-') + '</td>' +
-      '</tr>';
+  '<td>' + d.dateKey + '</td>' +
+  '<td>' + (d.dept || '') + '</td>' +
+  '<td>' + (isLeave ? '<span class="badge badge-info">CONCEDIU</span>' : '-') + '</td>' +
+  '<td>' + workCell + '</td>' +
+  '<td>' + pauseCell + '</td>' +
+  '<td>' + (d.extraMs ? fmtHoursHM(d.extraMs) : '-') + '</td>' +
+  '<td>' + compStatus + '</td>' +
+  '<td>' + normStatus + '</td>' +
+  '<td>' + (d.overtimeMs ? fmtHoursHM(d.overtimeMs) : '-') + '</td>' +
+'</tr>';
+
     });
 
     html += '</tbody></table></div>';
@@ -5077,3 +5130,105 @@ if (exportAnomaliesBtn){
 
 </body>
 </html>
+
+si in config.json am pus asa, e bine? :
+
+
+
+
+
+{
+  "formAction": "https://docs.google.com/forms/d/e/1FAIpQLSeUB7sd04AgfKF-W8wOvjk1SBg2xKWSoH_bPnZ_TwizwYsvTQ/formResponse",
+  "fields": {
+    "action": "entry.1158543984",
+    "timestamp": "entry.378594324",
+    "name": "entry.791295803",
+    "personalEmail": "entry.808541296",
+    "activityType": "entry.1445395292",
+    "location": "entry.583138862",
+    "latitude": "entry.1909899821",
+    "longitude": "entry.1880716729",
+    "accuracy": "entry.544486631",
+    "device": "entry.81942735",
+    "notes": "entry.1485036348",
+    "mapsLink": "entry.692020218"
+  },
+
+  "leaveEndpoint": "https://script.google.com/macros/s/AKfycbzEbPv1oQ31Ge9KNL5w-XH6vUyg3q4BRSuial5Vwz6_Gnj86dZcTRzzYxfcc-X5NgBP/exec",
+  "stateEndpoint": "https://script.google.com/macros/s/AKfycbzEbPv1oQ31Ge9KNL5w-XH6vUyg3q4BRSuial5Vwz6_Gnj86dZcTRzzYxfcc-X5NgBP/exec",
+  "guardEndpoint": "https://script.google.com/macros/s/AKfycbzEbPv1oQ31Ge9KNL5w-XH6vUyg3q4BRSuial5Vwz6_Gnj86dZcTRzzYxfcc-X5NgBP/exec",
+  "adminEventsEndpoint": "https://script.google.com/macros/s/AKfycbzEbPv1oQ31Ge9KNL5w-XH6vUyg3q4BRSuial5Vwz6_Gnj86dZcTRzzYxfcc-X5NgBP/exec",
+
+  "departmentsCsv": "https://raw.githubusercontent.com/mrshoby/timesheet-gps/main/departments.csv",
+
+  "employees": [
+    "Ion Popescu",
+    "Maria Ionescu",
+    "Vlad Georgescu",
+    "Ana Radu"
+  ],
+
+  "adminAuthUrl": "https://raw.githubusercontent.com/mrshoby/timesheet-gps/main/admin-auth.json",
+
+  "normSettings": {
+    "timezone": "Europe/Bucharest",
+
+    "default": {
+      "normHours": 8,
+      "pauseMaxMinutes": 40
+    },
+
+    "departments": {
+      "Atelier": {
+        "normHours": 8.5,
+        "pauseMaxMinutes": 40
+      },
+      "Deplasari": {
+        "normHours": 8.5,
+        "pauseMaxMinutes": 40
+      },
+      "pe drum": {
+        "normHours": 8.5,
+        "pauseMaxMinutes": 40
+      }
+    },
+
+    "employees": {
+      "Ion Popescu": {
+        "normHours": 8,
+        "pauseMaxMinutes": 30
+      }
+    }
+  },
+
+  "notifications": {
+    "telegram": {
+      "enabled": false,
+      "botEndpoint": ""
+    }
+  },
+
+  "selfService": {
+    "enabled": true
+  },
+
+  "payroll": {
+    "defaultMonth": "previous"
+  },
+
+  "sheet": {
+    "gvizUrl": "https://docs.google.com/spreadsheets/d/1Eq7RMyvyj6lZXnkfnQHT0Ol1Y1f-8Ul3SwdOkCkS8s4/gviz/tq?gid=57528208",
+    "csvUrl": "",
+    "cols": {
+      "timestamp": "Marcaj de timp",
+      "name": "Nume",
+      "action": "Acțiune"
+    }
+  }
+}
+
+
+
+
+
+
