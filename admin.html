@@ -104,7 +104,35 @@
   height:100%;
 }
 
+/* ===== Icon animations (Reset = broom sweep, Refresh = hourglass flip) ===== */
+#resetFiltersBtn .nav-icon,
+#adminRefreshBtn .nav-icon{
+  transform-origin:50% 50%;
+  will-change:transform;
+}
 
+@keyframes broomSweep{
+  0%   { transform:rotate(0deg) translateX(0); }
+  20%  { transform:rotate(-16deg) translateX(-2px); }
+  45%  { transform:rotate(14deg) translateX(2px); }
+  70%  { transform:rotate(-10deg) translateX(-1px); }
+  100% { transform:rotate(0deg) translateX(0); }
+}
+
+@keyframes hourglassFlip{
+  0%, 18%   { transform:rotate(0deg); }
+  50%, 68%  { transform:rotate(180deg); }
+  100%      { transform:rotate(360deg); }
+}
+
+/* one-shot on click */
+#resetFiltersBtn.do-sweep .nav-icon{ animation:broomSweep .55s ease-in-out 1; }
+#adminRefreshBtn.do-flip  .nav-icon{ animation:hourglassFlip .9s ease-in-out 1; }
+
+/* while loading (refresh fetch) */
+#adminRefreshBtn.is-loading .nav-icon{ animation:hourglassFlip .9s ease-in-out infinite; }
+
+    
 /* ascundem butonul Self-service din header */
 #selfServiceLink{
   display:none !important;
@@ -442,6 +470,13 @@
       box-shadow:0 0 0 1px rgba(149,202,75,.5);
       background:#ecfdf3;
     }
+
+    .admin-list-row.selected-dept{
+      border-color: var(--brand);
+      box-shadow:0 0 0 1px rgba(81,106,117,.35);
+      background:#eef2ff;
+    }
+    
     .admin-list-label{
       font-weight:500;
     }
@@ -984,18 +1019,18 @@
             title="Reset: perioadă=astăzi, dept=toate, angajat=toți, zi=null, incomplete=off">
       <span class="nav-icon" aria-hidden="true">
         <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-          <g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-            <!-- linii tip „filter / slider” -->
-            <path d="M6 7h8" />
-            <circle cx="17" cy="7" r="1.5" />
-            <path d="M6 12h5" />
-            <circle cx="14" cy="12" r="1.5" />
-            <path d="M6 17h3" />
-            <circle cx="12" cy="17" r="1.5" />
-            <!-- X de reset în colț -->
-            <path d="M18 9l3 3m0-3l-3 3" />
-          </g>
-        </svg>
+  <g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <!-- coadă mătură -->
+    <path d="M5 3l11 11" />
+    <path d="M14 6l4 4" />
+    <!-- perie -->
+    <path d="M11 14l-4 4" />
+    <path d="M7 18c2-2 6-2 8 0" />
+    <path d="M6 19c2-2 8-2 10 0" />
+    <path d="M5 20c2-2 10-2 12 0" />
+  </g>
+</svg>
+
       </span>
     </button>
 
@@ -1006,13 +1041,14 @@
             title="Reîncarcă datele din server">
       <span class="nav-icon" aria-hidden="true">
         <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-          <g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M4 10a7 7 0 0 1 11-5l2 2" />
-            <path d="M9 4h8V3" />
-            <path d="M20 14a7 7 0 0 1-11 5l-2-2" />
-            <path d="M15 20H7v1" />
-          </g>
-        </svg>
+  <g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M7 2h10" />
+    <path d="M7 22h10" />
+    <path d="M7 2c0 6 5 6 5 10s-5 4-5 10" />
+    <path d="M17 2c0 6-5 6-5 10s5 4 5 10" />
+    <path d="M10 12h4" />
+  </g>
+</svg>
       </span>
     </button>
   </div>
@@ -1250,6 +1286,15 @@
                 <span class="calendar-legend-box calendar-legend-high"></span> &gt;90% complet
               </span>
             </div>
+            <div id="calendarDayDetails" style="display:none;margin-top:12px;">
+  <div class="admin-small-text">
+    <b>Zi selectată:</b> <span id="calendarSelectedDayLabel">–</span>
+  </div>
+  <div style="margin:6px 0 6px;font-weight:700;font-size:12px;color:var(--muted);">
+    Inactivi (fără pontaj)
+  </div>
+  <div id="calendarInactiveList" class="admin-list"></div>
+</div>
           </section>
 
           <!-- A2: Index & detalii angajat -->
@@ -1401,7 +1446,16 @@
               <button type="button" class="top-toggle active" id="liveBoardTodayBtn">Azi</button>
               <button type="button" class="top-toggle" id="liveBoardPastBtn">Zile anterioare</button>
             </div>
-            <div id="liveBoard" class="admin-list"></div>
+             <div style="margin:10px 0 6px;display:flex;align-items:center;justify-content:space-between;gap:8px;">
+      <div class="admin-small-text" style="margin:0;font-weight:700;">Angajați (status)</div>
+      <!-- (opțional) poți pune aici un badge count dacă vrei -->
+    </div>
+    <div id="liveBoard" class="admin-list"></div>
+            <div style="margin:10px 0 6px;display:flex;align-items:center;justify-content:space-between;gap:8px;">
+  <div class="admin-small-text" style="margin:0;font-weight:700;">Inactivi azi</div>
+  <span class="badge badge-info" id="liveInactiveCount" style="display:none"></span>
+</div>
+<div id="liveBoardInactive" class="admin-list"></div>
           </div>
         </section>
 
@@ -1438,7 +1492,7 @@
   </div>
 
  <script>
-(function(){
+;(function(){
   const ADMIN_LS_KEY = 'pontaj/admin/v1';
   const FILTER_LS_KEY = 'pontaj/admin/filters';
 
@@ -1554,6 +1608,7 @@
         });
       }
     }
+    TZ = NORM_CFG.timezone || 'Europe/Bucharest';
   }
 
   function getNormMsFor(name, dept, hasLongActivity){
@@ -1650,6 +1705,8 @@
   const liveBoardHintEl        = document.getElementById('liveBoardHint');
   const liveBoardSummaryEl     = document.getElementById('liveBoardSummary');
   const liveBoardHintTextEl    = document.getElementById('liveBoardHintText');
+  const liveBoardInactiveEl   = document.getElementById('liveBoardInactive');
+  const liveInactiveCountEl   = document.getElementById('liveInactiveCount');
 
   const alertsTypeFilterEl     = document.getElementById('alertsTypeFilter');
   const alertsDeptFilterEl     = document.getElementById('alertsDeptFilter');
@@ -1689,6 +1746,11 @@
   const filterChipsEl   = document.getElementById('filterChips');
   const resetFiltersBtn = document.getElementById('resetFiltersBtn');
 
+  const calendarDayDetailsEl        = document.getElementById('calendarDayDetails');
+  const calendarSelectedDayLabelEl  = document.getElementById('calendarSelectedDayLabel');
+  const calendarInactiveListEl      = document.getElementById('calendarInactiveList');
+
+  
   // X pe chip-ul "Zi" -> scoate doar filtrul de zi
 if (filterChipsEl && !filterChipsEl.dataset.boundX){
   filterChipsEl.dataset.boundX = '1';
@@ -1765,6 +1827,7 @@ if (filterChipsEl && !filterChipsEl.dataset.boundX){
     });
   }
 function showError(msg){
+  console.error('[ADMIN ERROR]', msg); // <-- IMPORTANT
   if (errorEl){
     errorEl.textContent = msg;
     errorEl.style.display = 'block';
@@ -1774,25 +1837,41 @@ function showError(msg){
   if (alertsPageEl) alertsPageEl.style.display = 'none';
 }
 
+
 // bind o singură dată
+// bind o singură dată (cu stack + linie)
 if (!window.__pontajAdminErrBound){
   window.__pontajAdminErrBound = true;
 
   window.addEventListener('error', function(e){
+    console.error('[window.error]', e);
     try{
-      const m = e && e.message ? e.message : (e && e.error && e.error.message ? e.error.message : String(e));
-      showError('Eroare JS: ' + m);
+      const msg =
+        (e && e.message) ? e.message :
+        (e && e.error && e.error.message) ? e.error.message :
+        String(e);
+
+      const where =
+        (e && e.filename ? e.filename.split('/').pop() : 'admin.html') +
+        ':' + (e && e.lineno ? e.lineno : '?') +
+        ':' + (e && e.colno ? e.colno : '?');
+
+      const stack = (e && e.error && e.error.stack) ? e.error.stack : '';
+      showError('Eroare JS: ' + msg + ' @ ' + where + (stack ? '\n\n' + stack : ''));
     }catch(_){}
   });
 
   window.addEventListener('unhandledrejection', function(e){
+    console.error('[unhandledrejection]', e && e.reason ? e.reason : e);
     try{
       const r = e && e.reason;
-      const m = r && r.message ? r.message : String(r);
-      showError('Promise reject: ' + m);
+      const msg = (r && r.message) ? r.message : String(r);
+      const stack = (r && r.stack) ? r.stack : '';
+      showError('Promise reject: ' + msg + (stack ? '\n\n' + stack : ''));
     }catch(_){}
   });
 }
+
 
   function _norm(s){ return String(s==null?'':s).trim(); }
   function _normAction(a){
@@ -1827,7 +1906,7 @@ if (!window.__pontajAdminErrBound){
   function msToHours(ms){
     return ms / 3600000;
   }
-const TZ = 'Europe/Bucharest';
+let TZ = 'Europe/Bucharest';
 function dateKeyFromIso(iso){
   if (!iso) return null;
   const d = new Date(iso);
@@ -1911,6 +1990,20 @@ function dateKeyFromIso(iso){
           '<div class="admin-list-label">' + dept + '</div>' +
         '</div>' +
         '<div class="admin-list-value">' + count + '</div>';
+      // highlight dept selectat
+if (currentDept && currentDept !== 'all' && dept === currentDept){
+  row.classList.add('selected-dept');
+}
+
+row.addEventListener('click', function(){
+  if (!deptFilter || deptFilter.disabled) return;
+
+  // toggle: dacă dai click pe dept-ul curent -> revine pe Toate
+  const next = (deptFilter.value === dept) ? 'all' : dept;
+
+  deptFilter.value = next;
+  deptFilter.dispatchEvent(new Event('change'));
+});
       container.appendChild(row);
     });
   }
@@ -2194,9 +2287,11 @@ function applyIncompleteFilter(events, stats){
       let startTs        = null;
       let pauseStartTs   = null;
       let extraStartTs   = null;
-      let sumPauseMs     = 0;
+      let sumPauseMs     = 0;   // pauza din segmentul curent
+      let totalPauseMs   = 0;   // pauza totală pe zi
       let workMs         = 0;
       let extraMs        = 0;
+
 
       evs.forEach(ev => {
         const t = new Date(ev.ts).getTime();
@@ -2225,24 +2320,26 @@ function applyIncompleteFilter(events, stats){
             paused       = true;
             pauseStartTs = t;
           }
-        } else if (act === 'unpause') {
-          day.unpauseCount++;
-          if (running && paused) {
-            paused = false;
-            if (pauseStartTs != null) {
-              sumPauseMs += Math.max(0, t - pauseStartTs);
-              pauseStartTs = null;
-            }
-          }
+       } else if (act === 'unpause') {
+  day.unpauseCount++;
+  if (running && paused && pauseStartTs != null) {
+    const delta = Math.max(0, t - pauseStartTs);
+    sumPauseMs   += delta;
+    totalPauseMs += delta;
+    paused = false;
+    pauseStartTs = null;
+  }
         } else if (act === 'finish') {
           day.hasFinish = true;
           day.finishCount++;
           if (running && startTs != null) {
             if (paused && pauseStartTs != null) {
-              sumPauseMs += Math.max(0, t - pauseStartTs);
-              pauseStartTs = null;
-              paused = false;
-            }
+          const delta = Math.max(0, t - pauseStartTs);
+          sumPauseMs   += delta;
+          totalPauseMs += delta;
+          pauseStartTs = null;
+          paused = false;
+          }
             const diff    = Math.max(0, t - startTs);
             const segment = Math.max(0, diff - sumPauseMs);
             workMs += segment;
@@ -2272,7 +2369,7 @@ function applyIncompleteFilter(events, stats){
 
       day.workMs   = workMs;
       day.extraMs  = extraMs;
-      day.pauseMs  = sumPauseMs;
+      day.pauseMs  = totalPauseMs;
 
       emp.totals.totalWorkMs  += workMs;
       emp.totals.totalExtraMs += extraMs;
@@ -2301,17 +2398,25 @@ function applyIncompleteFilter(events, stats){
         emp.totals.overtimeMs += day.overtimeMs;
       }
 
-      day.normValidated = false;
-      if (!day.incomplete && day.completed){
-        const neededWorkMs = Math.max(0, normForDay - pauseMarginMs);
-        const pauseMs      = day.pauseMs || 0;
-        const hasMinWork   = workMs >= neededWorkMs;
-        const pauseOk      = pauseMs <= pauseMarginMs;
-        if (hasMinWork && pauseOk){
-          day.normValidated = true;
-          emp.totals.normValidatedDays++;
-        }
-      }
+day.normValidated = false;
+if (!day.incomplete && day.completed){
+  const pauseMs = day.pauseMs || 0;
+
+  // acceptăm "normă validată" DOAR dacă norma e 8h sau 8h30 (după activitate)
+  const isNorm8h   = Math.abs(normForDay - (8   * 60 * 60 * 1000)) < 60 * 1000;   // toleranță 1 min
+  const isNorm8h30 = Math.abs(normForDay - (8.5 * 60 * 60 * 1000)) < 60 * 1000;
+
+  const pauseOk    = pauseMs <= pauseMarginMs;
+
+  // IMPORTANT: muncă efectivă (fără pauză) trebuie să fie MINIM norma completă
+  const hasFullNormWork = workMs >= normForDay;
+
+  if ((isNorm8h || isNorm8h30) && hasFullNormWork && pauseOk){
+    day.normValidated = true;
+    emp.totals.normValidatedDays++;
+  }
+}
+
 
       let daySummary = perDay.get(dk);
       if (!daySummary) {
@@ -2926,6 +3031,87 @@ const compStatus = d.completed
     return list;
   }
 
+  function getRosterFiltered(){
+  let arr = [];
+
+  if (ALL_STATS && ALL_STATS.employees && ALL_STATS.employees.size){
+    ALL_STATS.employees.forEach(emp=>{
+      arr.push({ name: emp.name, dept: emp.dept || '(fără departament)' });
+    });
+  } else {
+    const byName = new Map();
+    (window.__pontajAdminEvents || []).forEach(ev=>{
+      if (!ev || !ev.name) return;
+      const prev = byName.get(ev.name);
+      const dept = ev.dept || '(fără departament)';
+      if (!prev || (prev.dept === '(fără departament)' && dept !== '(fără departament)')){
+        byName.set(ev.name, { name: ev.name, dept });
+      }
+    });
+    arr = Array.from(byName.values());
+  }
+
+  // teamlead lock
+  if (ADMIN_ROLE === 'teamlead' && ADMIN_DEPT){
+    arr = arr.filter(x => (x.dept || '') === ADMIN_DEPT);
+  }
+
+  // respectă filtrele curente (dept/employee)
+  if (currentDept && currentDept !== 'all'){
+    arr = arr.filter(x => (x.dept || '(fără departament)') === currentDept);
+  }
+  if (currentEmployee && currentEmployee !== 'all'){
+    arr = arr.filter(x => x.name === currentEmployee);
+  }
+
+  arr.sort((a,b)=>a.name.localeCompare(b.name,'ro'));
+  return arr;
+}
+
+function renderInactiveToday(activeNamesSet, todayKey){
+  if (!liveBoardInactiveEl) return;
+
+  const roster = getRosterFiltered();
+  const inactive = roster.filter(x => !activeNamesSet.has(x.name));
+
+  liveBoardInactiveEl.innerHTML = '';
+
+  if (liveInactiveCountEl){
+    const countNoLeave = inactive.filter(x => !isEmployeeOnLeave(x.name, todayKey)).length;
+    liveInactiveCountEl.style.display = '';
+    liveInactiveCountEl.textContent = `Inactivi: ${countNoLeave}`;
+  }
+
+  if (!inactive.length){
+    liveBoardInactiveEl.innerHTML = '<div class="admin-empty">Nimeni inactiv pentru filtrele curente.</div>';
+    return;
+  }
+
+  inactive.forEach(x=>{
+    const isLeave = isEmployeeOnLeave(x.name, todayKey);
+    const row = document.createElement('div');
+    row.className = 'admin-list-row clickable';
+    row.dataset.empName = x.name;
+
+    row.innerHTML =
+      '<div>' +
+        '<div class="admin-list-label">' + x.name + '</div>' +
+        '<div class="admin-list-sub">' + (x.dept || '(fără departament)') + '</div>' +
+      '</div>' +
+      '<div class="admin-list-value">' +
+        (isLeave
+          ? '<span class="badge badge-info">CONCEDIU</span>'
+          : '<span class="badge badge-warn">Fără pontaj</span>') +
+      '</div>';
+
+    row.addEventListener('click', function(){
+      focusEmployeeAndMaybeDay(x.name, todayKey || null);
+    });
+
+    liveBoardInactiveEl.appendChild(row);
+  });
+}
+  
   // LIVE BOARD: două moduri (azi / zile anterioare)
     function renderLiveBoard(){
     if (!liveBoardEl) return;
@@ -3024,12 +3210,14 @@ const compStatus = d.completed
     const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0,0,0,0);
     const todayEnd   = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23,59,59,999);
 
-    const todayEvents = allEvents.filter(ev=>{
-      if (!ev.ts) return false;
-      const t = new Date(ev.ts);
-      if (isNaN(t.getTime())) return false;
-      return t >= todayStart && t <= todayEnd;
-    });
+const baseLiveEvents = applyDeptEmployee(allEvents, currentDept, currentEmployee);
+
+const todayEvents = baseLiveEvents.filter(ev=>{
+  if (!ev.ts) return false;
+  const t = new Date(ev.ts);
+  if (isNaN(t.getTime())) return false;
+  return t >= todayStart && t <= todayEnd;
+});
 
     if (!todayEvents.length){
       liveBoardEl.innerHTML = '<div class="admin-empty">Niciun pontaj înregistrat azi.</div>';
@@ -3043,6 +3231,9 @@ const compStatus = d.completed
       byName.get(ev.name).push(ev);
     });
 
+const activeNames = new Set(Array.from(byName.keys()));
+renderInactiveToday(activeNames, todayKey);
+      
     const rows = [];
     byName.forEach((list, name)=>{
       list.sort((a,b)=>new Date(a.ts) - new Date(b.ts));
@@ -3344,6 +3535,14 @@ const compStatus = d.completed
   }[c]));
 }
 
+// Fallback pentru CSS.escape (în caz că nu există)
+if (!window.CSS) window.CSS = {};
+if (!window.CSS.escape) {
+  window.CSS.escape = function (s) {
+    return String(s).replace(/["\\]/g, '\\$&');
+  };
+}
+  
 function getSelectLabel(selectEl, value){
   if (!selectEl) return String(value || '');
   const opt = selectEl.querySelector(`option[value="${CSS.escape(String(value))}"]`);
@@ -3363,7 +3562,18 @@ function saveFilterState(){
     localStorage.setItem(FILTER_LS_KEY, JSON.stringify(payload));
   }catch(_){}
 }
+
+  function loadFilterState(){
+  try{
+    const raw = localStorage.getItem(FILTER_LS_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  }catch(_){
+    return null;
+  }
+}
   
+ 
 function updateFilterChips(){
   if (!filterChipsEl) return;
 
@@ -3451,6 +3661,14 @@ function resetAllFilters(){
 
   // failsafe: forțează refresh o dată
   if (window.__pontajAdminRefresh) window.__pontajAdminRefresh();
+}
+
+function triggerOneShotAnim(el, cls){
+  if (!el) return;
+  el.classList.remove(cls);
+  void el.offsetWidth; // restart animation
+  el.classList.add(cls);
+  el.addEventListener('animationend', ()=> el.classList.remove(cls), {once:true});
 }
 
   // --- HELPER pentru calculul stării de azi (pentru alerte LIVE) ---
@@ -3888,6 +4106,44 @@ function resetAllFilters(){
 
       buildDeptFilter(events);
       buildEmployeeFilter(events, currentDept);
+
+      const saved = loadFilterState();
+if (saved){
+  // range
+  if (rangeSelect && saved.range) rangeSelect.value = saved.range;
+
+  // dept (respectă teamlead lock)
+  if (deptFilter && saved.dept){
+    const lockedDept = (ADMIN_ROLE === 'teamlead' && ADMIN_DEPT) ? ADMIN_DEPT : null;
+    deptFilter.value = lockedDept || saved.dept;
+    currentDept = deptFilter.value;
+    CURRENT_DEPT_FILTER = currentDept;
+  }
+
+  // rebuild employee dropdown după dept
+  buildEmployeeFilter(events, currentDept);
+
+  // employee
+  if (employeeFilter && saved.employee){
+    ensureEmployeeOption(saved.employee);
+    employeeFilter.value = saved.employee;
+    currentEmployee = employeeFilter.value;
+    SELECTED_EMPLOYEE = (currentEmployee !== 'all') ? currentEmployee : null;
+  }
+
+  // incompleteOnly
+  filterIncompleteOnly = !!saved.incompleteOnly;
+  if (incompleteToggleBtn) incompleteToggleBtn.classList.toggle('active', filterIncompleteOnly);
+
+  // selected day
+  SELECTED_CALENDAR_DAY = saved.selectedDay || null;
+
+  // last events range
+  lastEventsRange = saved.lastEventsRange || 'today';
+  if (lastEventsRangeSelect) lastEventsRangeSelect.value = lastEventsRange;
+}
+
+      
       renderEmployeeIndex(ALL_STATS, CURRENT_DEPT_FILTER, EMPLOYEE_SEARCH_TEXT);
       renderEmployeeDetails(null);
 
@@ -3957,18 +4213,26 @@ function resetAllFilters(){
 if (adminRefreshBtn){
   adminRefreshBtn.addEventListener('click', async function(){
     adminRefreshBtn.disabled = true;
+    adminRefreshBtn.classList.add('is-loading');
+    triggerOneShotAnim(adminRefreshBtn, 'do-flip');
+
     try{
       await reloadAdminData();
     }catch(err){
       showError(err && err.message ? err.message : String(err));
     }finally{
+      adminRefreshBtn.classList.remove('is-loading');
       adminRefreshBtn.disabled = false;
     }
   });
 }
-  if (resetFiltersBtn && !resetFiltersBtn.dataset.bound){
+
+ if (resetFiltersBtn && !resetFiltersBtn.dataset.bound){
   resetFiltersBtn.dataset.bound = '1';
-  resetFiltersBtn.addEventListener('click', resetAllFilters);
+  resetFiltersBtn.addEventListener('click', function(){
+    triggerOneShotAnim(resetFiltersBtn, 'do-sweep');
+    resetAllFilters();
+  });
 }
     
       function setSelectedCalendarDay(dateKey){
@@ -4032,6 +4296,9 @@ function renderPresenceCalendarMonthly(){
     return shown.join(', ') + (arr.length > max ? ' …' : '');
   }
 
+  const rosterForCalendar = getRosterFiltered();
+  const rosterNames = rosterForCalendar.map(x=>x.name);
+
   for (let dayNum=1; dayNum<=lastDay.getDate(); dayNum++){
     const d = new Date(CALENDAR_YEAR, CALENDAR_MONTH, dayNum);
     const dk = dateKeyFromIso(d.toISOString());
@@ -4057,6 +4324,11 @@ function renderPresenceCalendarMonthly(){
     const leaveSet = (LEAVE_BY_DAY && LEAVE_BY_DAY.get(dk)) ? LEAVE_BY_DAY.get(dk) : null;
     const leaveCount = leaveSet ? leaveSet.size : 0;
 
+    const inactiveSet = new Set(
+    rosterNames.filter(n => !startedSet.has(n) && !(leaveSet && leaveSet.has(n)))
+    );
+
+    
     const cell = document.createElement('div');
     cell.className = cls;
     cell.dataset.dateKey = dk;
@@ -4072,6 +4344,7 @@ function renderPresenceCalendarMonthly(){
         `<div class="muted"><b>Angajați (START):</b> ${namesList(startedSet)}</div>` +
         (completed ? `<div class="muted"><b>Complet (FINISH):</b> ${namesList(completedSet)}</div>` : '') +
         (leaveCount ? `<div class="muted"><b>Concediu:</b> ${namesList(leaveSet)}</div>` : '') +
+        (inactiveSet.size ? `<div class="muted"><b>Inactivi:</b> ${namesList(inactiveSet)}</div>` : '')
       `</div>`;
 
     cell.addEventListener('click', function(){
@@ -4133,8 +4406,7 @@ function renderPresenceCalendarMonthly(){
       kpiCompletedTodayEl.textContent = '–';
     }
   }
-  // --- sfârșit KPI ---
-window.__pontajAdminRefresh = refresh;
+
       let baseRange = filterByRange(baseAll, currentRange || 'today');
 
 if (SELECTED_CALENDAR_DAY){
@@ -4161,7 +4433,8 @@ if (SELECTED_CALENDAR_DAY){
         if (SELECTED_CALENDAR_DAY){
           lastByRange = lastByRange.filter(ev => dateKeyFromIso(ev.ts) === SELECTED_CALENDAR_DAY);
         }
-        let lastFinal  = applyIncompleteFilter(lastByRange, statsBase);
+        const statsLast = buildStatsFromEvents(lastByRange);
+        let lastFinal = applyIncompleteFilter(lastByRange, statsLast);
         renderLastEvents(lastFinal);
 
         if (lastEventsTitleEl && lastEventsHintTextEl && rawLogTitleEl){
@@ -4186,6 +4459,7 @@ if (SELECTED_CALENDAR_DAY){
 
         
         renderPresenceCalendarMonthly();
+        renderSelectedCalendarDayDetails();
         renderLiveBoard();
         renderAlertsFromMeta();
         renderSystemAlertsHistory();
@@ -4274,8 +4548,56 @@ if (anomalyDayWorkBtn && !anomalyDayWorkBtn.dataset.bound) {
     refresh();
   });
 }
+window.__pontajAdminRefresh = refresh;
+function renderSelectedCalendarDayDetails(){
+  if (!calendarDayDetailsEl || !calendarInactiveListEl || !calendarSelectedDayLabelEl) return;
 
+  if (!SELECTED_CALENDAR_DAY){
+    calendarDayDetailsEl.style.display = 'none';
+    return;
+  }
 
+  calendarDayDetailsEl.style.display = '';
+  calendarSelectedDayLabelEl.textContent = SELECTED_CALENDAR_DAY;
+
+  const roster = getRosterFiltered();
+  const base = applyDeptEmployee(events, currentDept, currentEmployee);
+
+  const dayEvents = base.filter(ev => dateKeyFromIso(ev.ts) === SELECTED_CALENDAR_DAY);
+  const stats = buildStatsFromEvents(dayEvents);
+  const summary = stats && stats.perDay ? stats.perDay.get(SELECTED_CALENDAR_DAY) : null;
+  const startedSet = summary && summary.started ? summary.started : new Set();
+
+  const leaveSet = (LEAVE_BY_DAY && LEAVE_BY_DAY.get(SELECTED_CALENDAR_DAY)) ? LEAVE_BY_DAY.get(SELECTED_CALENDAR_DAY) : new Set();
+
+  const inactive = roster.filter(x => !startedSet.has(x.name) && !(leaveSet && leaveSet.has(x.name)));
+
+  calendarInactiveListEl.innerHTML = '';
+  if (!inactive.length){
+    calendarInactiveListEl.innerHTML = '<div class="admin-empty">Nimeni inactiv pentru filtrele curente.</div>';
+    return;
+  }
+
+  inactive.forEach(x=>{
+    const row = document.createElement('div');
+    row.className = 'admin-list-row clickable';
+    row.dataset.empName = x.name;
+
+    row.innerHTML =
+      '<div>' +
+        '<div class="admin-list-label">' + x.name + '</div>' +
+        '<div class="admin-list-sub">' + (x.dept || '(fără departament)') + '</div>' +
+      '</div>' +
+      '<div class="admin-list-value"><span class="badge badge-warn">Fără pontaj</span></div>';
+
+    row.addEventListener('click', function(){
+      focusEmployeeAndMaybeDay(x.name, SELECTED_CALENDAR_DAY);
+    });
+
+    calendarInactiveListEl.appendChild(row);
+  });
+}
+      
       
       function handleDayRowClick(tr){
         if (!tr || !tr.dataset || !tr.dataset.name || !tr.dataset.dateKey) return;
@@ -4751,6 +5073,9 @@ if (exportAnomaliesBtn){
 
 </body>
 </html>
+
+
+
 
 
 
