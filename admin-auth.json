@@ -1,31 +1,4 @@
-{
-  "label": "SERVELECT Admin",
+{"label": "SERVELECT Admin",
   "usernameHash": "dad3ef3f713e99c0b97a450f87865f9de1235e2c1ae741ad81349b20dec60ab5",
   "passwordHash": "d97993fa215d26154b93ea80cf544473cee35e9219b2777978c11254625d1186"
-},
-
-{
-  "label": "Alin Ceclan",
-  "usernameHash": "6a38d7eacd9b7b88a7c2280d01789d47eade85de3591dc948b2a6fa076fc665b",
-  "passwordHash": "073ab40d1b87ef531bb63320c88d10d17d7fb003d5ae151929240bf0f823c91b"
-},
-
-{
-  "label": "Vasile Ceclan",
-  "usernameHash": "d19e9d53dcc29d300b431ef4dc4670bb7c3612b054db88cd847ee41a91673a8a0",
-  "passwordHash": "5a93bef1e728937fc806497fd450c3bf00b2a5a9a2da4e00d8f4da0809d3d96d"
-},
-
-{
-  "label": "David",
-  "usernameHash": "8d87c86acadc231e6a4dad8166b9ff07904740d29f0088dea44ae44f0138468c",
-  "passwordHash": "cefe9a9ba5ab6887c6844446aafbc2bef5f0080fd4e2724cef8b89c69b478f2c"
-},
-
-{
-  "label": "Iulia Bargauan",
-  "usernameHash": "16583d9de51ead0bd2151020ee587a2f75158ebd8ac8ae5bbf6da2795fb9bb8b",
-  "passwordHash": "6f393e1ff64b6916810e517ee7ea3646f474601020a40626abaa3ec3dd5bfa75"
-}
-
-
+  }
