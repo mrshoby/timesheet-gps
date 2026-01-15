@@ -2391,7 +2391,7 @@ function applyIncompleteFilter(events, stats){
       if (day.hasStart)  emp.totals.daysWithStart++;
       if (day.hasFinish) emp.totals.daysWithFinish++;
 
-      day.openRunning      = day.hasStart && !day.hasFinish;
+      day.openRunning = day.startCount > day.finishCount;
       day.openExtra        = day.extraStartCount > day.extraFinishCount;
       day.hasPauseMismatch = day.pauseCount !== day.unpauseCount;
       day.hasExtraMismatch = day.extraStartCount !== day.extraFinishCount;
@@ -2514,11 +2514,15 @@ if (!day.incomplete && day.completed){
     });
   }
 
-  function markSelectedEmployee(name){
-    document.querySelectorAll('.admin-list-row').forEach(el => {
-      el.classList.toggle('selected', el.dataset.empName === name);
-    });
-  }
+  function markSelectedEmployee(name) {
+  const target = (name || "").trim().toLowerCase();
+
+  document.querySelectorAll(".admin-list-row").forEach(el => {
+    const rowName = (el.dataset.empName || "").trim().toLowerCase();
+    el.classList.toggle("selected", target && rowName === target);
+  });
+}
+
 
   function renderEmployeeDetails(name){
     if (!employeeDetailsBodyEl || !employeeDetailsHeaderEl) return;
@@ -4163,19 +4167,23 @@ function triggerOneShotAnim(el, cls){
 
       buildDeptFilter(events);
       buildEmployeeFilter(events, currentDept);
-
+      applyRoleVisibility();
+      initCollapsibleCards();
+      syncAlertsDeptFilter();
       const saved = loadFilterState();
 if (saved){
   // range
   if (rangeSelect && saved.range) rangeSelect.value = saved.range;
 
   // dept (respectă teamlead lock)
-  if (deptFilter && saved.dept){
-    const lockedDept = (ADMIN_ROLE === 'teamlead' && ADMIN_DEPT) ? ADMIN_DEPT : null;
-    deptFilter.value = lockedDept || saved.dept;
-    currentDept = deptFilter.value;
-    CURRENT_DEPT_FILTER = currentDept;
-  }
+
+  if (deptFilter){
+  const lockedDept = (ADMIN_ROLE === 'teamlead' && ADMIN_DEPT) ? ADMIN_DEPT : null;
+  deptFilter.value = lockedDept || saved.dept || 'all';
+  if (!deptFilter.value) deptFilter.value = lockedDept || 'all';
+  currentDept = deptFilter.value;
+  CURRENT_DEPT_FILTER = currentDept;
+}
 
   // rebuild employee dropdown după dept
   buildEmployeeFilter(events, currentDept);
@@ -4264,7 +4272,6 @@ if (saved){
   renderEmployeeDetails(SELECTED_EMPLOYEE);
 
   refresh();
-  scanAndUpdateLiveAlerts();
 }
 
 if (adminRefreshBtn){
@@ -4606,6 +4613,17 @@ if (anomalyDayWorkBtn && !anomalyDayWorkBtn.dataset.bound) {
   });
 }
 window.__pontajAdminRefresh = refresh;
+
+      // ✅ START LIVE ALERTS (o singură dată la încărcare)
+scanAndUpdateLiveAlerts();
+
+if (LIVE_ALERT_TIMER) clearInterval(LIVE_ALERT_TIMER);
+LIVE_ALERT_TIMER = setInterval(() => {
+  if (document.visibilityState !== 'visible') return;
+  scanAndUpdateLiveAlerts();
+}, 60 * 1000);
+
+      
 function renderSelectedCalendarDayDetails(){
   if (!calendarDayDetailsEl || !calendarInactiveListEl || !calendarSelectedDayLabelEl) return;
 
@@ -4763,6 +4781,33 @@ function renderSelectedCalendarDayDetails(){
         });
       }
 
+      // ✅ Click pe rândurile din "Istoric LIVE"
+if (liveAlertsHistoryBodyEl && !liveAlertsHistoryBodyEl.dataset.boundClick){
+  liveAlertsHistoryBodyEl.dataset.boundClick = '1';
+  liveAlertsHistoryBodyEl.addEventListener('click', function(e){
+    const tr = e.target.closest('tr');
+    if (!tr) return;
+    const name = tr.dataset.name || '';
+    const dk   = tr.dataset.dateKey || null;
+    if (!name) return;
+    focusEmployeeAndMaybeDay(name, dk);
+  });
+}
+
+// ✅ Click pe rândurile din "Alerte istorice din sistem"
+if (systemAlertsHistoryBodyEl && !systemAlertsHistoryBodyEl.dataset.boundClick){
+  systemAlertsHistoryBodyEl.dataset.boundClick = '1';
+  systemAlertsHistoryBodyEl.addEventListener('click', function(e){
+    const tr = e.target.closest('tr');
+    if (!tr) return;
+    const name = tr.dataset.name || '';
+    const dk   = tr.dataset.dateKey || null;
+    if (!name) return;
+    focusEmployeeAndMaybeDay(name, dk);
+  });
+}
+
+      
       if (exportCsvBtn){
         exportCsvBtn.addEventListener('click', function(){
           exportCsv(latestFiltered);
@@ -4869,7 +4914,7 @@ if (exportAnomaliesBtn){
             'Zile cu norma validata','Procent zile complete (%)',
             'Data','Norma (h)','Extra (h)','Overtime (h)','Complet','Norma validata'
           ];
-
+          
           const rows = daysArr.map(d => {
             const flagIncomplete = isDayIncomplete(d);
             return [
@@ -5058,57 +5103,42 @@ if (exportAnomaliesBtn){
       }
 
       // Umple dropdown-ul de departamente din tab-ul Alerte (reuse din deptFilter)
-      function syncAlertsDeptFilter(){
-        if (!alertsDeptFilterEl || !deptFilter) return;
+     function syncAlertsDeptFilter(){
+  if (!alertsDeptFilterEl || !deptFilter) return;
 
-        const cur = alertsDeptFilterEl.value || 'all';
-        alertsDeptFilterEl.innerHTML = '';
+  const prev = alertsDeptFilterEl.value || 'all';
+  alertsDeptFilterEl.innerHTML = '';
 
-        const optAll = document.createElement('option');
-        optAll.value = 'all';
-        optAll.textContent = 'Toate';
-        alertsDeptFilterEl.appendChild(optAll);
+  const optAll = document.createElement('option');
+  optAll.value = 'all';
+  optAll.textContent = 'Toate';
+  alertsDeptFilterEl.appendChild(optAll);
 
-        Array.from(deptFilter.options).forEach(o=>{
-          if (!o.value || o.value === 'all') return;
-          const x = document.createElement('option');
-          x.value = o.value;
-          x.textContent = o.textContent;
-          alertsDeptFilterEl.appendChild(x);
-        });
+  Array.from(deptFilter.options).forEach(o=>{
+    if (!o.value || o.value === 'all') return;
+    const x = document.createElement('option');
+    x.value = o.value;
+    x.textContent = o.textContent;
+    alertsDeptFilterEl.appendChild(x);
+  });
 
-        // teamlead -> lock pe dept
-        if (ADMIN_ROLE === 'teamlead' && ADMIN_DEPT){
-          alertsDeptFilterEl.value = ADMIN_DEPT;
-          alertsDeptFilterEl.disabled = true;
-          ALERTS_FILTER_DEPT = ADMIN_DEPT;
-        } else {
-          alertsDeptFilterEl.value = (cur && alertsDeptFilterEl.querySelector('option[value="'+cur+'"]')) ? cur : 'all';
-        }
-      }
-      syncAlertsDeptFilter();
+  // teamlead -> LOCK pe dept
+  if (ADMIN_ROLE === 'teamlead' && ADMIN_DEPT){
+    alertsDeptFilterEl.value = ADMIN_DEPT;
+    alertsDeptFilterEl.disabled = true;
+    ALERTS_FILTER_DEPT = ADMIN_DEPT;
+    return;
+  }
 
-      // click pe LIVE alerts history -> focus
-      if (liveAlertsHistoryBodyEl){
-        liveAlertsHistoryBodyEl.addEventListener('click', function(e){
-          const tr = e.target.closest('tr');
-          if (!tr) return;
-          const name = tr.dataset.name;
-          const dk   = tr.dataset.dateKey;
-          if (name) focusEmployeeAndMaybeDay(name, dk || null);
-        });
-      }
+  // admin/viewer -> liber
+  alertsDeptFilterEl.disabled = false;
+  const exists = prev && alertsDeptFilterEl.querySelector(
+    `option[value="${CSS.escape(String(prev))}"]`
+  );
+  alertsDeptFilterEl.value = exists ? prev : 'all';
+  ALERTS_FILTER_DEPT = alertsDeptFilterEl.value;
+}
 
-      // click pe SYSTEM alerts history -> focus
-      if (systemAlertsHistoryBodyEl){
-        systemAlertsHistoryBodyEl.addEventListener('click', function(e){
-          const tr = e.target.closest('tr');
-          if (!tr) return;
-          const name = tr.dataset.name;
-          const dk   = tr.dataset.dateKey;
-          if (name) focusEmployeeAndMaybeDay(name, dk || null);
-        });
-      }
    
       applyRoleVisibility();
       initCollapsibleCards();
@@ -5116,9 +5146,10 @@ if (exportAnomaliesBtn){
 
       // PORNIM motorul de alerte LIVE (scan la fiecare 60s)
       scanAndUpdateLiveAlerts();
+      syncAlertsDeptFilter();
+
       if (LIVE_ALERT_TIMER) clearInterval(LIVE_ALERT_TIMER);
       LIVE_ALERT_TIMER = setInterval(scanAndUpdateLiveAlerts, 60 * 1000);
-
     }catch(e){
       showError(e);
     }
@@ -5130,4 +5161,5 @@ if (exportAnomaliesBtn){
 
 </body>
 </html>
+
 
