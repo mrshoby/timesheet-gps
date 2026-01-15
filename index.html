@@ -984,29 +984,45 @@ function sumPausesFromEvents(events, fallbackPair){
     return '';
   }
 
-  async function loadAdminConfig(){
-    if (ADMIN_AUTH) return ADMIN_AUTH;
-    const url = getAdminAuthUrl();
-    if (!url) return null;
-    try{
-      const r = await fetch(url + (url.includes('?') ? '&' : '?') + 'v=' + Date.now(), {cache:'no-store'});
-      if (!r.ok) throw new Error('HTTP ' + r.status);
-      const data = await r.json();
-      if (data && (data.usernameHash || data.userHash)){
-        ADMIN_AUTH = {
-          usernameHash: data.usernameHash || data.userHash,
-          passwordHash: data.passwordHash || data.passHash,
-          label: data.label || 'Admin'
-        };
-        return ADMIN_AUTH;
-      }
-      throw new Error('Structură admin-auth.json invalidă.');
-    }catch(e){
-      console.warn('Eroare admin-auth:', e);
-      setAdminHint('Nu pot încărca admin-auth.json din GitHub.', 'err');
-      return null;
-    }
+async function loadAdminConfig(){
+  if (ADMIN_AUTH) return ADMIN_AUTH;
+  const url = getAdminAuthUrl();
+  if (!url) return null;
+
+  try{
+    const r = await fetch(url + (url.includes('?') ? '&' : '?') + 'v=' + Date.now(), {cache:'no-store'});
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+
+    const data = await r.json();
+
+    // Acceptă 3 formate:
+    // 1) { admins: [...] }
+    // 2) [ ... ]
+    // 3) { usernameHash, passwordHash } (legacy single admin)
+    let list = [];
+    if (Array.isArray(data)) list = data;
+    else if (data && Array.isArray(data.admins)) list = data.admins;
+    else if (data && (data.usernameHash || data.userHash)) list = [data];
+
+    list = (list || []).map(a => ({
+      usernameHash: (a.usernameHash || a.userHash || '').trim(),
+      passwordHash: (a.passwordHash || a.passHash || '').trim(),
+      label: (a.label || 'Admin').trim(),
+      role: (a.role || 'admin'),
+      dept: (a.dept || '')
+    })).filter(x => x.usernameHash && x.passwordHash);
+
+    if (!list.length) throw new Error('Structură admin-auth.json invalidă (lista e goală).');
+
+    ADMIN_AUTH = list; // <-- acum ADMIN_AUTH e LISTĂ
+    return ADMIN_AUTH;
+
+  }catch(e){
+    console.warn('Eroare admin-auth:', e);
+    setAdminHint('Nu pot încărca admin-auth.json din GitHub.', 'err');
+    return null;
   }
+}
 
   async function sha256Hex(str){
     if (!window.crypto || !crypto.subtle) throw new Error('Browser prea vechi pentru crypto.');
@@ -1017,19 +1033,31 @@ function sumPausesFromEvents(events, fallbackPair){
     return bytes.map(b => b.toString(16).padStart(2, '0')).join('');
   }
 
-  async function verifyAdminCredentials(user, pass){
-    if (!ADMIN_AUTH){
-      await loadAdminConfig();
-    }
-    if (!ADMIN_AUTH || !ADMIN_AUTH.usernameHash || !ADMIN_AUTH.passwordHash){
-      throw new Error('Config admin lipsă sau incomplet.');
-    }
-    const [uh, ph] = await Promise.all([sha256Hex(user), sha256Hex(pass)]);
-    return (
-      uh.toLowerCase() === ADMIN_AUTH.usernameHash.toLowerCase() &&
-      ph.toLowerCase() === ADMIN_AUTH.passwordHash.toLowerCase()
-    );
+ async function verifyAdminCredentials(user, pass){
+  if (!ADMIN_AUTH){
+    await loadAdminConfig();
   }
+  if (!Array.isArray(ADMIN_AUTH) || !ADMIN_AUTH.length){
+    throw new Error('Config admin lipsă sau incomplet.');
+  }
+
+  // Username: încercăm și normal, și lowercase (ca să nu te încurce literele mari/mici)
+  const u1 = user;
+  const u2 = String(user || '').toLowerCase();
+
+  const [uh1, uh2, ph] = await Promise.all([
+    sha256Hex(u1),
+    sha256Hex(u2),
+    sha256Hex(pass)
+  ]);
+
+  const match = ADMIN_AUTH.find(a =>
+    (a.usernameHash.toLowerCase() === uh1.toLowerCase() || a.usernameHash.toLowerCase() === uh2.toLowerCase()) &&
+    a.passwordHash.toLowerCase() === ph.toLowerCase()
+  );
+
+  return match || null; // <-- întoarcem obiectul adminului găsit
+}
 
   async function handleAdminLoginClick(){
     if (!adminUser || !adminPass) return;
@@ -1045,14 +1073,22 @@ function sumPausesFromEvents(events, fallbackPair){
     }
     setAdminHint('', '');
     try{
-      const ok = await verifyAdminCredentials(u, p);
-      if (!ok){
-        setAdminHint('Date de logare greșite.', 'err');
-        return;
-      }
-      const label = (ADMIN_AUTH && ADMIN_AUTH.label) || u;
-      saveAdminSession({ user: label, at: new Date().toISOString() });
-      updateAdminUiLoggedIn(label);
+      const admin = await verifyAdminCredentials(u, p);
+if (!admin){
+  setAdminHint('Date de logare greșite.', 'err');
+  return;
+}
+
+const label = admin.label || u;
+saveAdminSession({
+  user: label,
+  role: admin.role || 'admin',
+  dept: admin.dept || '',
+  at: new Date().toISOString()
+});
+
+updateAdminUiLoggedIn(label);
+
     }catch(e){
       setAdminHint('Eroare la verificare: ' + (e.message || e), 'err');
     }finally{
