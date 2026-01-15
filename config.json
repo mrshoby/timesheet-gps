@@ -36,21 +36,21 @@
 
     "default": {
       "normHours": 8,
-      "pauseMaxMinutes": 40
+      "pauseMaxMinutes": 30
     },
 
     "departments": {
       "Atelier": {
         "normHours": 8.5,
-        "pauseMaxMinutes": 40
+        "pauseMaxMinutes": 30
       },
       "Deplasari": {
         "normHours": 8.5,
-        "pauseMaxMinutes": 40
+        "pauseMaxMinutes": 30
       },
       "pe drum": {
         "normHours": 8.5,
-        "pauseMaxMinutes": 40
+        "pauseMaxMinutes": 30
       }
     },
 
