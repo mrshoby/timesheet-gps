@@ -1,518 +1,840 @@
-<!DOCTYPE html>
-
+<!doctype html>
 <html lang="ro">
 <head>
-<meta charset="utf-8"/>
-<meta content="width=device-width, initial-scale=1" name="viewport"/>
-<title>SERVELECT • Admin Pontaj</title>
-<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
-<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&amp;display=swap" rel="stylesheet"/>
-<link href="favicon.png" rel="icon"/>
-<meta content="#516A75" name="theme-color"/>
-<link href="admin-core.css" rel="stylesheet"/><link href="admin-embed.css" rel="stylesheet"/></head>
-<body class="admin-embed view-calendar" data-page-title="Calendar prezență • Admin">
-<div class="shell">
-<nav class="nav card">
-<a aria-label="Spre pontaj" class="brand" href="index.html">
-<img alt="Siglă SERVELECT" src="favicon.png"/>
-<div>
-<h1><span>SERVELECT</span><small>Pontaj &amp; Management Concedii</small></h1>
-</div>
-</a>
-<div class="nav-actions">
-<!-- Înapoi la pontaj -->
-<a class="btn" href="index.html" id="backToTimesheetLink">
-      ← Înapoi la pontaj
-    </a>
-<!-- Badge de context -->
-<div class="chip">Admin dashboard</div>
-<!-- Meniu hamburger (user + Deconectare) -->
-<div class="nav-menu-wrapper">
-<button aria-expanded="false" aria-label="Meniu admin" class="hamburger-btn" id="adminHamburgerBtn" type="button">
-<span class="hamburger-box">
-<span class="hamburger-inner"></span>
-</span>
-</button>
-<div class="nav-menu" id="adminHamburgerMenu">
-<div class="nav-menu-section">
-<div class="nav-menu-user-label">Utilizator logat</div>
-<div class="chip" id="adminLabel">Admin</div>
-</div>
-<div class="nav-menu-section nav-menu-actions">
-<button class="nav-menu-item nav-menu-item-danger" id="logoutBtn" type="button">
-<span>Deconectare</span>
-</button>
-</div>
-</div>
-</div>
-<!-- Self-service: lăsat în DOM pentru script, dar ascuns prin CSS -->
-<a class="btn" href="self.html" id="selfServiceLink" rel="noopener" target="_blank">
-      🧾 Self-service – raportul meu
-    </a>
-</div>
-</nav>
-<main class="admin-layout">
-<section class="admin-main">
-<header class="admin-header">
-<h1>Calendar prezență (luna curentă)</h1>
-<!-- ACȚIUNI HEADER: status + reset filtre + refresh -->
-<div class="admin-header-actions">
-<span class="nav-status" id="lastUpdate"></span>
-<!-- Reset filtre (icon „filter reset”) -->
-<button class="nav-icon-btn" id="resetFiltersBtn" title="Reset: perioadă=astăzi, dept=toate, angajat=toți, zi=null, incomplete=off" type="button">
-<span aria-hidden="true" class="nav-icon">
-<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-<g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8">
-<!-- coadă mătură -->
-<path d="M5 3l11 11"></path>
-<path d="M14 6l4 4"></path>
-<!-- perie -->
-<path d="M11 14l-4 4"></path>
-<path d="M7 18c2-2 6-2 8 0"></path>
-<path d="M6 19c2-2 8-2 10 0"></path>
-<path d="M5 20c2-2 10-2 12 0"></path>
-</g>
-</svg>
-</span>
-</button>
-<!-- Refresh (icon „circular arrows”) -->
-<button class="nav-icon-btn" id="adminRefreshBtn" title="Reîncarcă datele din server" type="button">
-<span aria-hidden="true" class="nav-icon">
-<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-<g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8">
-<path d="M7 2h10"></path>
-<path d="M7 22h10"></path>
-<path d="M7 2c0 6 5 6 5 10s-5 4-5 10"></path>
-<path d="M17 2c0 6-5 6-5 10s5 4 5 10"></path>
-<path d="M10 12h4"></path>
-</g>
-</svg>
-</span>
-</button>
-</div>
-<div class="admin-filter-line">
-<div class="admin-filter-summary">
-<div class="filter-chips" id="filterChips"></div>
-</div>
-<label>
-<span>Perioadă</span>
-<select id="rangeSelect">
-<option value="today">Astăzi</option>
-<option value="last7">Ultimele 7 zile</option>
-<option value="all">Toate datele</option>
-</select>
-</label>
-<label class="label-dept">
-<span>Departament</span>
-<div class="dept-filter-row">
-<select id="deptFilter">
-<option value="all">Toate</option>
-</select>
-<!-- toggle incomplete -> buton verde/galben -->
-<button class="incomplete-btn" id="incompleteToggleBtn" title="Comută între toate zilele și doar zilele incomplete (START / PAUSE / EXTRA deschise)" type="button">
-                  ⚠ Incomplete
-                </button>
-</div>
-</label>
-<label>
-<span>Angajat</span>
-<select id="employeeFilter">
-<option value="all">Toți</option>
-</select>
-</label>
-</div>
-</header>
-<!-- TAB-uri: Dashboard / Alerte LIVE / Rapoarte -->
-<div class="admin-tabs">
-<button class="admin-tab-btn active" data-tab="dashboard" type="button">
-            📊 Dashboard
-          </button>
-<button class="admin-tab-btn" data-tab="alerts" type="button">
-            ⏰ Alerte LIVE
-          </button>
-<a class="admin-tab-btn" href="reports.html" role="button">
-            📑 Rapoarte
-          </a>
-<a class="admin-tab-btn" href="fix-day.html" role="button">
-            🛠️ Fix Day (Editor zi)
-          </a>
-</div>
-<div class="admin-error" id="error" style="display:none"></div>
-<div class="admin-loading" id="loading">Se încarcă datele din server…</div>
-<!-- TAB PRINCIPAL: Dashboard -->
-<section id="dashboard" style="display:none">
-<!-- KPI-uri principale -->
-<div class="admin-kpis">
-<div class="card kpi">
-<div class="kpi-label">Pontaje în filtrul curent</div>
-<div class="kpi-value" id="kpiTotal">–</div>
-</div>
-<div class="card kpi">
-<div class="kpi-label">Angajați implicați</div>
-<div class="kpi-value" id="kpiEmployees">–</div>
-</div>
-<div class="card kpi">
-<div class="kpi-label">START</div>
-<div class="kpi-value" id="kpiStart">–</div>
-</div>
-<div class="card kpi">
-<div class="kpi-label">FINISH</div>
-<div class="kpi-value" id="kpiFinish">–</div>
-</div>
-<div class="card kpi">
-<div class="kpi-label">Norme complete (azi)</div>
-<div class="kpi-value" id="kpiCompletedToday">–</div>
-</div>
-</div>
-<div class="admin-grid">
-<section class="card admin-card" data-section="dept">
-<h2>Distribuție pe departamente</h2>
-<div class="admin-small-text">Număr de pontaje în perioada și filtrele selectate.</div>
-<div class="admin-list" id="deptList"></div>
-</section>
-<section class="card admin-card" data-section="dept">
-<h2 id="lastEventsTitle">Ultimele pontaje</h2>
-<div class="admin-small-text" id="lastEventsHint">
-<span>Perioadă listă:</span>
-<select id="lastEventsRange">
-<option value="today">Ziua curentă</option>
-<option value="week">Săptămâna curentă</option>
-<option value="month">Luna curentă</option>
-<option value="all">Toate înregistrările</option>
-</select>
-<span id="lastEventsHintText">
-                  Toate înregistrările din perioada aleasă, după filtrele de mai sus.
-                </span>
-</div>
-<div class="table-wrap">
-<table class="admin-table">
-<thead>
-<tr>
-<th>Data / ora</th>
-<th>Angajat</th>
-<th>Departament</th>
-<th>Acțiune</th>
-<th>Activitate</th>
-</tr>
-</thead>
-<tbody id="lastEventsBody"></tbody>
-</table>
-</div>
-</section>
-</div>
-<!-- A3: Zile incomplete -->
-<section class="card admin-card" data-section="incomplete">
-<h2>Zile incomplete</h2>
-<div class="admin-small-text">
-              Zile în care există probleme de închidere: START fără FINISH, PAUSE fără UNPAUSE, EXTRA START fără EXTRA FINISH sau sesiune rămasă deschisă (după filtrul curent).
-            </div>
-<div style="margin:6px 0 10px;display:flex;gap:6px;flex-wrap:wrap;">
-<button class="top-toggle active" id="incompleteDayAllBtn" type="button">Toate</button>
-<button class="top-toggle" id="incompleteDayWeekendBtn" type="button">Doar weekend</button>
-<button class="top-toggle" id="incompleteDayWorkBtn" type="button">Doar zile lucrătoare</button>
-</div>
-<div class="table-wrap">
-<table class="admin-table">
-<thead>
-<tr>
-<th>Data</th>
-<th>Angajat</th>
-<th>Departament</th>
-<th>Normă</th>
-<th>Extra</th>
-<th>Stare</th>
-</tr>
-</thead>
-<tbody id="incompleteDaysBody"></tbody>
-</table>
-</div>
-</section>
-<!-- A3: Anomalii -->
-<section class="card admin-card" data-section="anomalies">
-<h2>Anomalii pontaj</h2>
-<div class="admin-small-text">
-              Zile cu posibile probleme de pontaj: pauze neînchise, EXTRA neînchis, pauze prea lungi, ore foarte multe sau pontaj în weekend.
-            </div>
-<div style="margin:6px 0 10px;display:flex;gap:6px;flex-wrap:wrap;">
-<button class="top-toggle active" id="anomalyDayAllBtn" type="button">Toate</button>
-<button class="top-toggle" id="anomalyDayWeekendBtn" type="button">Doar weekend</button>
-<button class="top-toggle" id="anomalyDayWorkBtn" type="button">Doar zile lucrătoare</button>
-</div>
-<div class="table-wrap">
-<table class="admin-table">
-<thead>
-<tr>
-<th>Data</th>
-<th>Angajat</th>
-<th>Departament</th>
-<th>Normă</th>
-<th>Extra</th>
-<th>Detalii</th>
-</tr>
-</thead>
-<tbody id="anomaliesBody"></tbody>
-</table>
-</div>
-</section>
-<!-- Log brut -->
-<section class="card admin-card" data-section="rawlog">
-<h2 id="rawLogTitle">Log brut (filtru curent)</h2>
-<div class="admin-small-text">
-              Lista completă a evenimentelor care trec de filtrele de mai sus — utilă pentru debugging sau verificări rapide.
-            </div>
-<pre class="admin-log" id="rawLog">–</pre>
-</section>
-<!-- A3: Prezență pe zile -->
-<section class="card admin-card" data-section="daily">
-<h2>Prezență pe zile</h2>
-<div class="admin-small-text">
-              Pentru perioada și filtrele de mai sus: câți angajați au avut cel puțin un START, câți au normă completă și câți sunt în concediu.
-            </div>
-<div class="table-wrap">
-<table class="admin-table">
-<thead>
-<tr>
-<th>Data</th>
-<th>Angajați cu pontaj</th>
-<th>Normă completă</th>
-<th>% complet</th>
-<th>Concedii aprobate</th>
-</tr>
-</thead>
-<tbody id="dailyPresenceBody"></tbody>
-</table>
-</div>
-</section>
-<!-- A4: Calendar prezență -->
-<section class="card admin-card" data-section="calendar">
-<h2>Calendar prezență (lună curentă)</h2>
-<div class="admin-small-text">
-              Fiecare zi arată câți angajați au avut pontaj și câți au normă completă, pentru luna curentă. Click pe o zi pentru a filtra mai jos.
-            </div>
-<div style="margin:6px 0 10px;display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap;">
-<button class="top-toggle" id="calPrevBtn" type="button">‹ Luna anterioară</button>
-<div class="chip" id="calendarMonthLabel">–</div>
-<button class="top-toggle" id="calNextBtn" type="button">Luna următoare ›</button>
-</div>
-<div class="calendar-grid" id="presenceCalendar"></div>
-<div class="calendar-legend">
-<span class="calendar-legend-label">Legendă:</span>
-<span class="calendar-legend-item">
-<span class="calendar-legend-box calendar-legend-nodata"></span> fără pontaj
-              </span>
-<span class="calendar-legend-item">
-<span class="calendar-legend-box calendar-legend-low"></span> &lt;50% complet
-              </span>
-<span class="calendar-legend-item">
-<span class="calendar-legend-box calendar-legend-med"></span> 50–90% complet
-              </span>
-<span class="calendar-legend-item">
-<span class="calendar-legend-box calendar-legend-high"></span> &gt;90% complet
-              </span>
-</div>
-<div id="calendarDayDetails" style="display:none;margin-top:12px;">
-<div class="admin-small-text">
-<b>Zi selectată:</b> <span id="calendarSelectedDayLabel">–</span>
-</div>
-<div style="margin:6px 0 6px;font-weight:700;font-size:12px;color:var(--muted);">
-    Inactivi (fără pontaj)
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Calendar prezență (tabel lunar)</title>
+  <style>
+    :root{
+      --bg: #f6f7fb;
+      --card: #ffffff;
+      --text: #151233;
+      --muted: #6b6a88;
+      --line: rgba(17, 16, 52, .10);
+      --shadow: 0 10px 30px rgba(17, 16, 52, .08);
+      --purple: #5a3fff;
+      --purple-2: #7b61ff;
+
+      /* status colors (aprox ca în exemple) */
+      --st-inprogress: #6a5cff;   /* mov */
+      --st-subnorm:    #ff5b5b;   /* roșu */
+      --st-complete:   #41c97a;   /* verde */
+      --st-overnorm:   #a66bff;   /* mov deschis */
+      --st-inactive:   #b7b9c8;   /* gri */
+      --st-leave:      #39b8ff;   /* albastru */
+      --st-pause:      #f6b53b;   /* galben/orange */
+    }
+
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    .wrap{
+      padding: 18px 18px 22px;
+      max-width: 1600px;
+      margin: 0 auto;
+    }
+
+    .topbar{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      margin-bottom: 14px;
+    }
+
+    .search{
+      flex: 1;
+      max-width: 340px;
+      display:flex;
+      align-items:center;
+      gap:10px;
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 10px 12px;
+      box-shadow: 0 2px 10px rgba(17, 16, 52, .03);
+    }
+    .search svg{ width:18px; height:18px; color: var(--muted); }
+    .search input{
+      border:0;
+      outline:none;
+      width:100%;
+      font-size:14px;
+      background: transparent;
+      color: var(--text);
+    }
+    .search input::placeholder{ color: #9a9ab2; }
+
+    .monthbar{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      min-width: 240px;
+      justify-content:center;
+    }
+    .monthbtn{
+      width:36px; height:36px;
+      border-radius: 12px;
+      border:1px solid var(--line);
+      background: var(--card);
+      display:grid;
+      place-items:center;
+      cursor:pointer;
+      box-shadow: 0 2px 10px rgba(17, 16, 52, .03);
+    }
+    .monthbtn:hover{ border-color: rgba(90,63,255,.35); }
+    .monthbtn svg{ width:18px; height:18px; color: var(--text); opacity:.75; }
+
+    .monthlabel{
+      font-weight: 700;
+      letter-spacing: .2px;
+      font-size: 15px;
+      color: var(--text);
+      padding: 4px 8px;
+      border-radius: 10px;
+    }
+
+    .actions{
+      display:flex;
+      align-items:center;
+      gap:8px;
+    }
+    .iconbtn{
+      width:36px; height:36px;
+      border-radius: 12px;
+      border:1px solid var(--line);
+      background: var(--card);
+      display:grid;
+      place-items:center;
+      cursor:pointer;
+      box-shadow: 0 2px 10px rgba(17, 16, 52, .03);
+    }
+    .iconbtn:hover{ border-color: rgba(90,63,255,.35); }
+    .iconbtn svg{ width:18px; height:18px; color: var(--text); opacity:.75; }
+
+    .card{
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      box-shadow: var(--shadow);
+      overflow:hidden;
+    }
+
+    .table-wrap{
+      overflow:auto;
+      max-height: calc(100vh - 220px);
+    }
+
+    table{
+      border-collapse: separate;
+      border-spacing: 0;
+      width: 100%;
+      min-width: 1100px;
+      font-size: 12px;
+    }
+
+    thead th{
+      position: sticky;
+      top: 0;
+      z-index: 5;
+      background: var(--card);
+      border-bottom: 1px solid var(--line);
+      text-align:center;
+      padding: 10px 8px;
+      color: var(--muted);
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    thead th:first-child{
+      left: 0;
+      z-index: 7;
+      text-align:left;
+      padding-left: 14px;
+    }
+
+    tbody td, tbody th{
+      border-bottom: 1px solid rgba(17, 16, 52, .07);
+      border-right: 1px solid rgba(17, 16, 52, .06);
+      padding: 0;
+      background: #fff;
+    }
+
+    tbody tr:last-child td, tbody tr:last-child th{
+      border-bottom: 0;
+    }
+
+    tbody th{
+      position: sticky;
+      left: 0;
+      z-index: 4;
+      background: #fff;
+      min-width: 260px;
+      border-right: 1px solid var(--line);
+    }
+
+    .empCell{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      padding: 12px 14px;
+    }
+    .empIndex{
+      width: 28px;
+      color: #9a9ab2;
+      font-weight: 700;
+      text-align:center;
+      flex: 0 0 28px;
+    }
+    .avatar{
+      width: 34px;
+      height: 34px;
+      border-radius: 999px;
+      background: linear-gradient(180deg, rgba(90,63,255,.25), rgba(90,63,255,.08));
+      border: 1px solid rgba(90,63,255,.18);
+      display:grid;
+      place-items:center;
+      font-weight: 800;
+      color: var(--purple);
+      flex: 0 0 34px;
+    }
+    .empMeta{
+      display:flex;
+      flex-direction:column;
+      min-width: 0;
+    }
+    .empName{
+      font-weight: 800;
+      font-size: 13px;
+      color: var(--text);
+      line-height: 1.1;
+      white-space: nowrap;
+      overflow:hidden;
+      text-overflow: ellipsis;
+      max-width: 180px;
+    }
+    .empDept{
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 2px;
+      white-space: nowrap;
+      overflow:hidden;
+      text-overflow: ellipsis;
+      max-width: 180px;
+    }
+
+    .dayHead{
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      gap:2px;
+      line-height: 1;
+    }
+    .dayNum{ font-size: 12px; color: var(--text); font-weight: 800; }
+    .dayDow{ font-size: 10px; color: #9a9ab2; font-weight: 700; text-transform: uppercase; }
+
+    .cell{
+      position: relative;
+      height: 58px;
+      width: 92px;
+      padding: 7px 8px 7px;
+      display:flex;
+      flex-direction:column;
+      justify-content:space-between;
+      gap:4px;
+      overflow:hidden;
+    }
+
+    .cell::before{
+      content:'';
+      position:absolute;
+      top:0; left:0; right:0;
+      height: 4px;
+      background: var(--st-inactive);
+      opacity: .95;
+    }
+
+    .cellTop{
+      display:flex;
+      justify-content:space-between;
+      font-size: 10px;
+      color: #8f8fad;
+      gap:6px;
+      white-space: nowrap;
+    }
+    .cellTop span{
+      overflow:hidden;
+      text-overflow: ellipsis;
+    }
+
+    .cellMid{
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap:6px;
+      font-weight: 900;
+      letter-spacing: .2px;
+      color: #1a183b;
+      min-height: 14px;
+    }
+
+    .cellTotal{
+      text-align:center;
+      font-weight: 900;
+      font-size: 12px;
+      color: #151233;
+      letter-spacing: .3px;
+      white-space: nowrap;
+    }
+
+    .cell.empty .cellTop,
+    .cell.empty .cellMid,
+    .cell.empty .cellTotal{ opacity: .0; }
+    .cell.empty{ background: #fff; }
+
+    /* statuses */
+    .st-inprogress::before{ background: var(--st-inprogress); }
+    .st-subnorm::before{ background: var(--st-subnorm); }
+    .st-complete::before{ background: var(--st-complete); }
+    .st-overnorm::before{ background: var(--st-overnorm); }
+    .st-inactive::before{ background: var(--st-inactive); }
+    .st-leave::before{ background: var(--st-leave); }
+    .st-pause::before{ background: var(--st-pause); }
+
+    .st-leave .cellMid{ color: #0f2b49; }
+    .st-inactive .cellTotal{ color: #8f8fad; }
+    .st-inprogress{ background: rgba(106,92,255,.04); }
+    .st-subnorm{ background: rgba(255,91,91,.04); }
+    .st-complete{ background: rgba(65,201,122,.05); }
+    .st-overnorm{ background: rgba(166,107,255,.05); }
+    .st-leave{ background: rgba(57,184,255,.05); }
+    .st-pause{ background: rgba(246,181,59,.05); }
+
+    .weekendHead{
+      background: linear-gradient(180deg, rgba(17, 16, 52, .02), rgba(17, 16, 52, 0));
+    }
+    .weekendCell{ background: rgba(17, 16, 52, .02); }
+
+    .hint{
+      padding: 14px 18px 10px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .legend{
+      display:flex;
+      flex-wrap:wrap;
+      gap:14px;
+      padding: 10px 18px 18px;
+      color: var(--muted);
+      font-size: 12px;
+      align-items:center;
+    }
+    .dot{
+      width:9px; height:9px;
+      border-radius: 999px;
+      display:inline-block;
+      margin-right:8px;
+      vertical-align: middle;
+    }
+
+    .kbd{
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono","Courier New", monospace;
+      background: rgba(17, 16, 52, .06);
+      border: 1px solid rgba(17, 16, 52, .08);
+      border-radius: 8px;
+      padding: 2px 6px;
+      font-size: 11px;
+      color: #2b2950;
+    }
+
+    .banner{
+      margin: 10px 0 14px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      padding: 10px 14px;
+      border-radius: 14px;
+      border: 1px solid rgba(90,63,255,.15);
+      background: linear-gradient(180deg, rgba(90,63,255,.07), rgba(90,63,255,.02));
+      color: #3d2fbf;
+      font-size: 12px;
+      font-weight: 700;
+    }
+    .banner small{ font-weight: 600; color: rgba(61,47,191,.85); }
+    .pill{
+      background: rgba(90,63,255,.11);
+      border: 1px solid rgba(90,63,255,.18);
+      color: rgba(61,47,191,.95);
+      border-radius: 999px;
+      padding: 6px 10px;
+      font-size: 12px;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    /* Loading */
+    .loading{
+      padding: 26px 18px;
+      color: var(--muted);
+      font-weight: 700;
+      display:flex;
+      align-items:center;
+      gap:10px;
+    }
+    .spinner{
+      width: 18px;
+      height: 18px;
+      border-radius: 999px;
+      border: 3px solid rgba(90,63,255,.18);
+      border-top-color: rgba(90,63,255,.85);
+      animation: spin .9s linear infinite;
+    }
+    @keyframes spin{ to{ transform: rotate(360deg);} }
+
+    /* Responsive tweaks */
+    @media (max-width: 900px){
+      .monthbar{ display:none; }
+      .table-wrap{ max-height: calc(100vh - 190px); }
+      tbody th{ min-width: 220px; }
+      .cell{ width: 84px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="topbar">
+      <div class="search">
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M10.5 18a7.5 7.5 0 1 1 0-15 7.5 7.5 0 0 1 0 15Z" stroke="currentColor" stroke-width="2"/>
+          <path d="M16.3 16.3 21 21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+        <input id="q" placeholder="Caută angajat" autocomplete="off" />
+      </div>
+
+      <div class="monthbar">
+        <button id="prevMonth" class="monthbtn" title="Luna precedentă">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M14 6 8 12l6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <div class="monthlabel" id="monthLabel">—</div>
+        <button id="nextMonth" class="monthbtn" title="Luna următoare">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M10 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      </div>
+
+      <div class="actions">
+        <button class="iconbtn" id="exportPdf" title="Export PDF (placeholder)">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M7 3h7l3 3v15a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3V6a3 3 0 0 1 3-3Z" stroke="currentColor" stroke-width="2"/>
+            <path d="M14 3v4a2 2 0 0 0 2 2h4" stroke="currentColor" stroke-width="2"/>
+            <path d="M7.5 15.5h9" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            <path d="M7.5 18.5h6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </button>
+        <button class="iconbtn" id="exportXls" title="Export Excel (placeholder)">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M7 3h7l3 3v15a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3V6a3 3 0 0 1 3-3Z" stroke="currentColor" stroke-width="2"/>
+            <path d="M14 3v4a2 2 0 0 0 2 2h4" stroke="currentColor" stroke-width="2"/>
+            <path d="M8 15l3 4m3-4-3 4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <div class="banner">
+      <div>Condiția de prezență nu conține timp activ <small>(pontaje neîncheiate)</small></div>
+      <div class="pill"><span class="kbd">START</span> fără <span class="kbd">FINISH</span></div>
+    </div>
+
+    <div class="card">
+      <div id="loading" class="loading"><span class="spinner"></span>Se încarcă prezența lunară…</div>
+      <div class="table-wrap" id="tableWrap" style="display:none;">
+        <table id="tbl"></table>
+      </div>
+
+      <div class="hint">
+        Tips: poți derula orizontal și vertical. Coloana cu angajați și header-ul rămân <b>sticky</b>.
+      </div>
+
+      <div class="legend">
+        <span><i class="dot" style="background:var(--st-inprogress)"></i>În progres</span>
+        <span><i class="dot" style="background:var(--st-subnorm)"></i>Sub normă</span>
+        <span><i class="dot" style="background:var(--st-complete)"></i>Complet</span>
+        <span><i class="dot" style="background:var(--st-overnorm)"></i>Peste normă</span>
+        <span><i class="dot" style="background:var(--st-inactive)"></i>Inactiv/absent</span>
+        <span><i class="dot" style="background:var(--st-leave)"></i>Concediu</span>
+        <span><i class="dot" style="background:var(--st-pause)"></i>În pauză</span>
+      </div>
+    </div>
   </div>
-<div class="admin-list" id="calendarInactiveList"></div>
-</div>
-</section>
-<!-- A2: Index & detalii angajat -->
-<div class="admin-grid">
-<section class="card admin-card" data-section="employees">
-<h2>Index angajați</h2>
-<div class="admin-small-text">
-                Listă angajați (după filtrul de departament). Click pe un nume pentru a vedea statistici detaliate (all time).
+
+  <script>
+  (function(){
+    const DOW = ['Du','Lu','Ma','Mi','Jo','Vi','Sâ'];
+    const DOW2 = ['Dum','Lun','Mar','Mie','Joi','Vin','Sâm'];
+    const MONTHS = ['Ianuarie','Februarie','Martie','Aprilie','Mai','Iunie','Iulie','August','Septembrie','Octombrie','Noiembrie','Decembrie'];
+
+    const qEl = document.getElementById('q');
+    const monthLabelEl = document.getElementById('monthLabel');
+    const prevBtn = document.getElementById('prevMonth');
+    const nextBtn = document.getElementById('nextMonth');
+    const tblEl = document.getElementById('tbl');
+    const loadingEl = document.getElementById('loading');
+    const tableWrapEl = document.getElementById('tableWrap');
+
+    const exportPdf = document.getElementById('exportPdf');
+    const exportXls = document.getElementById('exportXls');
+
+    let CFG = null;
+    let curYear = (new Date()).getFullYear();
+    let curMonth = (new Date()).getMonth(); // 0-11
+
+    let ALL_EVENTS = [];
+    let EMPLOYEES = [];
+
+    exportPdf.addEventListener('click', ()=> alert('Export PDF: aici îl legăm la raportul PDF lunar (în pasul următor).'));
+    exportXls.addEventListener('click', ()=> alert('Export Excel: aici îl legăm la export CSV/XLS (în pasul următor).'));
+
+    function pad2(n){ return String(n).padStart(2,'0'); }
+
+    function ymd(d){
+      return d.getFullYear() + '-' + pad2(d.getMonth()+1) + '-' + pad2(d.getDate());
+    }
+    function hm(d){
+      return pad2(d.getHours()) + ':' + pad2(d.getMinutes());
+    }
+    function isWeekend(dateObj){
+      const dow = dateObj.getDay();
+      return dow === 0 || dow === 6;
+    }
+
+    async function loadConfigSmart(){
+      const paths = ['./config.json','../config.json','/config.json'];
+      for (const p of paths){
+        try{
+          const r = await fetch(p, {cache:'no-store'});
+          if (!r.ok) continue;
+          const j = await r.json();
+          if (j && (j.adminEventsEndpoint || j.adminEventsUrl || j.endpoint || j.webAppUrl)) return j;
+        }catch(_){}
+      }
+      return {};
+    }
+
+    function buildUrl(base, params){
+      const u = new URL(base, window.location.href);
+      Object.entries(params || {}).forEach(([k,v])=>{
+        if (v === undefined || v === null || v === '') return;
+        u.searchParams.set(k, String(v));
+      });
+      return u.toString();
+    }
+
+    function adminEndpointBase(){
+      const b = (CFG && (CFG.adminEventsEndpoint || CFG.adminEventsUrl || CFG.endpoint || CFG.webAppUrl)) || '';
+      if (!b) return '';
+      // dacă e deja URL complet, ok
+      return b;
+    }
+
+    function initials(name){
+      const s = String(name||'').trim();
+      if (!s) return '•';
+      const parts = s.split(/\s+/).filter(Boolean);
+      const a = parts[0] ? parts[0][0] : '';
+      const b = parts.length>1 ? parts[parts.length-1][0] : '';
+      return (a+b).toUpperCase();
+    }
+
+    function parseISO(ts){
+      const d = new Date(ts);
+      return isNaN(d.getTime()) ? null : d;
+    }
+
+    function groupByNameDay(events){
+      const m = new Map();
+      for (const ev of (events||[])){
+        if (!ev || !ev.name || !ev.ts) continue;
+        const d = parseISO(ev.ts);
+        if (!d) continue;
+        const key = ev.name + '||' + ymd(d);
+        if (!m.has(key)) m.set(key, []);
+        m.get(key).push(ev);
+      }
+      for (const [k, arr] of m.entries()){
+        arr.sort((a,b)=> (new Date(a.ts)) - (new Date(b.ts)));
+      }
+      return m;
+    }
+
+    function computeDaySummary(evs){
+      // normalize action names (server poate da start/pause/unpause/finish etc)
+      const a = (x)=> String(x||'').toLowerCase().trim();
+      let running=false, paused=false;
+      let startTs=null, pauseStart=null;
+      let workMs=0, pauseMs=0;
+      let firstStart=null, lastFinish=null;
+
+      for (const ev of (evs||[])){
+        const d = parseISO(ev.ts);
+        if (!d) continue;
+        const t = d.getTime();
+        const act = a(ev.action);
+        if (act === 'start'){
+          if (!firstStart) firstStart = d;
+          // dacă eram deja running, resetăm segment (cazuri rare)
+          running = true;
+          paused = false;
+          startTs = t;
+          pauseStart = null;
+        } else if (act === 'pause'){
+          if (running && !paused){
+            paused = true;
+            pauseStart = t;
+          }
+        } else if (act === 'unpause'){
+          if (running && paused && pauseStart != null){
+            const delta = Math.max(0, t - pauseStart);
+            pauseMs += delta;
+            paused = false;
+            pauseStart = null;
+          }
+        } else if (act === 'finish'){
+          lastFinish = d;
+          if (running && startTs != null){
+            // dacă finish în pauză, închidem pauza
+            if (paused && pauseStart != null){
+              const delta = Math.max(0, t - pauseStart);
+              pauseMs += delta;
+              paused = false;
+              pauseStart = null;
+            }
+            const diff = Math.max(0, t - startTs);
+            workMs += Math.max(0, diff - pauseMs);
+          }
+          running = false;
+          startTs = null;
+          pauseStart = null;
+          // reset pauseMs segment? aici îl lăsăm total (simplu)
+        }
+      }
+
+      const hasStart = !!firstStart;
+      const hasFinish= !!lastFinish;
+      const completed = hasStart && hasFinish;
+      const open = hasStart && !hasFinish;
+
+      return {
+        start: firstStart,
+        finish: lastFinish,
+        workMs: workMs,
+        pauseMs: pauseMs,
+        completed,
+        open,
+        // heuristics: dacă e pauză "deschisă" (start + pause fără unpause/finish) → pause state
+        pausedOpen: false
+      };
+    }
+
+    function msToHHMM(ms){
+      const m = Math.max(0, Math.round(ms/60000));
+      const hh = Math.floor(m/60);
+      const mm = m%60;
+      return pad2(hh) + ':' + pad2(mm);
+    }
+
+    function statusForCell(sum, normMs){
+      if (!sum) return 'inactive';
+      if (!sum.start && !sum.finish) return 'inactive';
+      if (sum.open) return 'inprogress';
+      if (sum.completed){
+        const work = sum.workMs || 0;
+        if (work <= 0) return 'inactive';
+        if (work < normMs * 0.92) return 'subnorm';
+        if (work > normMs * 1.10) return 'overnorm';
+        return 'complete';
+      }
+      return 'inactive';
+    }
+
+    function render(){
+      const monthStart = new Date(curYear, curMonth, 1);
+      const monthEnd = new Date(curYear, curMonth+1, 0);
+
+      monthLabelEl.textContent = MONTHS[curMonth] + ' ' + curYear;
+
+      const days = [];
+      for (let d=1; d<=monthEnd.getDate(); d++){
+        const dt = new Date(curYear, curMonth, d);
+        days.push(dt);
+      }
+
+      // filter employees by query
+      const q = String(qEl.value||'').trim().toLowerCase();
+      const list = q
+        ? EMPLOYEES.filter(e => (e.name||'').toLowerCase().includes(q))
+        : EMPLOYEES.slice();
+
+      const byNameDay = groupByNameDay(ALL_EVENTS);
+      const normMs = ((CFG && CFG.defaultNormHours) ? Number(CFG.defaultNormHours) : 8) * 60 * 60 * 1000;
+
+      // build table HTML
+      let thead = '<thead><tr>';
+      thead += '<th><div style="display:flex;align-items:center;gap:8px;"><span style="font-weight:900;color:var(--text);">ANGAJAT</span><span style="color:#9a9ab2;font-weight:800;">↕</span></div></th>';
+
+      for (const dt of days){
+        const weekend = isWeekend(dt);
+        thead += `<th class="${weekend?'weekendHead':''}"><div class="dayHead"><div class="dayNum">${pad2(dt.getDate())}</div><div class="dayDow">${DOW2[dt.getDay()]}</div></div></th>`;
+      }
+      thead += '</tr></thead>';
+
+      let tbody = '<tbody>';
+      list.forEach((emp, idx) => {
+        tbody += '<tr>';
+        tbody += `<th><div class="empCell">
+            <div class="empIndex">${idx+1}</div>
+            <div class="avatar">${initials(emp.name)}</div>
+            <div class="empMeta">
+              <div class="empName">${escapeHtml(emp.name)}</div>
+              <div class="empDept">${escapeHtml(emp.dept || '—')}</div>
+            </div>
+          </div></th>`;
+
+        for (const dt of days){
+          const dk = ymd(dt);
+          const key = emp.name + '||' + dk;
+          const evs = byNameDay.get(key) || [];
+          const sum = evs.length ? computeDaySummary(evs) : null;
+
+          // TODO: leave integration (în pasul următor putem colora CO/BO etc)
+          const st = statusForCell(sum, normMs);
+
+          const cls = 'cell ' +
+            (st==='inprogress'?'st-inprogress':
+            st==='subnorm'?'st-subnorm':
+            st==='complete'?'st-complete':
+            st==='overnorm'?'st-overnorm':
+            st==='leave'?'st-leave':
+            st==='pause'?'st-pause':'st-inactive') +
+            (isWeekend(dt) ? ' weekendCell' : '');
+
+          const s1 = sum && sum.start ? hm(sum.start) : '';
+          const s2 = sum && sum.finish ? hm(sum.finish) : '';
+          const total = sum && (sum.workMs>0) ? msToHHMM(sum.workMs) : '';
+
+          // dacă nu e nimic, păstrăm celula clean
+          const empty = (!s1 && !s2 && !total);
+
+          tbody += `<td>
+              <div class="${cls}${empty?' empty':''}" title="${emp.name} • ${dk}">
+                <div class="cellTop"><span>${s1||' '}</span><span>${s2||' '}</span></div>
+                <div class="cellMid">${st==='leave' ? 'CO' : (empty ? '&nbsp;' : '')}</div>
+                <div class="cellTotal">${total||' '}</div>
               </div>
-<div class="admin-filter-line" style="margin:8px 0 6px;">
-<label style="flex:1;">
-<span>Caută angajat / departament</span>
-<input id="employeeSearch" placeholder="Tastează pentru a filtra..." type="text"/>
-</label>
-</div>
-<div class="admin-list" id="employeeIndexList"></div>
-</section>
-<section class="card admin-card" data-section="employees">
-<h2>Detalii angajat</h2>
-<div class="admin-small-text" id="employeeDetailsHeader">
-                Selectează un angajat din listă pentru a vedea situația pe toate zilele (normă, extra, overtime, zile complete, concediu).
-              </div>
-<a class="btn" href="#" id="employeeSelfLink" rel="noopener" style="display:none;margin:8px 0 10px" target="_blank">
-  🧾 Deschide pontajul angajatului
-</a>
-<div id="employeeDetailsBody">
-<div class="admin-empty">Niciun angajat selectat.</div>
-</div>
-</section>
-</div>
-</section>
-<!-- TAB NOU: Alerte LIVE -->
-<section id="alertsPage" style="display:none">
-<div class="admin-filter-line" style="margin:0 0 10px;">
-<label>
-<span>Tip alertă</span>
-<select id="alertsTypeFilter">
-<option value="all">Toate</option>
-<option value="pause">Pauză</option>
-<option value="norm">Normă</option>
-<option value="extra">Extra</option>
-<option value="system">Sistem</option>
-</select>
-</label>
-<label>
-<span>Departament</span>
-<select id="alertsDeptFilter">
-<option value="all">Toate</option>
-</select>
-</label>
-<label style="flex:1;min-width:220px;">
-<span>Caută</span>
-<input id="alertsSearch" placeholder="Nume / mesaj..." type="text"/>
-</label>
-</div>
-<section class="card admin-card" data-section="alerts">
-<h2>Alerte LIVE pe ziua curentă</h2>
-<div class="admin-small-text">
-              Monitorizare în timp real (client-side) pentru:
-              <ul style="margin:4px 0 0 16px;padding:0;font-size:11px;color:var(--muted);">
-<li>Pauză &gt; limită (implicit 40 min, din configurare) fără UNPAUSE – notificări din 15 în 15 minute.</li>
-<li>Normă depășită (8h / 8h30 sau valori din <code>normSettings</code>) fără FINISH – notificări din 30 în 30 de minute.</li>
-<li>EXTRA în curs &gt; 30 min – notificări din 15 în 15 minute.</li>
-</ul>
-</div>
-<div class="admin-list" id="liveAlertsActive"></div>
-</section>
-<section class="card admin-card" data-section="alerts">
-<h2>Istoric notificări în sesiunea curentă</h2>
-<div class="admin-small-text">
-              Fiecare depășire generează o notificare inițială, apoi încă una la fiecare interval (15 / 30 min) cât timp condiția rămâne activă.
-              Istoricul este local, doar pentru sesiunea curentă a paginii.
-            </div>
-<div class="table-wrap">
-<table class="admin-table">
-<thead>
-<tr>
-<th>Moment</th>
-<th>Angajat</th>
-<th>Departament</th>
-<th>Tip</th>
-<th>Mesaj</th>
-</tr>
-</thead>
-<tbody id="liveAlertsHistoryBody"></tbody>
-</table>
-</div>
-</section>
-<!-- NOU: Alerte istorice din sistem (toate zilele anterioare) -->
-<section class="card admin-card" data-section="alerts">
-<h2>Alerte istorice din sistem</h2>
-<div class="admin-small-text">
-              Alerte generate de Apps Script pentru toate zilele (inclusiv cele anterioare), pe baza datelor salvate în foaia de pontaj.
-            </div>
-<div class="table-wrap">
-<table class="admin-table">
-<thead>
-<tr>
-<th>Moment</th>
-<th>Angajat</th>
-<th>Departament</th>
-<th>Tip</th>
-<th>Mesaj</th>
-</tr>
-</thead>
-<tbody id="systemAlertsHistoryBody"></tbody>
-</table>
-</div>
-</section>
-</section>
-</section>
-<aside class="admin-side">
-<!-- A2: Top angajați (pliabil) -->
-<section class="card admin-card collapsible" data-section="live">
-<h2 class="admin-card-title">
-            Top angajați
-            <span class="collapse-icon">▼</span>
-</h2>
-<div class="admin-card-body">
-<div class="admin-small-text">
-              Clasament all time:
-              <button class="top-toggle active" id="topModeHours" type="button">Ore normă</button>
-<button class="top-toggle" id="topModeAnomalies" type="button">Anomalii</button>
-</div>
-<div class="admin-list" id="topEmployees"></div>
-</div>
-</section>
-<!-- A5: Live board (pliabil) -->
-<section class="card admin-card collapsible" data-section="live">
-<h2 class="admin-card-title">
-            Live pontaj
-            <span class="collapse-icon">▼</span>
-</h2>
-<div class="admin-card-body">
-<div class="admin-small-text" id="liveBoardHint">
-<div class="admin-small-text" id="liveBoardSummary" style="margin:6px 0 8px;"></div>
-<span id="liveBoardHintText">
-                Starea curentă a pontajului pentru ziua de azi (START / PAUSE / EXTRA / FINISH).
-              </span>
-</div>
-<div style="margin:6px 0 8px;display:flex;gap:6px;flex-wrap:wrap;">
-<button class="top-toggle active" id="liveBoardTodayBtn" type="button">Azi</button>
-<button class="top-toggle" id="liveBoardPastBtn" type="button">Zile anterioare</button>
-</div>
-<div style="margin:10px 0 6px;display:flex;align-items:center;justify-content:space-between;gap:8px;">
-<div class="admin-small-text" style="margin:0;font-weight:700;">Angajați (status)</div>
-<!-- (opțional) poți pune aici un badge count dacă vrei -->
-</div>
-<div class="admin-list" id="liveBoard"></div>
-<div style="margin:10px 0 6px;display:flex;align-items:center;justify-content:space-between;gap:8px;">
-<div class="admin-small-text" style="margin:0;font-weight:700;">Inactivi azi</div>
-<span class="badge badge-info" id="liveInactiveCount" style="display:none"></span>
-</div>
-<div class="admin-list" id="liveBoardInactive"></div>
-</div>
-</section>
-<!-- A5.5. Admin presence (cine e online) -->
-<section class="card" id="adminPresenceCard">
-<div class="card-head">
-<h3>Admini activi</h3>
-<div class="muted" id="adminPresenceHint">—</div>
-</div>
-<div class="card-body">
-<div class="pres-list" id="adminPresenceList"></div>
-</div>
-</section>
-<!-- A6: Alerte sistem (pliabil) -->
-<section class="card admin-card collapsible" data-section="live">
-<h2 class="admin-card-title">
-            Alerte sistem
-            <span class="collapse-icon">▼</span>
-</h2>
-<div class="admin-card-body">
-<div class="admin-small-text">
-              Ultimele notificări generate de sistem (pontaj uitat, anomalii etc.), venite din Apps Script.
-            </div>
-<div class="admin-list" id="alertsList"></div>
-</div>
-</section>
-<!-- Notițe (pliabil) -->
-<section class="card admin-card collapsible" data-section="live">
-<h2 class="admin-card-title">
-            Notițe
-            <span class="collapse-icon">▼</span>
-</h2>
-<div class="admin-card-body">
-<p class="admin-small-text">
-              Pagina citește datele prin Apps Script (<code>adminEventsEndpoint</code> din <code>config.json</code>).
-              Foaia de pontaj rămâne privată; serverul întoarce un JSON cu evenimente, concedii și meta (alerte, versiune),
-              iar aici calculăm statistici, ore pe zi, overtime și rapoarte PDF/CSV.
-            </p>
-</div>
-</section>
-</aside>
-</main>
-</div>
-<script>(function(){try{const t=document.body.getAttribute('data-page-title')||'Admin';document.title=t;}catch(e){}})();</script><script src="admin-core.js"></script></body>
+            </td>`;
+        }
+
+        tbody += '</tr>';
+      });
+      tbody += '</tbody>';
+
+      tblEl.innerHTML = thead + tbody;
+
+      // show
+      loadingEl.style.display = 'none';
+      tableWrapEl.style.display = '';
+    }
+
+    function escapeHtml(s){
+      return String(s||'').replace(/[&<>"']/g, (c)=>({
+        '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+      }[c]));
+    }
+
+    async function loadMonthData(){
+      loadingEl.style.display = '';
+      tableWrapEl.style.display = 'none';
+
+      if (!CFG) CFG = await loadConfigSmart();
+      const base = adminEndpointBase();
+      if (!base){
+        loadingEl.innerHTML = '<b style="color:#c0392b">Lipsește adminEventsEndpoint în config.json</b>';
+        return;
+      }
+
+      const monthStart = new Date(curYear, curMonth, 1);
+      const monthEnd = new Date(curYear, curMonth+1, 0);
+
+      const url = buildUrl(base, {
+        fn: 'adminEvents',
+        from: ymd(monthStart),
+        to: ymd(monthEnd),
+        v: Date.now()
+      });
+
+      try{
+        const r = await fetch(url, {cache:'no-store'});
+        const txt = await r.text();
+        let data = null;
+        try{ data = JSON.parse(txt); }catch(e){}
+
+        if (!data || !data.ok || !Array.isArray(data.events)){
+          throw new Error('adminEventsEndpoint nu a întors {ok:true, events:[]}.');
+        }
+
+        ALL_EVENTS = data.events.map(ev => ({
+          ts: ev.ts,
+          name: ev.name || '',
+          dept: ev.dept || '',
+          action: String(ev.action||'').toLowerCase().trim()
+        })).filter(ev => ev.ts && ev.name);
+
+        // employees list
+        const set = new Map();
+        for (const ev of ALL_EVENTS){
+          if (!set.has(ev.name)){
+            set.set(ev.name, {name: ev.name, dept: ev.dept || ''});
+          } else if (!set.get(ev.name).dept && ev.dept){
+            set.get(ev.name).dept = ev.dept;
+          }
+        }
+        EMPLOYEES = Array.from(set.values()).sort((a,b)=> a.name.localeCompare(b.name,'ro'));
+
+        render();
+      }catch(err){
+        console.error(err);
+        loadingEl.innerHTML = '<b style="color:#c0392b">Eroare:</b> ' + escapeHtml(err.message || String(err));
+        tableWrapEl.style.display = 'none';
+      }
+    }
+
+    function shiftMonth(delta){
+      curMonth += delta;
+      if (curMonth < 0){
+        curMonth = 11;
+        curYear--;
+      } else if (curMonth > 11){
+        curMonth = 0;
+        curYear++;
+      }
+      loadMonthData();
+    }
+
+    prevBtn.addEventListener('click', ()=> shiftMonth(-1));
+    nextBtn.addEventListener('click', ()=> shiftMonth(+1));
+    qEl.addEventListener('input', ()=> render());
+
+    // init
+    loadMonthData();
+
+  })();
+  </script>
+</body>
 </html>
