@@ -1,518 +1,1032 @@
-<!DOCTYPE html>
-
+<!doctype html>
 <html lang="ro">
 <head>
-<meta charset="utf-8"/>
-<meta content="width=device-width, initial-scale=1" name="viewport"/>
-<title>SERVELECT • Admin Pontaj</title>
-<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
-<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&amp;display=swap" rel="stylesheet"/>
-<link href="favicon.png" rel="icon"/>
-<meta content="#516A75" name="theme-color"/>
-<link href="admin-core.css" rel="stylesheet"/><link href="admin-embed.css" rel="stylesheet"/></head>
-<body class="admin-embed view-dashboard" data-page-title="Dashboard • Admin">
-<div class="shell">
-<nav class="nav card">
-<a aria-label="Spre pontaj" class="brand" href="index.html">
-<img alt="Siglă SERVELECT" src="favicon.png"/>
-<div>
-<h1><span>SERVELECT</span><small>Pontaj &amp; Management Concedii</small></h1>
-</div>
-</a>
-<div class="nav-actions">
-<!-- Înapoi la pontaj -->
-<a class="btn" href="index.html" id="backToTimesheetLink">
-      ← Înapoi la pontaj
-    </a>
-<!-- Badge de context -->
-<div class="chip">Admin dashboard</div>
-<!-- Meniu hamburger (user + Deconectare) -->
-<div class="nav-menu-wrapper">
-<button aria-expanded="false" aria-label="Meniu admin" class="hamburger-btn" id="adminHamburgerBtn" type="button">
-<span class="hamburger-box">
-<span class="hamburger-inner"></span>
-</span>
-</button>
-<div class="nav-menu" id="adminHamburgerMenu">
-<div class="nav-menu-section">
-<div class="nav-menu-user-label">Utilizator logat</div>
-<div class="chip" id="adminLabel">Admin</div>
-</div>
-<div class="nav-menu-section nav-menu-actions">
-<button class="nav-menu-item nav-menu-item-danger" id="logoutBtn" type="button">
-<span>Deconectare</span>
-</button>
-</div>
-</div>
-</div>
-<!-- Self-service: lăsat în DOM pentru script, dar ascuns prin CSS -->
-<a class="btn" href="self.html" id="selfServiceLink" rel="noopener" target="_blank">
-      🧾 Self-service – raportul meu
-    </a>
-</div>
-</nav>
-<main class="admin-layout">
-<section class="admin-main">
-<header class="admin-header">
-<h1>Dashboard</h1>
-<!-- ACȚIUNI HEADER: status + reset filtre + refresh -->
-<div class="admin-header-actions">
-<span class="nav-status" id="lastUpdate"></span>
-<!-- Reset filtre (icon „filter reset”) -->
-<button class="nav-icon-btn" id="resetFiltersBtn" title="Reset: perioadă=astăzi, dept=toate, angajat=toți, zi=null, incomplete=off" type="button">
-<span aria-hidden="true" class="nav-icon">
-<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-<g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8">
-<!-- coadă mătură -->
-<path d="M5 3l11 11"></path>
-<path d="M14 6l4 4"></path>
-<!-- perie -->
-<path d="M11 14l-4 4"></path>
-<path d="M7 18c2-2 6-2 8 0"></path>
-<path d="M6 19c2-2 8-2 10 0"></path>
-<path d="M5 20c2-2 10-2 12 0"></path>
-</g>
-</svg>
-</span>
-</button>
-<!-- Refresh (icon „circular arrows”) -->
-<button class="nav-icon-btn" id="adminRefreshBtn" title="Reîncarcă datele din server" type="button">
-<span aria-hidden="true" class="nav-icon">
-<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-<g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8">
-<path d="M7 2h10"></path>
-<path d="M7 22h10"></path>
-<path d="M7 2c0 6 5 6 5 10s-5 4-5 10"></path>
-<path d="M17 2c0 6-5 6-5 10s5 4 5 10"></path>
-<path d="M10 12h4"></path>
-</g>
-</svg>
-</span>
-</button>
-</div>
-<div class="admin-filter-line">
-<div class="admin-filter-summary">
-<div class="filter-chips" id="filterChips"></div>
-</div>
-<label>
-<span>Perioadă</span>
-<select id="rangeSelect">
-<option value="today">Astăzi</option>
-<option value="last7">Ultimele 7 zile</option>
-<option value="all">Toate datele</option>
-</select>
-</label>
-<label class="label-dept">
-<span>Departament</span>
-<div class="dept-filter-row">
-<select id="deptFilter">
-<option value="all">Toate</option>
-</select>
-<!-- toggle incomplete -> buton verde/galben -->
-<button class="incomplete-btn" id="incompleteToggleBtn" title="Comută între toate zilele și doar zilele incomplete (START / PAUSE / EXTRA deschise)" type="button">
-                  ⚠ Incomplete
-                </button>
-</div>
-</label>
-<label>
-<span>Angajat</span>
-<select id="employeeFilter">
-<option value="all">Toți</option>
-</select>
-</label>
-</div>
-</header>
-<!-- TAB-uri: Dashboard / Alerte LIVE / Rapoarte -->
-<div class="admin-tabs">
-<button class="admin-tab-btn active" data-tab="dashboard" type="button">
-            📊 Dashboard
-          </button>
-<button class="admin-tab-btn" data-tab="alerts" type="button">
-            ⏰ Alerte LIVE
-          </button>
-<a class="admin-tab-btn" href="reports.html" role="button">
-            📑 Rapoarte
-          </a>
-<a class="admin-tab-btn" href="fix-day.html" role="button">
-            🛠️ Fix Day (Editor zi)
-          </a>
-</div>
-<div class="admin-error" id="error" style="display:none"></div>
-<div class="admin-loading" id="loading">Se încarcă datele din server…</div>
-<!-- TAB PRINCIPAL: Dashboard -->
-<section id="dashboard" style="display:none">
-<!-- KPI-uri principale -->
-<div class="admin-kpis">
-<div class="card kpi">
-<div class="kpi-label">Pontaje în filtrul curent</div>
-<div class="kpi-value" id="kpiTotal">–</div>
-</div>
-<div class="card kpi">
-<div class="kpi-label">Angajați implicați</div>
-<div class="kpi-value" id="kpiEmployees">–</div>
-</div>
-<div class="card kpi">
-<div class="kpi-label">START</div>
-<div class="kpi-value" id="kpiStart">–</div>
-</div>
-<div class="card kpi">
-<div class="kpi-label">FINISH</div>
-<div class="kpi-value" id="kpiFinish">–</div>
-</div>
-<div class="card kpi">
-<div class="kpi-label">Norme complete (azi)</div>
-<div class="kpi-value" id="kpiCompletedToday">–</div>
-</div>
-</div>
-<div class="admin-grid">
-<section class="card admin-card" data-section="dept">
-<h2>Distribuție pe departamente</h2>
-<div class="admin-small-text">Număr de pontaje în perioada și filtrele selectate.</div>
-<div class="admin-list" id="deptList"></div>
-</section>
-<section class="card admin-card" data-section="dept">
-<h2 id="lastEventsTitle">Ultimele pontaje</h2>
-<div class="admin-small-text" id="lastEventsHint">
-<span>Perioadă listă:</span>
-<select id="lastEventsRange">
-<option value="today">Ziua curentă</option>
-<option value="week">Săptămâna curentă</option>
-<option value="month">Luna curentă</option>
-<option value="all">Toate înregistrările</option>
-</select>
-<span id="lastEventsHintText">
-                  Toate înregistrările din perioada aleasă, după filtrele de mai sus.
-                </span>
-</div>
-<div class="table-wrap">
-<table class="admin-table">
-<thead>
-<tr>
-<th>Data / ora</th>
-<th>Angajat</th>
-<th>Departament</th>
-<th>Acțiune</th>
-<th>Activitate</th>
-</tr>
-</thead>
-<tbody id="lastEventsBody"></tbody>
-</table>
-</div>
-</section>
-</div>
-<!-- A3: Zile incomplete -->
-<section class="card admin-card" data-section="incomplete">
-<h2>Zile incomplete</h2>
-<div class="admin-small-text">
-              Zile în care există probleme de închidere: START fără FINISH, PAUSE fără UNPAUSE, EXTRA START fără EXTRA FINISH sau sesiune rămasă deschisă (după filtrul curent).
-            </div>
-<div style="margin:6px 0 10px;display:flex;gap:6px;flex-wrap:wrap;">
-<button class="top-toggle active" id="incompleteDayAllBtn" type="button">Toate</button>
-<button class="top-toggle" id="incompleteDayWeekendBtn" type="button">Doar weekend</button>
-<button class="top-toggle" id="incompleteDayWorkBtn" type="button">Doar zile lucrătoare</button>
-</div>
-<div class="table-wrap">
-<table class="admin-table">
-<thead>
-<tr>
-<th>Data</th>
-<th>Angajat</th>
-<th>Departament</th>
-<th>Normă</th>
-<th>Extra</th>
-<th>Stare</th>
-</tr>
-</thead>
-<tbody id="incompleteDaysBody"></tbody>
-</table>
-</div>
-</section>
-<!-- A3: Anomalii -->
-<section class="card admin-card" data-section="anomalies">
-<h2>Anomalii pontaj</h2>
-<div class="admin-small-text">
-              Zile cu posibile probleme de pontaj: pauze neînchise, EXTRA neînchis, pauze prea lungi, ore foarte multe sau pontaj în weekend.
-            </div>
-<div style="margin:6px 0 10px;display:flex;gap:6px;flex-wrap:wrap;">
-<button class="top-toggle active" id="anomalyDayAllBtn" type="button">Toate</button>
-<button class="top-toggle" id="anomalyDayWeekendBtn" type="button">Doar weekend</button>
-<button class="top-toggle" id="anomalyDayWorkBtn" type="button">Doar zile lucrătoare</button>
-</div>
-<div class="table-wrap">
-<table class="admin-table">
-<thead>
-<tr>
-<th>Data</th>
-<th>Angajat</th>
-<th>Departament</th>
-<th>Normă</th>
-<th>Extra</th>
-<th>Detalii</th>
-</tr>
-</thead>
-<tbody id="anomaliesBody"></tbody>
-</table>
-</div>
-</section>
-<!-- Log brut -->
-<section class="card admin-card" data-section="rawlog">
-<h2 id="rawLogTitle">Log brut (filtru curent)</h2>
-<div class="admin-small-text">
-              Lista completă a evenimentelor care trec de filtrele de mai sus — utilă pentru debugging sau verificări rapide.
-            </div>
-<pre class="admin-log" id="rawLog">–</pre>
-</section>
-<!-- A3: Prezență pe zile -->
-<section class="card admin-card" data-section="daily">
-<h2>Prezență pe zile</h2>
-<div class="admin-small-text">
-              Pentru perioada și filtrele de mai sus: câți angajați au avut cel puțin un START, câți au normă completă și câți sunt în concediu.
-            </div>
-<div class="table-wrap">
-<table class="admin-table">
-<thead>
-<tr>
-<th>Data</th>
-<th>Angajați cu pontaj</th>
-<th>Normă completă</th>
-<th>% complet</th>
-<th>Concedii aprobate</th>
-</tr>
-</thead>
-<tbody id="dailyPresenceBody"></tbody>
-</table>
-</div>
-</section>
-<!-- A4: Calendar prezență -->
-<section class="card admin-card" data-section="calendar">
-<h2>Calendar prezență (lună curentă)</h2>
-<div class="admin-small-text">
-              Fiecare zi arată câți angajați au avut pontaj și câți au normă completă, pentru luna curentă. Click pe o zi pentru a filtra mai jos.
-            </div>
-<div style="margin:6px 0 10px;display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap;">
-<button class="top-toggle" id="calPrevBtn" type="button">‹ Luna anterioară</button>
-<div class="chip" id="calendarMonthLabel">–</div>
-<button class="top-toggle" id="calNextBtn" type="button">Luna următoare ›</button>
-</div>
-<div class="calendar-grid" id="presenceCalendar"></div>
-<div class="calendar-legend">
-<span class="calendar-legend-label">Legendă:</span>
-<span class="calendar-legend-item">
-<span class="calendar-legend-box calendar-legend-nodata"></span> fără pontaj
-              </span>
-<span class="calendar-legend-item">
-<span class="calendar-legend-box calendar-legend-low"></span> &lt;50% complet
-              </span>
-<span class="calendar-legend-item">
-<span class="calendar-legend-box calendar-legend-med"></span> 50–90% complet
-              </span>
-<span class="calendar-legend-item">
-<span class="calendar-legend-box calendar-legend-high"></span> &gt;90% complet
-              </span>
-</div>
-<div id="calendarDayDetails" style="display:none;margin-top:12px;">
-<div class="admin-small-text">
-<b>Zi selectată:</b> <span id="calendarSelectedDayLabel">–</span>
-</div>
-<div style="margin:6px 0 6px;font-weight:700;font-size:12px;color:var(--muted);">
-    Inactivi (fără pontaj)
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Admin Dashboard</title>
+  <style>
+    :root{
+      --bg:#f6f5ff;
+      --card:#ffffff;
+      --text:#16162b;
+      --muted:#6e6e8e;
+      --line:#ecebff;
+      --shadow:0 10px 24px rgba(30, 20, 90, .06);
+      --shadow2:0 6px 14px rgba(30, 20, 90, .05);
+      --r:16px;
+      --purple:#6c5ce7;
+      --purple2:#8e44ad;
+      --green:#2ecc71;
+      --red:#ff5c5c;
+      --blue:#4aa3ff;
+      --gray:#9aa3b2;
+      --orange:#f5a623;
+      --cyan:#00c2ff;
+      --pink:#ff4fd8;
+    }
+    html,body{height:100%;}
+    body{
+      margin:0;
+      background:var(--bg);
+      color:var(--text);
+      font:14px/1.4 system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+    }
+
+    /* Container */
+    .wrap{
+      padding: 18px 18px 26px;
+      max-width: 1320px;
+      margin: 0 auto;
+    }
+
+    /* Topbar */
+    .topbar{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      margin-bottom: 14px;
+    }
+    .title{
+      display:flex;
+      align-items:baseline;
+      gap:10px;
+    }
+    .title h1{
+      margin:0;
+      font-weight:700;
+      font-size:18px;
+      letter-spacing:.2px;
+    }
+    .title .sub{
+      color:var(--muted);
+      font-size:12px;
+      font-weight:600;
+    }
+    .actions{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      flex-wrap:wrap;
+    }
+    .pill{
+      background:var(--card);
+      border:1px solid var(--line);
+      border-radius: 999px;
+      padding: 8px 12px;
+      display:flex;
+      align-items:center;
+      gap:8px;
+      box-shadow: var(--shadow2);
+    }
+    .pill input{
+      border:none;
+      outline:none;
+      font:inherit;
+      width: 190px;
+      background:transparent;
+      color:var(--text);
+    }
+    .btn{
+      border:none;
+      background:var(--card);
+      border:1px solid var(--line);
+      border-radius: 12px;
+      padding: 9px 12px;
+      cursor:pointer;
+      box-shadow: var(--shadow2);
+      display:flex;
+      align-items:center;
+      gap:8px;
+      font-weight:700;
+      color:var(--text);
+    }
+    .btn:hover{ transform: translateY(-1px); }
+    .btn:active{ transform: translateY(0px); }
+    .dot{
+      width:8px;height:8px;border-radius:50%;
+      background:var(--purple);
+      box-shadow: 0 0 0 4px rgba(108,92,231,.15);
+    }
+
+    /* KPI grid */
+    .kpi-grid{
+      display:grid;
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      gap: 12px;
+      margin: 10px 0 16px;
+    }
+    @media (max-width: 1200px){
+      .kpi-grid{ grid-template-columns: repeat(4, minmax(0,1fr)); }
+    }
+    @media (max-width: 860px){
+      .kpi-grid{ grid-template-columns: repeat(2, minmax(0,1fr)); }
+      .pill input{ width: 140px; }
+    }
+
+    .kpi-card{
+      background:var(--card);
+      border:1px solid var(--line);
+      border-radius: var(--r);
+      box-shadow: var(--shadow2);
+      padding: 12px 14px 14px;
+      position:relative;
+      overflow:hidden;
+      user-select:none;
+    }
+    .kpi-card::before{
+      content:"";
+      position:absolute;
+      left:0; right:0; top:0;
+      height:4px;
+      background: var(--purple);
+      opacity:.95;
+    }
+    .kpi-card[data-accent="gray"]::before{ background:#c7cbe3;}
+    .kpi-card[data-accent="blue"]::before{ background:var(--blue);}
+    .kpi-card[data-accent="red"]::before{ background:var(--red);}
+    .kpi-card[data-accent="green"]::before{ background:var(--green);}
+    .kpi-card[data-accent="purple"]::before{ background:var(--purple);}
+    .kpi-card[data-accent="cyan"]::before{ background:var(--cyan);}
+    .kpi-card[data-accent="orange"]::before{ background:var(--orange);}
+    .kpi-card[data-accent="pink"]::before{ background:var(--pink);}
+
+    .kpi-label{
+      font-size:12px;
+      color:var(--muted);
+      font-weight:700;
+      letter-spacing:.2px;
+      margin-bottom: 8px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:8px;
+      min-height: 18px;
+    }
+    .kpi-label .chev{
+      opacity:.65;
+      font-weight:900;
+      transform: translateY(-1px);
+    }
+    .kpi-value{
+      font-size:22px;
+      font-weight:800;
+      letter-spacing:.2px;
+      display:flex;
+      align-items:baseline;
+      gap:8px;
+    }
+    .kpi-small{
+      margin-top: 8px;
+      color:var(--muted);
+      font-weight:600;
+      font-size:12px;
+    }
+
+    /* Drag visuals */
+    .kpi-card.dragging{
+      opacity:.55;
+      border-style:dashed;
+    }
+
+    /* Section */
+    .section{
+      background: var(--card);
+      border:1px solid var(--line);
+      border-radius: 20px;
+      box-shadow: var(--shadow);
+      padding: 14px 14px 8px;
+      overflow:hidden;
+    }
+    .section-head{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      padding: 6px 6px 12px;
+    }
+    .section-head h2{
+      margin:0;
+      font-size:15px;
+      font-weight:800;
+      display:flex;
+      align-items:center;
+      gap:10px;
+    }
+    .badge{
+      font-size:11px;
+      font-weight:800;
+      color: var(--purple);
+      background: rgba(108,92,231,.10);
+      border: 1px solid rgba(108,92,231,.22);
+      padding: 3px 8px;
+      border-radius: 999px;
+    }
+
+    /* Table */
+    .table-wrap{
+      overflow:auto;
+      border-top:1px solid var(--line);
+    }
+    table{
+      border-collapse:separate;
+      border-spacing:0;
+      width: 100%;
+      min-width: 1080px;
+      font-size:13px;
+    }
+    thead th{
+      position: sticky;
+      top:0;
+      z-index:5;
+      background: #fff;
+      border-bottom:1px solid var(--line);
+      color: #2a2a45;
+      font-size:11px;
+      letter-spacing:.35px;
+      text-transform:uppercase;
+      font-weight:900;
+      padding: 12px 10px;
+    }
+    tbody td{
+      border-bottom:1px solid #f1f1ff;
+      padding: 12px 10px;
+      color: #1e1e36;
+      vertical-align: middle;
+    }
+    tbody tr:hover td{ background: #fafaff; }
+    th:first-child, td:first-child{
+      position: sticky;
+      left:0;
+      z-index:4;
+      background: #fff;
+      border-right:1px solid var(--line);
+    }
+    tr:hover td:first-child{ background:#fafaff; }
+
+    .emp{
+      display:flex; align-items:center; gap:10px;
+      min-width: 220px;
+    }
+    .idx{
+      width:22px; text-align:center; color: var(--muted); font-weight:800;
+    }
+    .avatar{
+      width:34px;height:34px;border-radius:50%;
+      background: linear-gradient(135deg, rgba(108,92,231,.20), rgba(142,68,173,.18));
+      display:grid; place-items:center;
+      font-weight:900; color: var(--purple);
+      border: 1px solid rgba(108,92,231,.20);
+      flex:0 0 auto;
+    }
+    .emp-meta{display:flex; flex-direction:column; line-height:1.15;}
+    .emp-name{ font-weight:900; }
+    .emp-dept{ font-size:11px; color: var(--muted); font-weight:700; margin-top:2px; }
+
+    .progress{
+      height:10px;
+      background:#eff0ff;
+      border-radius:999px;
+      overflow:hidden;
+      border: 1px solid rgba(108,92,231,.12);
+      min-width: 240px;
+    }
+    .bar{
+      height:100%;
+      width:0%;
+      background: linear-gradient(90deg, rgba(46,204,113,.95), rgba(46,204,113,.55));
+      border-radius:999px;
+      transition: width .25s ease;
+    }
+    .muted{ color: var(--muted); font-weight:700; }
+    .num{ font-weight:900; }
+    .neg{ color: var(--red); font-weight:900; }
+    .pos{ color: var(--green); font-weight:900; }
+
+    .footnote{
+      padding: 10px 6px 2px;
+      color: var(--muted);
+      font-weight:700;
+      font-size:12px;
+      display:flex;
+      align-items:center;
+      gap:10px;
+      flex-wrap:wrap;
+    }
+    .legend{
+      display:flex; gap:14px; align-items:center; flex-wrap:wrap;
+    }
+    .leg{
+      display:flex; align-items:center; gap:6px;
+      font-weight:800;
+    }
+    .sw{
+      width:10px; height:10px; border-radius:50%;
+      background: var(--gray);
+      box-shadow: 0 0 0 4px rgba(154,163,178,.18);
+    }
+    .sw.prog{ background: var(--purple); box-shadow:0 0 0 4px rgba(108,92,231,.16);}
+    .sw.sub{ background: var(--red); box-shadow:0 0 0 4px rgba(255,92,92,.14);}
+    .sw.ok{ background: var(--green); box-shadow:0 0 0 4px rgba(46,204,113,.14);}
+    .sw.over{ background: var(--orange); box-shadow:0 0 0 4px rgba(245,166,35,.16);}
+    .sw.off{ background: #cbd3e1; box-shadow:0 0 0 4px rgba(203,211,225,.18);}
+    .sw.pause{ background: var(--pink); box-shadow:0 0 0 4px rgba(255,79,216,.14);}
+
+    /* Skeleton / loading */
+    .loading{
+      background: var(--card);
+      border:1px solid var(--line);
+      border-radius: 20px;
+      padding: 18px;
+      box-shadow: var(--shadow);
+      margin-top: 10px;
+      display:flex;
+      align-items:center;
+      gap:10px;
+      color: var(--muted);
+      font-weight:800;
+    }
+    .spinner{
+      width:18px;height:18px;border-radius:50%;
+      border: 3px solid rgba(108,92,231,.18);
+      border-top-color: rgba(108,92,231,.85);
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin{ to { transform: rotate(360deg); } }
+
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="topbar">
+      <div class="title">
+        <h1>Dashboard</h1>
+        <div class="sub" id="lastUpdated">—</div>
+      </div>
+
+      <div class="actions">
+        <div class="pill" title="Caută angajat în rezumat">
+          <span class="dot" aria-hidden="true"></span>
+          <input id="searchEmployee" placeholder="Caută angajat" />
+        </div>
+        <button class="btn" id="btnRefresh" type="button">
+          ↻ Refresh
+        </button>
+      </div>
+    </div>
+
+    <div class="kpi-grid" id="kpiGrid" aria-label="KPI Cards">
+      <!-- Cards are injected by JS (order persisted) -->
+    </div>
+
+    <div id="loading" class="loading">
+      <div class="spinner" aria-hidden="true"></div>
+      Se încarcă datele din adminEvents...
+    </div>
+
+    <div id="content" style="display:none;">
+      <div class="section">
+        <div class="section-head">
+          <h2>
+            <span style="display:inline-block;transform:translateY(-1px)">🗓️</span>
+            <span id="todayTitle">Astăzi — Rezumat</span>
+            <span class="badge" id="employeeCountBadge">0 angajați</span>
+          </h2>
+          <div class="pill" style="box-shadow:none;border-radius:12px;">
+            <span style="color:var(--muted);font-weight:900;">🔎</span>
+            <input id="tableSearch" placeholder="Caută angajat" style="width:180px;" />
+          </div>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th style="min-width:260px;">Angajat</th>
+                <th>Manager</th>
+                <th style="min-width:280px;">Activitate</th>
+                <th>Raport lunar până la ziua curentă</th>
+                <th>Balanță bancă de ore</th>
+                <th>Zile concediu disponibile total</th>
+                <th>Zile concediu disponibile la zi</th>
+                <th>Solicitări de înregistrat</th>
+              </tr>
+            </thead>
+            <tbody id="summaryBody"></tbody>
+          </table>
+        </div>
+
+        <div class="footnote">
+          <span>Condiția de prezență nu conține timp activ (pontaje neîncheiate)</span>
+          <div class="legend" aria-label="Legendă">
+            <span class="leg"><span class="sw prog"></span>În progres</span>
+            <span class="leg"><span class="sw sub"></span>Sub normă</span>
+            <span class="leg"><span class="sw ok"></span>Complet</span>
+            <span class="leg"><span class="sw over"></span>Peste normă</span>
+            <span class="leg"><span class="sw off"></span>Inactiv/absent</span>
+            <span class="leg"><span class="sw pause"></span>În pauză</span>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
-<div class="admin-list" id="calendarInactiveList"></div>
-</div>
-</section>
-<!-- A2: Index & detalii angajat -->
-<div class="admin-grid">
-<section class="card admin-card" data-section="employees">
-<h2>Index angajați</h2>
-<div class="admin-small-text">
-                Listă angajați (după filtrul de departament). Click pe un nume pentru a vedea statistici detaliate (all time).
-              </div>
-<div class="admin-filter-line" style="margin:8px 0 6px;">
-<label style="flex:1;">
-<span>Caută angajat / departament</span>
-<input id="employeeSearch" placeholder="Tastează pentru a filtra..." type="text"/>
-</label>
-</div>
-<div class="admin-list" id="employeeIndexList"></div>
-</section>
-<section class="card admin-card" data-section="employees">
-<h2>Detalii angajat</h2>
-<div class="admin-small-text" id="employeeDetailsHeader">
-                Selectează un angajat din listă pentru a vedea situația pe toate zilele (normă, extra, overtime, zile complete, concediu).
-              </div>
-<a class="btn" href="#" id="employeeSelfLink" rel="noopener" style="display:none;margin:8px 0 10px" target="_blank">
-  🧾 Deschide pontajul angajatului
-</a>
-<div id="employeeDetailsBody">
-<div class="admin-empty">Niciun angajat selectat.</div>
-</div>
-</section>
-</div>
-</section>
-<!-- TAB NOU: Alerte LIVE -->
-<section id="alertsPage" style="display:none">
-<div class="admin-filter-line" style="margin:0 0 10px;">
-<label>
-<span>Tip alertă</span>
-<select id="alertsTypeFilter">
-<option value="all">Toate</option>
-<option value="pause">Pauză</option>
-<option value="norm">Normă</option>
-<option value="extra">Extra</option>
-<option value="system">Sistem</option>
-</select>
-</label>
-<label>
-<span>Departament</span>
-<select id="alertsDeptFilter">
-<option value="all">Toate</option>
-</select>
-</label>
-<label style="flex:1;min-width:220px;">
-<span>Caută</span>
-<input id="alertsSearch" placeholder="Nume / mesaj..." type="text"/>
-</label>
-</div>
-<section class="card admin-card" data-section="alerts">
-<h2>Alerte LIVE pe ziua curentă</h2>
-<div class="admin-small-text">
-              Monitorizare în timp real (client-side) pentru:
-              <ul style="margin:4px 0 0 16px;padding:0;font-size:11px;color:var(--muted);">
-<li>Pauză &gt; limită (implicit 40 min, din configurare) fără UNPAUSE – notificări din 15 în 15 minute.</li>
-<li>Normă depășită (8h / 8h30 sau valori din <code>normSettings</code>) fără FINISH – notificări din 30 în 30 de minute.</li>
-<li>EXTRA în curs &gt; 30 min – notificări din 15 în 15 minute.</li>
-</ul>
-</div>
-<div class="admin-list" id="liveAlertsActive"></div>
-</section>
-<section class="card admin-card" data-section="alerts">
-<h2>Istoric notificări în sesiunea curentă</h2>
-<div class="admin-small-text">
-              Fiecare depășire generează o notificare inițială, apoi încă una la fiecare interval (15 / 30 min) cât timp condiția rămâne activă.
-              Istoricul este local, doar pentru sesiunea curentă a paginii.
+
+<script>
+(() => {
+  // ======= Config + Fetch =======
+  let CFG = null;
+  let ALL_EVENTS = [];
+  let ROWS_CACHE = [];
+  const TZ = 'Europe/Bucharest';
+  const LS_ORDER_KEY = 'pv_admin_dashboard_card_order_v1';
+
+  const CARD_DEFS = [
+    // Look like Papervee
+    {id:'workToday', label:'Timp total lucrat astăzi', accent:'gray', format:'time'},
+    {id:'pauseToday', label:'Timp total în pauză astăzi', accent:'blue', format:'time'},
+    {id:'activeNow', label:'Angajați cu timp activ', accent:'purple'},
+    {id:'underNorm', label:'Angajați sub normă', accent:'red'},
+    {id:'complete', label:'Angajați cu timp complet', accent:'green', chev:true},
+    {id:'overNorm', label:'Angajați peste normă', accent:'orange'},
+    {id:'inactive', label:'Angajați inactivi', accent:'gray', chev:true},
+    {id:'leave', label:'Angajați în concediu', accent:'blue'},
+    {id:'event', label:'Angajați în eveniment', accent:'purple'},
+    {id:'pausedNow', label:'Angajați în pauză', accent:'pink'},
+
+    // Your existing KPI cards
+    {id:'eventsInRange', label:'Pontaje în filtrul curent', accent:'gray'},
+    {id:'employeesInRange', label:'Angajați implicați', accent:'purple'},
+    {id:'cntSTART', label:'START', accent:'green'},
+    {id:'cntFINISH', label:'FINISH', accent:'green'},
+    {id:'cntPAUSE', label:'PAUZĂ', accent:'pink'},
+    {id:'cntUNPAUSE', label:'UNPAUSE', accent:'pink'},
+    {id:'cntEXTRA_START', label:'EXTRA START', accent:'cyan'},
+    {id:'cntEXTRA_FINISH', label:'EXTRA FINISH', accent:'cyan'},
+  ];
+
+  function qs(sel, root=document){ return root.querySelector(sel); }
+  function qsa(sel, root=document){ return Array.from(root.querySelectorAll(sel)); }
+
+  async function loadConfig(){
+    const r = await fetch('config.json?v=' + Date.now(), {cache:'no-store'});
+    if (!r.ok) throw new Error('Nu pot citi config.json (HTTP ' + r.status + ').');
+    return r.json();
+  }
+
+  function adminEndpointBase(cfg){
+    const raw = cfg.adminEventsEndpoint || cfg.webappUrl || cfg.scriptUrl || '';
+    return String(raw || '').replace(/\?.*$/, '').trim();
+  }
+
+  async function fetchAdminEvents(){
+    const base = adminEndpointBase(CFG);
+    if (!base) throw new Error('Lipsește adminEventsEndpoint/webappUrl în config.json');
+    const url = base + '?fn=adminEvents&v=' + Date.now();
+    const r = await fetch(url, {cache:'no-store'});
+    const txt = await r.text();
+    let data;
+    try{ data = JSON.parse(txt); }catch(e){ throw new Error('Răspuns invalid (JSON) de la adminEventsEndpoint.'); }
+    if (!data || !data.ok || !Array.isArray(data.events)){
+      throw new Error('adminEventsEndpoint nu a întors un obiect ok cu events[].');
+    }
+    return data;
+  }
+
+  // ======= Time helpers =======
+  function pad2(n){ return String(n).padStart(2,'0'); }
+  function fmtDateRO(d){
+    const dd = pad2(d.getDate());
+    const mm = pad2(d.getMonth()+1);
+    const yy = d.getFullYear();
+    return `${dd}.${mm}.${yy}`;
+  }
+  function fmtTimeHHMM(mins){
+    mins = Math.max(0, Math.round(mins));
+    const h = Math.floor(mins/60);
+    const m = mins%60;
+    return `${pad2(h)}:${pad2(m)}`;
+  }
+  function toDate(v){
+    const d = (v instanceof Date) ? v : new Date(v);
+    return isNaN(d.getTime()) ? null : d;
+  }
+  function ymdLocal(d){
+    // Use local timezone; good enough for Bucharest on client
+    return `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`;
+  }
+  function sameYMD(a,b){ return ymdLocal(a) === ymdLocal(b); }
+
+  // ======= Domain logic (per employee day) =======
+  const ACTIONS = {
+    START: ['START','INCEPE','ÎNCEPE','START_WORK','WORK_START'],
+    PAUSE: ['PAUSE','PAUZA','PAUZĂ','PAUSE_START','BREAK_START'],
+    UNPAUSE: ['UNPAUSE','REIA','REIA_MUNCA','REIA MUNCA','BREAK_END','PAUSE_END'],
+    FINISH: ['FINISH','FINALIZEAZA','FINALIZEAZĂ','STOP','STOP_WORK','WORK_END'],
+    EXTRA_START: ['EXTRA_START','EXTRA INCEPE','EXTRA ÎNCEPE','EXTRA_START_WORK'],
+    EXTRA_FINISH: ['EXTRA_FINISH','EXTRA STOP','EXTRA FINAL','EXTRA_END'],
+    VOID: ['VOID','IGNORE','DELETED']
+  };
+  function normalizeAction(raw){
+    const up = String(raw||'').trim().toUpperCase();
+    const m = (key) => ACTIONS[key].some(v => up === v);
+    if (m('START')) return 'START';
+    if (m('PAUSE')) return 'PAUSE';
+    if (m('UNPAUSE')) return 'UNPAUSE';
+    if (m('FINISH')) return 'FINISH';
+    if (m('EXTRA_START')) return 'EXTRA_START';
+    if (m('EXTRA_FINISH')) return 'EXTRA_FINISH';
+    if (m('VOID')) return 'VOID';
+    return up || 'UNKNOWN';
+  }
+
+  function calcDayForEmployee(eventsSorted){
+    // eventsSorted: [{ts, action}] only for a single employee and day, sorted by ts
+    let workMin = 0;
+    let pauseMin = 0;
+    let started = false;
+    let finished = false;
+    let inPause = false;
+
+    let segStart = null;
+    let pauseStart = null;
+
+    for (const ev of eventsSorted){
+      const a = normalizeAction(ev.action);
+      const t = toDate(ev.ts);
+      if (!t) continue;
+      if (a === 'VOID') continue;
+
+      if (a === 'START' || a === 'UNPAUSE'){
+        if (!started){
+          started = true;
+        }
+        if (inPause){
+          // end pause
+          if (pauseStart){
+            pauseMin += (t - pauseStart)/60000;
+          }
+          inPause = false;
+          pauseStart = null;
+        }
+        if (!finished){
+          if (!segStart) segStart = t;
+        }
+      }
+
+      if (a === 'PAUSE'){
+        if (started && !finished){
+          if (segStart){
+            workMin += (t - segStart)/60000;
+            segStart = null;
+          }
+          if (!inPause){
+            inPause = true;
+            pauseStart = t;
+          }
+        }
+      }
+
+      if (a === 'FINISH'){
+        if (started && !finished){
+          if (inPause){
+            // close pause at finish (optional)
+            if (pauseStart){
+              pauseMin += (t - pauseStart)/60000;
+            }
+            inPause = false;
+            pauseStart = null;
+          }
+          if (segStart){
+            workMin += (t - segStart)/60000;
+            segStart = null;
+          }
+          finished = true;
+        }
+      }
+    }
+
+    // If open segment (in progress), do NOT auto-close (matches “pontaj neîncheiat” note)
+    // We still can mark active/paused states:
+    const activeNow = started && !finished && !inPause;
+    const pausedNow = started && !finished && inPause;
+
+    return {workMin, pauseMin, started, finished, activeNow, pausedNow};
+  }
+
+  function buildIndices(events){
+    // Normalize minimal shape
+    const out = events.map(ev => ({
+      ts: ev.ts || ev.timestamp || ev.date || ev.time,
+      name: ev.name || ev.employee || ev.user || '',
+      email: ev.email || '',
+      dept: ev.dept || ev.department || '',
+      action: ev.action || ev.type || '',
+      manager: ev.manager || '',
+      activity: ev.activity || '',
+      location: ev.location || ''
+    })).filter(e => e.ts && (e.name || e.email));
+
+    // parse dates
+    out.forEach(e => { e._d = toDate(e.ts); e._ymd = e._d ? ymdLocal(e._d) : null; e._a = normalizeAction(e.action); });
+
+    return out.filter(e => e._d && e._ymd);
+  }
+
+  function uniqEmployees(events){
+    const map = new Map();
+    for (const e of events){
+      const key = (e.email || e.name).toLowerCase();
+      if (!map.has(key)){
+        map.set(key, {key, name:e.name || e.email, email:e.email||'', dept:e.dept||'', manager:e.manager||''});
+      }
+    }
+    return Array.from(map.values()).sort((a,b)=> (a.name||'').localeCompare(b.name||''));
+  }
+
+  function groupByEmployeeDay(events, dayYMD){
+    const m = new Map(); // key -> events
+    for (const e of events){
+      if (e._ymd !== dayYMD) continue;
+      const key = (e.email || e.name).toLowerCase();
+      if (!m.has(key)) m.set(key, []);
+      m.get(key).push(e);
+    }
+    // sort
+    for (const [k, arr] of m){
+      arr.sort((a,b)=> a._d - b._d);
+    }
+    return m;
+  }
+
+  function calcMonthTotals(events, year, month){
+    // returns Map(empKey -> workMinMonth)
+    const m = new Map();
+    const ym = `${year}-${pad2(month+1)}`;
+    // group per employee per day in month
+    const byEmpDay = new Map();
+    for (const e of events){
+      if (!e._ymd || !e._ymd.startsWith(ym)) continue;
+      const key = (e.email || e.name).toLowerCase();
+      const dkey = key + '|' + e._ymd;
+      if (!byEmpDay.has(dkey)) byEmpDay.set(dkey, []);
+      byEmpDay.get(dkey).push(e);
+    }
+    for (const [dkey, arr] of byEmpDay){
+      arr.sort((a,b)=> a._d - b._d);
+      const empKey = dkey.split('|')[0];
+      const dayCalc = calcDayForEmployee(arr);
+      m.set(empKey, (m.get(empKey)||0) + dayCalc.workMin);
+    }
+    return m;
+  }
+
+  function expectedMinutesSoFar(year, month, normMin){
+    // Workdays from 1st to today (inclusive) excluding weekends
+    const now = new Date();
+    const endDay = (now.getFullYear()===year && now.getMonth()===month) ? now.getDate() : new Date(year, month+1, 0).getDate();
+    let workdays = 0;
+    for (let d=1; d<=endDay; d++){
+      const dt = new Date(year, month, d);
+      const wd = dt.getDay(); // 0 Sun 6 Sat
+      if (wd === 0 || wd === 6) continue;
+      workdays++;
+    }
+    return workdays * normMin;
+  }
+
+  // ======= KPI Cards =======
+  function cardTemplate(def){
+    const el = document.createElement('div');
+    el.className = 'kpi-card';
+    el.dataset.cardId = def.id;
+    el.dataset.accent = def.accent || 'purple';
+    el.draggable = true;
+
+    el.innerHTML = `
+      <div class="kpi-label">
+        <span>${escapeHtml(def.label)}</span>
+        <span class="chev">${def.chev ? '▾' : ''}</span>
+      </div>
+      <div class="kpi-value" id="val_${escapeAttr(def.id)}">—</div>
+      <div class="kpi-small" id="sub_${escapeAttr(def.id)}"></div>
+    `;
+    return el;
+  }
+
+  function escapeHtml(s){ return String(s||'').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+  function escapeAttr(s){ return String(s||'').replace(/[^a-zA-Z0-9_\-]/g,'_'); }
+
+  function buildKpiGrid(){
+    const grid = qs('#kpiGrid');
+    grid.innerHTML = '';
+
+    const desiredOrder = loadCardOrder();
+    const defsById = new Map(CARD_DEFS.map(d => [d.id, d]));
+    const ordered = [];
+    desiredOrder.forEach(id => { if (defsById.has(id)) ordered.push(defsById.get(id)); });
+    // add missing
+    CARD_DEFS.forEach(d => { if (!ordered.some(x=>x.id===d.id)) ordered.push(d); });
+
+    ordered.forEach(def => grid.appendChild(cardTemplate(def)));
+    makeCardsDraggable(grid);
+  }
+
+  function loadCardOrder(){
+    try{
+      const raw = localStorage.getItem(LS_ORDER_KEY);
+      const arr = raw ? JSON.parse(raw) : null;
+      return Array.isArray(arr) ? arr : [];
+    }catch{ return []; }
+  }
+
+  function saveCardOrder(){
+    const grid = qs('#kpiGrid');
+    const ids = qsa('.kpi-card', grid).map(x => x.dataset.cardId);
+    try{ localStorage.setItem(LS_ORDER_KEY, JSON.stringify(ids)); }catch{}
+  }
+
+  function setCardValue(id, value, sub=''){
+    const val = qs('#val_' + escapeAttr(id));
+    const subEl = qs('#sub_' + escapeAttr(id));
+    if (val) val.textContent = value;
+    if (subEl) subEl.textContent = sub;
+  }
+
+  function makeCardsDraggable(container){
+    let dragging = null;
+
+    container.addEventListener('dragstart', (e) => {
+      const card = e.target.closest('.kpi-card');
+      if (!card) return;
+      dragging = card;
+      card.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+      try{ e.dataTransfer.setData('text/plain', card.dataset.cardId); }catch{}
+    });
+
+    container.addEventListener('dragend', () => {
+      if (dragging){
+        dragging.classList.remove('dragging');
+        dragging = null;
+        saveCardOrder();
+      }
+    });
+
+    container.addEventListener('dragover', (e) => {
+      if (!dragging) return;
+      e.preventDefault();
+      const after = getDragAfterElement(container, e.clientX, e.clientY);
+      if (after == null){
+        container.appendChild(dragging);
+      } else {
+        container.insertBefore(dragging, after);
+      }
+    });
+
+    function getDragAfterElement(container, x, y){
+      const draggableElements = [...container.querySelectorAll('.kpi-card:not(.dragging)')];
+      let closest = { offset: Number.NEGATIVE_INFINITY, element: null };
+      for (const el of draggableElements){
+        const box = el.getBoundingClientRect();
+        const offset = (y - (box.top + box.height / 2));
+        if (offset < 0 && offset > closest.offset){
+          closest = { offset, element: el };
+        }
+      }
+      return closest.element;
+    }
+  }
+
+  // ======= Summary table =======
+  function renderSummaryTable(rows){
+    const body = qs('#summaryBody');
+    body.innerHTML = '';
+
+    const search = (qs('#tableSearch').value || '').trim().toLowerCase();
+
+    const filtered = rows.filter(r => (r.name||'').toLowerCase().includes(search));
+    qs('#employeeCountBadge').textContent = `${filtered.length} angajați`;
+
+    let idx=0;
+    for (const r of filtered){
+      idx++;
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>
+          <div class="emp">
+            <div class="idx">${idx}</div>
+            <div class="avatar">${escapeHtml(r.initials)}</div>
+            <div class="emp-meta">
+              <div class="emp-name">${escapeHtml(r.name)}</div>
+              <div class="emp-dept">${escapeHtml(r.dept || '—')}</div>
             </div>
-<div class="table-wrap">
-<table class="admin-table">
-<thead>
-<tr>
-<th>Moment</th>
-<th>Angajat</th>
-<th>Departament</th>
-<th>Tip</th>
-<th>Mesaj</th>
-</tr>
-</thead>
-<tbody id="liveAlertsHistoryBody"></tbody>
-</table>
-</div>
-</section>
-<!-- NOU: Alerte istorice din sistem (toate zilele anterioare) -->
-<section class="card admin-card" data-section="alerts">
-<h2>Alerte istorice din sistem</h2>
-<div class="admin-small-text">
-              Alerte generate de Apps Script pentru toate zilele (inclusiv cele anterioare), pe baza datelor salvate în foaia de pontaj.
+          </div>
+        </td>
+        <td class="muted">${escapeHtml(r.manager || '—')}</td>
+        <td>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <div class="progress" title="Lucrat azi / normă">
+              <div class="bar" style="width:${Math.max(0, Math.min(100, r.workPct))}%;"></div>
             </div>
-<div class="table-wrap">
-<table class="admin-table">
-<thead>
-<tr>
-<th>Moment</th>
-<th>Angajat</th>
-<th>Departament</th>
-<th>Tip</th>
-<th>Mesaj</th>
-</tr>
-</thead>
-<tbody id="systemAlertsHistoryBody"></tbody>
-</table>
-</div>
-</section>
-</section>
-</section>
-<aside class="admin-side">
-<!-- A2: Top angajați (pliabil) -->
-<section class="card admin-card collapsible" data-section="live">
-<h2 class="admin-card-title">
-            Top angajați
-            <span class="collapse-icon">▼</span>
-</h2>
-<div class="admin-card-body">
-<div class="admin-small-text">
-              Clasament all time:
-              <button class="top-toggle active" id="topModeHours" type="button">Ore normă</button>
-<button class="top-toggle" id="topModeAnomalies" type="button">Anomalii</button>
-</div>
-<div class="admin-list" id="topEmployees"></div>
-</div>
-</section>
-<!-- A5: Live board (pliabil) -->
-<section class="card admin-card collapsible" data-section="live">
-<h2 class="admin-card-title">
-            Live pontaj
-            <span class="collapse-icon">▼</span>
-</h2>
-<div class="admin-card-body">
-<div class="admin-small-text" id="liveBoardHint">
-<div class="admin-small-text" id="liveBoardSummary" style="margin:6px 0 8px;"></div>
-<span id="liveBoardHintText">
-                Starea curentă a pontajului pentru ziua de azi (START / PAUSE / EXTRA / FINISH).
-              </span>
-</div>
-<div style="margin:6px 0 8px;display:flex;gap:6px;flex-wrap:wrap;">
-<button class="top-toggle active" id="liveBoardTodayBtn" type="button">Azi</button>
-<button class="top-toggle" id="liveBoardPastBtn" type="button">Zile anterioare</button>
-</div>
-<div style="margin:10px 0 6px;display:flex;align-items:center;justify-content:space-between;gap:8px;">
-<div class="admin-small-text" style="margin:0;font-weight:700;">Angajați (status)</div>
-<!-- (opțional) poți pune aici un badge count dacă vrei -->
-</div>
-<div class="admin-list" id="liveBoard"></div>
-<div style="margin:10px 0 6px;display:flex;align-items:center;justify-content:space-between;gap:8px;">
-<div class="admin-small-text" style="margin:0;font-weight:700;">Inactivi azi</div>
-<span class="badge badge-info" id="liveInactiveCount" style="display:none"></span>
-</div>
-<div class="admin-list" id="liveBoardInactive"></div>
-</div>
-</section>
-<!-- A5.5. Admin presence (cine e online) -->
-<section class="card" id="adminPresenceCard">
-<div class="card-head">
-<h3>Admini activi</h3>
-<div class="muted" id="adminPresenceHint">—</div>
-</div>
-<div class="card-body">
-<div class="pres-list" id="adminPresenceList"></div>
-</div>
-</section>
-<!-- A6: Alerte sistem (pliabil) -->
-<section class="card admin-card collapsible" data-section="live">
-<h2 class="admin-card-title">
-            Alerte sistem
-            <span class="collapse-icon">▼</span>
-</h2>
-<div class="admin-card-body">
-<div class="admin-small-text">
-              Ultimele notificări generate de sistem (pontaj uitat, anomalii etc.), venite din Apps Script.
-            </div>
-<div class="admin-list" id="alertsList"></div>
-</div>
-</section>
-<!-- Notițe (pliabil) -->
-<section class="card admin-card collapsible" data-section="live">
-<h2 class="admin-card-title">
-            Notițe
-            <span class="collapse-icon">▼</span>
-</h2>
-<div class="admin-card-body">
-<p class="admin-small-text">
-              Pagina citește datele prin Apps Script (<code>adminEventsEndpoint</code> din <code>config.json</code>).
-              Foaia de pontaj rămâne privată; serverul întoarce un JSON cu evenimente, concedii și meta (alerte, versiune),
-              iar aici calculăm statistici, ore pe zi, overtime și rapoarte PDF/CSV.
-            </p>
-</div>
-</section>
-</aside>
-</main>
-</div>
-<script>(function(){try{const t=document.body.getAttribute('data-page-title')||'Admin';document.title=t;}catch(e){}})();</script><script src="admin-core.js"></script></body>
+            <div class="num">${escapeHtml(r.workLabel)}</div>
+          </div>
+        </td>
+        <td class="${r.monthDeltaClass}">${escapeHtml(r.monthDeltaLabel)}</td>
+        <td class="${r.bankClass}">${escapeHtml(r.bankLabel)}</td>
+        <td class="muted">${escapeHtml(r.leaveTotal)}</td>
+        <td class="muted">${escapeHtml(r.leaveToDay)}</td>
+        <td class="muted">${escapeHtml(r.requests)}</td>
+      `;
+      body.appendChild(tr);
+    }
+  }
+
+  // ======= Compute everything =======
+  function computeDashboard(){
+    const now = new Date();
+    const todayYMD = ymdLocal(now);
+    qs('#todayTitle').textContent = `Astăzi, ${fmtDateRO(now)} — Rezumat`;
+    qs('#lastUpdated').textContent = 'Actualizat: ' + now.toLocaleTimeString('ro-RO', {hour:'2-digit', minute:'2-digit'});
+
+    const employees = uniqEmployees(ALL_EVENTS);
+    const byEmpToday = groupByEmployeeDay(ALL_EVENTS, todayYMD);
+
+    const normMin = 8 * 60; // simplu: 8h
+
+    let totalWorkMin = 0;
+    let totalPauseMin = 0;
+
+    let activeNow = 0;
+    let pausedNow = 0;
+
+    let underNorm = 0;
+    let complete = 0;
+    let overNorm = 0;
+
+    let employeesWithEventsToday = 0;
+
+    // Counts actions in current filter (today)
+    const actionCounts = {
+      START:0, FINISH:0, PAUSE:0, UNPAUSE:0, EXTRA_START:0, EXTRA_FINISH:0
+    };
+
+    for (const e of ALL_EVENTS){
+      if (e._ymd === todayYMD && e._a && e._a !== 'VOID'){
+        if (actionCounts[e._a] != null) actionCounts[e._a]++;
+      }
+    }
+
+    const dayCalcs = new Map(); // empKey -> calc
+    for (const emp of employees){
+      const arr = byEmpToday.get(emp.key) || [];
+      if (arr.length) employeesWithEventsToday++;
+
+      const calc = calcDayForEmployee(arr);
+      dayCalcs.set(emp.key, calc);
+
+      totalWorkMin += calc.workMin;
+      totalPauseMin += calc.pauseMin;
+
+      if (calc.activeNow) activeNow++;
+      if (calc.pausedNow) pausedNow++;
+
+      // classification using worked minutes only (ignore open segment)
+      if (calc.workMin <= 0 && !arr.length){
+        // inactive
+      } else if (calc.workMin < normMin){
+        underNorm++;
+      } else {
+        // complet vs peste normă (toleranță 15 minute)
+        const tol = 15; // minute
+        if (calc.workMin <= normMin + tol) complete++;
+        else overNorm++;
+      }
+    }
+
+    const population = employees.length;
+    const inactive = Math.max(0, population - employeesWithEventsToday);
+
+    // these are optional without leave/event data
+    const leave = 0;
+    const event = 0;
+
+    // KPI cards values
+    setCardValue('workToday', fmtTimeHHMM(totalWorkMin));
+    setCardValue('pauseToday', fmtTimeHHMM(totalPauseMin));
+    setCardValue('activeNow', String(activeNow));
+    setCardValue('pausedNow', String(pausedNow));
+    setCardValue('underNorm', String(underNorm));
+    setCardValue('complete', String(complete));
+    setCardValue('overNorm', String(overNorm));
+    setCardValue('inactive', String(inactive));
+    setCardValue('leave', String(leave));
+    setCardValue('event', String(event));
+
+    setCardValue('eventsInRange', String(ALL_EVENTS.filter(e => e._ymd === todayYMD && e._a !== 'VOID').length));
+    setCardValue('employeesInRange', String(employeesWithEventsToday));
+    setCardValue('cntSTART', String(actionCounts.START));
+    setCardValue('cntFINISH', String(actionCounts.FINISH));
+    setCardValue('cntPAUSE', String(actionCounts.PAUSE));
+    setCardValue('cntUNPAUSE', String(actionCounts.UNPAUSE));
+    setCardValue('cntEXTRA_START', String(actionCounts.EXTRA_START));
+    setCardValue('cntEXTRA_FINISH', String(actionCounts.EXTRA_FINISH));
+
+    // summary rows
+    const monthTotals = calcMonthTotals(ALL_EVENTS, now.getFullYear(), now.getMonth());
+    const expected = expectedMinutesSoFar(now.getFullYear(), now.getMonth(), normMin);
+
+    const rows = employees.map(emp => {
+      const c = dayCalcs.get(emp.key) || {workMin:0};
+      const initials = (emp.name || '').split(/\s+/).filter(Boolean).slice(0,2).map(s=>s[0].toUpperCase()).join('') || '•';
+      const workPct = (normMin > 0) ? (c.workMin / normMin * 100) : 0;
+
+      const workedMonth = monthTotals.get(emp.key) || 0;
+      const delta = workedMonth - expected;
+      const deltaLabel = (delta>=0?'+':'-') + fmtTimeHHMM(Math.abs(delta));
+      const deltaClass = delta>=0 ? 'pos' : 'neg';
+
+      // bank = same as delta for now
+      const bankLabel = deltaLabel;
+      const bankClass = deltaClass;
+
+      return {
+        name: emp.name || emp.email,
+        dept: emp.dept,
+        manager: emp.manager || '—',
+        initials,
+        workPct,
+        workLabel: fmtTimeHHMM(c.workMin),
+        monthDeltaLabel: deltaLabel,
+        monthDeltaClass: deltaClass,
+        bankLabel,
+        bankClass,
+        leaveTotal: '—',
+        leaveToDay: '—',
+        requests: '0'
+      };
+    });
+
+    // sort by name
+    rows.sort((a,b)=> (a.name||'').localeCompare(b.name||''));
+    ROWS_CACHE = rows;
+    renderSummaryTable(ROWS_CACHE);
+  }
+
+  // ======= Init =======
+  async function init(){
+    buildKpiGrid();
+
+    qs('#btnRefresh').addEventListener('click', () => { refresh(); });
+
+    const searchTop = qs('#searchEmployee');
+    const searchTbl = qs('#tableSearch');
+    // keep in sync
+    const sync = (v) => {
+      searchTop.value = v;
+      searchTbl.value = v;
+      renderSummaryTable(_LAST_ROWS_CACHE);
+    };
+
+    function hookSearch(){
+      searchTop.addEventListener('input', () => {
+        searchTbl.value = searchTop.value;
+        renderSummaryTable(ROWS_CACHE);
+      });
+      searchTbl.addEventListener('input', () => {
+        searchTop.value = searchTbl.value;
+        renderSummaryTable(ROWS_CACHE);
+      });
+    }
+
+    hookSearch();
+
+    async function refresh(){
+      qs('#loading').style.display = '';
+      qs('#content').style.display = 'none';
+
+      try{
+        CFG = await loadConfig();
+        window.CFG = CFG;
+
+        const data = await fetchAdminEvents();
+        ALL_EVENTS = buildIndices(data.events);
+        window.__pontajAdminEvents = ALL_EVENTS;
+
+        computeDashboard();
+      }catch(err){
+        console.error(err);
+        alert('Eroare dashboard: ' + (err && err.message ? err.message : err));
+      }finally{
+        qs('#loading').style.display = 'none';
+        qs('#content').style.display = '';
+      }
+    }
+
+    await refresh();
+  }
+
+  window.addEventListener('DOMContentLoaded', init);
+})();
+</script>
+</body>
 </html>
