@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Admin • Pontaj</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg:#F6F7FB;
+      --card:#ffffff;
+      --text:#0f172a;
+      --muted:#64748b;
+      --border:rgba(15,23,42,.08);
+      --accent:#6D5EF1;
+      --accent2:#8A7BFF;
+      --shadow: 0 12px 40px rgba(15,23,42,.08);
+      --shadow2: 0 10px 24px rgba(15,23,42,.10);
+      --sidebarW: 260px;
+      --sidebarCollapsedW: 84px;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+      background:var(--bg);
+      color:var(--text);
+      overflow:hidden;
+    }
+    .app{
+      height:100%;
+      display:grid;
+      grid-template-columns: var(--sidebarW) 1fr;
+    }
+    .sidebar{
+      height:100%;
+      background:var(--card);
+      border-right:1px solid var(--border);
+      box-shadow: var(--shadow2);
+      display:flex;
+      flex-direction:column;
+      padding:14px 12px;
+      gap:10px;
+      position:relative;
+      z-index:5;
+    }
+    .brand{
+      display:flex; align-items:center; gap:10px;
+      padding:10px 10px;
+      border-radius:14px;
+    }
+    .brand .logo{
+      width:40px;height:40px;border-radius:14px;
+      display:grid;place-items:center;
+      background:linear-gradient(135deg,var(--accent),var(--accent2));
+      color:white;
+      box-shadow: 0 10px 24px rgba(109,94,241,.35);
+      flex:0 0 auto;
+    }
+    .brand .title{
+      display:flex; flex-direction:column;
+      line-height:1.05;
+      min-width:0;
+    }
+    .brand .title strong{font-size:13px; letter-spacing:.2px}
+    .brand .title span{font-size:12px; color:var(--muted)}
+    .collapseBtn{
+      margin-left:auto;
+      border:1px solid var(--border);
+      background:var(--card);
+      width:36px;height:36px;
+      border-radius:12px;
+      cursor:pointer;
+      display:grid;place-items:center;
+      box-shadow: 0 6px 16px rgba(15,23,42,.06);
+    }
+    .collapseBtn:hover{border-color:rgba(109,94,241,.35)}
+
+    .nav{
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+      padding:6px 2px;
+      overflow:auto;
+    }
+    .nav::-webkit-scrollbar{width:10px}
+    .nav::-webkit-scrollbar-thumb{background:rgba(15,23,42,.08);border-radius:10px}
+    .nav-item{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      padding:10px 10px;
+      border-radius:14px;
+      border:1px solid transparent;
+      cursor:pointer;
+      background:transparent;
+      color:inherit;
+      text-align:left;
+      font:inherit;
+      transition:.15s ease;
+      width:100%;
+    }
+    .nav-item:hover{
+      background:rgba(109,94,241,.06);
+      border-color:rgba(109,94,241,.14);
+    }
+    .nav-item.active{
+      background:rgba(109,94,241,.12);
+      border-color:rgba(109,94,241,.22);
+    }
+    .ico{
+      width:38px;height:38px;border-radius:14px;
+      display:grid;place-items:center;
+      background:rgba(15,23,42,.04);
+      border:1px solid var(--border);
+      flex:0 0 auto;
+    }
+    .nav-item.active .ico{
+      background:linear-gradient(135deg,rgba(109,94,241,.18),rgba(138,123,255,.18));
+      border-color:rgba(109,94,241,.25);
+    }
+    .label{
+      display:flex;
+      flex-direction:column;
+      min-width:0;
+    }
+    .label strong{
+      font-size:13px;
+      font-weight:600;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+    .label span{
+      font-size:12px;
+      color:var(--muted);
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+
+    .content{
+      height:100%;
+      display:grid;
+      grid-template-rows: 64px 1fr;
+      min-width:0;
+    }
+
+    .topbar{
+      height:64px;
+      background:rgba(255,255,255,.75);
+      backdrop-filter: blur(10px);
+      border-bottom:1px solid var(--border);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding:10px 16px;
+      gap:12px;
+    }
+    .topbar .left{
+      display:flex; align-items:center; gap:12px; min-width:0;
+    }
+    .pageTitle{
+      font-weight:700;
+      font-size:14px;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+    .actions{
+      display:flex;
+      align-items:center;
+      gap:10px;
+    }
+    .iconBtn{
+      width:38px;height:38px;
+      border-radius:14px;
+      border:1px solid var(--border);
+      background:var(--card);
+      cursor:pointer;
+      display:grid;place-items:center;
+      box-shadow: 0 6px 16px rgba(15,23,42,.06);
+    }
+    .iconBtn:hover{border-color:rgba(109,94,241,.35)}
+
+    iframe{
+      width:100%;
+      height:100%;
+      border:0;
+      background:var(--bg);
+    }
+
+    /* Collapsed sidebar */
+    .collapsed .app{ grid-template-columns: var(--sidebarCollapsedW) 1fr; }
+    .collapsed .sidebar{ padding:14px 10px; }
+    .collapsed .brand .title{ display:none; }
+    .collapsed .collapseBtn{ margin-left:0; }
+    .collapsed .label{ display:none; }
+    .collapsed .nav-item{ justify-content:center; }
+    .collapsed .ico{ width:42px;height:42px; }
+
+    /* mobile */
+    @media(max-width:980px){
+      body{overflow:auto}
+      .app{grid-template-columns:1fr}
+      .sidebar{display:none}
+      .content{grid-template-rows:56px 1fr}
+      .topbar{height:56px}
+    }
+  </style>
+</head>
+<body>
+<div id="root">
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="logo" aria-hidden="true">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+            <path d="M13 2L3 14h8l-1 8 11-14h-8l0-6z" fill="white" opacity="0.95"/>
+          </svg>
+        </div>
+        <div class="title">
+          <strong>Pontaj Admin</strong>
+          <span>Dashboard</span>
+        </div>
+        <button class="collapseBtn" id="collapseBtn" title="Extinde / restrânge">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+            <path d="M10 6l-6 6 6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M20 12H4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </button>
+      </div>
+
+      <nav class="nav" id="nav"></nav>
+    </aside>
+
+    <main class="content">
+      <div class="topbar">
+        <div class="left">
+          <div class="pageTitle" id="pageTitle">Dashboard</div>
+        </div>
+        <div class="actions">
+          <button class="iconBtn" id="refreshBtn" title="Refresh pagina curentă">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+              <path d="M20 12a8 8 0 10-2.3 5.7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              <path d="M20 12v-6h-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+          <button class="iconBtn" id="popoutBtn" title="Deschide în tab nou">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+              <path d="M14 3h7v7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              <path d="M10 14L21 3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              <path d="M21 14v6a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <iframe id="frame" src="admin-dashboard.html" title="Admin Content"></iframe>
+    </main>
+  </div>
+</div>
+
+<script>
+  const LS_KEY = 'pontaj/admin/shell';
+  const root = document.getElementById('root');
+  const frame = document.getElementById('frame');
+  const pageTitle = document.getElementById('pageTitle');
+
+  const menu = [
+    { id:'dashboard',   title:'Dashboard', subtitle:'KPIs & overview', src:'admin-dashboard.html', icon:'chart' },
+    { id:'dept',        title:'Departamente', subtitle:'Distribuție & ultimele', src:'admin-departamente.html', icon:'building' },
+    { id:'incomplete',  title:'Zile incomplete', subtitle:'Start/Pause deschise', src:'admin-zile-incomplete.html', icon:'warning' },
+    { id:'anomalies',   title:'Anomalii', subtitle:'Diferențe & abateri', src:'admin-anomalii.html', icon:'spark' },
+    { id:'rawlog',      title:'Log brut', subtitle:'Debug evenimente', src:'admin-log-brut.html', icon:'code' },
+    { id:'daily',       title:'Prezență pe zile', subtitle:'Tabel zilnic', src:'admin-prezenta-zile.html', icon:'table' },
+    { id:'calendar',    title:'Calendar prezență', subtitle:'Luna curentă', src:'admin-calendar-prezenta.html', icon:'calendar' },
+    { id:'employees',   title:'Angajați', subtitle:'Index + detalii', src:'admin-angajati.html', icon:'users' },
+    { id:'live',        title:'Live', subtitle:'Top + live pontaj', src:'admin-live.html', icon:'pulse' },
+    { id:'alerts',      title:'Alerte', subtitle:'Live & istoric', src:'admin-alerte.html', icon:'bell' },
+    { id:'reports',     title:'Rapoarte', subtitle:'PDF / zile / luni', src:'reports.html', icon:'doc' },
+  ];
+
+  function svgIcon(name){
+    const common = 'width="18" height="18" viewBox="0 0 24 24" fill="none"';
+    const s = {
+      chart: `<svg ${common}><path d="M4 19V5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M8 19V11" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M12 19V7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M16 19V14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M20 19V9" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>`,
+      building:`<svg ${common}><path d="M4 21V7a2 2 0 012-2h5v16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M11 21V3h7a2 2 0 012 2v16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M7 9h1M7 12h1M7 15h1" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M15 8h1M15 11h1M15 14h1M15 17h1" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>`,
+      warning:`<svg ${common}><path d="M12 9v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M12 17h.01" stroke="currentColor" stroke-width="3" stroke-linecap="round"/><path d="M10.3 4.3l-7.6 13.2A2 2 0 004.4 20h15.2a2 2 0 001.7-2.5L13.7 4.3a2 2 0 00-3.4 0z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>`,
+      spark:`<svg ${common}><path d="M5 12l3 3 3-6 3 6 3-3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 6h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>`,
+      code:`<svg ${common}><path d="M16 18l6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M8 6l-6 6 6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+      table:`<svg ${common}><path d="M4 6h16v12H4z" stroke="currentColor" stroke-width="2"/><path d="M4 10h16" stroke="currentColor" stroke-width="2"/><path d="M8 6v12" stroke="currentColor" stroke-width="2"/></svg>`,
+      calendar:`<svg ${common}><path d="M8 3v4M16 3v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M4 7h16" stroke="currentColor" stroke-width="2"/><path d="M5 5h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2z" stroke="currentColor" stroke-width="2"/></svg>`,
+      users:`<svg ${common}><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M9 11a4 4 0 100-8 4 4 0 000 8z" stroke="currentColor" stroke-width="2"/><path d="M23 21v-2a4 4 0 00-3-3.87" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M16 3.13a4 4 0 010 7.75" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>`,
+      pulse:`<svg ${common}><path d="M3 12h4l2-5 4 10 2-5h6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+      bell:`<svg ${common}><path d="M18 8a6 6 0 10-12 0c0 7-3 7-3 7h18s-3 0-3-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M13.73 21a2 2 0 01-3.46 0" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>`,
+      doc:`<svg ${common}><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" stroke="currentColor" stroke-width="2"/><path d="M14 2v6h6" stroke="currentColor" stroke-width="2"/><path d="M8 13h8M8 17h8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>`,
+    };
+    return s[name] || s.doc;
+  }
+
+  function renderNav(){
+    const nav = document.getElementById('nav');
+    nav.innerHTML = '';
+    menu.forEach(item => {
+      const btn = document.createElement('button');
+      btn.className = 'nav-item';
+      btn.dataset.id = item.id;
+      btn.innerHTML = `
+        <span class="ico" aria-hidden="true">${svgIcon(item.icon)}</span>
+        <span class="label">
+          <strong>${item.title}</strong>
+          <span>${item.subtitle}</span>
+        </span>
+      `;
+      btn.addEventListener('click', () => setActive(item.id));
+      nav.appendChild(btn);
+    });
+  }
+
+  function setActive(id){
+    const item = menu.find(m => m.id === id) || menu[0];
+    frame.src = item.src;
+    pageTitle.textContent = item.title;
+
+    document.querySelectorAll('.nav-item').forEach(el => {
+      el.classList.toggle('active', el.dataset.id === item.id);
+    });
+
+    try{
+      const raw = localStorage.getItem(LS_KEY);
+      const st = raw ? JSON.parse(raw) : {};
+      st.active = item.id;
+      localStorage.setItem(LS_KEY, JSON.stringify(st));
+    }catch(e){}
+  }
+
+  // collapse
+  document.getElementById('collapseBtn').addEventListener('click', () => {
+    root.classList.toggle('collapsed');
+    try{
+      const raw = localStorage.getItem(LS_KEY);
+      const st = raw ? JSON.parse(raw) : {};
+      st.collapsed = root.classList.contains('collapsed');
+      localStorage.setItem(LS_KEY, JSON.stringify(st));
+    }catch(e){}
+  });
+
+  // topbar buttons
+  document.getElementById('refreshBtn').addEventListener('click', () => {
+    try{ frame.contentWindow.location.reload(); }catch(e){ frame.src = frame.src; }
+  });
+  document.getElementById('popoutBtn').addEventListener('click', () => {
+    window.open(frame.src, '_blank');
+  });
+
+  // init
+  renderNav();
+  try{
+    const raw = localStorage.getItem(LS_KEY);
+    const st = raw ? JSON.parse(raw) : {};
+    if (st.collapsed) root.classList.add('collapsed');
+    setActive(st.active || 'dashboard');
+  }catch(e){
+    setActive('dashboard');
+  }
+</script>
+</body>
+</html>
