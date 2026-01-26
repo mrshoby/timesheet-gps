@@ -20,6 +20,8 @@
       --ring:#cfe0e7;
       --danger:#ef4444;
       --warn:#f59e0b;
+      --border: rgba(148,163,184,.35);
+
     }
     *{box-sizing:border-box}
     html,body{height:100%; width:100%}
@@ -562,6 +564,81 @@
       gap:12px;
     }
 
+/* ===== Admin presence ===== */
+.pres-list{
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+}
+.pres-item{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:10px 12px;
+  border:1px solid var(--border);
+  border-radius:12px;
+  background:rgba(255,255,255,.04);
+}
+.pres-left{
+  display:flex;
+  flex-direction:column;
+  gap:2px;
+}
+.pres-name{
+  font-weight:800;
+  font-size:14px;
+}
+.pres-last{
+  font-size:12px;
+  opacity:.75;
+}
+.pres-badge{
+  font-size:12px;
+  font-weight:800;
+  padding:6px 10px;
+  border-radius:999px;
+  border:1px solid var(--border);
+}
+.pres-on{
+  background:rgba(40,200,120,.12);
+  border-color:rgba(40,200,120,.35);
+}
+.pres-off{
+  background:rgba(255,255,255,.06);
+}
+
+    /* ✅ Admin presence: GRID (nu se suprapun) */
+#adminPresenceList{
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 12px;
+  padding: 12px;
+}
+
+#adminPresenceList .pres-item{
+  position: relative;     /* ✅ nu absolute */
+  transform: none;        /* ✅ fără translate */
+  width: auto;
+
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+
+  border-radius: 16px;
+  background: #fff;
+  border: 1px solid rgba(0,0,0,.08);
+  box-shadow: 0 8px 24px rgba(0,0,0,.08);
+  padding: 12px;
+}
+
+#adminPresenceList .pres-left{
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+}
+
+    
     .btn{
       --bg:#e2e8f0;
       --fg:#0f172a;
@@ -1102,6 +1179,9 @@
           <a href="reports.html" class="admin-tab-btn" role="button">
             📑 Rapoarte
           </a>
+           <a href="fix-day.html" class="admin-tab-btn" role="button">
+            🛠️ Fix Day (Editor zi)
+          </a>
         </div>
 
         <div id="error" class="admin-error" style="display:none"></div>
@@ -1458,6 +1538,16 @@
 <div id="liveBoardInactive" class="admin-list"></div>
           </div>
         </section>
+<!-- A5.5. Admin presence (cine e online) -->
+<section class="card" id="adminPresenceCard">
+  <div class="card-head">
+    <h3>Admini activi</h3>
+    <div class="muted" id="adminPresenceHint">—</div>
+  </div>
+  <div class="card-body">
+    <div id="adminPresenceList" class="pres-list"></div>
+  </div>
+</section>
 
         <!-- A6: Alerte sistem (pliabil) -->
         <section class="card admin-card collapsible">
@@ -1501,6 +1591,8 @@
   let DEFAULT_NORM_MS             = 8   * 60 * 60 * 1000;
   let LONG_NORM_MS                = 8.5 * 60 * 60 * 1000;
   let DEFAULT_PAUSE_MARGIN_MS     = 40  * 60 * 1000;
+  // A1: pauză inclusă în normă (fallback) – 30 min
+  let DEFAULT_PAUSE_NORM_MS = 30 * 60 * 1000;
 
   // Config normă/pauză per departament / angajat (A1)
   let NORM_CFG = null;
@@ -1516,6 +1608,7 @@
   let CURRENT_DEPT_FILTER = 'all';
   let filterIncompleteOnly = false;
   let GLOBAL_CFG = null;
+  let CFG = null; // <-- NOU (global)
   let lastEventsRange = 'today';
   let SELECTED_CALENDAR_DAY = null;
   let EMPLOYEE_SEARCH_TEXT = '';
@@ -1571,45 +1664,68 @@
     return GLOBAL_CFG;
   }
 
-  function applyNormSettingsFromConfig(cfg){
-    NORM_CFG = {
-      timezone: (cfg.normSettings && cfg.normSettings.timezone) || 'Europe/Bucharest',
-      defaultNormMs: DEFAULT_NORM_MS,
-      defaultLongNormMs: LONG_NORM_MS,
-      defaultPauseMarginMs: DEFAULT_PAUSE_MARGIN_MS,
-      perDept: {},
-      perEmployee: {}
-    };
-    if (cfg.normSettings){
-      if (cfg.normSettings.default){
-        if (typeof cfg.normSettings.default.normHours === 'number'){
-          NORM_CFG.defaultNormMs = cfg.normSettings.default.normHours * 60 * 60 * 1000;
-        }
-        if (typeof cfg.normSettings.default.pauseMaxMinutes === 'number'){
-          NORM_CFG.defaultPauseMarginMs = cfg.normSettings.default.pauseMaxMinutes * 60 * 1000;
-        }
+function applyNormSettingsFromConfig(cfg){
+  NORM_CFG = {
+    timezone: (cfg.normSettings && cfg.normSettings.timezone) || 'Europe/Bucharest',
+    defaultNormMs: DEFAULT_NORM_MS,
+    defaultLongNormMs: LONG_NORM_MS,
+
+    // ✅ limită alertă (ce aveai tu deja - 40m default)
+    defaultPauseMarginMs: DEFAULT_PAUSE_MARGIN_MS,
+
+    // ✅ NOU: pauză inclusă în normă (30m default)
+    defaultPauseNormMs: DEFAULT_PAUSE_NORM_MS,
+
+    perDept: {},
+    perEmployee: {}
+  };
+
+  if (cfg.normSettings){
+    if (cfg.normSettings.default){
+      const def = cfg.normSettings.default;
+
+      if (typeof def.normHours === 'number'){
+        NORM_CFG.defaultNormMs = def.normHours * 60 * 60 * 1000;
       }
-      if (cfg.normSettings.departments){
-        Object.keys(cfg.normSettings.departments).forEach(dep=>{
-          const nd = cfg.normSettings.departments[dep] || {};
-          NORM_CFG.perDept[dep] = {
-            normMs: (typeof nd.normHours === 'number' ? nd.normHours * 60 * 60 * 1000 : null),
-            pauseMarginMs: (typeof nd.pauseMaxMinutes === 'number' ? nd.pauseMaxMinutes * 60 * 1000 : null)
-          };
-        });
+      if (typeof def.pauseMaxMinutes === 'number'){
+        NORM_CFG.defaultPauseMarginMs = def.pauseMaxMinutes * 60 * 1000;
       }
-      if (cfg.normSettings.employees){
-        Object.keys(cfg.normSettings.employees).forEach(name=>{
-          const ne = cfg.normSettings.employees[name] || {};
-          NORM_CFG.perEmployee[name] = {
-            normMs: (typeof ne.normHours === 'number' ? ne.normHours * 60 * 60 * 1000 : null),
-            pauseMarginMs: (typeof ne.pauseMaxMinutes === 'number' ? ne.pauseMaxMinutes * 60 * 1000 : null)
-          };
-        });
+
+      // ✅ NOU: pauză inclusă în normă (minute)
+      if (typeof def.pauseNormMinutes === 'number'){
+        NORM_CFG.defaultPauseNormMs = def.pauseNormMinutes * 60 * 1000;
       }
     }
-    TZ = NORM_CFG.timezone || 'Europe/Bucharest';
+
+    if (cfg.normSettings.departments){
+      Object.keys(cfg.normSettings.departments).forEach(dep=>{
+        const nd = cfg.normSettings.departments[dep] || {};
+        NORM_CFG.perDept[dep] = {
+          normMs: (typeof nd.normHours === 'number' ? nd.normHours * 60 * 60 * 1000 : null),
+          pauseMarginMs: (typeof nd.pauseMaxMinutes === 'number' ? nd.pauseMaxMinutes * 60 * 1000 : null),
+
+          // ✅ NOU
+          pauseNormMs: (typeof nd.pauseNormMinutes === 'number' ? nd.pauseNormMinutes * 60 * 1000 : null)
+        };
+      });
+    }
+
+    if (cfg.normSettings.employees){
+      Object.keys(cfg.normSettings.employees).forEach(name=>{
+        const ne = cfg.normSettings.employees[name] || {};
+        NORM_CFG.perEmployee[name] = {
+          normMs: (typeof ne.normHours === 'number' ? ne.normHours * 60 * 60 * 1000 : null),
+          pauseMarginMs: (typeof ne.pauseMaxMinutes === 'number' ? ne.pauseMaxMinutes * 60 * 1000 : null),
+
+          // ✅ NOU
+          pauseNormMs: (typeof ne.pauseNormMinutes === 'number' ? ne.pauseNormMinutes * 60 * 1000 : null)
+        };
+      });
+    }
   }
+
+  TZ = NORM_CFG.timezone || 'Europe/Bucharest';
+}
 
   function getNormMsFor(name, dept, hasLongActivity){
     const cfg = NORM_CFG || {};
@@ -1631,6 +1747,19 @@
     if (depCfg && typeof depCfg.pauseMarginMs === 'number') return depCfg.pauseMarginMs;
     return cfg.defaultPauseMarginMs || DEFAULT_PAUSE_MARGIN_MS;
   }
+
+  function getPauseNormMsFor(name, dept){
+  const cfg = NORM_CFG || {};
+
+  const empCfg = (cfg.perEmployee && name) ? cfg.perEmployee[name] : null;
+  if (empCfg && typeof empCfg.pauseNormMs === 'number') return Math.max(0, empCfg.pauseNormMs);
+
+  const depCfg = (cfg.perDept && dept) ? cfg.perDept[dept] : null;
+  if (depCfg && typeof depCfg.pauseNormMs === 'number') return Math.max(0, depCfg.pauseNormMs);
+
+  return Math.max(0, cfg.defaultPauseNormMs || DEFAULT_PAUSE_NORM_MS);
+}
+
 
   function buildLeaveIndex(leaves){
     LEAVE_BY_DAY = new Map();
@@ -2404,18 +2533,37 @@ function applyIncompleteFilter(events, stats){
         emp.totals.daysCompleted++;
       }
 
-      const normForDay     = day.normMs || getNormMsFor(name, day.dept || emp.dept || '', false);
-      const pauseMarginMs  = getPauseMarginMsFor(name, day.dept || emp.dept || '');
+     const normForDay     = day.normMs || getNormMsFor(name, day.dept || emp.dept || '', false);
+const pauseMarginMs  = getPauseMarginMsFor(name, day.dept || emp.dept || '');
 
-      if (day.completed && workMs > normForDay){
-        day.overtimeMs = workMs - normForDay;
-        emp.totals.overtimeMs += day.overtimeMs;
-      }
+// ✅ pauză inclusă în normă (ex: 30m)
+const pauseNormMs = getPauseNormMsFor(name, day.dept || emp.dept || '');
+const pauseMsNow  = day.pauseMs || 0;
 
-// ========= NORMA (nou) =========
-// 1) normMet = muncă efectivă >= normă (indiferent de pauză)
-// 2) normValidated = normMet + pauză în limită
+// ✅ credităm pauza DOAR dacă există, max pauza standard (ex: 30m)
+const pauseCreditMs = Math.min(pauseMsNow, pauseNormMs);
 
+// ✅ muncă necesară = normă - pauza creditată
+const workRequiredMs = Math.max(0, normForDay - pauseCreditMs);
+
+day.pauseNormMs    = pauseNormMs;
+day.pauseCreditMs  = pauseCreditMs; // (opțional, dar util pt UI/debug)
+day.pauseExtraMs   = Math.max(0, pauseMsNow - pauseNormMs);
+day.workRequiredMs = workRequiredMs;
+
+day.diffNormMs     = 0;
+day.missingMs      = 0;
+day.overtimeMs     = 0;
+
+if (!day.incomplete && day.completed){
+  day.diffNormMs = workMs - workRequiredMs;
+  day.overtimeMs = Math.max(0, day.diffNormMs);
+  day.missingMs  = Math.max(0, -day.diffNormMs);
+
+  emp.totals.overtimeMs += day.overtimeMs;
+}
+
+// ========= NORMA =========
 day.normMet = false;
 day.normValidated = false;
 day.pauseOk = true;
@@ -2429,14 +2577,10 @@ if (!day.incomplete && day.completed){
   day.pauseOverMs = Math.max(0, pauseMs - pauseMarginMs);
   day.pauseMarginMsUsed = pauseMarginMs;
 
-  // ✅ AICI e regula ta:
-  // dacă după scăderea pauzei, munca efectivă >= normă -> normă îndeplinită
-  day.normMet = workMs >= normForDay;
-  if (day.normMet){
-    emp.totals.normMetDays++;
-  }
+  // ✅ CORECT: normă îndeplinită = muncă efectivă >= (normă - pauză inclusă)
+  day.normMet = workMs >= workRequiredMs;
+  if (day.normMet) emp.totals.normMetDays++;
 
-  // ✅ normă VALIDATĂ doar dacă pauza e în limită
   if (day.normMet && day.pauseOk){
     day.normValidated = true;
     emp.totals.normValidatedDays++;
@@ -2556,7 +2700,7 @@ const compensated = Math.max(0, met - validated);
 employeeDetailsHeaderEl.innerHTML =
   'Statistici all time pentru <b>' + name + '</b> (' + dept + '). ' +
   'Zile închise (START + FINISH): <b>' + t.daysCompleted + '</b> din <b>' + t.daysWithStart + '</b> cu START. ' +
-  'Zile cu <b>normă îndeplinită</b> (muncă efectivă ≥ normă): <b>' + met + '</b>. ' +
+  'Zile cu <b>normă îndeplinită</b> (muncă efectivă ≥ normă - pauză creditată): <b>' + met + '</b>. ' +
   'Din acestea: <b>validată</b> (pauză în limită): <b>' + validated + '</b>, ' +
   '<b>compensată</b> (pauză depășită, dar normă făcută): <b>' + compensated + '</b>.';
 
@@ -2579,7 +2723,7 @@ employeeDetailsHeaderEl.innerHTML =
 
     html += '<div class="table-wrap">';
     html += '<table class="admin-table">';
-  html += '<thead><tr>' +
+html += '<thead><tr>' +
   '<th>Data</th>' +
   '<th>Departament</th>' +
   '<th>Concediu</th>' +
@@ -2588,9 +2732,9 @@ employeeDetailsHeaderEl.innerHTML =
   '<th>Extra</th>' +
   '<th>Completă</th>' +
   '<th>Normă</th>' +
-  '<th>Overtime</th>' +
+  '<th>Diferență normă</th>' +
+  '<th>Suplimentar</th>' +
 '</tr></thead><tbody>';
-
 
     daysArr.forEach(d => {
      const reasons = getIncompleteReasons(d);
@@ -2614,6 +2758,15 @@ if (d.completed){
   }
 }
 
+let diffCell = '-';
+let suplCell = '-';
+
+if (d.completed && !d.incomplete){
+  const diff = d.diffNormMs || 0;
+  const sign = diff >= 0 ? '+' : '-';
+  diffCell = sign + ' ' + fmtHoursHM(Math.abs(diff));
+  suplCell = (d.overtimeMs ? fmtHoursHM(d.overtimeMs) : '0h 00m');
+}
 
       const isLeave = isEmployeeOnLeave(name, d.dateKey);
       const pauseMs = d.pauseMs || 0;
@@ -2633,7 +2786,7 @@ const workCell =
   (d.workMs ? fmtHoursHM(d.workMs) : '-') +
   '<div style="font-size:10px;color:#6b7280;">normă ' + fmtHoursHM(d.normMs || 0) + '</div>';
 
-      html += '<tr>' +
+ html += '<tr>' +
   '<td>' + d.dateKey + '</td>' +
   '<td>' + (d.dept || '') + '</td>' +
   '<td>' + (isLeave ? '<span class="badge badge-info">CONCEDIU</span>' : '-') + '</td>' +
@@ -2642,9 +2795,9 @@ const workCell =
   '<td>' + (d.extraMs ? fmtHoursHM(d.extraMs) : '-') + '</td>' +
   '<td>' + compStatus + '</td>' +
   '<td>' + normStatus + '</td>' +
-  '<td>' + (d.overtimeMs ? fmtHoursHM(d.overtimeMs) : '-') + '</td>' +
+  '<td>' + diffCell + '</td>' +
+  '<td>' + suplCell + '</td>' +
 '</tr>';
-
     });
 
     html += '</tbody></table></div>';
@@ -2815,7 +2968,7 @@ const workCell =
     const t = emp.totals;
     if (t.daysWithStart || t.daysWithFinish){
       total++;
-      if (t.daysCompleted > 0) completed++;
+      if ((t.normMetDays || 0) > 0) completed++;
     }
   });
 
@@ -3596,6 +3749,14 @@ renderInactiveToday(activeNames, todayKey);
   }[c]));
 }
 
+  function fmtAgo(ageSec) {
+  const n = Number(ageSec);
+  if (!isFinite(n) || n >= 999000) return "niciodată";
+  if (n < 60) return `acum ${Math.floor(n)} sec`;
+  if (n < 3600) return `acum ${Math.floor(n / 60)} min`;
+  return `acum ${Math.floor(n / 3600)} h`;
+}
+
 // Fallback pentru CSS.escape (în caz că nu există)
 if (!window.CSS) window.CSS = {};
 if (!window.CSS.escape) {
@@ -3603,6 +3764,233 @@ if (!window.CSS.escape) {
     return String(s).replace(/["\\]/g, '\\$&');
   };
 }
+function jsonp(url, timeoutMs = 20000) {
+  return new Promise((resolve, reject) => {
+    const cbName = "jsonp_cb_" + Math.random().toString(36).slice(2);
+    const script = document.createElement("script");
+
+    let settled = false;
+
+    const cleanupScript = () => {
+      if (script && script.parentNode) script.parentNode.removeChild(script);
+    };
+
+    const cleanupAll = () => {
+      cleanupScript();
+      // ștergem callback-ul puțin mai târziu, safe
+      setTimeout(() => {
+        try { delete window[cbName]; } catch {}
+      }, 1000);
+    };
+
+    // IMPORTANT: callback-ul există mereu, chiar și dacă timeout-ul a trecut
+    window[cbName] = (data) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      cleanupAll();
+      resolve(data);
+    };
+
+    const timer = setTimeout(() => {
+      if (settled) return;
+      settled = true;
+
+      // ✅ CHEIA: NU îl ștergem imediat -> îl transformăm în NO-OP
+      // ca să nu crape dacă răspunsul vine târziu
+      window[cbName] = function () {};
+
+      cleanupScript();
+
+      // îl curățăm definitiv mai târziu
+      setTimeout(() => {
+        try { delete window[cbName]; } catch {}
+      }, 60000);
+
+      reject(new Error("JSONP timeout"));
+    }, timeoutMs);
+
+    script.onerror = () => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+
+      window[cbName] = function () {};
+      cleanupScript();
+
+      setTimeout(() => {
+        try { delete window[cbName]; } catch {}
+      }, 60000);
+
+      reject(new Error("JSONP load error"));
+    };
+
+    const sep = url.includes("?") ? "&" : "?";
+    script.async = true;
+    script.src = url + sep + "callback=" + cbName + "&_=" + Date.now();
+
+    document.head.appendChild(script);
+  });
+}
+
+  
+// =================== Admin presence (online/offline) ===================
+const PRES_TTL_MIN = 2;                 // după 2 minute fără ping -> INACTIV
+const PRES_REFRESH_MS = 10000; // la 10 sec
+const PRES_PING_MS    = 20000; // ping la 20 sec
+
+let presTimerRefresh = null;
+let presTimerPing = null;
+
+async function fetchAdminsFromAuth(){
+  try{
+    const cfg = await loadConfig(); // ✅ ia configul corect
+    const authUrl = (cfg && cfg.adminAuthUrl) ? cfg.adminAuthUrl : '';
+    if (!authUrl) return [];
+
+    const r = await fetch(authUrl, { cache: 'no-store' });
+    const j = await r.json();
+
+    const admins = Array.isArray(j.admins) ? j.admins : [];
+
+    // IMPORTANT: id-ul adminului = usernameHash
+    return admins.map(a => ({
+      id: a.id || a.usernameHash || a.userHash || '',
+      label: a.label || 'Admin'
+    })).filter(a => a.id);
+
+  }catch(e){
+    return [];
+  }
+}
+
+async function fetchAdminPresence() {
+  const base = adminEndpointBase(); // ✅ baza webapp fără ?fn=...
+  if (!base) return null;
+
+  const url = `${base}?fn=adminPresence&ttlMin=${PRES_TTL_MIN}&_=${Date.now()}`;
+
+  try{
+    const data = await jsonp(url, 20000);
+    if (!data || data.ok !== true) return null;
+    return data;
+  }catch(err){
+    console.error("[adminPresence] jsonp failed", err);
+    return null;
+  }
+}
+
+
+
+
+
+function renderAdminPresence(adminsAll, presence){
+  const listEl = document.getElementById('adminPresenceList');
+  const hintEl = document.getElementById('adminPresenceHint');
+  if (!listEl) return;
+
+  const presList = (presence && Array.isArray(presence.list)) ? presence.list : [];
+  const presMap = new Map(presList.map(x => [x.id, x]));
+
+  const merged = adminsAll.map(a => {
+    const p = presMap.get(a.id) || null;
+    const online = !!(p && p.online);
+    const lastSeen = p && p.lastSeen ? p.lastSeen : null;
+    return { ...a, online, lastSeen, ageSec: p ? p.ageSec : 999999 };
+  });
+
+  // sort: online sus
+  merged.sort((x,y) => (x.online===y.online ? x.ageSec-y.ageSec : (x.online?-1:1)));
+
+  const now = Date.now();
+
+
+ listEl.innerHTML = merged.map(a => `
+  <div class="pres-item">
+    <div class="pres-left">
+      <div class="pres-name">${escapeHtml(a.label)}</div>
+      <div class="pres-last">${a.online ? '🟢 Online' : `⚪ ${escapeHtml(fmtAgo(a.ageSec))}`}</div>
+    </div>
+    <div class="pres-badge ${a.online ? 'pres-on' : 'pres-off'}">
+      ${a.online ? 'ACTIV' : 'INACTIV'}
+    </div>
+  </div>
+`).join('');
+
+  const onCount = merged.filter(x => x.online).length;
+  hintEl.textContent = `${onCount}/${merged.length} activi`;
+}
+
+function adminEndpointBase(){
+  const cfg = window.CFG || {};
+  // IMPORTANT: adminEventsEndpoint trebuie să fie baza WebApp-ului (fără ?fn=...)
+  const raw = cfg.adminEventsEndpoint || cfg.webappUrl || cfg.scriptUrl || '';
+  return String(raw || '').replace(/\?.*$/, '').trim();
+}
+
+  
+async function adminPing(){
+  const session = getAdminSession();
+  if (!session || !session.user) return;
+
+  // IMPORTANT: id trebuie să fie usernameHash (salvat din index.html)
+  const id = session.id || session.userHash;
+  if (!id) return;
+
+  const base = adminEndpointBase();
+  const url = base + '?fn=adminPing';
+
+  try{
+    await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({
+        id,
+        label: session.user,
+        ua: navigator.userAgent
+      })
+    });
+  }catch(e){}
+}
+
+let presTickBusy = false;
+
+async function initAdminPresence(){
+  // 1) ping imediat (dacă e logat)
+  await adminPing();
+
+  // 2) refresh listă (admins + presence)
+async function tick(){
+  if (presTickBusy) return;
+  presTickBusy = true;
+
+  try{
+    let adminsAll = [];
+    let presence  = null;
+
+    try{ adminsAll = await fetchAdminsFromAuth(); }catch(_){}
+    try{ presence  = await fetchAdminPresence(); }catch(_){}
+
+    renderAdminPresence(adminsAll, presence);
+  } finally {
+    presTickBusy = false;
+  }
+}
+
+
+  await tick();
+
+  // refresh periodic
+  if (presTimerRefresh) clearInterval(presTimerRefresh);
+  tick();
+  presTimerRefresh = setInterval(tick, PRES_REFRESH_MS);
+
+
+  // ping periodic
+  if (presTimerPing) clearInterval(presTimerPing);
+  presTimerPing = setInterval(adminPing, PRES_PING_MS);
+}
+
   
 function getSelectLabel(selectEl, value){
   if (!selectEl) return String(value || '');
@@ -4077,13 +4465,19 @@ function triggerOneShotAnim(el, cls){
     renderLiveAlertsHistory();
   }
 
-  async function init(){
-    try{
-      const CFG = await loadConfig();
-      applyNormSettingsFromConfig(CFG);
-      applySelfServiceConfig(CFG);
+async function init(){
+  try{
+    CFG = await loadConfig();
+    window.CFG = CFG; 
+    applyNormSettingsFromConfig(CFG);
+    applySelfServiceConfig(CFG);
 
-      const adminUrl = CFG.adminEventsEndpoint + '?fn=adminEvents&v=' + Date.now();
+    initAdminPresence().catch(()=>{}); // ✅ AICI (foarte important)
+
+      
+      const base = adminEndpointBase();
+      const adminUrl = base + '?fn=adminEvents&v=' + Date.now();
+
       const r2  = await fetch(adminUrl, { cache:'no-store' });
       const txt = await r2.text();
       let data;
@@ -4216,7 +4610,9 @@ if (saved){
   const CFG = await loadConfig();
 
   // refetch admin events
-  const adminUrl = CFG.adminEventsEndpoint + '?fn=adminEvents&v=' + Date.now();
+  const base = adminEndpointBase();
+  const adminUrl = base + '?fn=adminEvents&v=' + Date.now();
+
   const r2  = await fetch(adminUrl, { cache:'no-store' });
   const txt = await r2.text();
   let data;
@@ -4807,6 +5203,7 @@ if (systemAlertsHistoryBodyEl && !systemAlertsHistoryBodyEl.dataset.boundClick){
   });
 }
 
+
       
       if (exportCsvBtn){
         exportCsvBtn.addEventListener('click', function(){
@@ -5161,5 +5558,4 @@ if (exportAnomaliesBtn){
 
 </body>
 </html>
-
 
