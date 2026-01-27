@@ -1,0 +1,266 @@
+<!doctype html>
+<html lang="ro">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Angajat — User Panel</title>
+  <style>
+    :root{
+      --bg:#f5f6ff;
+      --shadow:0 18px 50px rgba(20,18,40,.14);
+      --purple:#2f245c;
+      --purple2:#3a2d71;
+      --ink:#f5f4ff;
+      --muted:rgba(245,244,255,.72);
+      --line:rgba(255,255,255,.12);
+      --accent:#6dde80;
+      --r:22px;
+
+      --c-inactive:rgba(255,255,255,.06);
+      --c-under:rgba(255,233,199,.18);
+      --c-complete:rgba(223,247,228,.18);
+      --c-over:rgba(217,236,255,.18);
+      --c-leave:rgba(239,230,255,.18);
+    }
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--bg);font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial;color:#1f2330}
+    .wrap{max-width:1100px;margin:18px auto;padding:0 14px}
+    .panel{
+      background:linear-gradient(180deg, var(--purple), var(--purple2));
+      border-radius:var(--r);
+      border:1px solid rgba(255,255,255,.10);
+      box-shadow:var(--shadow);
+      color:var(--ink);
+      overflow:hidden;
+    }
+    .head{
+      padding:18px 18px 14px;
+      display:flex;align-items:flex-start;justify-content:space-between;gap:12px;
+      border-bottom:1px solid var(--line);
+    }
+    .title{display:flex;gap:12px;align-items:center}
+    .ava{
+      width:56px;height:56px;border-radius:18px;
+      background:rgba(255,255,255,.12);
+      border:1px solid rgba(255,255,255,.14);
+      display:flex;align-items:center;justify-content:center;
+      font-weight:950;font-size:18px;
+    }
+    h1{margin:0;font-size:18px}
+    .sub{margin-top:4px;color:var(--muted);font-size:12px}
+    .actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
+    .btn{
+      border:1px solid rgba(255,255,255,.16);
+      background:rgba(255,255,255,.10);
+      color:var(--ink);
+      padding:12px 14px;border-radius:16px;
+      font-weight:950;
+      cursor:pointer;
+      display:inline-flex;align-items:center;gap:10px;
+      text-decoration:none;
+    }
+    .btn.primary{background:var(--accent); border-color:var(--accent); color:#102516}
+    .body{padding:14px 18px 18px}
+    .grid{display:grid;grid-template-columns: repeat(4, minmax(0,1fr)); gap:12px}
+    @media (max-width:900px){ .grid{grid-template-columns:repeat(2,1fr)} }
+    .card{
+      border:1px solid rgba(255,255,255,.12);
+      background:rgba(255,255,255,.08);
+      border-radius:20px;
+      padding:14px;
+    }
+    .k{font-size:12px;color:var(--muted);font-weight:900}
+    .v{font-size:20px;font-weight:950;margin-top:6px}
+
+    .calWrap{
+      margin-top:12px;
+      border:1px solid rgba(255,255,255,.12);
+      background:rgba(255,255,255,.06);
+      border-radius:20px;
+      overflow:auto;
+      max-height: 55vh;
+    }
+    table{border-collapse:separate;border-spacing:0;width:max(980px,100%);font-size:13px}
+    thead th{
+      position:sticky; top:0; z-index:5;
+      background:rgba(255,255,255,.08);
+      border-bottom:1px solid rgba(255,255,255,.10);
+      padding:10px 10px; text-align:center; color:var(--muted); font-weight:900; font-size:12px; white-space:nowrap;
+    }
+    thead th.stickyL{left:0; z-index:7; text-align:left; box-shadow: 10px 0 20px rgba(0,0,0,.10);}
+    tbody td{
+      border-bottom:1px solid rgba(255,255,255,.10);
+      padding:10px 10px; text-align:center; white-space:nowrap;
+    }
+    tbody td.stickyL{
+      position:sticky; left:0; z-index:3; text-align:left;
+      background:rgba(255,255,255,.08);
+      box-shadow: 10px 0 20px rgba(0,0,0,.10);
+      min-width:260px;
+    }
+    .cell{
+      border-radius:14px;
+      padding:8px 8px;
+      border:1px solid rgba(255,255,255,.10);
+      font-weight:900;
+    }
+    .inactive{background:var(--c-inactive); color:rgba(245,244,255,.55)}
+    .under{background:var(--c-under)}
+    .complete{background:var(--c-complete)}
+    .over{background:var(--c-over)}
+    .leave{background:var(--c-leave)}
+    .cell small{display:block; font-size:10px; font-weight:900; opacity:.75; margin-top:2px}
+    .hint{color:var(--muted);font-size:12px;margin-top:10px}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="panel">
+      <div class="head">
+        <div class="title">
+          <div class="ava" id="ava">U</div>
+          <div>
+            <h1 id="name">User Panel</h1>
+            <div class="sub" id="meta">—</div>
+          </div>
+        </div>
+        <div class="actions">
+          <a class="btn" href="employee-dashboard.html">← Înapoi la dashboard</a>
+          <button class="btn primary" id="logoutBtn">Logout</button>
+        </div>
+      </div>
+
+      <div class="body">
+        <div class="grid">
+          <div class="card"><div class="k">Lucrat azi</div><div class="v" id="todayWork">—</div></div>
+          <div class="card"><div class="k">Pauză azi</div><div class="v" id="todayPause">—</div></div>
+          <div class="card"><div class="k">Suplimentar azi</div><div class="v" id="todayOT">—</div></div>
+          <div class="card"><div class="k">Extra azi</div><div class="v" id="todayEX">—</div></div>
+        </div>
+
+        <div class="calWrap" style="margin-top:12px">
+          <table>
+            <thead id="thead"></thead>
+            <tbody id="tbody"></tbody>
+          </table>
+        </div>
+
+        <div class="hint">Acesta este user panelul tău (read-only). Dacă vrei corecții, cere adminului (FixDay).</div>
+      </div>
+    </div>
+  </div>
+
+<script>
+(() => {
+  const LS_TOKEN = "pontaj_me_token";
+  const LS_NAME  = "pontaj_me_name";
+
+  function jsonp(url){
+    return new Promise((resolve,reject)=>{
+      const cb = "cb_"+Math.random().toString(16).slice(2);
+      window[cb] = (data)=>{ cleanup(); resolve(data); };
+      const s = document.createElement("script");
+      const cleanup = ()=>{
+        try{ delete window[cb]; }catch(e){ window[cb]=undefined; }
+        s.remove();
+      };
+      s.onerror = ()=>{ cleanup(); reject(new Error("JSONP error")); };
+      s.src = url + (url.includes("?") ? "&" : "?") + "callback="+cb;
+      document.head.appendChild(s);
+    });
+  }
+
+  function hmFromHours(h){
+    if (h == null || h === "") return "00:00";
+    const min = Math.round(Number(h)*60);
+    const hh = String(Math.floor(min/60)).padStart(2,"0");
+    const mm = String(min%60).padStart(2,"0");
+    return `${hh}:${mm}`;
+  }
+  function initials(name){
+    const parts = (name||"").trim().split(/\s+/).filter(Boolean);
+    const a = (parts[0]||"")[0]||"";
+    const b = (parts.length>1 ? (parts[parts.length-1]||"")[0] : "") || "";
+    return (a+b).toUpperCase() || "U";
+  }
+  function esc(s){ return String(s||"").replace(/[&<>"']/g,c=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));}
+  function weekdayShort(dateStr){
+    const d = new Date(dateStr+"T00:00:00");
+    return d.toLocaleDateString("ro-RO", {weekday:"short"}).replace(".","");
+  }
+
+  let CFG=null;
+  async function loadConfig(){
+    const r = await fetch("config.json", {cache:"no-store"});
+    CFG = await r.json();
+  }
+  function ep(){ return CFG?.adminEventsEndpoint || CFG?.stateEndpoint || ""; }
+
+  function logout(){
+    localStorage.removeItem(LS_TOKEN);
+    localStorage.removeItem(LS_NAME);
+    location.href = "index.html";
+  }
+
+  function renderCalendar(me, month){
+    const days = month.days || [];
+    const thead = document.getElementById("thead");
+    thead.innerHTML = `<tr>
+      <th class="stickyL">Luna ${esc(month.ym)}</th>
+      ${days.map(d=>`<th title="${esc(d.day)}">${String(d.d).padStart(2,'0')}<br><span style="font-weight:800">${esc(weekdayShort(d.day))}</span></th>`).join("")}
+    </tr>`;
+
+    const tds = days.map(d=>{
+      const cls = d.status || "inactive";
+      const label = d.label || "—";
+      const sub = (d.status==="leave" && d.leave && d.leave.type) ? d.leave.type : "";
+      const extra = [];
+      if ((d.ot||0)>0) extra.push("OT "+Math.round(d.ot)+"m");
+      if ((d.ex||0)>0) extra.push("EX "+Math.round(d.ex)+"m");
+      const sub2 = extra.join(" · ");
+      return `<td>
+        <div class="cell ${cls}">
+          ${esc(label)}
+          ${(sub||sub2) ? `<small>${esc(sub||sub2)}</small>` : ""}
+        </div>
+      </td>`;
+    }).join("");
+
+    const tbody = document.getElementById("tbody");
+    tbody.innerHTML = `<tr>
+      <td class="stickyL"><b>${esc(me.name)}</b><div style="color:rgba(245,244,255,.72);font-size:12px;margin-top:4px">${esc(me.dept||"")}</div></td>
+      ${tds}
+    </tr>`;
+  }
+
+  (async ()=>{
+    await loadConfig();
+
+    const token = localStorage.getItem(LS_TOKEN);
+    const name = localStorage.getItem(LS_NAME);
+    if (!token || !name){
+      location.href = "employee-dashboard.html";
+      return;
+    }
+
+    const me = await jsonp(`${ep()}?fn=meDashboard&token=${encodeURIComponent(token)}&days=14`);
+    if (!me.ok){ location.href = "employee-dashboard.html"; return; }
+
+    document.getElementById("ava").textContent = initials(me.name);
+    document.getElementById("name").textContent = me.name;
+    document.getElementById("meta").textContent = me.dept ? `Departament: ${me.dept}` : "—";
+
+    document.getElementById("todayWork").textContent = hmFromHours(me.today?.totalHours);
+    document.getElementById("todayPause").textContent = `${me.pauseMinutesToday||0} min`;
+    document.getElementById("todayOT").textContent = hmFromHours(me.today?.overtime);
+    document.getElementById("todayEX").textContent = hmFromHours(me.today?.extra);
+
+    const month = await jsonp(`${ep()}?fn=meCalendarMonth&token=${encodeURIComponent(token)}&ym=${encodeURIComponent(me.ym)}`);
+    if (month.ok) renderCalendar(me, month);
+
+    document.getElementById("logoutBtn").addEventListener("click", logout);
+  })();
+})();
+</script>
+</body>
+</html>

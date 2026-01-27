@@ -1,0 +1,453 @@
+<!doctype html>
+<html lang="ro">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Admin — User Panel</title>
+  <style>
+    :root{
+      --bg:#f5f6ff;
+      --line:#e7e9f6;
+      --shadow:0 18px 50px rgba(20,18,40,.14);
+      --purple:#2f245c;
+      --purple2:#3a2d71;
+      --ink:#f5f4ff;
+      --muted:rgba(245,244,255,.72);
+      --accent:#6dde80;
+      --accent2:#6d5efc;
+      --r:22px;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--bg);font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial;color:#1f2330}
+    .wrap{max-width:1200px;margin:18px auto;padding:0 14px}
+    .panel{
+      background:linear-gradient(180deg, var(--purple), var(--purple2));
+      border-radius:var(--r);
+      border:1px solid rgba(255,255,255,.10);
+      box-shadow:var(--shadow);
+      color:var(--ink);
+      overflow:hidden;
+    }
+    .head{
+      padding:18px 18px 14px;
+      display:flex;align-items:flex-start;justify-content:space-between;gap:12px;
+      border-bottom:1px solid rgba(255,255,255,.12);
+    }
+    .title{display:flex;gap:12px;align-items:center}
+    .ava{
+      width:56px;height:56px;border-radius:18px;
+      background:rgba(255,255,255,.12);
+      border:1px solid rgba(255,255,255,.14);
+      display:flex;align-items:center;justify-content:center;
+      font-weight:950;font-size:18px;
+    }
+    h1{margin:0;font-size:18px}
+    .sub{margin-top:4px;color:var(--muted);font-size:12px}
+    .actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
+    .btn{
+      border:1px solid rgba(255,255,255,.16);
+      background:rgba(255,255,255,.10);
+      color:var(--ink);
+      padding:12px 14px;border-radius:16px;
+      font-weight:950;
+      cursor:pointer;
+      display:inline-flex;align-items:center;gap:10px;
+      text-decoration:none;
+    }
+    .btn.primary{background:var(--accent); border-color:var(--accent); color:#102516}
+    .btn.blue{background:rgba(109,94,252,.20); border-color:rgba(109,94,252,.30)}
+    .body{padding:14px 18px 18px}
+    .grid{display:grid;grid-template-columns: 1.2fr .8fr; gap:14px}
+    @media (max-width:980px){ .grid{grid-template-columns:1fr} }
+    .card{
+      border:1px solid rgba(255,255,255,.12);
+      background:rgba(255,255,255,.08);
+      border-radius:20px;
+      padding:14px;
+    }
+    .k{font-size:12px;color:var(--muted);font-weight:900}
+    .v{font-size:20px;font-weight:950;margin-top:6px}
+    .row{display:flex;gap:14px;flex-wrap:wrap}
+    .mini{flex:1 1 220px}
+    .select,.inpt,.sel{
+      width:100%;
+      padding:12px 12px;
+      border-radius:16px;
+      border:1px solid rgba(255,255,255,.14);
+      background:rgba(255,255,255,.08);
+      color:var(--ink);
+      outline:none;
+      font-weight:850;
+      font-size:13px;
+    }
+    table{width:100%;border-collapse:separate;border-spacing:0}
+    th,td{padding:10px 0;text-align:left;font-size:13px}
+    th{color:var(--muted);font-weight:900;font-size:12px}
+    .delBtn{
+      width:42px;height:42px;border-radius:16px;
+      border:1px solid rgba(255,255,255,.14);
+      background:rgba(255,255,255,.08);
+      color:var(--ink);
+      cursor:pointer;
+      display:inline-flex;align-items:center;justify-content:center;
+      font-size:16px;
+    }
+    .hint{color:var(--muted);font-size:12px;margin-top:10px}
+    .toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:rgba(47,36,92,.92);border:1px solid rgba(255,255,255,.16);color:var(--ink);padding:10px 12px;border-radius:14px;display:none}
+    .toast.show{display:block}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="panel">
+      <div class="head">
+        <div class="title">
+          <div class="ava" id="ava">U</div>
+          <div>
+            <h1 id="name">User Panel</h1>
+            <div class="sub" id="meta">—</div>
+          </div>
+        </div>
+        <div class="actions">
+          <a class="btn blue" id="backBtn" href="admin-calendar-prezenta.html">← Înapoi la calendar</a>
+          <a class="btn" id="openFixDay" href="fix-day.html" target="_blank">🛠 Editor complet (FixDay)</a>
+          <button class="btn primary" id="saveBtn">✓ Salvează</button>
+        </div>
+      </div>
+
+      <div class="body">
+        <div class="grid">
+          <div class="card">
+            <div class="k">Selected day</div>
+            <div class="v" id="dayLabel">—</div>
+
+            <div class="row" style="margin-top:12px">
+              <div class="mini">
+                <div class="k">Schimbă ziua</div>
+                <input class="inpt" type="date" id="dayPick"/>
+              </div>
+              <div class="mini">
+                <div class="k">Schimbă luna</div>
+                <select class="select" id="monthSel"></select>
+              </div>
+            </div>
+
+            <div class="hint">Mai jos poți edita rapid intervalele (START/PAUSE/UNPAUSE/FINISH/EXTRA). Pentru cazuri speciale, folosește FixDay.</div>
+          </div>
+
+          <div class="card">
+            <div class="k">Statistică zi</div>
+            <div class="v" id="statsDay">—</div>
+            <div class="hint" id="statsSub">—</div>
+          </div>
+
+          <div class="card" style="grid-column:1/-1">
+            <div class="k">Evenimente zi</div>
+            <table>
+              <thead>
+                <tr>
+                  <th style="width:110px">Ora</th>
+                  <th style="width:180px">Acțiune</th>
+                  <th>Note</th>
+                  <th style="width:60px"></th>
+                </tr>
+              </thead>
+              <tbody id="rows"></tbody>
+            </table>
+
+            <div class="row" style="margin-top:12px">
+              <div class="mini"><input class="inpt" type="time" id="newTime" value="08:00"/></div>
+              <div class="mini">
+                <select class="sel" id="newAction"></select>
+              </div>
+              <div class="mini"><input class="inpt" id="newNotes" placeholder="note (opțional)"/></div>
+              <div style="width:60px">
+                <button class="delBtn" id="addBtn" title="Adaugă">＋</button>
+              </div>
+            </div>
+
+            <div class="hint" id="hintSave">—</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+<script>
+(() => {
+  const LS_ADMIN = "pontaj_admin_session";
+  function requireAdmin(){
+    const raw = localStorage.getItem(LS_ADMIN);
+    if (!raw) throw new Error("Neautentificat ca admin.");
+    const s = JSON.parse(raw);
+    if (!s || !s.user) throw new Error("Sesiune admin invalidă.");
+    return s;
+  }
+
+  function jsonp(url){
+    return new Promise((resolve,reject)=>{
+      const cb = "cb_"+Math.random().toString(16).slice(2);
+      window[cb] = (data)=>{ cleanup(); resolve(data); };
+      const s = document.createElement("script");
+      const cleanup = ()=>{
+        try{ delete window[cb]; }catch(e){ window[cb]=undefined; }
+        s.remove();
+      };
+      s.onerror = ()=>{ cleanup(); reject(new Error("JSONP error")); };
+      s.src = url + (url.includes("?") ? "&" : "?") + "callback="+cb;
+      document.head.appendChild(s);
+    });
+  }
+
+  function getParam(k){
+    return new URLSearchParams(location.search).get(k) || "";
+  }
+  function esc(s){ return String(s||"").replace(/[&<>"']/g,c=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));}
+  function initials(name){
+    const parts = (name||"").trim().split(/\s+/).filter(Boolean);
+    const a = (parts[0]||"")[0]||"";
+    const b = (parts.length>1 ? (parts[parts.length-1]||"")[0] : "") || "";
+    return (a+b).toUpperCase() || "U";
+  }
+  function hm(min){
+    min = Math.max(0, Math.round(Number(min)||0));
+    const h = String(Math.floor(min/60)).padStart(2,'0');
+    const m = String(min%60).padStart(2,'0');
+    return `${h}:${m}`;
+  }
+  function dayKey(d){
+    const y = d.getFullYear();
+    const m = String(d.getMonth()+1).padStart(2,'0');
+    const da = String(d.getDate()).padStart(2,'0');
+    return `${y}-${m}-${da}`;
+  }
+
+  const ACTIONS = ["START","FINISH","PAUSE","UNPAUSE","EXTRA START","EXTRA FINISH","VOID"];
+  let CFG=null;
+  let NAME="";
+  let DAY="";
+  let YM="";
+  let rows=[];
+
+  async function loadConfig(){
+    const r = await fetch("config.json", {cache:"no-store"});
+    CFG = await r.json();
+  }
+  function ep(){ return CFG?.adminEventsEndpoint || CFG?.stateEndpoint || ""; }
+
+  function toast(msg){
+    const t = document.getElementById("toast");
+    t.textContent = msg;
+    t.classList.add("show");
+    setTimeout(()=>t.classList.remove("show"), 1600);
+  }
+
+  function buildMonthOptions(curYm){
+    const sel = document.getElementById("monthSel");
+    sel.innerHTML = "";
+    const [cy, cm] = curYm.split("-").map(x=>parseInt(x,10));
+    const base = new Date(cy, cm-1, 1);
+    for (let i=-12; i<=1; i++){
+      const d = new Date(base.getFullYear(), base.getMonth()+i, 1);
+      const ym = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+      const opt = document.createElement("option");
+      opt.value = ym;
+      opt.textContent = d.toLocaleString("ro-RO", {month:"long", year:"numeric"});
+      if (ym === curYm) opt.selected = true;
+      sel.appendChild(opt);
+    }
+  }
+
+  async function loadDay(){
+    document.getElementById("dayLabel").textContent = DAY;
+    document.getElementById("dayPick").value = DAY;
+    document.getElementById("hintSave").textContent = "Editează și apasă Salvează.";
+
+    const res = await jsonp(`${ep()}?fn=fixDayGet&name=${encodeURIComponent(NAME)}&date=${encodeURIComponent(DAY)}`);
+    if (!res || !res.ok) throw new Error(res?.error || "fixDayGet failed");
+
+    rows = (res.events || []).map(ev => ({
+      row: ev.row,
+      time: ev.time || "",
+      action: (ev.action || "").toUpperCase(),
+      notes: ev.notes || ""
+    }));
+
+    renderRows();
+    computeStatsFromRows();
+  }
+
+  function renderRows(){
+    const tb = document.getElementById("rows");
+    if (!rows.length){
+      tb.innerHTML = `<tr><td colspan="4" style="color:rgba(245,244,255,.72)">Nu există evenimente pentru ziua selectată.</td></tr>`;
+      return;
+    }
+    tb.innerHTML = rows.map((r,idx)=>`
+      <tr>
+        <td><input class="inpt" type="time" value="${esc(r.time)}" data-i="${idx}" data-f="time"/></td>
+        <td>
+          <select class="sel" data-i="${idx}" data-f="action">
+            ${ACTIONS.map(a=>`<option value="${a}" ${a===r.action?'selected':''}>${a}</option>`).join("")}
+          </select>
+        </td>
+        <td><input class="inpt" value="${esc(r.notes)}" placeholder="note" data-i="${idx}" data-f="notes"/></td>
+        <td><button class="delBtn" data-del="${idx}" title="VOID">🗑</button></td>
+      </tr>
+    `).join("");
+
+    tb.querySelectorAll("[data-f]").forEach(el=>{
+      const i = parseInt(el.getAttribute("data-i"),10);
+      const f = el.getAttribute("data-f");
+      el.addEventListener("input", ()=>{ rows[i][f] = el.value; computeStatsFromRows(); });
+      el.addEventListener("change", ()=>{ rows[i][f] = el.value; computeStatsFromRows(); });
+    });
+    tb.querySelectorAll("[data-del]").forEach(btn=>{
+      btn.addEventListener("click", ()=>{
+        const i = parseInt(btn.getAttribute("data-del"),10);
+        rows[i].action = "VOID";
+        renderRows();
+        computeStatsFromRows();
+      });
+    });
+  }
+
+  function computeStatsFromRows(){
+    // approximate: compute work/pause from local events (time only)
+    function tmin(t){
+      if (!t) return null;
+      const [h,m]=t.split(":").map(x=>parseInt(x,10));
+      if (isNaN(h)||isNaN(m)) return null;
+      return h*60+m;
+    }
+    const evs = rows
+      .filter(r=>r.action && r.action!=="VOID" && r.time)
+      .map(r=>({m:tmin(r.time), a:r.action}))
+      .filter(x=>x.m!=null)
+      .sort((a,b)=>a.m-b.m);
+
+    let running=false, paused=false;
+    let lastStart=null, lastPause=null;
+    let work=0, pause=0;
+
+    for (const e of evs){
+      if (e.a==="START"){ running=true; paused=false; lastStart=e.m; lastPause=null; }
+      else if (e.a==="PAUSE" && running && !paused){ paused=true; lastPause=e.m; if (lastStart!=null) work += Math.max(0, e.m-lastStart); }
+      else if (e.a==="UNPAUSE" && running && paused){ paused=false; if (lastPause!=null) pause += Math.max(0, e.m-lastPause); lastStart=e.m; lastPause=null; }
+      else if (e.a==="FINISH" && running){
+        if (paused){ if (lastPause!=null) pause += Math.max(0, e.m-lastPause); }
+        else if (lastStart!=null){ work += Math.max(0, e.m-lastStart); }
+        running=false; paused=false; lastStart=null; lastPause=null;
+      }
+    }
+
+    const st = running ? (paused ? "În pauză" : "În lucru") : (work ? "Pontaj închis" : "Fără pontaj");
+    document.getElementById("statsDay").textContent = `${hm(work)} lucrat`;
+    document.getElementById("statsSub").textContent = `${pause} min pauză • ${st}`;
+  }
+
+  async function save(){
+    const ops = [];
+    for (const r of rows){
+      if (!r.row) continue;
+      if (String(r.action).toUpperCase()==="VOID"){
+        ops.push({ type:"void", row:r.row, reason:"panel void" });
+      } else {
+        ops.push({ type:"update", row:r.row, time:r.time, action:r.action, notes:r.notes, reason:"panel update" });
+      }
+    }
+    const nt = document.getElementById("newTime").value;
+    const na = document.getElementById("newAction").value;
+    const nn = document.getElementById("newNotes").value;
+    if (nt && na){
+      ops.push({ type:"insert", time:nt, action:na, notes:nn||"", reason:"panel insert" });
+    }
+
+    const res = await jsonp(`${ep()}?fn=fixDayApply&name=${encodeURIComponent(NAME)}&date=${encodeURIComponent(DAY)}&ops=${encodeURIComponent(JSON.stringify(ops))}`);
+    if (!res || !res.ok) throw new Error(res?.error || "fixDayApply failed");
+    toast("Salvat ✅");
+    document.getElementById("newNotes").value="";
+    await loadDay();
+  }
+
+  function setNewActionOptions(){
+    const sel = document.getElementById("newAction");
+    sel.innerHTML = ACTIONS.filter(a=>a!=="VOID").map(a=>`<option value="${a}">${a}</option>`).join("");
+  }
+
+  function setHeader(){
+    document.getElementById("ava").textContent = initials(NAME);
+    document.getElementById("name").textContent = NAME;
+    document.getElementById("meta").textContent = "Admin User Panel — editare intervale";
+  }
+
+  function gotoFixDay(){
+    const url = `fix-day.html`;
+    document.getElementById("openFixDay").href = url;
+  }
+
+  function addRow(){
+    const nt = document.getElementById("newTime").value;
+    const na = document.getElementById("newAction").value;
+    const nn = document.getElementById("newNotes").value;
+    if (!nt || !na) return;
+    // add locally as placeholder insert; server insert happens on save
+    rows.push({ row:null, time:nt, action:na, notes:nn||"" });
+    renderRows();
+    computeStatsFromRows();
+    document.getElementById("newNotes").value="";
+  }
+
+  (async ()=>{
+    try{
+      requireAdmin();
+      await loadConfig();
+
+      NAME = getParam("name") || "";
+      DAY = getParam("date") || "";
+      const now = new Date();
+      if (!DAY) DAY = dayKey(now);
+      if (!NAME) throw new Error("Lipsește param: name");
+
+      YM = DAY.slice(0,7);
+      buildMonthOptions(YM);
+      document.getElementById("monthSel").value = YM;
+
+      setHeader();
+      setNewActionOptions();
+      gotoFixDay();
+
+      document.getElementById("dayPick").addEventListener("change",(e)=>{
+        DAY = e.target.value;
+        if (!DAY) return;
+        YM = DAY.slice(0,7);
+        buildMonthOptions(YM);
+        loadDay().catch(err=>alert(err.message||String(err)));
+      });
+      document.getElementById("monthSel").addEventListener("change",(e)=>{
+        YM = e.target.value;
+        // keep same day number if possible
+        const dayNum = DAY.slice(8,10);
+        DAY = `${YM}-${dayNum}`;
+        document.getElementById("dayPick").value = DAY;
+        loadDay().catch(err=>alert(err.message||String(err)));
+      });
+
+      document.getElementById("saveBtn").addEventListener("click", ()=>save().catch(err=>alert(err.message||String(err))));
+      document.getElementById("addBtn").addEventListener("click", addRow);
+
+      await loadDay();
+    } catch(err){
+      document.body.innerHTML = `<div style="padding:22px;font-family:ui-sans-serif,system-ui">
+        <h2 style="margin:0 0 10px">Admin — User Panel</h2>
+        <div style="color:#b00020;font-weight:800">Eroare: ${esc(err.message || String(err))}</div>
+        <div style="margin-top:8px;color:#555">Deschide din admin calendar sau adaugă ?name=...&date=YYYY-MM-DD</div>
+      </div>`;
+    }
+  })();
+})();
+</script>
+</body>
+</html>
