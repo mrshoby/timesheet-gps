@@ -177,16 +177,19 @@
 
 <script>
 (() => {
-  const LS_ADMIN = "pontaj_admin_session";
+  const ADMIN_LS_KEYS = ["pontaj/admin/v1","pontaj_admin_session"];
   function requireAdmin(){
-    const raw = localStorage.getItem(LS_ADMIN);
-    if (!raw) throw new Error("Neautentificat ca admin.");
-    const s = JSON.parse(raw);
-    if (!s || !s.user) throw new Error("Sesiune admin invalidă.");
-    return s;
+    for (const k of ADMIN_LS_KEYS){
+      const raw = localStorage.getItem(k);
+      if (!raw) continue;
+      try{
+        const s = JSON.parse(raw);
+        if (s && (s.user || s.label || s.role)) return s;
+      }catch(e){}
+    }
+    throw new Error("Neautentificat ca admin. Loghează-te în Admin înainte.");
   }
-
-  function jsonp(url){
+function jsonp(url){
     return new Promise((resolve,reject)=>{
       const cb = "cb_"+Math.random().toString(16).slice(2);
       window[cb] = (data)=>{ cleanup(); resolve(data); };
