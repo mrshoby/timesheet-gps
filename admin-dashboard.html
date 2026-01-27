@@ -280,6 +280,10 @@
       flex:0 0 auto;
     }
     .emp-meta{display:flex; flex-direction:column; line-height:1.15;}
+    .empBtn{margin-left:auto; width:34px; height:34px; border-radius:12px; border:1px solid rgba(108,92,231,.22);       background: rgba(108,92,231,.10); color: var(--purple); cursor:pointer; display:grid; place-items:center;       font-size:16px; font-weight:900; box-shadow: var(--shadow2);}
+    .empBtn:hover{transform: translateY(-1px); background: rgba(108,92,231,.14);}
+    .empBtn:active{transform: translateY(0px);}
+
     .emp-name{ font-weight:900; }
     .emp-dept{ font-size:11px; color: var(--muted); font-weight:700; margin-top:2px; }
 
@@ -371,12 +375,6 @@
         </div>
         <button class="btn" id="btnRefresh" type="button">
           ↻ Refresh
-        </button>
-        <button class="btn" id="btnCalendar" type="button" title="Calendar prezență">
-          📅 Calendar
-        </button>
-        <button class="btn" id="btnAdminPanel" type="button" title="Admin Panel">
-          👤 Admin Panel
         </button>
       </div>
     </div>
@@ -826,6 +824,7 @@
               <div class="emp-name">${escapeHtml(r.name)}</div>
               <div class="emp-dept">${escapeHtml(r.dept || '—')}</div>
             </div>
+          <button class="empBtn" type="button" data-open-userpanel="1" data-emp-name="${escapeHtml(r.name)}" title="User Panel / Editare intervale">👤</button>
           </div>
         </td>
         <td class="muted">${escapeHtml(r.manager || '—')}</td>
@@ -978,25 +977,11 @@
     renderSummaryTable(ROWS_CACHE);
   }
 
-    // ======= Shell navigation helper =======
-  function shellNavigate(id, url){
-    try{
-      if (window.parent && window.parent !== window){
-        window.parent.postMessage({ type:'PONTAJ_NAV', id }, '*');
-        return;
-      }
-    }catch(_){}
-    window.location.href = url;
-  }
-
   // ======= Init =======
   async function init(){
     buildKpiGrid();
 
     qs('#btnRefresh').addEventListener('click', () => { refresh(); });
-
-    qs('#btnCalendar').addEventListener('click', () => { shellNavigate('calendar', 'admin-calendar-prezenta.html'); });
-    qs('#btnAdminPanel').addEventListener('click', () => { shellNavigate('adminpanel', 'admin-panel.html'); });
 
     const searchTop = qs('#searchEmployee');
     const searchTbl = qs('#tableSearch');
@@ -1047,6 +1032,24 @@
 
   window.addEventListener('DOMContentLoaded', init);
 })();
+
+  function openUserPanelForName(empName){
+    const d = new Date();
+    const date = ymdLocal(d);
+    const url = 'admin-user-panel.html?name=' + encodeURIComponent(empName) + '&date=' + encodeURIComponent(date);
+    // If we're inside shell, open in new tab; same-tab would replace iframe only.
+    window.open(url, '_blank');
+  }
+
+  document.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-open-userpanel="1"]');
+    if (!btn) return;
+    e.preventDefault();
+    const empName = btn.getAttribute('data-emp-name') || '';
+    if (!empName) return;
+    openUserPanelForName(empName);
+  });
+
 </script>
 </body>
 </html>
