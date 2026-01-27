@@ -1,0 +1,325 @@
+<!doctype html>
+<html lang="ro">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Pontaj – Dashboard Angajat</title>
+  <style>
+    :root{
+      --bg:#f5f6ff;
+      --card:#ffffff;
+      --ink:#1f2330;
+      --muted:#6f7890;
+      --line:#e7e9f6;
+      --accent:#6d5efc;
+      --shadow:0 10px 30px rgba(20,18,40,.08);
+      --r:16px;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial;background:var(--bg);color:var(--ink)}
+    .topbar{
+      height:64px; display:flex; align-items:center; justify-content:space-between;
+      padding:0 18px; background:linear-gradient(90deg,#473b8f,#7b66ff);
+      color:#fff;
+    }
+    .brand{display:flex;align-items:center;gap:10px;font-weight:700}
+    .pill{background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.22);padding:8px 12px;border-radius:999px;font-size:13px}
+    .wrap{max-width:1180px;margin:18px auto;padding:0 14px}
+    .grid{
+      display:grid; grid-template-columns:repeat(6, minmax(0,1fr)); gap:12px;
+    }
+    @media (max-width:1100px){ .grid{grid-template-columns:repeat(3,1fr);} }
+    @media (max-width:700px){ .grid{grid-template-columns:repeat(2,1fr);} }
+    .card{
+      background:var(--card); border:1px solid var(--line); border-radius:var(--r);
+      box-shadow:var(--shadow); overflow:hidden; min-height:78px;
+    }
+    .card .bar{height:4px;background:var(--accent)}
+    .card .in{padding:12px 14px}
+    .k{font-size:12px;color:var(--muted)}
+    .v{font-size:22px;font-weight:750;margin-top:6px}
+    .row{display:flex;gap:12px;align-items:center;justify-content:space-between}
+    .small{font-size:12px;color:var(--muted)}
+    .section{
+      margin-top:14px; background:var(--card); border:1px solid var(--line);
+      border-radius:18px; box-shadow:var(--shadow); overflow:hidden;
+    }
+    .sectionHead{
+      display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--line)
+    }
+    .sectionHead h2{margin:0;font-size:16px}
+    .search{display:flex;align-items:center;gap:8px;border:1px solid var(--line);background:#fff;border-radius:12px;padding:8px 10px;min-width:240px}
+    .search input{border:0;outline:0;width:100%;font-size:13px}
+    table{width:100%;border-collapse:collapse}
+    th,td{padding:12px 14px;border-bottom:1px solid var(--line);text-align:left;font-size:13px}
+    th{font-size:12px;color:var(--muted);font-weight:700}
+    .loginOverlay{
+      position:fixed; inset:0; display:flex; align-items:center; justify-content:center;
+      background:rgba(10,10,30,.45); backdrop-filter: blur(6px);
+    }
+    .login{
+      width:min(520px, calc(100% - 28px));
+      background:#fff; border-radius:22px; border:1px solid var(--line);
+      box-shadow:0 30px 80px rgba(0,0,0,.22); overflow:hidden;
+    }
+    .loginTop{padding:18px 18px 10px;background:linear-gradient(90deg,#473b8f,#7b66ff);color:#fff}
+    .loginTop h1{margin:0;font-size:18px}
+    .loginBody{padding:16px 18px 18px}
+    .field{display:flex;flex-direction:column;gap:6px;margin-top:10px}
+    label{font-size:12px;color:var(--muted);font-weight:700}
+    select,input{padding:12px 12px;border-radius:14px;border:1px solid var(--line);font-size:14px;outline:none}
+    button{
+      margin-top:14px;width:100%;
+      padding:12px 14px;border:0;border-radius:14px;
+      background:var(--accent);color:#fff;font-weight:800;font-size:14px;cursor:pointer;
+    }
+    .err{margin-top:10px;color:#b00020;font-size:13px}
+    .hidden{display:none!important}
+    .right{display:flex;gap:10px;align-items:center}
+    .link{color:#fff;opacity:.95;text-decoration:underline;cursor:pointer;font-size:13px}
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <div class="brand">
+      <span style="display:inline-flex;width:34px;height:34px;border-radius:10px;background:rgba(255,255,255,.14);align-items:center;justify-content:center;font-weight:900">P</span>
+      <div>
+        <div style="font-size:14px;line-height:1">Pontaj – Dashboard Angajat</div>
+        <div class="small" id="who"></div>
+      </div>
+    </div>
+    <div class="right">
+      <div class="pill" id="pillState">—</div>
+      <div class="link" id="logoutBtn">Logout</div>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <div class="grid" id="cards">
+      <!-- filled by JS -->
+    </div>
+
+    <div class="section">
+      <div class="sectionHead">
+        <h2>Ultimele zile</h2>
+        <div class="search">
+          🔎 <input id="q" placeholder="Caută în tabel (zi / valori)"/>
+        </div>
+      </div>
+      <div style="overflow:auto">
+        <table id="tbl">
+          <thead>
+            <tr>
+              <th>Zi</th>
+              <th>Lucrat</th>
+              <th>Suplimentar</th>
+              <th>Extra</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div style="padding:12px 16px;color:var(--muted);font-size:12px">
+        Accesul este restricționat: vezi doar datele tale.
+      </div>
+    </div>
+  </div>
+
+  <!-- LOGIN -->
+  <div class="loginOverlay" id="loginOverlay">
+    <div class="login">
+      <div class="loginTop">
+        <h1>Autentificare angajat</h1>
+        <div style="opacity:.9;font-size:13px;margin-top:6px">Selectează numele și introdu PIN-ul primit de la admin.</div>
+      </div>
+      <div class="loginBody">
+        <div class="field">
+          <label>Nume</label>
+          <select id="nameSel"></select>
+        </div>
+        <div class="field">
+          <label>PIN</label>
+          <input id="pin" type="password" autocomplete="current-password" placeholder="PIN (min 4 caractere)"/>
+        </div>
+        <button id="loginBtn">Intră în dashboard</button>
+        <div class="err" id="err"></div>
+        <div style="margin-top:10px;color:var(--muted);font-size:12px">
+          Dacă nu găsești numele sau nu ai PIN, roagă adminul să seteze PIN-ul pentru tine.
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+(function(){
+  const LS_TOKEN = "pontaj_me_token";
+  const LS_NAME  = "pontaj_me_name";
+  const cfgUrl = "config.json"; // same repo
+  let CFG = null;
+
+  function jsonp(url){
+    return new Promise((resolve,reject)=>{
+      const cb = "cb_"+Math.random().toString(16).slice(2);
+      window[cb] = (data)=>{ cleanup(); resolve(data); };
+      const s = document.createElement("script");
+      const cleanup = ()=>{
+        try{ delete window[cb]; }catch(e){ window[cb]=undefined; }
+        s.remove();
+      };
+      s.onerror = ()=>{ cleanup(); reject(new Error("JSONP error")); };
+      s.src = url + (url.includes("?") ? "&" : "?") + "callback="+cb;
+      document.head.appendChild(s);
+    });
+  }
+
+  function hmFromHours(h){
+    if (h == null || h === "") return "00:00";
+    const min = Math.round(Number(h)*60);
+    const hh = String(Math.floor(min/60)).padStart(2,"0");
+    const mm = String(min%60).padStart(2,"0");
+    return `${hh}:${mm}`;
+  }
+
+  function setCards(model){
+    const cards = [
+      {k:"Lucrat azi", v: hmFromHours(model.today?.totalHours), bar:"#6d5efc"},
+      {k:"Pauză azi", v: `${model.pauseMinutesToday||0} min`, bar:"#b14cff"},
+      {k:"Suplimentar azi", v: hmFromHours(model.today?.overtime), bar:"#ff5a5f"},
+      {k:"Extra azi", v: hmFromHours(model.today?.extra), bar:"#00a4ff"},
+      {k:"Total luna curentă", v: model.month ? String(model.month.total||"—") : "—", bar:"#57c65f"},
+      {k:"Suplimentar luna", v: model.month ? String(model.month.overtime||"—") : "—", bar:"#ff5a5f"},
+      {k:"Extra luna", v: model.month ? String(model.month.extra||"—") : "—", bar:"#00a4ff"},
+    ];
+    const el = document.getElementById("cards");
+    el.innerHTML = cards.map(c=>`
+      <div class="card">
+        <div class="bar" style="background:${c.bar}"></div>
+        <div class="in">
+          <div class="k">${c.k}</div>
+          <div class="v">${c.v}</div>
+        </div>
+      </div>
+    `).join("");
+  }
+
+  function setTable(rows){
+    const tb = document.querySelector("#tbl tbody");
+    tb.innerHTML = rows.map(r=>`
+      <tr>
+        <td>${r.day}</td>
+        <td>${r.work}</td>
+        <td>${r.overtime}</td>
+        <td>${r.extra}</td>
+      </tr>
+    `).join("");
+  }
+
+  function applyFilter(){
+    const q = document.getElementById("q").value.trim().toLowerCase();
+    const trs = Array.from(document.querySelectorAll("#tbl tbody tr"));
+    trs.forEach(tr=>{
+      const t = tr.innerText.toLowerCase();
+      tr.style.display = (!q || t.includes(q)) ? "" : "none";
+    });
+  }
+
+  async function loadConfig(){
+    const r = await fetch(cfgUrl, {cache:"no-store"});
+    CFG = await r.json();
+  }
+
+  function endpoint(){ return CFG?.adminEventsEndpoint || CFG?.stateEndpoint || ""; }
+
+  async function loadRoster(){
+    const ep = endpoint();
+    const data = await jsonp(`${ep}?fn=meRoster`);
+    const sel = document.getElementById("nameSel");
+    sel.innerHTML = "";
+    if (data.ok && data.employees && data.employees.length){
+      data.employees.filter(x=>x.active).forEach(x=>{
+        const opt = document.createElement("option");
+        opt.value = x.name;
+        opt.textContent = x.dept ? `${x.name} — ${x.dept}` : x.name;
+        sel.appendChild(opt);
+      });
+    } else {
+      const opt = document.createElement("option");
+      opt.value = "";
+      opt.textContent = "Nu există listă (setează PIN-uri în EmployeeAuth)";
+      sel.appendChild(opt);
+    }
+  }
+
+  async function doLogin(){
+    const name = document.getElementById("nameSel").value.trim();
+    const pin = document.getElementById("pin").value.trim();
+    const err = document.getElementById("err");
+    err.textContent = "";
+    if (!name) { err.textContent = "Selectează numele."; return; }
+    if (!pin) { err.textContent = "Introdu PIN-ul."; return; }
+
+    const ep = endpoint();
+    const data = await jsonp(`${ep}?fn=meLogin&name=${encodeURIComponent(name)}&pin=${encodeURIComponent(pin)}`);
+    if (!data.ok){
+      err.textContent = data.error || "Autentificare eșuată.";
+      return;
+    }
+    localStorage.setItem(LS_TOKEN, data.token);
+    localStorage.setItem(LS_NAME, data.name);
+    document.getElementById("loginOverlay").classList.add("hidden");
+    await refresh();
+  }
+
+  function logout(){
+    localStorage.removeItem(LS_TOKEN);
+    localStorage.removeItem(LS_NAME);
+    location.reload();
+  }
+
+  async function refresh(){
+    const token = localStorage.getItem(LS_TOKEN);
+    const name = localStorage.getItem(LS_NAME);
+    if (!token || !name){
+      document.getElementById("loginOverlay").classList.remove("hidden");
+      return;
+    }
+    document.getElementById("who").textContent = name;
+
+    const ep = endpoint();
+    const data = await jsonp(`${ep}?fn=meDashboard&token=${encodeURIComponent(token)}&days=14`);
+    if (!data.ok){
+      document.getElementById("loginOverlay").classList.remove("hidden");
+      document.getElementById("err").textContent = data.error || "Sesiune invalidă.";
+      return;
+    }
+
+    setCards(data);
+    setTable(data.lastDays || []);
+    document.getElementById("q").value = "";
+    applyFilter();
+
+    const st = data.state;
+    const pill = document.getElementById("pillState");
+    if (!st) { pill.textContent = "—"; return; }
+    const normal = st.normal || {};
+    if (normal.running && normal.paused) pill.textContent = "În pauză";
+    else if (normal.running) pill.textContent = "În lucru";
+    else pill.textContent = "Inactiv";
+  }
+
+  document.getElementById("loginBtn").addEventListener("click", ()=>doLogin().catch(e=>{
+    document.getElementById("err").textContent = "Eroare login: " + e.message;
+  }));
+  document.getElementById("logoutBtn").addEventListener("click", logout);
+  document.getElementById("q").addEventListener("input", applyFilter);
+
+  (async ()=>{
+    await loadConfig();
+    await loadRoster();
+    // show login or load data
+    await refresh();
+  })();
+})();
+</script>
+</body>
+</html>
