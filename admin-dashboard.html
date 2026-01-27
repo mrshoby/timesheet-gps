@@ -280,10 +280,6 @@
       flex:0 0 auto;
     }
     .emp-meta{display:flex; flex-direction:column; line-height:1.15;}
-    .empBtn{margin-left:auto; width:34px; height:34px; border-radius:12px; border:1px solid rgba(108,92,231,.22);       background: rgba(108,92,231,.10); color: var(--purple); cursor:pointer; display:grid; place-items:center;       font-size:16px; font-weight:900; box-shadow: var(--shadow2);}
-    .empBtn:hover{transform: translateY(-1px); background: rgba(108,92,231,.14);}
-    .empBtn:active{transform: translateY(0px);}
-
     .emp-name{ font-weight:900; }
     .emp-dept{ font-size:11px; color: var(--muted); font-weight:700; margin-top:2px; }
 
@@ -358,6 +354,90 @@
     }
     @keyframes spin{ to { transform: rotate(360deg); } }
 
+  
+    /* Employee mini user panel trigger */
+    .emp{display:flex; align-items:center; gap:10px;}
+    .empBtn{margin-left:auto; width:34px; height:34px; border-radius:12px; border:1px solid rgba(108,92,231,.22);
+      background: rgba(108,92,231,.10); color: var(--purple); cursor:pointer; display:grid; place-items:center;
+      font-size:16px; font-weight:900; box-shadow: var(--shadow2);}
+    .empBtn:hover{transform: translateY(-1px); background: rgba(108,92,231,.14);}
+    .empBtn:active{transform: translateY(0px);}
+
+    /* Mini User Panel (purple) */
+    .upOverlay{position:fixed; inset:0; background: rgba(15, 12, 40, .45); display:none; align-items:center; justify-content:center; padding:18px; z-index: 9999;}
+    .upOverlay.show{display:flex;}
+    .upCard{
+      width: 360px; max-width: 95vw;
+      background: #2d2459;
+      color: rgba(255,255,255,.92);
+      border-radius: 22px;
+      box-shadow: 0 18px 40px rgba(0,0,0,.25);
+      overflow:hidden;
+    }
+    .upInner{padding: 18px 18px 14px;}
+    .upClose{
+      position:absolute; right:14px; top:12px;
+      width:34px; height:34px; border-radius:12px;
+      border:1px solid rgba(255,255,255,.14);
+      background: rgba(255,255,255,.06);
+      color: rgba(255,255,255,.9);
+      cursor:pointer;
+      display:grid; place-items:center;
+      font-weight:900;
+    }
+    .upClose:hover{background: rgba(255,255,255,.10);}
+    .upHead{position:relative; padding: 18px 18px 8px;}
+    .upTitle{font-size:12px; letter-spacing:.3px; text-transform:uppercase; color: rgba(255,255,255,.55); font-weight:800;}
+    .upName{font-size:18px; font-weight:900; margin-top:6px; display:flex; align-items:center; gap:10px;}
+    .upAvatar{width:46px; height:46px; border-radius:50%; background: rgba(255,255,255,.12); display:grid; place-items:center; font-weight:900;}
+    .upGrid{display:grid; grid-template-columns: 1fr; gap:10px; margin-top: 10px;}
+    .upRow{padding: 10px 12px; border-radius: 16px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.08);}
+    .upLabel{font-size:12px; color: rgba(255,255,255,.55); font-weight:800;}
+    .upValue{font-size:16px; font-weight:900; margin-top:4px;}
+    .upValue input[type="date"]{
+      width: 100%;
+      border: 1px solid rgba(255,255,255,.14);
+      background: rgba(0,0,0,.10);
+      color: rgba(255,255,255,.92);
+      border-radius: 12px;
+      padding: 8px 10px;
+      font: inherit;
+      outline: none;
+    }
+
+    .upEvents{margin-top: 10px;}
+    .evItem{display:grid; grid-template-columns: 86px 1fr 34px; gap:8px; align-items:center; padding: 8px 10px; border-radius: 14px; background: rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.08); margin-bottom:8px;}
+    .evItem input, .evItem select{
+      width:100%;
+      border:1px solid rgba(255,255,255,.14);
+      background: rgba(0,0,0,.10);
+      color: rgba(255,255,255,.92);
+      border-radius: 12px;
+      padding: 7px 8px;
+      font: inherit;
+      outline:none;
+    }
+    .evDel{width:34px;height:34px;border-radius:12px;border:1px solid rgba(255,255,255,.14); background: rgba(255,255,255,.06);
+      color: rgba(255,255,255,.85); cursor:pointer; display:grid; place-items:center; font-weight:900;}
+    .evDel:hover{background: rgba(255,255,255,.10);}
+    .upAdd{width:100%; border:1px dashed rgba(255,255,255,.22); background: transparent; color: rgba(255,255,255,.85);
+      border-radius: 14px; padding: 10px 12px; cursor:pointer; font-weight:800;}
+    .upAdd:hover{background: rgba(255,255,255,.06);}
+
+    .upFooter{display:flex; gap:10px; padding: 14px 18px 18px; align-items:center;}
+    .upIconBtn{width:48px; height:44px; border-radius: 14px; border:1px solid rgba(255,255,255,.14); background: rgba(255,255,255,.06); color: rgba(255,255,255,.9); cursor:pointer; display:grid; place-items:center;}
+    .upIconBtn:hover{background: rgba(255,255,255,.10);}
+    .upBtn{flex:1; height:44px; border-radius: 14px; border:1px solid rgba(255,255,255,.14); background: rgba(255,255,255,.06);
+      color: rgba(255,255,255,.92); cursor:pointer; font-weight:900; display:flex; align-items:center; justify-content:center; gap:10px;}
+    .upBtn.reject{background: rgba(255,255,255,.08);}
+    .upBtn.approve{background: rgba(46, 204, 113, .85); border-color: rgba(46,204,113,.1); color: #0d2a1a;}
+    .upBtn.approve:hover{filter:brightness(1.03);}
+    .upBtn:disabled{opacity:.55; cursor:not-allowed;}
+    .upMiniLink{margin-top: 10px; display:flex; gap:10px;}
+    .upMiniLink .btnSmall{flex:1; border:1px solid rgba(255,255,255,.14); background: rgba(255,255,255,.06); color: rgba(255,255,255,.92);
+      border-radius: 14px; padding: 9px 12px; cursor:pointer; font-weight:900;}
+    .upMiniLink .btnSmall:hover{background: rgba(255,255,255,.10);}
+    .upErr{margin-top: 10px; font-weight:800; color: #ffd1d1; display:none;}
   </style>
 </head>
 <body>
@@ -824,7 +904,7 @@
               <div class="emp-name">${escapeHtml(r.name)}</div>
               <div class="emp-dept">${escapeHtml(r.dept || '—')}</div>
             </div>
-          <button class="empBtn" type="button" data-open-userpanel="1" data-emp-name="${escapeHtml(r.name)}" title="User Panel / Editare intervale">👤</button>
+          <button class="empBtn" type="button" data-open-userpanel="1" data-emp="${escapeHtml(r.name)}" data-dept="${escapeHtml(r.dept || \'\')}" title="User panel / editare intervale">👤</button>
           </div>
         </td>
         <td class="muted">${escapeHtml(r.manager || '—')}</td>
@@ -1005,6 +1085,337 @@
 
     hookSearch();
 
+
+    // ======= Mini User Panel (mov) - design ca în exemplu =======
+    const UP = {
+      name: '',
+      dept: '',
+      date: '',
+      events: [],
+      busy: false
+    };
+
+    function _upAllowedAction(a){
+      a = String(a||'').toUpperCase().trim();
+      const allowed = ['START','PAUSE','UNPAUSE','FINISH','EXTRA_START','EXTRA_FINISH'];
+      if (allowed.includes(a)) return a;
+      return 'START';
+    }
+    function _upInit2(name){
+      const parts = String(name||'').trim().split(/\s+/).filter(Boolean);
+      const a = parts[0] ? parts[0][0] : '?';
+      const b = parts.length>1 ? parts[parts.length-1][0] : '';
+      return (a+b).toUpperCase();
+    }
+
+    function _b64ws(str){
+      const b64 = btoa(unescape(encodeURIComponent(str)));
+      return b64.replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+    }
+
+    function _jsonp(url){
+      return new Promise((resolve, reject)=>{
+        const cbName = '__cb_' + Math.random().toString(36).slice(2);
+        const s = document.createElement('script');
+        const sep = url.includes('?') ? '&' : '?';
+        const full = url + sep + 'callback=' + encodeURIComponent(cbName) + '&_=' + Date.now();
+        let done = false;
+
+        const timeout = setTimeout(()=>{
+          if (done) return;
+          done = true;
+          cleanup();
+          reject(new Error('Timeout JSONP'));
+        }, 12000);
+
+        function cleanup(){
+          try{ delete window[cbName]; }catch(_){}
+          try{ s.remove(); }catch(_){}
+          clearTimeout(timeout);
+        }
+
+        window[cbName] = (data)=>{
+          if (done) return;
+          done = true;
+          cleanup();
+          resolve(data);
+        };
+
+        s.onerror = ()=>{
+          if (done) return;
+          done = true;
+          cleanup();
+          reject(new Error('Eroare JSONP'));
+        };
+
+        s.src = full;
+        document.body.appendChild(s);
+      });
+    }
+
+    function _webappBase(){
+      const cfg = window.CFG || CFG || {};
+      const raw = cfg.adminEventsEndpoint || cfg.webappUrl || cfg.scriptUrl || '';
+      return String(raw || '').replace(/\?.*$/, '').trim();
+    }
+
+    function _upShowErr(msg){
+      const el = qs('#upErr');
+      el.textContent = msg || '';
+      el.style.display = msg ? '' : 'none';
+    }
+
+    function _upSetBusy(b){
+      UP.busy = !!b;
+      qs('#upApprove').disabled = UP.busy;
+      qs('#upAddEv').disabled = UP.busy;
+      qs('#upDate').disabled = UP.busy;
+    }
+
+    function _upComputeSummary(){
+      // calc simplu: start/finish + pauze
+      const toMin = (hhmm)=>{
+        const m = String(hhmm||'').match(/^(\d{1,2}):(\d{2})/);
+        if(!m) return null;
+        return parseInt(m[1],10)*60 + parseInt(m[2],10);
+      };
+      let start = null, finish = null;
+      const pauses = [];
+      let openPause = null;
+
+      for (const ev of UP.events){
+        const t = toMin(ev.time);
+        if (t == null) continue;
+        if (ev.action === 'START') start = (start==null? t : Math.min(start,t));
+        if (ev.action === 'FINISH') finish = (finish==null? t : Math.max(finish,t));
+        if (ev.action === 'PAUSE') openPause = t;
+        if (ev.action === 'UNPAUSE' && openPause != null){
+          pauses.push([openPause, t]);
+          openPause = null;
+        }
+      }
+
+      let pauseMin = 0;
+      for (const [a,b] of pauses){
+        if (b>a) pauseMin += (b-a);
+      }
+      let spanMin = (start!=null && finish!=null && finish>start) ? (finish-start) : 0;
+      let workMin = Math.max(0, spanMin - pauseMin);
+
+      const fmt = (mins)=> {
+        mins = Math.max(0, Math.round(mins));
+        const h = Math.floor(mins/60), m = mins%60;
+        return String(h).padStart(2,'0') + ':' + String(m).padStart(2,'0');
+      };
+
+      return `Work: ${fmt(workMin)} • Pause: ${fmt(pauseMin)} • Events: ${UP.events.length}`;
+    }
+
+    function _upRenderEvents(){
+      const wrap = qs('#upEvents');
+      wrap.innerHTML = '';
+
+      if (!UP.events.length){
+        const empty = document.createElement('div');
+        empty.className = 'upRow';
+        empty.style.marginTop = '10px';
+        empty.innerHTML = '<div class="upLabel">Events</div><div class="upValue" style="font-size:14px;font-weight:800;">(niciun eveniment)</div>';
+        wrap.appendChild(empty);
+      } else {
+        UP.events.forEach((ev, i)=>{
+          const row = document.createElement('div');
+          row.className = 'evItem';
+          row.innerHTML = `
+            <input type="time" step="60" value="${escapeHtml(ev.time||'')}" data-ev="time" data-i="${i}">
+            <select data-ev="action" data-i="${i}">
+              <option value="START">START</option>
+              <option value="PAUSE">PAUSE</option>
+              <option value="UNPAUSE">UNPAUSE</option>
+              <option value="FINISH">FINISH</option>
+              <option value="EXTRA_START">EXTRA_START</option>
+              <option value="EXTRA_FINISH">EXTRA_FINISH</option>
+            </select>
+            <button class="evDel" type="button" data-ev="del" data-i="${i}" title="Șterge">×</button>
+          `;
+          wrap.appendChild(row);
+          row.querySelector('select').value = _upAllowedAction(ev.action);
+        });
+      }
+
+      qs('#upSummary').textContent = _upComputeSummary();
+    }
+
+    async function _upLoad(){
+      _upShowErr('');
+      _upSetBusy(true);
+
+      try{
+        const base = _webappBase();
+        if (!base) throw new Error('Lipsește webappUrl/adminEventsEndpoint în config.json');
+        const url = base + '?fn=fixDayGet&name=' + encodeURIComponent(UP.name) + '&date=' + encodeURIComponent(UP.date);
+        const data = await _jsonp(url);
+        if (!data || !data.ok) throw new Error((data && data.error) ? data.error : 'Răspuns invalid');
+
+        const evs = Array.isArray(data.events) ? data.events : [];
+        UP.events = evs.map(ev => ({
+          time: String(ev.localTime || ev.time || '').slice(0,5),
+          action: _upAllowedAction(ev.action || ev.rawAction || ev.Action || 'START'),
+          notes: String(ev.notes || '')
+        })).filter(ev => ev.time);
+
+        _upRenderEvents();
+      }catch(err){
+        console.error(err);
+        _upShowErr('Eroare: ' + (err && err.message ? err.message : err));
+      }finally{
+        _upSetBusy(false);
+      }
+    }
+
+    async function _upSave(){
+      _upShowErr('');
+      _upSetBusy(true);
+
+      try{
+        const base = _webappBase();
+        if (!base) throw new Error('Lipsește webappUrl/adminEventsEndpoint în config.json');
+
+        // Admin identifier (best-effort)
+        let admin = 'admin';
+        try{
+          const s = localStorage.getItem('pontaj/admin/v1');
+          if (s){
+            const o = JSON.parse(s);
+            admin = o.email || o.user || o.name || 'admin';
+          }
+        }catch(_){}
+
+        const payload = {
+          admin,
+          name: UP.name,
+          date: UP.date,
+          reason: 'Admin mini panel',
+          events: UP.events.map(ev => ({ time: ev.time, action: ev.action, notes: ev.notes || '' }))
+        };
+
+        const b64 = _b64ws(JSON.stringify(payload));
+        const url = base + '?fn=fixDayApply&payload=' + encodeURIComponent(b64);
+        const res = await _jsonp(url);
+        if (!res || !res.ok) throw new Error((res && res.error) ? res.error : 'Salvare eșuată');
+
+        // refresh dashboard
+        if (typeof window.__adminDashboardRefresh === 'function'){
+          await window.__adminDashboardRefresh();
+        }
+        _upClose();
+      }catch(err){
+        console.error(err);
+        _upShowErr('Eroare salvare: ' + (err && err.message ? err.message : err));
+      }finally{
+        _upSetBusy(false);
+      }
+    }
+
+    function _upOpen(name, dept){
+      UP.name = String(name||'').trim();
+      UP.dept = String(dept||'').trim();
+      UP.date = ymdLocal(new Date());
+
+      qs('#upEmpName').textContent = UP.name || '—';
+      qs('#upEmpDept').textContent = UP.dept || '—';
+      qs('#upAvatar').textContent = _upInit2(UP.name);
+
+      qs('#upDate').value = UP.date;
+
+      const ov = qs('#upOverlay');
+      ov.classList.add('show');
+      ov.setAttribute('aria-hidden','false');
+
+      _upLoad();
+    }
+
+    function _upClose(){
+      const ov = qs('#upOverlay');
+      ov.classList.remove('show');
+      ov.setAttribute('aria-hidden','true');
+      _upShowErr('');
+    }
+
+    function _upWire(){
+      // open from table icon
+      document.addEventListener('click', (e)=>{
+        const btn = e.target.closest('[data-open-userpanel="1"]');
+        if (!btn) return;
+        e.preventDefault();
+        const name = btn.getAttribute('data-emp') || '';
+        const dept = btn.getAttribute('data-dept') || '';
+        if (!name) return;
+        _upOpen(name, dept);
+      });
+
+      qs('#upClose').addEventListener('click', _upClose);
+      qs('#upReject').addEventListener('click', _upClose);
+      qs('#upApprove').addEventListener('click', _upSave);
+
+      qs('#upAddEv').addEventListener('click', ()=>{
+        UP.events.push({ time: '09:00', action: 'START', notes: '' });
+        _upRenderEvents();
+      });
+
+      qs('#upEvents').addEventListener('change', (e)=>{
+        const i = parseInt(e.target.getAttribute('data-i') || '-1', 10);
+        const kind = e.target.getAttribute('data-ev');
+        if (i < 0 || i >= UP.events.length) return;
+
+        if (kind === 'time'){
+          UP.events[i].time = String(e.target.value || '').slice(0,5);
+        }
+        if (kind === 'action'){
+          UP.events[i].action = _upAllowedAction(e.target.value);
+        }
+        _upRenderEvents();
+      });
+
+      qs('#upEvents').addEventListener('click', (e)=>{
+        const del = e.target.closest('[data-ev="del"]');
+        if (!del) return;
+        const i = parseInt(del.getAttribute('data-i') || '-1', 10);
+        if (i < 0 || i >= UP.events.length) return;
+        UP.events.splice(i, 1);
+        _upRenderEvents();
+      });
+
+      qs('#upDate').addEventListener('change', ()=>{
+        UP.date = String(qs('#upDate').value || '').trim();
+        if (!UP.date) return;
+        _upLoad();
+      });
+
+      qs('#upOpenFull').addEventListener('click', ()=>{
+        const url = 'admin-user-panel.html?name=' + encodeURIComponent(UP.name) + '&date=' + encodeURIComponent(UP.date);
+        window.open(url, '_blank');
+      });
+
+      qs('#upOpenFixDay').addEventListener('click', ()=>{
+        const url = 'fix-day.html?name=' + encodeURIComponent(UP.name) + '&date=' + encodeURIComponent(UP.date);
+        window.open(url, '_blank');
+      });
+
+      // close on overlay click
+      qs('#upOverlay').addEventListener('click', (e)=>{
+        if (e.target && e.target.id === 'upOverlay') _upClose();
+      });
+
+      // ESC
+      document.addEventListener('keydown', (e)=>{
+        if (e.key === 'Escape' && qs('#upOverlay').classList.contains('show')) _upClose();
+      });
+    }
+
+
+    _upWire();
+
+
     async function refresh(){
       qs('#loading').style.display = '';
       qs('#content').style.display = 'none';
@@ -1032,24 +1443,55 @@
 
   window.addEventListener('DOMContentLoaded', init);
 })();
-
-  function openUserPanelForName(empName){
-    const d = new Date();
-    const date = ymdLocal(d);
-    const url = 'admin-user-panel.html?name=' + encodeURIComponent(empName) + '&date=' + encodeURIComponent(date);
-    // If we're inside shell, open in new tab; same-tab would replace iframe only.
-    window.open(url, '_blank');
-  }
-
-  document.addEventListener('click', (e) => {
-    const btn = e.target.closest('[data-open-userpanel="1"]');
-    if (!btn) return;
-    e.preventDefault();
-    const empName = btn.getAttribute('data-emp-name') || '';
-    if (!empName) return;
-    openUserPanelForName(empName);
-  });
-
 </script>
+
+  <!-- Mini User Panel (mov) -->
+  <div class="upOverlay" id="upOverlay" aria-hidden="true">
+    <div class="upCard" role="dialog" aria-modal="true" aria-label="User Panel">
+      <div class="upHead">
+        <button class="upClose" id="upClose" title="Închide">×</button>
+        <div class="upTitle">User panel</div>
+        <div class="upName">
+          <div class="upAvatar" id="upAvatar">??</div>
+          <div>
+            <div id="upEmpName" style="font-weight:900;">—</div>
+            <div style="font-size:12px;color:rgba(255,255,255,.55);font-weight:800;" id="upEmpDept">—</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="upInner">
+        <div class="upGrid">
+          <div class="upRow">
+            <div class="upLabel">Selected day</div>
+            <div class="upValue"><input type="date" id="upDate" /></div>
+          </div>
+
+          <div class="upRow">
+            <div class="upLabel">Summary</div>
+            <div class="upValue" id="upSummary">—</div>
+          </div>
+        </div>
+
+        <div class="upMiniLink">
+          <button class="btnSmall" id="upOpenFull">Panel complet</button>
+        </div>
+
+        <div class="upEvents" id="upEvents"></div>
+        <button class="upAdd" id="upAddEv">+ Adaugă eveniment</button>
+
+        <div class="upErr" id="upErr"></div>
+      </div>
+
+      <div class="upFooter">
+        <button class="upIconBtn" id="upOpenFixDay" title="Deschide FixDay">
+          ⤴
+        </button>
+        <button class="upBtn reject" id="upReject"><span style="font-size:18px;">✕</span> Reject</button>
+        <button class="upBtn approve" id="upApprove"><span style="font-size:18px;">✓</span> Approve</button>
+      </div>
+    </div>
+  </div>
+
 </body>
 </html>
