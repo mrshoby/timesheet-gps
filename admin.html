@@ -1,386 +1,1040 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ro">
 <head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>Admin • Pontaj</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Admin Dashboard</title>
   <style>
     :root{
-      --bg:#F6F7FB;
+      --bg:#f6f5ff;
       --card:#ffffff;
-      --text:#0f172a;
-      --muted:#64748b;
-      --border:rgba(15,23,42,.08);
-      --accent:#6D5EF1;
-      --accent2:#8A7BFF;
-      --shadow: 0 12px 40px rgba(15,23,42,.08);
-      --shadow2: 0 10px 24px rgba(15,23,42,.10);
-      --sidebarW: 260px;
-      --sidebarCollapsedW: 84px;
+      --text:#16162b;
+      --muted:#6e6e8e;
+      --line:#ecebff;
+      --shadow:0 10px 24px rgba(30, 20, 90, .06);
+      --shadow2:0 6px 14px rgba(30, 20, 90, .05);
+      --r:16px;
+      --purple:#6c5ce7;
+      --purple2:#8e44ad;
+      --green:#2ecc71;
+      --red:#ff5c5c;
+      --blue:#4aa3ff;
+      --gray:#9aa3b2;
+      --orange:#f5a623;
+      --cyan:#00c2ff;
+      --pink:#ff4fd8;
     }
-    *{box-sizing:border-box}
-    html,body{height:100%}
+    html,body{height:100%;}
     body{
       margin:0;
-      font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
       background:var(--bg);
       color:var(--text);
-      overflow:hidden;
-    }
-    .app{
-      height:100%;
-      display:grid;
-      grid-template-columns: var(--sidebarW) 1fr;
-    }
-    .sidebar{
-      height:100%;
-      background:var(--card);
-      border-right:1px solid var(--border);
-      box-shadow: var(--shadow2);
-      display:flex;
-      flex-direction:column;
-      padding:14px 12px;
-      gap:10px;
-      position:relative;
-      z-index:5;
-    }
-    .brand{
-      display:flex; align-items:center; gap:10px;
-      padding:10px 10px;
-      border-radius:14px;
-    }
-    .brand .logo{
-      width:40px;height:40px;border-radius:14px;
-      display:grid;place-items:center;
-      background:linear-gradient(135deg,var(--accent),var(--accent2));
-      color:white;
-      box-shadow: 0 10px 24px rgba(109,94,241,.35);
-      flex:0 0 auto;
-    }
-    .brand .title{
-      display:flex; flex-direction:column;
-      line-height:1.05;
-      min-width:0;
-    }
-    .brand .title strong{font-size:13px; letter-spacing:.2px}
-    .brand .title span{font-size:12px; color:var(--muted)}
-    .collapseBtn{
-      margin-left:auto;
-      border:1px solid var(--border);
-      background:var(--card);
-      width:36px;height:36px;
-      border-radius:12px;
-      cursor:pointer;
-      display:grid;place-items:center;
-      box-shadow: 0 6px 16px rgba(15,23,42,.06);
-    }
-    .collapseBtn:hover{border-color:rgba(109,94,241,.35)}
-
-    .nav{
-      display:flex;
-      flex-direction:column;
-      gap:6px;
-      padding:6px 2px;
-      overflow:auto;
-    }
-    .nav::-webkit-scrollbar{width:10px}
-    .nav::-webkit-scrollbar-thumb{background:rgba(15,23,42,.08);border-radius:10px}
-    .nav-item{
-      display:flex;
-      align-items:center;
-      gap:10px;
-      padding:10px 10px;
-      border-radius:14px;
-      border:1px solid transparent;
-      cursor:pointer;
-      background:transparent;
-      color:inherit;
-      text-align:left;
-      font:inherit;
-      transition:.15s ease;
-      width:100%;
-    }
-    .nav-item:hover{
-      background:rgba(109,94,241,.06);
-      border-color:rgba(109,94,241,.14);
-    }
-    .nav-item.active{
-      background:rgba(109,94,241,.12);
-      border-color:rgba(109,94,241,.22);
-    }
-    .ico{
-      width:38px;height:38px;border-radius:14px;
-      display:grid;place-items:center;
-      background:rgba(15,23,42,.04);
-      border:1px solid var(--border);
-      flex:0 0 auto;
-    }
-    .nav-item.active .ico{
-      background:linear-gradient(135deg,rgba(109,94,241,.18),rgba(138,123,255,.18));
-      border-color:rgba(109,94,241,.25);
-    }
-    .label{
-      display:flex;
-      flex-direction:column;
-      min-width:0;
-    }
-    .label strong{
-      font-size:13px;
-      font-weight:600;
-      white-space:nowrap;
-      overflow:hidden;
-      text-overflow:ellipsis;
-    }
-    .label span{
-      font-size:12px;
-      color:var(--muted);
-      white-space:nowrap;
-      overflow:hidden;
-      text-overflow:ellipsis;
+      font:14px/1.4 system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
     }
 
-    .content{
-      height:100%;
-      display:grid;
-      grid-template-rows: 64px 1fr;
-      min-width:0;
+    /* Container */
+    .wrap{
+      padding: 18px 18px 26px;
+      max-width: 1320px;
+      margin: 0 auto;
     }
 
+    /* Topbar */
     .topbar{
-      height:64px;
-      background:rgba(255,255,255,.75);
-      backdrop-filter: blur(10px);
-      border-bottom:1px solid var(--border);
       display:flex;
       align-items:center;
       justify-content:space-between;
-      padding:10px 16px;
       gap:12px;
+      margin-bottom: 14px;
     }
-    .topbar .left{
-      display:flex; align-items:center; gap:12px; min-width:0;
+    .title{
+      display:flex;
+      align-items:baseline;
+      gap:10px;
     }
-    .pageTitle{
+    .title h1{
+      margin:0;
       font-weight:700;
-      font-size:14px;
-      white-space:nowrap;
-      overflow:hidden;
-      text-overflow:ellipsis;
+      font-size:18px;
+      letter-spacing:.2px;
+    }
+    .title .sub{
+      color:var(--muted);
+      font-size:12px;
+      font-weight:600;
     }
     .actions{
       display:flex;
       align-items:center;
       gap:10px;
+      flex-wrap:wrap;
     }
-    .iconBtn{
-      width:38px;height:38px;
-      border-radius:14px;
-      border:1px solid var(--border);
+    .pill{
       background:var(--card);
+      border:1px solid var(--line);
+      border-radius: 999px;
+      padding: 8px 12px;
+      display:flex;
+      align-items:center;
+      gap:8px;
+      box-shadow: var(--shadow2);
+    }
+    .pill input{
+      border:none;
+      outline:none;
+      font:inherit;
+      width: 190px;
+      background:transparent;
+      color:var(--text);
+    }
+    .btn{
+      border:none;
+      background:var(--card);
+      border:1px solid var(--line);
+      border-radius: 12px;
+      padding: 9px 12px;
       cursor:pointer;
-      display:grid;place-items:center;
-      box-shadow: 0 6px 16px rgba(15,23,42,.06);
+      box-shadow: var(--shadow2);
+      display:flex;
+      align-items:center;
+      gap:8px;
+      font-weight:700;
+      color:var(--text);
     }
-    .iconBtn:hover{border-color:rgba(109,94,241,.35)}
+    .btn:hover{ transform: translateY(-1px); }
+    .btn:active{ transform: translateY(0px); }
+    .dot{
+      width:8px;height:8px;border-radius:50%;
+      background:var(--purple);
+      box-shadow: 0 0 0 4px rgba(108,92,231,.15);
+    }
 
-    iframe{
-      width:100%;
+    /* KPI grid */
+    .kpi-grid{
+      display:grid;
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      gap: 12px;
+      margin: 10px 0 16px;
+    }
+    @media (max-width: 1200px){
+      .kpi-grid{ grid-template-columns: repeat(4, minmax(0,1fr)); }
+    }
+    @media (max-width: 860px){
+      .kpi-grid{ grid-template-columns: repeat(2, minmax(0,1fr)); }
+      .pill input{ width: 140px; }
+    }
+
+    .kpi-card{
+      background:var(--card);
+      border:1px solid var(--line);
+      border-radius: var(--r);
+      box-shadow: var(--shadow2);
+      padding: 12px 14px 14px;
+      position:relative;
+      overflow:hidden;
+      user-select:none;
+    }
+    .kpi-card::before{
+      content:"";
+      position:absolute;
+      left:0; right:0; top:0;
+      height:4px;
+      background: var(--purple);
+      opacity:.95;
+    }
+    .kpi-card[data-accent="gray"]::before{ background:#c7cbe3;}
+    .kpi-card[data-accent="blue"]::before{ background:var(--blue);}
+    .kpi-card[data-accent="red"]::before{ background:var(--red);}
+    .kpi-card[data-accent="green"]::before{ background:var(--green);}
+    .kpi-card[data-accent="purple"]::before{ background:var(--purple);}
+    .kpi-card[data-accent="cyan"]::before{ background:var(--cyan);}
+    .kpi-card[data-accent="orange"]::before{ background:var(--orange);}
+    .kpi-card[data-accent="pink"]::before{ background:var(--pink);}
+
+    .kpi-label{
+      font-size:12px;
+      color:var(--muted);
+      font-weight:700;
+      letter-spacing:.2px;
+      margin-bottom: 8px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:8px;
+      min-height: 18px;
+    }
+    .kpi-label .chev{
+      opacity:.65;
+      font-weight:900;
+      transform: translateY(-1px);
+    }
+    .kpi-value{
+      font-size:22px;
+      font-weight:800;
+      letter-spacing:.2px;
+      display:flex;
+      align-items:baseline;
+      gap:8px;
+    }
+    .kpi-small{
+      margin-top: 8px;
+      color:var(--muted);
+      font-weight:600;
+      font-size:12px;
+    }
+
+    /* Drag visuals */
+    .kpi-card.dragging{
+      opacity:.55;
+      border-style:dashed;
+    }
+
+    /* Section */
+    .section{
+      background: var(--card);
+      border:1px solid var(--line);
+      border-radius: 20px;
+      box-shadow: var(--shadow);
+      padding: 14px 14px 8px;
+      overflow:hidden;
+    }
+    .section-head{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      padding: 6px 6px 12px;
+    }
+    .section-head h2{
+      margin:0;
+      font-size:15px;
+      font-weight:800;
+      display:flex;
+      align-items:center;
+      gap:10px;
+    }
+    .badge{
+      font-size:11px;
+      font-weight:800;
+      color: var(--purple);
+      background: rgba(108,92,231,.10);
+      border: 1px solid rgba(108,92,231,.22);
+      padding: 3px 8px;
+      border-radius: 999px;
+    }
+
+    /* Table */
+    .table-wrap{
+      overflow:auto;
+      border-top:1px solid var(--line);
+    }
+    table{
+      border-collapse:separate;
+      border-spacing:0;
+      width: 100%;
+      min-width: 1080px;
+      font-size:13px;
+    }
+    thead th{
+      position: sticky;
+      top:0;
+      z-index:5;
+      background: #fff;
+      border-bottom:1px solid var(--line);
+      color: #2a2a45;
+      font-size:11px;
+      letter-spacing:.35px;
+      text-transform:uppercase;
+      font-weight:900;
+      padding: 12px 10px;
+    }
+    tbody td{
+      border-bottom:1px solid #f1f1ff;
+      padding: 12px 10px;
+      color: #1e1e36;
+      vertical-align: middle;
+    }
+    tbody tr:hover td{ background: #fafaff; }
+    th:first-child, td:first-child{
+      position: sticky;
+      left:0;
+      z-index:4;
+      background: #fff;
+      border-right:1px solid var(--line);
+    }
+    tr:hover td:first-child{ background:#fafaff; }
+
+    .emp{
+      display:flex; align-items:center; gap:10px;
+      min-width: 220px;
+    }
+    .idx{
+      width:22px; text-align:center; color: var(--muted); font-weight:800;
+    }
+    .avatar{
+      width:34px;height:34px;border-radius:50%;
+      background: linear-gradient(135deg, rgba(108,92,231,.20), rgba(142,68,173,.18));
+      display:grid; place-items:center;
+      font-weight:900; color: var(--purple);
+      border: 1px solid rgba(108,92,231,.20);
+      flex:0 0 auto;
+    }
+    .emp-meta{display:flex; flex-direction:column; line-height:1.15;}
+    .emp-name{ font-weight:900; }
+    .emp-dept{ font-size:11px; color: var(--muted); font-weight:700; margin-top:2px; }
+
+    .progress{
+      height:10px;
+      background:#eff0ff;
+      border-radius:999px;
+      overflow:hidden;
+      border: 1px solid rgba(108,92,231,.12);
+      min-width: 240px;
+    }
+    .bar{
       height:100%;
-      border:0;
-      background:var(--bg);
+      width:0%;
+      background: linear-gradient(90deg, rgba(46,204,113,.95), rgba(46,204,113,.55));
+      border-radius:999px;
+      transition: width .25s ease;
     }
+    .muted{ color: var(--muted); font-weight:700; }
+    .num{ font-weight:900; }
+    .neg{ color: var(--red); font-weight:900; }
+    .pos{ color: var(--green); font-weight:900; }
 
-    /* Collapsed sidebar */
-    .collapsed .app{ grid-template-columns: var(--sidebarCollapsedW) 1fr; }
-    .collapsed .sidebar{ padding:14px 10px; }
-    .collapsed .brand .title{ display:none; }
-    .collapsed .collapseBtn{ margin-left:0; }
-    .collapsed .label{ display:none; }
-    .collapsed .nav-item{ justify-content:center; }
-    .collapsed .ico{ width:42px;height:42px; }
-
-    /* mobile */
-    @media(max-width:980px){
-      body{overflow:auto}
-      .app{grid-template-columns:1fr}
-      .sidebar{display:none}
-      .content{grid-template-rows:56px 1fr}
-      .topbar{height:56px}
+    .footnote{
+      padding: 10px 6px 2px;
+      color: var(--muted);
+      font-weight:700;
+      font-size:12px;
+      display:flex;
+      align-items:center;
+      gap:10px;
+      flex-wrap:wrap;
     }
+    .legend{
+      display:flex; gap:14px; align-items:center; flex-wrap:wrap;
+    }
+    .leg{
+      display:flex; align-items:center; gap:6px;
+      font-weight:800;
+    }
+    .sw{
+      width:10px; height:10px; border-radius:50%;
+      background: var(--gray);
+      box-shadow: 0 0 0 4px rgba(154,163,178,.18);
+    }
+    .sw.prog{ background: var(--purple); box-shadow:0 0 0 4px rgba(108,92,231,.16);}
+    .sw.sub{ background: var(--red); box-shadow:0 0 0 4px rgba(255,92,92,.14);}
+    .sw.ok{ background: var(--green); box-shadow:0 0 0 4px rgba(46,204,113,.14);}
+    .sw.over{ background: var(--orange); box-shadow:0 0 0 4px rgba(245,166,35,.16);}
+    .sw.off{ background: #cbd3e1; box-shadow:0 0 0 4px rgba(203,211,225,.18);}
+    .sw.pause{ background: var(--pink); box-shadow:0 0 0 4px rgba(255,79,216,.14);}
+
+    /* Skeleton / loading */
+    .loading{
+      background: var(--card);
+      border:1px solid var(--line);
+      border-radius: 20px;
+      padding: 18px;
+      box-shadow: var(--shadow);
+      margin-top: 10px;
+      display:flex;
+      align-items:center;
+      gap:10px;
+      color: var(--muted);
+      font-weight:800;
+    }
+    .spinner{
+      width:18px;height:18px;border-radius:50%;
+      border: 3px solid rgba(108,92,231,.18);
+      border-top-color: rgba(108,92,231,.85);
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin{ to { transform: rotate(360deg); } }
+
   </style>
 </head>
 <body>
-<div id="root">
-  <div class="app">
-    <aside class="sidebar">
-      <div class="brand">
-        <div class="logo" aria-hidden="true">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-            <path d="M13 2L3 14h8l-1 8 11-14h-8l0-6z" fill="white" opacity="0.95"/>
-          </svg>
+  <div class="wrap">
+    <div class="topbar">
+      <div class="title">
+        <h1>Dashboard</h1>
+        <div class="sub" id="lastUpdated">—</div>
+      </div>
+
+      <div class="actions">
+        <div class="pill" title="Caută angajat în rezumat">
+          <span class="dot" aria-hidden="true"></span>
+          <input id="searchEmployee" placeholder="Caută angajat" />
         </div>
-        <div class="title">
-          <strong>Pontaj Admin</strong>
-          <span>Dashboard</span>
-        </div>
-        <button class="collapseBtn" id="collapseBtn" title="Extinde / restrânge">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-            <path d="M10 6l-6 6 6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M20 12H4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-          </svg>
+        <button class="btn" id="btnRefresh" type="button">
+          ↻ Refresh
         </button>
+
+        <a class="btn" href="admin-calendar-prezenta.html" title="Calendar prezență">
+          📅 Calendar
+        </a>
+        <a class="btn" href="admin-panel.html" title="Admin Panel">
+          👤 Admin Panel
+        </a>
+
       </div>
+    </div>
 
-      <nav class="nav" id="nav"></nav>
-    </aside>
+    <div class="kpi-grid" id="kpiGrid" aria-label="KPI Cards">
+      <!-- Cards are injected by JS (order persisted) -->
+    </div>
 
-    <main class="content">
-      <div class="topbar">
-        <div class="left">
-          <div class="pageTitle" id="pageTitle">Dashboard</div>
+    <div id="loading" class="loading">
+      <div class="spinner" aria-hidden="true"></div>
+      Se încarcă datele din adminEvents...
+    </div>
+
+    <div id="content" style="display:none;">
+      <div class="section">
+        <div class="section-head">
+          <h2>
+            <span style="display:inline-block;transform:translateY(-1px)">🗓️</span>
+            <span id="todayTitle">Astăzi — Rezumat</span>
+            <span class="badge" id="employeeCountBadge">0 angajați</span>
+          </h2>
+          <div class="pill" style="box-shadow:none;border-radius:12px;">
+            <span style="color:var(--muted);font-weight:900;">🔎</span>
+            <input id="tableSearch" placeholder="Caută angajat" style="width:180px;" />
+          </div>
         </div>
-        <div class="actions">
-          <button class="iconBtn" id="refreshBtn" title="Refresh pagina curentă">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-              <path d="M20 12a8 8 0 10-2.3 5.7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-              <path d="M20 12v-6h-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </button>
-          <button class="iconBtn" id="popoutBtn" title="Deschide în tab nou">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-              <path d="M14 3h7v7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-              <path d="M10 14L21 3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-              <path d="M21 14v6a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-            </svg>
-          </button>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th style="min-width:260px;">Angajat</th>
+                <th>Manager</th>
+                <th style="min-width:280px;">Activitate</th>
+                <th>Raport lunar până la ziua curentă</th>
+                <th>Balanță bancă de ore</th>
+                <th>Zile concediu disponibile total</th>
+                <th>Zile concediu disponibile la zi</th>
+                <th>Solicitări de înregistrat</th>
+              </tr>
+            </thead>
+            <tbody id="summaryBody"></tbody>
+          </table>
+        </div>
+
+        <div class="footnote">
+          <span>Condiția de prezență nu conține timp activ (pontaje neîncheiate)</span>
+          <div class="legend" aria-label="Legendă">
+            <span class="leg"><span class="sw prog"></span>În progres</span>
+            <span class="leg"><span class="sw sub"></span>Sub normă</span>
+            <span class="leg"><span class="sw ok"></span>Complet</span>
+            <span class="leg"><span class="sw over"></span>Peste normă</span>
+            <span class="leg"><span class="sw off"></span>Inactiv/absent</span>
+            <span class="leg"><span class="sw pause"></span>În pauză</span>
+          </div>
         </div>
       </div>
-
-      <iframe id="frame" src="admin-dashboard.html" title="Admin Content"></iframe>
-    </main>
+    </div>
   </div>
-</div>
 
 <script>
-  const LS_KEY = 'pontaj/admin/shell';
-  const root = document.getElementById('root');
-  const frame = document.getElementById('frame');
-  const pageTitle = document.getElementById('pageTitle');
+(() => {
+  // ======= Config + Fetch =======
+  let CFG = null;
+  let ALL_EVENTS = [];
+  let ROWS_CACHE = [];
+  const TZ = 'Europe/Bucharest';
+  const LS_ORDER_KEY = 'pv_admin_dashboard_card_order_v1';
 
-  const menu = [
-    { id:'dashboard',   title:'Dashboard', subtitle:'KPIs & overview', src:'admin-dashboard.html', icon:'chart' },
-    { id:'dept',        title:'Departamente', subtitle:'Distribuție & ultimele', src:'admin-departamente.html', icon:'building' },
-    { id:'incomplete',  title:'Zile incomplete', subtitle:'Start/Pause deschise', src:'admin-zile-incomplete.html', icon:'warning' },
-    { id:'anomalies',   title:'Anomalii', subtitle:'Diferențe & abateri', src:'admin-anomalii.html', icon:'spark' },
-    { id:'rawlog',      title:'Log brut', subtitle:'Debug evenimente', src:'admin-log-brut.html', icon:'code' },
-    { id:'daily',       title:'Prezență pe zile', subtitle:'Tabel zilnic', src:'admin-prezenta-zile.html', icon:'table' },
-    { id:'calendar',    title:'Calendar prezență', subtitle:'Luna curentă', src:'admin-calendar-prezenta.html', icon:'calendar' },
-    { id:'employees',   title:'Angajați', subtitle:'Index + detalii', src:'admin-angajati.html', icon:'users' },
-    { id:'live',        title:'Live', subtitle:'Top + live pontaj', src:'admin-live.html', icon:'pulse' },
-    { id:'alerts',      title:'Alerte', subtitle:'Live & istoric', src:'admin-alerte.html', icon:'bell' },
-    { id:'reports',     title:'Rapoarte', subtitle:'PDF / zile / luni', src:'reports.html', icon:'doc' },
+  const CARD_DEFS = [
+    // Look like Papervee
+    {id:'workToday', label:'Timp total lucrat astăzi', accent:'gray', format:'time'},
+    {id:'pauseToday', label:'Timp total în pauză astăzi', accent:'blue', format:'time'},
+    {id:'activeNow', label:'Angajați cu timp activ', accent:'purple'},
+    {id:'underNorm', label:'Angajați sub normă', accent:'red'},
+    {id:'complete', label:'Angajați cu timp complet', accent:'green', chev:true},
+    {id:'overNorm', label:'Angajați peste normă', accent:'orange'},
+    {id:'inactive', label:'Angajați inactivi', accent:'gray', chev:true},
+    {id:'leave', label:'Angajați în concediu', accent:'blue'},
+    {id:'event', label:'Angajați în eveniment', accent:'purple'},
+    {id:'pausedNow', label:'Angajați în pauză', accent:'pink'},
+
+    // Your existing KPI cards
+    {id:'eventsInRange', label:'Pontaje în filtrul curent', accent:'gray'},
+    {id:'employeesInRange', label:'Angajați implicați', accent:'purple'},
+    {id:'cntSTART', label:'START', accent:'green'},
+    {id:'cntFINISH', label:'FINISH', accent:'green'},
+    {id:'cntPAUSE', label:'PAUZĂ', accent:'pink'},
+    {id:'cntUNPAUSE', label:'UNPAUSE', accent:'pink'},
+    {id:'cntEXTRA_START', label:'EXTRA START', accent:'cyan'},
+    {id:'cntEXTRA_FINISH', label:'EXTRA FINISH', accent:'cyan'},
   ];
 
-  function svgIcon(name){
-    const common = 'width="18" height="18" viewBox="0 0 24 24" fill="none"';
-    const s = {
-      chart: `<svg ${common}><path d="M4 19V5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M8 19V11" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M12 19V7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M16 19V14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M20 19V9" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>`,
-      building:`<svg ${common}><path d="M4 21V7a2 2 0 012-2h5v16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M11 21V3h7a2 2 0 012 2v16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M7 9h1M7 12h1M7 15h1" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M15 8h1M15 11h1M15 14h1M15 17h1" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>`,
-      warning:`<svg ${common}><path d="M12 9v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M12 17h.01" stroke="currentColor" stroke-width="3" stroke-linecap="round"/><path d="M10.3 4.3l-7.6 13.2A2 2 0 004.4 20h15.2a2 2 0 001.7-2.5L13.7 4.3a2 2 0 00-3.4 0z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>`,
-      spark:`<svg ${common}><path d="M5 12l3 3 3-6 3 6 3-3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 6h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>`,
-      code:`<svg ${common}><path d="M16 18l6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M8 6l-6 6 6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
-      table:`<svg ${common}><path d="M4 6h16v12H4z" stroke="currentColor" stroke-width="2"/><path d="M4 10h16" stroke="currentColor" stroke-width="2"/><path d="M8 6v12" stroke="currentColor" stroke-width="2"/></svg>`,
-      calendar:`<svg ${common}><path d="M8 3v4M16 3v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M4 7h16" stroke="currentColor" stroke-width="2"/><path d="M5 5h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2z" stroke="currentColor" stroke-width="2"/></svg>`,
-      users:`<svg ${common}><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M9 11a4 4 0 100-8 4 4 0 000 8z" stroke="currentColor" stroke-width="2"/><path d="M23 21v-2a4 4 0 00-3-3.87" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M16 3.13a4 4 0 010 7.75" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>`,
-      pulse:`<svg ${common}><path d="M3 12h4l2-5 4 10 2-5h6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
-      bell:`<svg ${common}><path d="M18 8a6 6 0 10-12 0c0 7-3 7-3 7h18s-3 0-3-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M13.73 21a2 2 0 01-3.46 0" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>`,
-      doc:`<svg ${common}><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" stroke="currentColor" stroke-width="2"/><path d="M14 2v6h6" stroke="currentColor" stroke-width="2"/><path d="M8 13h8M8 17h8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>`,
-    };
-    return s[name] || s.doc;
+  function qs(sel, root=document){ return root.querySelector(sel); }
+  function qsa(sel, root=document){ return Array.from(root.querySelectorAll(sel)); }
+
+  async function loadConfig(){
+    const r = await fetch('config.json?v=' + Date.now(), {cache:'no-store'});
+    if (!r.ok) throw new Error('Nu pot citi config.json (HTTP ' + r.status + ').');
+    return r.json();
   }
 
-  function renderNav(){
-    const nav = document.getElementById('nav');
-    nav.innerHTML = '';
-    menu.forEach(item => {
-      const btn = document.createElement('button');
-      btn.className = 'nav-item';
-      btn.dataset.id = item.id;
-      btn.innerHTML = `
-        <span class="ico" aria-hidden="true">${svgIcon(item.icon)}</span>
-        <span class="label">
-          <strong>${item.title}</strong>
-          <span>${item.subtitle}</span>
-        </span>
+  function adminEndpointBase(cfg){
+    const raw = cfg.adminEventsEndpoint || cfg.webappUrl || cfg.scriptUrl || '';
+    return String(raw || '').replace(/\?.*$/, '').trim();
+  }
+
+  async function fetchAdminEvents(){
+    const base = adminEndpointBase(CFG);
+    if (!base) throw new Error('Lipsește adminEventsEndpoint/webappUrl în config.json');
+    const url = base + '?fn=adminEvents&v=' + Date.now();
+    const r = await fetch(url, {cache:'no-store'});
+    const txt = await r.text();
+    let data;
+    try{ data = JSON.parse(txt); }catch(e){ throw new Error('Răspuns invalid (JSON) de la adminEventsEndpoint.'); }
+    if (!data || !data.ok || !Array.isArray(data.events)){
+      throw new Error('adminEventsEndpoint nu a întors un obiect ok cu events[].');
+    }
+    return data;
+  }
+
+  // ======= Time helpers =======
+  function pad2(n){ return String(n).padStart(2,'0'); }
+  function fmtDateRO(d){
+    const dd = pad2(d.getDate());
+    const mm = pad2(d.getMonth()+1);
+    const yy = d.getFullYear();
+    return `${dd}.${mm}.${yy}`;
+  }
+  function fmtTimeHHMM(mins){
+    mins = Math.max(0, Math.round(mins));
+    const h = Math.floor(mins/60);
+    const m = mins%60;
+    return `${pad2(h)}:${pad2(m)}`;
+  }
+  function toDate(v){
+    const d = (v instanceof Date) ? v : new Date(v);
+    return isNaN(d.getTime()) ? null : d;
+  }
+  function ymdLocal(d){
+    // Use local timezone; good enough for Bucharest on client
+    return `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`;
+  }
+  function sameYMD(a,b){ return ymdLocal(a) === ymdLocal(b); }
+
+  // ======= Domain logic (per employee day) =======
+  const ACTIONS = {
+    START: ['START','INCEPE','ÎNCEPE','START_WORK','WORK_START'],
+    PAUSE: ['PAUSE','PAUZA','PAUZĂ','PAUSE_START','BREAK_START'],
+    UNPAUSE: ['UNPAUSE','REIA','REIA_MUNCA','REIA MUNCA','BREAK_END','PAUSE_END'],
+    FINISH: ['FINISH','FINALIZEAZA','FINALIZEAZĂ','STOP','STOP_WORK','WORK_END'],
+    EXTRA_START: ['EXTRA_START','EXTRA INCEPE','EXTRA ÎNCEPE','EXTRA_START_WORK'],
+    EXTRA_FINISH: ['EXTRA_FINISH','EXTRA STOP','EXTRA FINAL','EXTRA_END'],
+    VOID: ['VOID','IGNORE','DELETED']
+  };
+  function normalizeAction(raw){
+    const up = String(raw||'').trim().toUpperCase();
+    const m = (key) => ACTIONS[key].some(v => up === v);
+    if (m('START')) return 'START';
+    if (m('PAUSE')) return 'PAUSE';
+    if (m('UNPAUSE')) return 'UNPAUSE';
+    if (m('FINISH')) return 'FINISH';
+    if (m('EXTRA_START')) return 'EXTRA_START';
+    if (m('EXTRA_FINISH')) return 'EXTRA_FINISH';
+    if (m('VOID')) return 'VOID';
+    return up || 'UNKNOWN';
+  }
+
+  function calcDayForEmployee(eventsSorted){
+    // eventsSorted: [{ts, action}] only for a single employee and day, sorted by ts
+    let workMin = 0;
+    let pauseMin = 0;
+    let started = false;
+    let finished = false;
+    let inPause = false;
+
+    let segStart = null;
+    let pauseStart = null;
+
+    for (const ev of eventsSorted){
+      const a = normalizeAction(ev.action);
+      const t = toDate(ev.ts);
+      if (!t) continue;
+      if (a === 'VOID') continue;
+
+      if (a === 'START' || a === 'UNPAUSE'){
+        if (!started){
+          started = true;
+        }
+        if (inPause){
+          // end pause
+          if (pauseStart){
+            pauseMin += (t - pauseStart)/60000;
+          }
+          inPause = false;
+          pauseStart = null;
+        }
+        if (!finished){
+          if (!segStart) segStart = t;
+        }
+      }
+
+      if (a === 'PAUSE'){
+        if (started && !finished){
+          if (segStart){
+            workMin += (t - segStart)/60000;
+            segStart = null;
+          }
+          if (!inPause){
+            inPause = true;
+            pauseStart = t;
+          }
+        }
+      }
+
+      if (a === 'FINISH'){
+        if (started && !finished){
+          if (inPause){
+            // close pause at finish (optional)
+            if (pauseStart){
+              pauseMin += (t - pauseStart)/60000;
+            }
+            inPause = false;
+            pauseStart = null;
+          }
+          if (segStart){
+            workMin += (t - segStart)/60000;
+            segStart = null;
+          }
+          finished = true;
+        }
+      }
+    }
+
+    // If open segment (in progress), do NOT auto-close (matches “pontaj neîncheiat” note)
+    // We still can mark active/paused states:
+    const activeNow = started && !finished && !inPause;
+    const pausedNow = started && !finished && inPause;
+
+    return {workMin, pauseMin, started, finished, activeNow, pausedNow};
+  }
+
+  function buildIndices(events){
+    // Normalize minimal shape
+    const out = events.map(ev => ({
+      ts: ev.ts || ev.timestamp || ev.date || ev.time,
+      name: ev.name || ev.employee || ev.user || '',
+      email: ev.email || '',
+      dept: ev.dept || ev.department || '',
+      action: ev.action || ev.type || '',
+      manager: ev.manager || '',
+      activity: ev.activity || '',
+      location: ev.location || ''
+    })).filter(e => e.ts && (e.name || e.email));
+
+    // parse dates
+    out.forEach(e => { e._d = toDate(e.ts); e._ymd = e._d ? ymdLocal(e._d) : null; e._a = normalizeAction(e.action); });
+
+    return out.filter(e => e._d && e._ymd);
+  }
+
+  function uniqEmployees(events){
+    const map = new Map();
+    for (const e of events){
+      const key = (e.email || e.name).toLowerCase();
+      if (!map.has(key)){
+        map.set(key, {key, name:e.name || e.email, email:e.email||'', dept:e.dept||'', manager:e.manager||''});
+      }
+    }
+    return Array.from(map.values()).sort((a,b)=> (a.name||'').localeCompare(b.name||''));
+  }
+
+  function groupByEmployeeDay(events, dayYMD){
+    const m = new Map(); // key -> events
+    for (const e of events){
+      if (e._ymd !== dayYMD) continue;
+      const key = (e.email || e.name).toLowerCase();
+      if (!m.has(key)) m.set(key, []);
+      m.get(key).push(e);
+    }
+    // sort
+    for (const [k, arr] of m){
+      arr.sort((a,b)=> a._d - b._d);
+    }
+    return m;
+  }
+
+  function calcMonthTotals(events, year, month){
+    // returns Map(empKey -> workMinMonth)
+    const m = new Map();
+    const ym = `${year}-${pad2(month+1)}`;
+    // group per employee per day in month
+    const byEmpDay = new Map();
+    for (const e of events){
+      if (!e._ymd || !e._ymd.startsWith(ym)) continue;
+      const key = (e.email || e.name).toLowerCase();
+      const dkey = key + '|' + e._ymd;
+      if (!byEmpDay.has(dkey)) byEmpDay.set(dkey, []);
+      byEmpDay.get(dkey).push(e);
+    }
+    for (const [dkey, arr] of byEmpDay){
+      arr.sort((a,b)=> a._d - b._d);
+      const empKey = dkey.split('|')[0];
+      const dayCalc = calcDayForEmployee(arr);
+      m.set(empKey, (m.get(empKey)||0) + dayCalc.workMin);
+    }
+    return m;
+  }
+
+  function expectedMinutesSoFar(year, month, normMin){
+    // Workdays from 1st to today (inclusive) excluding weekends
+    const now = new Date();
+    const endDay = (now.getFullYear()===year && now.getMonth()===month) ? now.getDate() : new Date(year, month+1, 0).getDate();
+    let workdays = 0;
+    for (let d=1; d<=endDay; d++){
+      const dt = new Date(year, month, d);
+      const wd = dt.getDay(); // 0 Sun 6 Sat
+      if (wd === 0 || wd === 6) continue;
+      workdays++;
+    }
+    return workdays * normMin;
+  }
+
+  // ======= KPI Cards =======
+  function cardTemplate(def){
+    const el = document.createElement('div');
+    el.className = 'kpi-card';
+    el.dataset.cardId = def.id;
+    el.dataset.accent = def.accent || 'purple';
+    el.draggable = true;
+
+    el.innerHTML = `
+      <div class="kpi-label">
+        <span>${escapeHtml(def.label)}</span>
+        <span class="chev">${def.chev ? '▾' : ''}</span>
+      </div>
+      <div class="kpi-value" id="val_${escapeAttr(def.id)}">—</div>
+      <div class="kpi-small" id="sub_${escapeAttr(def.id)}"></div>
+    `;
+    return el;
+  }
+
+  function escapeHtml(s){ return String(s||'').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+  function escapeAttr(s){ return String(s||'').replace(/[^a-zA-Z0-9_\-]/g,'_'); }
+
+  function buildKpiGrid(){
+    const grid = qs('#kpiGrid');
+    grid.innerHTML = '';
+
+    const desiredOrder = loadCardOrder();
+    const defsById = new Map(CARD_DEFS.map(d => [d.id, d]));
+    const ordered = [];
+    desiredOrder.forEach(id => { if (defsById.has(id)) ordered.push(defsById.get(id)); });
+    // add missing
+    CARD_DEFS.forEach(d => { if (!ordered.some(x=>x.id===d.id)) ordered.push(d); });
+
+    ordered.forEach(def => grid.appendChild(cardTemplate(def)));
+    makeCardsDraggable(grid);
+  }
+
+  function loadCardOrder(){
+    try{
+      const raw = localStorage.getItem(LS_ORDER_KEY);
+      const arr = raw ? JSON.parse(raw) : null;
+      return Array.isArray(arr) ? arr : [];
+    }catch{ return []; }
+  }
+
+  function saveCardOrder(){
+    const grid = qs('#kpiGrid');
+    const ids = qsa('.kpi-card', grid).map(x => x.dataset.cardId);
+    try{ localStorage.setItem(LS_ORDER_KEY, JSON.stringify(ids)); }catch{}
+  }
+
+  function setCardValue(id, value, sub=''){
+    const val = qs('#val_' + escapeAttr(id));
+    const subEl = qs('#sub_' + escapeAttr(id));
+    if (val) val.textContent = value;
+    if (subEl) subEl.textContent = sub;
+  }
+
+  function makeCardsDraggable(container){
+    let dragging = null;
+
+    container.addEventListener('dragstart', (e) => {
+      const card = e.target.closest('.kpi-card');
+      if (!card) return;
+      dragging = card;
+      card.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+      try{ e.dataTransfer.setData('text/plain', card.dataset.cardId); }catch{}
+    });
+
+    container.addEventListener('dragend', () => {
+      if (dragging){
+        dragging.classList.remove('dragging');
+        dragging = null;
+        saveCardOrder();
+      }
+    });
+
+    container.addEventListener('dragover', (e) => {
+      if (!dragging) return;
+      e.preventDefault();
+      const after = getDragAfterElement(container, e.clientX, e.clientY);
+      if (after == null){
+        container.appendChild(dragging);
+      } else {
+        container.insertBefore(dragging, after);
+      }
+    });
+
+    function getDragAfterElement(container, x, y){
+      const draggableElements = [...container.querySelectorAll('.kpi-card:not(.dragging)')];
+      let closest = { offset: Number.NEGATIVE_INFINITY, element: null };
+      for (const el of draggableElements){
+        const box = el.getBoundingClientRect();
+        const offset = (y - (box.top + box.height / 2));
+        if (offset < 0 && offset > closest.offset){
+          closest = { offset, element: el };
+        }
+      }
+      return closest.element;
+    }
+  }
+
+  // ======= Summary table =======
+  function renderSummaryTable(rows){
+    const body = qs('#summaryBody');
+    body.innerHTML = '';
+
+    const search = (qs('#tableSearch').value || '').trim().toLowerCase();
+
+    const filtered = rows.filter(r => (r.name||'').toLowerCase().includes(search));
+    qs('#employeeCountBadge').textContent = `${filtered.length} angajați`;
+
+    let idx=0;
+    for (const r of filtered){
+      idx++;
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>
+          <div class="emp">
+            <div class="idx">${idx}</div>
+            <div class="avatar">${escapeHtml(r.initials)}</div>
+            <div class="emp-meta">
+              <div class="emp-name">${escapeHtml(r.name)}</div>
+              <div class="emp-dept">${escapeHtml(r.dept || '—')}</div>
+            </div>
+          </div>
+        </td>
+        <td class="muted">${escapeHtml(r.manager || '—')}</td>
+        <td>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <div class="progress" title="Lucrat azi / normă">
+              <div class="bar" style="width:${Math.max(0, Math.min(100, r.workPct))}%;"></div>
+            </div>
+            <div class="num">${escapeHtml(r.workLabel)}</div>
+          </div>
+        </td>
+        <td class="${r.monthDeltaClass}">${escapeHtml(r.monthDeltaLabel)}</td>
+        <td class="${r.bankClass}">${escapeHtml(r.bankLabel)}</td>
+        <td class="muted">${escapeHtml(r.leaveTotal)}</td>
+        <td class="muted">${escapeHtml(r.leaveToDay)}</td>
+        <td class="muted">${escapeHtml(r.requests)}</td>
       `;
-      btn.addEventListener('click', () => setActive(item.id));
-      nav.appendChild(btn);
+      body.appendChild(tr);
+    }
+  }
+
+  // ======= Compute everything =======
+  function computeDashboard(){
+    const now = new Date();
+    const todayYMD = ymdLocal(now);
+    qs('#todayTitle').textContent = `Astăzi, ${fmtDateRO(now)} — Rezumat`;
+    qs('#lastUpdated').textContent = 'Actualizat: ' + now.toLocaleTimeString('ro-RO', {hour:'2-digit', minute:'2-digit'});
+
+    const employees = uniqEmployees(ALL_EVENTS);
+    const byEmpToday = groupByEmployeeDay(ALL_EVENTS, todayYMD);
+
+    const normMin = 8 * 60; // simplu: 8h
+
+    let totalWorkMin = 0;
+    let totalPauseMin = 0;
+
+    let activeNow = 0;
+    let pausedNow = 0;
+
+    let underNorm = 0;
+    let complete = 0;
+    let overNorm = 0;
+
+    let employeesWithEventsToday = 0;
+
+    // Counts actions in current filter (today)
+    const actionCounts = {
+      START:0, FINISH:0, PAUSE:0, UNPAUSE:0, EXTRA_START:0, EXTRA_FINISH:0
+    };
+
+    for (const e of ALL_EVENTS){
+      if (e._ymd === todayYMD && e._a && e._a !== 'VOID'){
+        if (actionCounts[e._a] != null) actionCounts[e._a]++;
+      }
+    }
+
+    const dayCalcs = new Map(); // empKey -> calc
+    for (const emp of employees){
+      const arr = byEmpToday.get(emp.key) || [];
+      if (arr.length) employeesWithEventsToday++;
+
+      const calc = calcDayForEmployee(arr);
+      dayCalcs.set(emp.key, calc);
+
+      totalWorkMin += calc.workMin;
+      totalPauseMin += calc.pauseMin;
+
+      if (calc.activeNow) activeNow++;
+      if (calc.pausedNow) pausedNow++;
+
+      // classification using worked minutes only (ignore open segment)
+      if (calc.workMin <= 0 && !arr.length){
+        // inactive
+      } else if (calc.workMin < normMin){
+        underNorm++;
+      } else {
+        // complet vs peste normă (toleranță 15 minute)
+        const tol = 15; // minute
+        if (calc.workMin <= normMin + tol) complete++;
+        else overNorm++;
+      }
+    }
+
+    const population = employees.length;
+    const inactive = Math.max(0, population - employeesWithEventsToday);
+
+    // these are optional without leave/event data
+    const leave = 0;
+    const event = 0;
+
+    // KPI cards values
+    setCardValue('workToday', fmtTimeHHMM(totalWorkMin));
+    setCardValue('pauseToday', fmtTimeHHMM(totalPauseMin));
+    setCardValue('activeNow', String(activeNow));
+    setCardValue('pausedNow', String(pausedNow));
+    setCardValue('underNorm', String(underNorm));
+    setCardValue('complete', String(complete));
+    setCardValue('overNorm', String(overNorm));
+    setCardValue('inactive', String(inactive));
+    setCardValue('leave', String(leave));
+    setCardValue('event', String(event));
+
+    setCardValue('eventsInRange', String(ALL_EVENTS.filter(e => e._ymd === todayYMD && e._a !== 'VOID').length));
+    setCardValue('employeesInRange', String(employeesWithEventsToday));
+    setCardValue('cntSTART', String(actionCounts.START));
+    setCardValue('cntFINISH', String(actionCounts.FINISH));
+    setCardValue('cntPAUSE', String(actionCounts.PAUSE));
+    setCardValue('cntUNPAUSE', String(actionCounts.UNPAUSE));
+    setCardValue('cntEXTRA_START', String(actionCounts.EXTRA_START));
+    setCardValue('cntEXTRA_FINISH', String(actionCounts.EXTRA_FINISH));
+
+    // summary rows
+    const monthTotals = calcMonthTotals(ALL_EVENTS, now.getFullYear(), now.getMonth());
+    const expected = expectedMinutesSoFar(now.getFullYear(), now.getMonth(), normMin);
+
+    const rows = employees.map(emp => {
+      const c = dayCalcs.get(emp.key) || {workMin:0};
+      const initials = (emp.name || '').split(/\s+/).filter(Boolean).slice(0,2).map(s=>s[0].toUpperCase()).join('') || '•';
+      const workPct = (normMin > 0) ? (c.workMin / normMin * 100) : 0;
+
+      const workedMonth = monthTotals.get(emp.key) || 0;
+      const delta = workedMonth - expected;
+      const deltaLabel = (delta>=0?'+':'-') + fmtTimeHHMM(Math.abs(delta));
+      const deltaClass = delta>=0 ? 'pos' : 'neg';
+
+      // bank = same as delta for now
+      const bankLabel = deltaLabel;
+      const bankClass = deltaClass;
+
+      return {
+        name: emp.name || emp.email,
+        dept: emp.dept,
+        manager: emp.manager || '—',
+        initials,
+        workPct,
+        workLabel: fmtTimeHHMM(c.workMin),
+        monthDeltaLabel: deltaLabel,
+        monthDeltaClass: deltaClass,
+        bankLabel,
+        bankClass,
+        leaveTotal: '—',
+        leaveToDay: '—',
+        requests: '0'
+      };
     });
+
+    // sort by name
+    rows.sort((a,b)=> (a.name||'').localeCompare(b.name||''));
+    ROWS_CACHE = rows;
+    renderSummaryTable(ROWS_CACHE);
   }
 
-  function setActive(id){
-    const item = menu.find(m => m.id === id) || menu[0];
-    frame.src = item.src;
-    pageTitle.textContent = item.title;
+  // ======= Init =======
+  async function init(){
+    buildKpiGrid();
 
-    document.querySelectorAll('.nav-item').forEach(el => {
-      el.classList.toggle('active', el.dataset.id === item.id);
-    });
+    qs('#btnRefresh').addEventListener('click', () => { refresh(); });
 
-    try{
-      const raw = localStorage.getItem(LS_KEY);
-      const st = raw ? JSON.parse(raw) : {};
-      st.active = item.id;
-      localStorage.setItem(LS_KEY, JSON.stringify(st));
-    }catch(e){}
+    const searchTop = qs('#searchEmployee');
+    const searchTbl = qs('#tableSearch');
+    // keep in sync
+    const sync = (v) => {
+      searchTop.value = v;
+      searchTbl.value = v;
+      renderSummaryTable(_LAST_ROWS_CACHE);
+    };
+
+    function hookSearch(){
+      searchTop.addEventListener('input', () => {
+        searchTbl.value = searchTop.value;
+        renderSummaryTable(ROWS_CACHE);
+      });
+      searchTbl.addEventListener('input', () => {
+        searchTop.value = searchTbl.value;
+        renderSummaryTable(ROWS_CACHE);
+      });
+    }
+
+    hookSearch();
+
+    async function refresh(){
+      qs('#loading').style.display = '';
+      qs('#content').style.display = 'none';
+
+      try{
+        CFG = await loadConfig();
+        window.CFG = CFG;
+
+        const data = await fetchAdminEvents();
+        ALL_EVENTS = buildIndices(data.events);
+        window.__pontajAdminEvents = ALL_EVENTS;
+
+        computeDashboard();
+      }catch(err){
+        console.error(err);
+        alert('Eroare dashboard: ' + (err && err.message ? err.message : err));
+      }finally{
+        qs('#loading').style.display = 'none';
+        qs('#content').style.display = '';
+      }
+    }
+
+    await refresh();
   }
 
-
-  // Allow pages loaded in iframe to request navigation in this shell via postMessage.
-  // Example (inside child page): window.parent.postMessage({ type:'PONTAJ_NAV', id:'calendar' }, '*');
-  window.addEventListener('message', (ev) => {
-    try{
-      const data = ev && ev.data;
-      if (!data || data.type !== 'PONTAJ_NAV') return;
-      const id = String(data.id || '').trim();
-      if (!id) return;
-      if (!menu.some(x => x.id === id)) return;
-      setActive(id);
-    }catch(_){}
-  });
-
-  // collapse
-  document.getElementById('collapseBtn').addEventListener('click', () => {
-    root.classList.toggle('collapsed');
-    try{
-      const raw = localStorage.getItem(LS_KEY);
-      const st = raw ? JSON.parse(raw) : {};
-      st.collapsed = root.classList.contains('collapsed');
-      localStorage.setItem(LS_KEY, JSON.stringify(st));
-    }catch(e){}
-  });
-
-  // topbar buttons
-  document.getElementById('refreshBtn').addEventListener('click', () => {
-    try{ frame.contentWindow.location.reload(); }catch(e){ frame.src = frame.src; }
-  });
-  document.getElementById('popoutBtn').addEventListener('click', () => {
-    window.open(frame.src, '_blank');
-  });
-
-  // init
-  renderNav();
-  try{
-    const raw = localStorage.getItem(LS_KEY);
-    const st = raw ? JSON.parse(raw) : {};
-    if (st.collapsed) root.classList.add('collapsed');
-    setActive(st.active || 'dashboard');
-  }catch(e){
-    setActive('dashboard');
-  }
+  window.addEventListener('DOMContentLoaded', init);
+})();
 </script>
 </body>
 </html>
