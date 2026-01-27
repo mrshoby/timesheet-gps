@@ -355,7 +355,7 @@
     @keyframes spin{ to { transform: rotate(360deg); } }
 
   
-    /* Employee mini user panel trigger */
+    /* ===== Mini User Panel PRO (mov) ===== */
     .emp{display:flex; align-items:center; gap:10px;}
     .empBtn{margin-left:auto; width:34px; height:34px; border-radius:12px; border:1px solid rgba(108,92,231,.22);
       background: rgba(108,92,231,.10); color: var(--purple); cursor:pointer; display:grid; place-items:center;
@@ -363,81 +363,229 @@
     .empBtn:hover{transform: translateY(-1px); background: rgba(108,92,231,.14);}
     .empBtn:active{transform: translateY(0px);}
 
-    /* Mini User Panel (purple) */
-    .upOverlay{position:fixed; inset:0; background: rgba(15, 12, 40, .45); display:none; align-items:center; justify-content:center; padding:18px; z-index: 9999;}
+    .upOverlay{position:fixed; inset:0; background: rgba(10, 8, 28, .55); display:none; align-items:center; justify-content:center; padding:18px; z-index: 9999;}
     .upOverlay.show{display:flex;}
-    .upCard{
-      width: 360px; max-width: 95vw;
-      background: #2d2459;
+    .upModal{
+      width: 920px; max-width: 96vw;
+      background: radial-gradient(1200px 700px at 20% 0%, rgba(155,127,255,.22) 0%, rgba(155,127,255,0) 45%),
+                  radial-gradient(1000px 600px at 90% 10%, rgba(0,210,255,.10) 0%, rgba(0,210,255,0) 55%),
+                  linear-gradient(180deg, #2b2357 0%, #231a49 100%);
       color: rgba(255,255,255,.92);
-      border-radius: 22px;
-      box-shadow: 0 18px 40px rgba(0,0,0,.25);
+      border-radius: 26px;
+      box-shadow: 0 22px 60px rgba(0,0,0,.35);
+      border: 1px solid rgba(255,255,255,.08);
+      overflow:hidden;
+      position:relative;
+    }
+    .upTop{
+      display:flex; gap:16px; align-items:center;
+      padding: 18px 18px 14px;
+      border-bottom: 1px solid rgba(255,255,255,.08);
+    }
+    .upAvatar{
+      width:54px;height:54px;border-radius:50%;
+      background: rgba(255,255,255,.12);
+      border: 1px solid rgba(255,255,255,.10);
+      display:grid;place-items:center;font-weight:900;
       overflow:hidden;
     }
-    .upInner{padding: 18px 18px 14px;}
-    .upClose{
-      position:absolute; right:14px; top:12px;
-      width:34px; height:34px; border-radius:12px;
-      border:1px solid rgba(255,255,255,.14);
+    .upAvatar img{width:100%;height:100%;object-fit:cover;display:block;}
+    .upWho{flex:1; min-width: 0;}
+    .upName{display:flex; align-items:center; gap:10px; font-weight:950; font-size:22px; letter-spacing:.2px;}
+    .upPill{padding:6px 10px; border-radius: 999px; background: rgba(255,255,255,.10); border: 1px solid rgba(255,255,255,.10);
+      font-size:12px; font-weight:900; color: rgba(255,255,255,.85);}
+    .upMeta{display:flex; gap:10px; flex-wrap:wrap; margin-top: 6px; font-size:12px; color: rgba(255,255,255,.65); font-weight:800;}
+    .upMeta .m{display:flex; align-items:center; gap:6px;}
+    .upActions{display:flex; gap:10px; align-items:center;}
+    .upIcon{
+      width:42px;height:42px;border-radius:14px;
       background: rgba(255,255,255,.06);
-      color: rgba(255,255,255,.9);
+      border: 1px solid rgba(255,255,255,.10);
+      color: rgba(255,255,255,.92);
+      display:grid;place-items:center;
       cursor:pointer;
-      display:grid; place-items:center;
-      font-weight:900;
     }
-    .upClose:hover{background: rgba(255,255,255,.10);}
-    .upHead{position:relative; padding: 18px 18px 8px;}
-    .upTitle{font-size:12px; letter-spacing:.3px; text-transform:uppercase; color: rgba(255,255,255,.55); font-weight:800;}
-    .upName{font-size:18px; font-weight:900; margin-top:6px; display:flex; align-items:center; gap:10px;}
-    .upAvatar{width:46px; height:46px; border-radius:50%; background: rgba(255,255,255,.12); display:grid; place-items:center; font-weight:900;}
-    .upGrid{display:grid; grid-template-columns: 1fr; gap:10px; margin-top: 10px;}
-    .upRow{padding: 10px 12px; border-radius: 16px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.08);}
-    .upLabel{font-size:12px; color: rgba(255,255,255,.55); font-weight:800;}
-    .upValue{font-size:16px; font-weight:900; margin-top:4px;}
-    .upValue input[type="date"]{
-      width: 100%;
-      border: 1px solid rgba(255,255,255,.14);
+    .upIcon:hover{background: rgba(255,255,255,.10);}
+    .upClose{font-size:22px; line-height:0; font-weight:900;}
+
+    .upBody{display:grid; grid-template-columns: 1.1fr .9fr; gap:16px; padding: 16px 18px 18px;}
+    @media (max-width: 900px){
+      .upBody{grid-template-columns: 1fr;}
+    }
+    .upCard{
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 18px;
+      padding: 14px;
+    }
+    .upCard h3{
+      margin:0 0 10px 0;
+      font-size:14px;
+      font-weight:950;
+      color: rgba(255,255,255,.90);
+      display:flex; align-items:center; justify-content:space-between;
+    }
+    .upCard h3 .hint{font-size:12px; font-weight:900; color: rgba(255,255,255,.55);}
+    .upRow2{display:grid; grid-template-columns: 1fr 1fr; gap:10px;}
+    .upField label{display:block; font-size:12px; font-weight:900; color: rgba(255,255,255,.55); margin-bottom:6px;}
+    .upField input, .upField select, .upField textarea{
+      width:100%;
+      border: 1px solid rgba(255,255,255,.12);
       background: rgba(0,0,0,.10);
       color: rgba(255,255,255,.92);
-      border-radius: 12px;
-      padding: 8px 10px;
+      border-radius: 14px;
+      padding: 10px 12px;
       font: inherit;
       outline: none;
     }
+    .upField textarea{min-height: 44px; resize: vertical;}
+    .upTabs{display:flex; gap:8px; align-items:center; flex-wrap:wrap;}
+    .upChip{
+      display:inline-flex; align-items:center; gap:8px;
+      padding: 8px 12px;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.06);
+      color: rgba(255,255,255,.88);
+      font-weight:950;
+      cursor:pointer;
+      user-select:none;
+      white-space:nowrap;
+    }
+    .upChip.on{background: rgba(46, 204, 113, .18); border-color: rgba(46,204,113,.22);}
+    .upChip.concediu.on{background: rgba(46, 204, 113, .18); border-color: rgba(46,204,113,.22);}
+    .upChip.delegatie.on{background: rgba(241, 196, 15, .18); border-color: rgba(241,196,15,.22);}
+    .upChip.telepasirea.on{background: rgba(52, 152, 219, .18); border-color: rgba(52,152,219,.22);}
+    .upChip.invoire.on{background: rgba(155, 89, 182, .20); border-color: rgba(155,89,182,.25);}
 
-    .upEvents{margin-top: 10px;}
-    .evItem{display:grid; grid-template-columns: 86px 1fr 34px; gap:8px; align-items:center; padding: 8px 10px; border-radius: 14px; background: rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.08); margin-bottom:8px;}
-    .evItem input, .evItem select{
+    .evList{display:flex; flex-direction:column; gap:10px;}
+    .evItem{
+      display:grid;
+      grid-template-columns: 26px 180px 1fr 44px;
+      gap:10px;
+      align-items:center;
+      padding: 10px;
+      border-radius: 16px;
+      background: rgba(255,255,255,.05);
+      border: 1px solid rgba(255,255,255,.08);
+    }
+    @media (max-width: 900px){
+      .evItem{grid-template-columns: 26px 1fr 1fr 44px;}
+    }
+    .dot{width:12px;height:12px;border-radius:999px;}
+    .dot.START{background:#48c9b0}
+    .dot.PAUSE{background:#f1c40f}
+    .dot.UNPAUSE{background:#f39c12}
+    .dot.FINISH{background:#e74c3c}
+    .dot.EXTRA_START{background:#a569bd}
+    .dot.EXTRA_FINISH{background:#8e44ad}
+
+    .evItem select, .evItem input{
       width:100%;
-      border:1px solid rgba(255,255,255,.14);
+      border: 1px solid rgba(255,255,255,.12);
       background: rgba(0,0,0,.10);
       color: rgba(255,255,255,.92);
-      border-radius: 12px;
-      padding: 7px 8px;
+      border-radius: 14px;
+      padding: 10px 12px;
       font: inherit;
       outline:none;
     }
-    .evDel{width:34px;height:34px;border-radius:12px;border:1px solid rgba(255,255,255,.14); background: rgba(255,255,255,.06);
-      color: rgba(255,255,255,.85); cursor:pointer; display:grid; place-items:center; font-weight:900;}
+    .evDel{
+      width:44px;height:44px;border-radius: 16px;
+      border: 1px solid rgba(255,255,255,.12);
+      background: rgba(255,255,255,.06);
+      color: rgba(255,255,255,.9);
+      display:grid;place-items:center;
+      cursor:pointer;
+      font-weight:950;
+    }
     .evDel:hover{background: rgba(255,255,255,.10);}
-    .upAdd{width:100%; border:1px dashed rgba(255,255,255,.22); background: transparent; color: rgba(255,255,255,.85);
-      border-radius: 14px; padding: 10px 12px; cursor:pointer; font-weight:800;}
+    .upAdd{
+      width:100%;
+      border:1px dashed rgba(255,255,255,.18);
+      background: transparent;
+      color: rgba(255,255,255,.88);
+      border-radius: 16px;
+      padding: 12px 14px;
+      cursor:pointer;
+      font-weight:950;
+    }
     .upAdd:hover{background: rgba(255,255,255,.06);}
 
-    .upFooter{display:flex; gap:10px; padding: 14px 18px 18px; align-items:center;}
-    .upIconBtn{width:48px; height:44px; border-radius: 14px; border:1px solid rgba(255,255,255,.14); background: rgba(255,255,255,.06); color: rgba(255,255,255,.9); cursor:pointer; display:grid; place-items:center;}
-    .upIconBtn:hover{background: rgba(255,255,255,.10);}
-    .upBtn{flex:1; height:44px; border-radius: 14px; border:1px solid rgba(255,255,255,.14); background: rgba(255,255,255,.06);
-      color: rgba(255,255,255,.92); cursor:pointer; font-weight:900; display:flex; align-items:center; justify-content:center; gap:10px;}
-    .upBtn.reject{background: rgba(255,255,255,.08);}
-    .upBtn.approve{background: rgba(46, 204, 113, .85); border-color: rgba(46,204,113,.1); color: #0d2a1a;}
-    .upBtn.approve:hover{filter:brightness(1.03);}
-    .upBtn:disabled{opacity:.55; cursor:not-allowed;}
-    .upMiniLink{margin-top: 10px; display:flex; gap:10px;}
-    .upMiniLink .btnSmall{flex:1; border:1px solid rgba(255,255,255,.14); background: rgba(255,255,255,.06); color: rgba(255,255,255,.92);
-      border-radius: 14px; padding: 9px 12px; cursor:pointer; font-weight:900;}
-    .upMiniLink .btnSmall:hover{background: rgba(255,255,255,.10);}
-    .upErr{margin-top: 10px; font-weight:800; color: #ffd1d1; display:none;}
+    .barWrap{margin-top:12px;}
+    .bar{
+      height: 12px;
+      border-radius: 999px;
+      overflow:hidden;
+      background: rgba(255,255,255,.08);
+      border: 1px solid rgba(255,255,255,.10);
+      display:flex;
+    }
+    .seg{height:100%;}
+    .seg.work{background: rgba(46, 204, 113, .65);}
+    .seg.pause{background: rgba(241, 196, 15, .70);}
+    .seg.extra{background: rgba(155, 89, 182, .65);}
+    .barMeta{display:flex; justify-content:space-between; margin-top:8px; font-size:12px; font-weight:900; color: rgba(255,255,255,.70);}
+    .statGrid{display:grid; grid-template-columns: 1fr 1fr; gap:10px;}
+    .stat{
+      background: rgba(255,255,255,.05);
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 16px;
+      padding: 10px 12px;
+    }
+    .stat .k{font-size:12px; font-weight:900; color: rgba(255,255,255,.55);}
+    .stat .v{margin-top:6px; font-size:16px; font-weight:950;}
+    .togRow{display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-top:10px;}
+    .toggle{
+      display:flex; align-items:center; gap:10px;
+      padding: 10px 12px;
+      border-radius: 16px;
+      background: rgba(255,255,255,.05);
+      border: 1px solid rgba(255,255,255,.08);
+      font-weight:950;
+      cursor:pointer;
+      user-select:none;
+    }
+    .switch{
+      width:40px;height:22px;border-radius: 999px;
+      background: rgba(255,255,255,.16);
+      border: 1px solid rgba(255,255,255,.12);
+      position:relative;
+    }
+    .knob{
+      width:18px;height:18px;border-radius: 999px;
+      background: rgba(255,255,255,.92);
+      position:absolute; top:1px; left:1px;
+      transition: all .18s ease;
+    }
+    .toggle.on .switch{background: rgba(46, 204, 113, .55); border-color: rgba(46,204,113,.2);}
+    .toggle.on .knob{left:21px;}
+
+    .upFooter{
+      display:flex; gap:12px; align-items:center; justify-content:flex-end;
+      padding: 14px 18px 18px;
+      border-top: 1px solid rgba(255,255,255,.08);
+      background: rgba(0,0,0,.06);
+    }
+    .btn{
+      height: 46px;
+      border-radius: 16px;
+      border: 1px solid rgba(255,255,255,.12);
+      background: rgba(255,255,255,.06);
+      color: rgba(255,255,255,.92);
+      padding: 0 16px;
+      display:inline-flex; align-items:center; gap:10px;
+      cursor:pointer;
+      font-weight:950;
+    }
+    .btn:hover{background: rgba(255,255,255,.10);}
+    .btn.primary{background: rgba(46, 204, 113, .85); border-color: rgba(46,204,113,.1); color:#0d2a1a;}
+    .btn.primary:hover{filter:brightness(1.03);}
+    .btn.danger{background: rgba(231, 76, 60, .18); border-color: rgba(231,76,60,.20);}
+    .btn:disabled{opacity:.55; cursor:not-allowed;}
+
+    .upErr{margin-top:10px; font-weight:900; color:#ffd1d1; display:none;}
+
   </style>
 </head>
 <body>
@@ -455,6 +603,12 @@
         </div>
         <button class="btn" id="btnRefresh" type="button">
           ↻ Refresh
+        </button>
+        <button class="btn" id="btnCalendar" type="button" title="Calendar prezență">
+          📅 Calendar
+        </button>
+        <button class="btn" id="btnAdminPanel" type="button" title="Admin Panel">
+          👤 Admin Panel
         </button>
       </div>
     </div>
@@ -1057,11 +1211,25 @@
     renderSummaryTable(ROWS_CACHE);
   }
 
+    // ======= Shell navigation helper =======
+  function shellNavigate(id, url){
+    try{
+      if (window.parent && window.parent !== window){
+        window.parent.postMessage({ type:'PONTAJ_NAV', id }, '*');
+        return;
+      }
+    }catch(_){}
+    window.location.href = url;
+  }
+
   // ======= Init =======
   async function init(){
     buildKpiGrid();
 
     qs('#btnRefresh').addEventListener('click', () => { refresh(); });
+
+    qs('#btnCalendar').addEventListener('click', () => { shellNavigate('calendar', 'admin-calendar-prezenta.html'); });
+    qs('#btnAdminPanel').addEventListener('click', () => { shellNavigate('adminpanel', 'admin-panel.html'); });
 
     const searchTop = qs('#searchEmployee');
     const searchTbl = qs('#tableSearch');
@@ -1086,23 +1254,20 @@
     hookSearch();
 
 
-    // ======= Mini User Panel (mov) - design ca în exemplu =======
+    // ===== Mini User Panel PRO (mov) =====
     const UP = {
-      name: '',
-      dept: '',
-      date: '',
-      events: [],
-      busy: false
+      name:'', dept:'', email:'', chat:'', date:'', note:'',
+      tags:new Set(),
+      tz:'Europe/Bucharest',
+      telegramOn:true,
+      remindOn:true,
+      afterMin:5,
+      events:[],
+      busy:false
     };
 
-    function _upAllowedAction(a){
-      a = String(a||'').toUpperCase().trim();
-      const allowed = ['START','PAUSE','UNPAUSE','FINISH','EXTRA_START','EXTRA_FINISH'];
-      if (allowed.includes(a)) return a;
-      return 'START';
-    }
-    function _upInit2(name){
-      const parts = String(name||'').trim().split(/\s+/).filter(Boolean);
+    function _upInit(){
+      const parts = String(UP.name||'').trim().split(/\s+/).filter(Boolean);
       const a = parts[0] ? parts[0][0] : '?';
       const b = parts.length>1 ? parts[parts.length-1][0] : '';
       return (a+b).toUpperCase();
@@ -1126,7 +1291,7 @@
           done = true;
           cleanup();
           reject(new Error('Timeout JSONP'));
-        }, 12000);
+        }, 15000);
 
         function cleanup(){
           try{ delete window[cbName]; }catch(_){}
@@ -1170,100 +1335,139 @@
       qs('#upApprove').disabled = UP.busy;
       qs('#upAddEv').disabled = UP.busy;
       qs('#upDate').disabled = UP.busy;
+      qs('#upPrevDay').disabled = UP.busy;
+      qs('#upNextDay').disabled = UP.busy;
     }
 
-    function _upComputeSummary(){
-      // calc simplu: start/finish + pauze
-      const toMin = (hhmm)=>{
-        const m = String(hhmm||'').match(/^(\d{1,2}):(\d{2})/);
-        if(!m) return null;
-        return parseInt(m[1],10)*60 + parseInt(m[2],10);
-      };
-      let start = null, finish = null;
-      const pauses = [];
-      let openPause = null;
+    function _toMin(hhmm){
+      const m = String(hhmm||'').match(/^(\d{1,2}):(\d{2})/);
+      if(!m) return null;
+      return parseInt(m[1],10)*60 + parseInt(m[2],10);
+    }
+    function _fmt(mins){
+      mins = Math.max(0, Math.round(mins));
+      const h = Math.floor(mins/60), m = mins%60;
+      return String(h).padStart(2,'0') + ':' + String(m).padStart(2,'0');
+    }
 
-      for (const ev of UP.events){
-        const t = toMin(ev.time);
-        if (t == null) continue;
-        if (ev.action === 'START') start = (start==null? t : Math.min(start,t));
-        if (ev.action === 'FINISH') finish = (finish==null? t : Math.max(finish,t));
-        if (ev.action === 'PAUSE') openPause = t;
-        if (ev.action === 'UNPAUSE' && openPause != null){
-          pauses.push([openPause, t]);
+    function _allowedAction(a){
+      a = String(a||'').toUpperCase().trim();
+      const allowed = ['START','PAUSE','UNPAUSE','FINISH','EXTRA_START','EXTRA_FINISH'];
+      return allowed.includes(a) ? a : 'START';
+    }
+
+    function _calc(){
+      let start=null, finish=null;
+      let extraStart=null, extraFinish=null;
+      let openPause=null;
+      let pauseMin=0;
+
+      const evs = UP.events.slice().sort((A,B)=> (_toMin(A.time)||0)-(_toMin(B.time)||0));
+      for (const ev of evs){
+        const t = _toMin(ev.time);
+        if (t==null) continue;
+        if (ev.action==='START') start = (start==null? t : Math.min(start,t));
+        if (ev.action==='FINISH') finish = (finish==null? t : Math.max(finish,t));
+        if (ev.action==='EXTRA_START') extraStart = (extraStart==null? t : Math.min(extraStart,t));
+        if (ev.action==='EXTRA_FINISH') extraFinish = (extraFinish==null? t : Math.max(extraFinish,t));
+
+        if (ev.action==='PAUSE') openPause = t;
+        if (ev.action==='UNPAUSE' && openPause!=null){
+          if (t>openPause) pauseMin += (t-openPause);
           openPause = null;
         }
       }
 
-      let pauseMin = 0;
-      for (const [a,b] of pauses){
-        if (b>a) pauseMin += (b-a);
-      }
-      let spanMin = (start!=null && finish!=null && finish>start) ? (finish-start) : 0;
-      let workMin = Math.max(0, spanMin - pauseMin);
+      const span = (start!=null && finish!=null && finish>start) ? (finish-start) : 0;
+      const workMin = Math.max(0, span - pauseMin);
 
-      const fmt = (mins)=> {
-        mins = Math.max(0, Math.round(mins));
-        const h = Math.floor(mins/60), m = mins%60;
-        return String(h).padStart(2,'0') + ':' + String(m).padStart(2,'0');
-      };
+      const extraSpan = (extraStart!=null && extraFinish!=null && extraFinish>extraStart) ? (extraFinish-extraStart) : 0;
 
-      return `Work: ${fmt(workMin)} • Pause: ${fmt(pauseMin)} • Events: ${UP.events.length}`;
+      return {workMin, pauseMin, extraMin: extraSpan, start, finish, extraStart, extraFinish};
     }
 
-    function _upRenderEvents(){
+    function _renderStats(){
+      const c = _calc();
+      qs('#stWork').textContent = _fmt(c.workMin);
+      qs('#stPause').textContent = _fmt(c.pauseMin);
+      qs('#stExtra').textContent = _fmt(c.extraMin);
+
+      const balance = c.workMin - (8*60);
+      const sign = balance>=0 ? '+' : '-';
+      qs('#stBalance').textContent = sign + _fmt(Math.abs(balance));
+
+      qs('#upHeaderSummary').textContent = `pauză ${_fmt(c.pauseMin)} • extra ${_fmt(c.extraMin)}`;
+
+      const total = Math.max(1, c.workMin + c.pauseMin + c.extraMin);
+      qs('#segWork').style.width = ((c.workMin/total)*100).toFixed(1)+'%';
+      qs('#segPause').style.width = ((c.pauseMin/total)*100).toFixed(1)+'%';
+      qs('#segExtra').style.width = ((c.extraMin/total)*100).toFixed(1)+'%';
+
+      qs('#upBarLeft').textContent = (c.start!=null)? `${String(Math.floor(c.start/60)).padStart(2,'0')}:${String(c.start%60).padStart(2,'0')}` : '—';
+      qs('#upBarRight').textContent = (c.finish!=null)? `${String(Math.floor(c.finish/60)).padStart(2,'0')}:${String(c.finish%60).padStart(2,'0')}` : '—';
+
+      qs('#upEvCount').textContent = String(UP.events.length);
+    }
+
+    function _renderEvents(){
       const wrap = qs('#upEvents');
       wrap.innerHTML = '';
-
-      if (!UP.events.length){
-        const empty = document.createElement('div');
-        empty.className = 'upRow';
-        empty.style.marginTop = '10px';
-        empty.innerHTML = '<div class="upLabel">Events</div><div class="upValue" style="font-size:14px;font-weight:800;">(niciun eveniment)</div>';
-        wrap.appendChild(empty);
-      } else {
-        UP.events.forEach((ev, i)=>{
-          const row = document.createElement('div');
-          row.className = 'evItem';
-          row.innerHTML = `
-            <input type="time" step="60" value="${escapeHtml(ev.time||'')}" data-ev="time" data-i="${i}">
-            <select data-ev="action" data-i="${i}">
-              <option value="START">START</option>
-              <option value="PAUSE">PAUSE</option>
-              <option value="UNPAUSE">UNPAUSE</option>
-              <option value="FINISH">FINISH</option>
-              <option value="EXTRA_START">EXTRA_START</option>
-              <option value="EXTRA_FINISH">EXTRA_FINISH</option>
-            </select>
-            <button class="evDel" type="button" data-ev="del" data-i="${i}" title="Șterge">×</button>
-          `;
-          wrap.appendChild(row);
-          row.querySelector('select').value = _upAllowedAction(ev.action);
-        });
-      }
-
-      qs('#upSummary').textContent = _upComputeSummary();
+      UP.events.forEach((ev, i)=>{
+        const row = document.createElement('div');
+        row.className = 'evItem';
+        row.innerHTML = `
+          <div class="dot ${_allowedAction(ev.action)}"></div>
+          <select data-k="action" data-i="${i}">
+            <option value="START">START</option>
+            <option value="PAUSE">PAUSE</option>
+            <option value="UNPAUSE">UNPAUSE</option>
+            <option value="FINISH">FINISH</option>
+            <option value="EXTRA_START">EXTRA_START</option>
+            <option value="EXTRA_FINISH">EXTRA_FINISH</option>
+          </select>
+          <input type="time" step="60" value="${escapeHtml(ev.time||'')}" data-k="time" data-i="${i}">
+          <button class="evDel" type="button" data-k="del" data-i="${i}" title="Șterge">🗑</button>
+        `;
+        wrap.appendChild(row);
+        row.querySelector('select').value = _allowedAction(ev.action);
+      });
+      _renderStats();
     }
 
-    async function _upLoad(){
+    function _toggleEl(el, on){ el.classList.toggle('on', !!on); }
+
+    async function _loadDay(){
       _upShowErr('');
       _upSetBusy(true);
 
       try{
         const base = _webappBase();
         if (!base) throw new Error('Lipsește webappUrl/adminEventsEndpoint în config.json');
+
         const url = base + '?fn=fixDayGet&name=' + encodeURIComponent(UP.name) + '&date=' + encodeURIComponent(UP.date);
         const data = await _jsonp(url);
         if (!data || !data.ok) throw new Error((data && data.error) ? data.error : 'Răspuns invalid');
 
+        const prof = data.profile || data.meta || {};
+        UP.email = data.email || prof.email || UP.email || '—';
+        UP.chat = data.telegramChatId || prof.telegramChatId || UP.chat || '—';
+        UP.dept = data.dept || prof.dept || UP.dept || '—';
+
+        UP.note = String(data.note || prof.note || '');
+        qs('#upNote').value = UP.note;
+
         const evs = Array.isArray(data.events) ? data.events : [];
         UP.events = evs.map(ev => ({
           time: String(ev.localTime || ev.time || '').slice(0,5),
-          action: _upAllowedAction(ev.action || ev.rawAction || ev.Action || 'START'),
-          notes: String(ev.notes || '')
+          action: _allowedAction(ev.action || ev.rawAction || ev.Action || 'START')
         })).filter(ev => ev.time);
 
-        _upRenderEvents();
+        qs('#upAvatar').textContent = _upInit();
+        qs('#upEmpEmail').textContent = UP.email || '—';
+        qs('#upEmpChat').textContent = UP.chat ? ('#'+UP.chat).replace('##','#') : '—';
+        qs('#upEmpDept').textContent = UP.dept || '—';
+
+        _renderEvents();
       }catch(err){
         console.error(err);
         _upShowErr('Eroare: ' + (err && err.message ? err.message : err));
@@ -1272,7 +1476,7 @@
       }
     }
 
-    async function _upSave(){
+    async function _saveDay(){
       _upShowErr('');
       _upSetBusy(true);
 
@@ -1280,7 +1484,6 @@
         const base = _webappBase();
         if (!base) throw new Error('Lipsește webappUrl/adminEventsEndpoint în config.json');
 
-        // Admin identifier (best-effort)
         let admin = 'admin';
         try{
           const s = localStorage.getItem('pontaj/admin/v1');
@@ -1295,7 +1498,9 @@
           name: UP.name,
           date: UP.date,
           reason: 'Admin mini panel',
-          events: UP.events.map(ev => ({ time: ev.time, action: ev.action, notes: ev.notes || '' }))
+          note: UP.note,
+          tags: Array.from(UP.tags),
+          events: UP.events.map(ev => ({ time: ev.time, action: ev.action }))
         };
 
         const b64 = _b64ws(JSON.stringify(payload));
@@ -1303,11 +1508,10 @@
         const res = await _jsonp(url);
         if (!res || !res.ok) throw new Error((res && res.error) ? res.error : 'Salvare eșuată');
 
-        // refresh dashboard
         if (typeof window.__adminDashboardRefresh === 'function'){
           await window.__adminDashboardRefresh();
         }
-        _upClose();
+        _closePanel();
       }catch(err){
         console.error(err);
         _upShowErr('Eroare salvare: ' + (err && err.message ? err.message : err));
@@ -1316,33 +1520,45 @@
       }
     }
 
-    function _upOpen(name, dept){
+    function _openPanel(name, dept){
       UP.name = String(name||'').trim();
       UP.dept = String(dept||'').trim();
       UP.date = ymdLocal(new Date());
+      UP.tags = new Set();
+      UP.note = '';
+      UP.events = [];
+      UP.email = '—';
+      UP.chat = '—';
 
       qs('#upEmpName').textContent = UP.name || '—';
       qs('#upEmpDept').textContent = UP.dept || '—';
-      qs('#upAvatar').textContent = _upInit2(UP.name);
-
+      qs('#upEmpEmail').textContent = '—';
+      qs('#upEmpChat').textContent = '—';
       qs('#upDate').value = UP.date;
+      qs('#upNote').value = '';
+
+      _toggleEl(qs('#tgTelegram'), UP.telegramOn);
+      _toggleEl(qs('#tgRemind'), UP.remindOn);
+      qs('#upAfter').value = String(UP.afterMin || 5);
+      qs('#upTz').value = UP.tz || 'Europe/Bucharest';
+
+      document.querySelectorAll('.upChip').forEach(c=> c.classList.remove('on'));
 
       const ov = qs('#upOverlay');
       ov.classList.add('show');
       ov.setAttribute('aria-hidden','false');
 
-      _upLoad();
+      _loadDay();
     }
 
-    function _upClose(){
+    function _closePanel(){
       const ov = qs('#upOverlay');
       ov.classList.remove('show');
       ov.setAttribute('aria-hidden','true');
       _upShowErr('');
     }
 
-    function _upWire(){
-      // open from table icon
+    function _wirePanel(){
       document.addEventListener('click', (e)=>{
         const btn = e.target.closest('[data-open-userpanel="1"]');
         if (!btn) return;
@@ -1350,71 +1566,114 @@
         const name = btn.getAttribute('data-emp') || '';
         const dept = btn.getAttribute('data-dept') || '';
         if (!name) return;
-        _upOpen(name, dept);
+        _openPanel(name, dept);
       });
 
-      qs('#upClose').addEventListener('click', _upClose);
-      qs('#upReject').addEventListener('click', _upClose);
-      qs('#upApprove').addEventListener('click', _upSave);
+      qs('#upClose').addEventListener('click', _closePanel);
+      qs('#upCancel').addEventListener('click', _closePanel);
+
+      qs('#upApprove').addEventListener('click', async ()=>{
+        UP.note = String(qs('#upNote').value || '');
+        await _saveDay();
+      });
 
       qs('#upAddEv').addEventListener('click', ()=>{
-        UP.events.push({ time: '09:00', action: 'START', notes: '' });
-        _upRenderEvents();
+        UP.events.push({ time: '09:00', action: 'START' });
+        _renderEvents();
       });
 
       qs('#upEvents').addEventListener('change', (e)=>{
-        const i = parseInt(e.target.getAttribute('data-i') || '-1', 10);
-        const kind = e.target.getAttribute('data-ev');
-        if (i < 0 || i >= UP.events.length) return;
-
-        if (kind === 'time'){
-          UP.events[i].time = String(e.target.value || '').slice(0,5);
-        }
-        if (kind === 'action'){
-          UP.events[i].action = _upAllowedAction(e.target.value);
-        }
-        _upRenderEvents();
+        const i = parseInt(e.target.getAttribute('data-i')||'-1',10);
+        const k = e.target.getAttribute('data-k');
+        if (i<0 || i>=UP.events.length) return;
+        if (k=='time') UP.events[i].time = String(e.target.value||'').slice(0,5);
+        if (k=='action') UP.events[i].action = _allowedAction(e.target.value);
+        _renderEvents();
       });
 
       qs('#upEvents').addEventListener('click', (e)=>{
-        const del = e.target.closest('[data-ev="del"]');
+        const del = e.target.closest('[data-k="del"]');
         if (!del) return;
-        const i = parseInt(del.getAttribute('data-i') || '-1', 10);
-        if (i < 0 || i >= UP.events.length) return;
-        UP.events.splice(i, 1);
-        _upRenderEvents();
+        const i = parseInt(del.getAttribute('data-i')||'-1',10);
+        if (i<0 || i>=UP.events.length) return;
+        UP.events.splice(i,1);
+        _renderEvents();
       });
 
       qs('#upDate').addEventListener('change', ()=>{
         UP.date = String(qs('#upDate').value || '').trim();
-        if (!UP.date) return;
-        _upLoad();
+        if (UP.date) _loadDay();
       });
+
+      qs('#upPrevDay').addEventListener('click', ()=>{
+        const d = new Date(UP.date+'T00:00:00');
+        d.setDate(d.getDate()-1);
+        UP.date = ymdLocal(d);
+        qs('#upDate').value = UP.date;
+        _loadDay();
+      });
+      qs('#upNextDay').addEventListener('click', ()=>{
+        const d = new Date(UP.date+'T00:00:00');
+        d.setDate(d.getDate()+1);
+        UP.date = ymdLocal(d);
+        qs('#upDate').value = UP.date;
+        _loadDay();
+      });
+
+      document.querySelectorAll('.upChip').forEach(ch=>{
+        ch.addEventListener('click', ()=>{
+          const tag = ch.getAttribute('data-tag');
+          const on = !ch.classList.contains('on');
+          ch.classList.toggle('on', on);
+          if (on) UP.tags.add(tag); else UP.tags.delete(tag);
+        });
+      });
+
+      qs('#tgTelegram').addEventListener('click', ()=>{
+        UP.telegramOn = !UP.telegramOn;
+        _toggleEl(qs('#tgTelegram'), UP.telegramOn);
+      });
+      qs('#tgRemind').addEventListener('click', ()=>{
+        UP.remindOn = !UP.remindOn;
+        _toggleEl(qs('#tgRemind'), UP.remindOn);
+      });
+
+      qs('#upAfter').addEventListener('change', ()=>{ UP.afterMin = parseInt(qs('#upAfter').value,10) || 5; });
+      qs('#upTz').addEventListener('change', ()=>{ UP.tz = String(qs('#upTz').value||'Europe/Bucharest'); });
 
       qs('#upOpenFull').addEventListener('click', ()=>{
         const url = 'admin-user-panel.html?name=' + encodeURIComponent(UP.name) + '&date=' + encodeURIComponent(UP.date);
         window.open(url, '_blank');
       });
-
       qs('#upOpenFixDay').addEventListener('click', ()=>{
         const url = 'fix-day.html?name=' + encodeURIComponent(UP.name) + '&date=' + encodeURIComponent(UP.date);
         window.open(url, '_blank');
       });
 
-      // close on overlay click
-      qs('#upOverlay').addEventListener('click', (e)=>{
-        if (e.target && e.target.id === 'upOverlay') _upClose();
+      qs('#upDeleteDay').addEventListener('click', ()=>{
+        if (!confirm('Ștergi toate evenimentele din ziua selectată?')) return;
+        UP.events = [];
+        _renderEvents();
       });
 
-      // ESC
+      qs('#upNotify').addEventListener('click', ()=>{
+        alert('Notifică angajat: implementez endpoint-ul dacă vrei (ex: fn=adminNotify). Acum e doar UI.');
+      });
+
+      qs('#upAudit').addEventListener('click', ()=>{
+        window.open('fix-day.html?audit=1&name=' + encodeURIComponent(UP.name) + '&date=' + encodeURIComponent(UP.date), '_blank');
+      });
+
+      qs('#upOverlay').addEventListener('click', (e)=>{
+        if (e.target && e.target.id === 'upOverlay') _closePanel();
+      });
       document.addEventListener('keydown', (e)=>{
-        if (e.key === 'Escape' && qs('#upOverlay').classList.contains('show')) _upClose();
+        if (e.key === 'Escape' && qs('#upOverlay').classList.contains('show')) _closePanel();
       });
     }
 
 
-    _upWire();
-
+    _wirePanel();
 
     async function refresh(){
       qs('#loading').style.display = '';
@@ -1445,50 +1704,146 @@
 })();
 </script>
 
-  <!-- Mini User Panel (mov) -->
+  <!-- ===== Mini User Panel PRO (mov) ===== -->
   <div class="upOverlay" id="upOverlay" aria-hidden="true">
-    <div class="upCard" role="dialog" aria-modal="true" aria-label="User Panel">
-      <div class="upHead">
-        <button class="upClose" id="upClose" title="Închide">×</button>
-        <div class="upTitle">User panel</div>
-        <div class="upName">
-          <div class="upAvatar" id="upAvatar">??</div>
-          <div>
-            <div id="upEmpName" style="font-weight:900;">—</div>
-            <div style="font-size:12px;color:rgba(255,255,255,.55);font-weight:800;" id="upEmpDept">—</div>
+    <div class="upModal" role="dialog" aria-modal="true" aria-label="User Panel">
+      <div class="upTop">
+        <div class="upAvatar" id="upAvatar">??</div>
+        <div class="upWho">
+          <div class="upName">
+            <span id="upEmpName">—</span>
+            <span class="upPill" id="upEmpDept">—</span>
           </div>
+          <div class="upMeta">
+            <span class="m">✉️ <span id="upEmpEmail">—</span></span>
+            <span class="m">✅ <span id="upEmpChat">—</span></span>
+          </div>
+        </div>
+        <div class="upActions">
+          <button class="upIcon" id="upBell" title="Notificări">🔔</button>
+          <button class="upIcon" id="upHelp" title="Ajutor">❔</button>
+          <button class="upIcon upClose" id="upClose" title="Închide">×</button>
         </div>
       </div>
 
-      <div class="upInner">
-        <div class="upGrid">
-          <div class="upRow">
-            <div class="upLabel">Selected day</div>
-            <div class="upValue"><input type="date" id="upDate" /></div>
+      <div class="upBody">
+        <!-- LEFT -->
+        <div class="upCard">
+          <h3>Zi selectată <span class="hint" id="upHeaderSummary">—</span></h3>
+          <div class="upRow2">
+            <div class="upField">
+              <label>Data</label>
+              <input type="date" id="upDate">
+            </div>
+            <div class="upField">
+              <label>Navigare</label>
+              <div class="upRow2" style="grid-template-columns:1fr 1fr; gap:8px">
+                <button class="btn" id="upPrevDay" type="button">‹</button>
+                <button class="btn" id="upNextDay" type="button">›</button>
+              </div>
+            </div>
           </div>
 
-          <div class="upRow">
-            <div class="upLabel">Summary</div>
-            <div class="upValue" id="upSummary">—</div>
+          <div style="height:12px"></div>
+
+          <h3>Evenimente <span class="hint"><span id="upEvCount">0</span> evenimente</span></h3>
+          <div class="evList" id="upEvents"></div>
+          <button class="upAdd" id="upAddEv" type="button">+ Adaugă eveniment</button>
+
+          <div style="height:12px"></div>
+
+          <h3>Comentarii</h3>
+          <div class="upField">
+            <textarea id="upNote" placeholder="Adaugă o notă..."></textarea>
           </div>
+
+          <div style="height:10px"></div>
+
+          <div class="upTabs">
+            <div class="upChip concediu" data-tag="CONCEDIU">🌴 Concediu</div>
+            <div class="upChip delegatie" data-tag="DELEGATIE">✈️ Delegatie</div>
+            <div class="upChip telepasirea" data-tag="TELEPASIRE">⚡ Telepășirea</div>
+            <div class="upChip invoire" data-tag="INVOIRE">🔔 Invoire</div>
+          </div>
+
+          <div class="barWrap">
+            <div class="bar" id="upBar">
+              <div class="seg work" id="segWork" style="width:0%"></div>
+              <div class="seg pause" id="segPause" style="width:0%"></div>
+              <div class="seg extra" id="segExtra" style="width:0%"></div>
+            </div>
+            <div class="barMeta">
+              <span id="upBarLeft">—</span>
+              <span id="upBarMid">12:00</span>
+              <span id="upBarRight">—</span>
+            </div>
+          </div>
+
+          <div class="upErr" id="upErr"></div>
         </div>
 
-        <div class="upMiniLink">
-          <button class="btnSmall" id="upOpenFull">Panel complet</button>
+        <!-- RIGHT -->
+        <div class="upCard">
+          <h3>Activitate zilnică</h3>
+          <div class="statGrid">
+            <div class="stat"><div class="k">Activ</div><div class="v" id="stWork">—</div></div>
+            <div class="stat"><div class="k">Pauză</div><div class="v" id="stPause">—</div></div>
+            <div class="stat"><div class="k">Suplimentar</div><div class="v" id="stExtra">—</div></div>
+            <div class="stat"><div class="k">Balans zi</div><div class="v" id="stBalance">—</div></div>
+          </div>
+
+          <div style="height:12px"></div>
+
+          <h3>Setări</h3>
+          <div class="upField">
+            <label>Timezone</label>
+            <select id="upTz">
+              <option value="Europe/Bucharest">București (RO)</option>
+              <option value="UTC">UTC</option>
+            </select>
+          </div>
+
+          <div class="togRow">
+            <div class="toggle" id="tgTelegram"><div class="switch"><div class="knob"></div></div> Notificări Telegram</div>
+            <div class="toggle" id="tgRemind"><div class="switch"><div class="knob"></div></div> Remindări</div>
+          </div>
+
+          <div style="height:10px"></div>
+
+          <div class="upRow2">
+            <div class="upField">
+              <label>Afișează după</label>
+              <select id="upAfter">
+                <option value="1">1 min</option>
+                <option value="5" selected>5 min</option>
+                <option value="10">10 min</option>
+                <option value="15">15 min</option>
+              </select>
+            </div>
+            <div class="upField">
+              <label>Acțiuni</label>
+              <div class="upRow2" style="grid-template-columns:1fr 1fr; gap:8px">
+                <button class="btn" id="upOpenFixDay" type="button">FixDay</button>
+                <button class="btn" id="upOpenFull" type="button">Panel complet</button>
+              </div>
+            </div>
+          </div>
+
+          <div style="height:12px"></div>
+
+          <h3>Admin</h3>
+          <div class="upRow2" style="grid-template-columns:1fr 1fr; gap:10px">
+            <button class="btn danger" id="upDeleteDay" type="button">Șterge zi</button>
+            <button class="btn" id="upNotify" type="button">Notifică angajat</button>
+          </div>
+          <div style="height:10px"></div>
+          <button class="btn" id="upAudit" type="button">FixDay: Audit zi</button>
         </div>
-
-        <div class="upEvents" id="upEvents"></div>
-        <button class="upAdd" id="upAddEv">+ Adaugă eveniment</button>
-
-        <div class="upErr" id="upErr"></div>
       </div>
 
       <div class="upFooter">
-        <button class="upIconBtn" id="upOpenFixDay" title="Deschide FixDay">
-          ⤴
-        </button>
-        <button class="upBtn reject" id="upReject"><span style="font-size:18px;">✕</span> Reject</button>
-        <button class="upBtn approve" id="upApprove"><span style="font-size:18px;">✓</span> Approve</button>
+        <button class="btn" id="upCancel" type="button">Anulează</button>
+        <button class="btn primary" id="upApprove" type="button">✓ Salvează modificările</button>
       </div>
     </div>
   </div>
