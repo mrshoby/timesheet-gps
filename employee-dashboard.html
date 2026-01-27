@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>Pontaj – Dashboard Angajat</title>
+  <title>Pontaj — Dashboard Angajat</title>
   <style>
     :root{
       --bg:#f5f6ff;
@@ -13,7 +13,14 @@
       --line:#e7e9f6;
       --accent:#6d5efc;
       --shadow:0 10px 30px rgba(20,18,40,.08);
-      --r:16px;
+      --r:18px;
+
+      --c-inactive:#f1f3f9;
+      --c-under:#ffe9c7;
+      --c-complete:#dff7e4;
+      --c-over:#d9ecff;
+      --c-leave:#efe6ff;
+      --c-text:#1f2330;
     }
     *{box-sizing:border-box}
     body{margin:0;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial;background:var(--bg);color:var(--ink)}
@@ -23,36 +30,124 @@
       color:#fff;
     }
     .brand{display:flex;align-items:center;gap:10px;font-weight:700}
+    .avatar{
+      width:34px;height:34px;border-radius:10px;background:rgba(255,255,255,.14);
+      display:flex;align-items:center;justify-content:center;font-weight:900
+    }
+    .small{font-size:12px;opacity:.9}
+    .right{display:flex;gap:10px;align-items:center}
     .pill{background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.22);padding:8px 12px;border-radius:999px;font-size:13px}
-    .wrap{max-width:1180px;margin:18px auto;padding:0 14px}
-    .grid{
-      display:grid; grid-template-columns:repeat(6, minmax(0,1fr)); gap:12px;
+    .link{color:#fff;opacity:.95;text-decoration:underline;cursor:pointer;font-size:13px}
+
+    .wrap{max-width:1320px;margin:18px auto;padding:0 14px}
+    .panel{
+      background:var(--card); border:1px solid var(--line); border-radius:22px;
+      box-shadow:var(--shadow); overflow:hidden;
     }
-    @media (max-width:1100px){ .grid{grid-template-columns:repeat(3,1fr);} }
-    @media (max-width:700px){ .grid{grid-template-columns:repeat(2,1fr);} }
-    .card{
-      background:var(--card); border:1px solid var(--line); border-radius:var(--r);
-      box-shadow:var(--shadow); overflow:hidden; min-height:78px;
+    .panelHead{
+      padding:14px 16px; border-bottom:1px solid var(--line);
+      display:flex; gap:12px; align-items:center; justify-content:space-between; flex-wrap:wrap;
     }
-    .card .bar{height:4px;background:var(--accent)}
-    .card .in{padding:12px 14px}
-    .k{font-size:12px;color:var(--muted)}
-    .v{font-size:22px;font-weight:750;margin-top:6px}
-    .row{display:flex;gap:12px;align-items:center;justify-content:space-between}
-    .small{font-size:12px;color:var(--muted)}
-    .section{
-      margin-top:14px; background:var(--card); border:1px solid var(--line);
-      border-radius:18px; box-shadow:var(--shadow); overflow:hidden;
+    .panelHead h2{margin:0;font-size:16px}
+    .note{font-size:12px;color:var(--muted)}
+    .controls{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+    .btn{
+      border:1px solid var(--line); background:#fff; color:var(--ink);
+      padding:10px 12px; border-radius:14px; font-weight:750; cursor:pointer;
     }
-    .sectionHead{
-      display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--line)
+    .btn.primary{background:var(--accent); border-color:var(--accent); color:#fff}
+    .select{
+      border:1px solid var(--line); background:#fff; padding:10px 12px;border-radius:14px;
+      font-weight:700; outline:none;
     }
-    .sectionHead h2{margin:0;font-size:16px}
-    .search{display:flex;align-items:center;gap:8px;border:1px solid var(--line);background:#fff;border-radius:12px;padding:8px 10px;min-width:240px}
-    .search input{border:0;outline:0;width:100%;font-size:13px}
-    table{width:100%;border-collapse:collapse}
-    th,td{padding:12px 14px;border-bottom:1px solid var(--line);text-align:left;font-size:13px}
-    th{font-size:12px;color:var(--muted);font-weight:700}
+
+    .tableWrap{overflow:auto; max-height: calc(100vh - 210px);}
+    table{border-collapse:separate;border-spacing:0; width:max(980px, 100%); font-size:13px}
+    thead th{
+      position:sticky; top:0; z-index:5;
+      background:#fff; border-bottom:1px solid var(--line);
+      padding:10px 10px; text-align:center; color:var(--muted); font-weight:800; font-size:12px;
+      white-space:nowrap;
+    }
+    thead th.stickyL{
+      left:0; z-index:7; text-align:left;
+      box-shadow: 10px 0 20px rgba(20,18,40,.04);
+    }
+    thead th.stickyL2{
+      left:56px; z-index:7; text-align:left;
+      box-shadow: 10px 0 20px rgba(20,18,40,.04);
+    }
+    thead th.stickyL3{
+      left:300px; z-index:7; text-align:left;
+      box-shadow: 10px 0 20px rgba(20,18,40,.04);
+    }
+
+    tbody td{
+      border-bottom:1px solid var(--line);
+      padding:10px 10px; text-align:center; background:#fff;
+      white-space:nowrap;
+    }
+    tbody td.stickyL{
+      position:sticky; left:0; z-index:3; text-align:left; background:#fff;
+      box-shadow: 10px 0 20px rgba(20,18,40,.04);
+      width:56px; min-width:56px;
+    }
+    tbody td.stickyL2{
+      position:sticky; left:56px; z-index:3; text-align:left; background:#fff;
+      box-shadow: 10px 0 20px rgba(20,18,40,.04);
+      width:244px; min-width:244px;
+    }
+    tbody td.stickyL3{
+      position:sticky; left:300px; z-index:3; text-align:left; background:#fff;
+      box-shadow: 10px 0 20px rgba(20,18,40,.04);
+      width:160px; min-width:160px;
+    }
+    .empCell{display:flex;align-items:center;gap:10px}
+    .empBubble{
+      width:28px;height:28px;border-radius:10px;background:var(--bg);
+      display:flex;align-items:center;justify-content:center;font-weight:900;color:#3b3f55;border:1px solid var(--line)
+    }
+    .empName{font-weight:850}
+    .empDept{font-size:12px;color:var(--muted);margin-top:2px}
+
+    .dayCell{border-left:1px solid var(--line)}
+    .cell{
+      border-radius:12px;
+      padding:8px 8px;
+      border:1px solid rgba(0,0,0,0.03);
+      font-weight:800;
+    }
+    .inactive{background:var(--c-inactive); color:rgba(31,35,48,.55)}
+    .under{background:var(--c-under)}
+    .complete{background:var(--c-complete)}
+    .over{background:var(--c-over)}
+    .leave{background:var(--c-leave)}
+    .cell small{display:block; font-size:10px; font-weight:800; opacity:.7; margin-top:2px}
+
+    .legend{
+      display:flex; gap:10px; align-items:center; flex-wrap:wrap;
+      padding:12px 16px; border-top:1px solid var(--line); background:#fff;
+      color:var(--muted); font-size:12px;
+    }
+    .lg{display:flex;gap:8px;align-items:center}
+    .dot{width:10px;height:10px;border-radius:4px;border:1px solid rgba(0,0,0,.06)}
+    .sumBar{
+      display:flex; gap:12px; flex-wrap:wrap; align-items:stretch;
+      padding:12px 16px; border-top:1px solid var(--line); background:#fff;
+    }
+    .sum{
+      flex:1 1 220px;
+      border:1px solid var(--line);
+      border-radius:16px;
+      padding:12px 12px;
+      background:linear-gradient(180deg,#fff,#fbfbff);
+    }
+    .sum .k{font-size:12px;color:var(--muted);font-weight:800}
+    .sum .v{font-size:18px;font-weight:900;margin-top:6px}
+    .progress{margin-top:10px;height:8px;background:#f0f2ff;border-radius:999px;overflow:hidden;border:1px solid var(--line)}
+    .progress > div{height:100%;background:var(--accent);width:0%}
+
+    /* Login overlay */
     .loginOverlay{
       position:fixed; inset:0; display:flex; align-items:center; justify-content:center;
       background:rgba(10,10,30,.45); backdrop-filter: blur(6px);
@@ -66,26 +161,24 @@
     .loginTop h1{margin:0;font-size:18px}
     .loginBody{padding:16px 18px 18px}
     .field{display:flex;flex-direction:column;gap:6px;margin-top:10px}
-    label{font-size:12px;color:var(--muted);font-weight:700}
+    label{font-size:12px;color:var(--muted);font-weight:800}
     select,input{padding:12px 12px;border-radius:14px;border:1px solid var(--line);font-size:14px;outline:none}
-    button{
+    .loginBtn{
       margin-top:14px;width:100%;
       padding:12px 14px;border:0;border-radius:14px;
-      background:var(--accent);color:#fff;font-weight:800;font-size:14px;cursor:pointer;
+      background:var(--accent);color:#fff;font-weight:900;font-size:14px;cursor:pointer;
     }
     .err{margin-top:10px;color:#b00020;font-size:13px}
     .hidden{display:none!important}
-    .right{display:flex;gap:10px;align-items:center}
-    .link{color:#fff;opacity:.95;text-decoration:underline;cursor:pointer;font-size:13px}
   </style>
 </head>
 <body>
   <div class="topbar">
     <div class="brand">
-      <span style="display:inline-flex;width:34px;height:34px;border-radius:10px;background:rgba(255,255,255,.14);align-items:center;justify-content:center;font-weight:900">P</span>
+      <div class="avatar" id="av">P</div>
       <div>
-        <div style="font-size:14px;line-height:1">Pontaj – Dashboard Angajat</div>
-        <div class="small" id="who"></div>
+        <div style="font-size:14px;line-height:1">Pontaj — Dashboard Angajat</div>
+        <div class="small" id="who">—</div>
       </div>
     </div>
     <div class="right">
@@ -95,32 +188,56 @@
   </div>
 
   <div class="wrap">
-    <div class="grid" id="cards">
-      <!-- filled by JS -->
-    </div>
-
-    <div class="section">
-      <div class="sectionHead">
-        <h2>Ultimele zile</h2>
-        <div class="search">
-          🔎 <input id="q" placeholder="Caută în tabel (zi / valori)"/>
+    <div class="panel">
+      <div class="panelHead">
+        <div>
+          <h2>Calendar prezență</h2>
+          <div class="note">Condiția de prezență nu conține timp activ, concediu sau eveniment.</div>
+        </div>
+        <div class="controls">
+          <button class="btn" id="prevBtn">← Luna anterioară</button>
+          <select class="select" id="monthSel"></select>
+          <button class="btn" id="nextBtn">Luna următoare →</button>
+          <button class="btn primary" id="refreshBtn">Reîncarcă</button>
         </div>
       </div>
-      <div style="overflow:auto">
-        <table id="tbl">
-          <thead>
-            <tr>
-              <th>Zi</th>
-              <th>Lucrat</th>
-              <th>Suplimentar</th>
-              <th>Extra</th>
-            </tr>
-          </thead>
-          <tbody></tbody>
+
+      <div class="tableWrap">
+        <table id="cal">
+          <thead id="thead"></thead>
+          <tbody id="tbody"></tbody>
         </table>
       </div>
-      <div style="padding:12px 16px;color:var(--muted);font-size:12px">
-        Accesul este restricționat: vezi doar datele tale.
+
+      <div class="sumBar" id="sumBar">
+        <div class="sum">
+          <div class="k">Total lucrat (luna)</div>
+          <div class="v" id="sumWork">—</div>
+          <div class="progress"><div id="pWork"></div></div>
+        </div>
+        <div class="sum">
+          <div class="k">Suplimentar</div>
+          <div class="v" id="sumOT">—</div>
+          <div class="progress"><div id="pOT"></div></div>
+        </div>
+        <div class="sum">
+          <div class="k">Extra</div>
+          <div class="v" id="sumEX">—</div>
+          <div class="progress"><div id="pEX"></div></div>
+        </div>
+        <div class="sum">
+          <div class="k">Zile lucrate / concediu</div>
+          <div class="v" id="sumDays">—</div>
+          <div class="progress"><div id="pDays"></div></div>
+        </div>
+      </div>
+
+      <div class="legend">
+        <div class="lg"><span class="dot" style="background:var(--c-inactive)"></span> Inactiv/absent</div>
+        <div class="lg"><span class="dot" style="background:var(--c-under)"></span> Sub normă</div>
+        <div class="lg"><span class="dot" style="background:var(--c-complete)"></span> Complet</div>
+        <div class="lg"><span class="dot" style="background:var(--c-over)"></span> Peste normă (OT/Extra)</div>
+        <div class="lg"><span class="dot" style="background:var(--c-leave)"></span> Concediu (CO/CM/OS)</div>
       </div>
     </div>
   </div>
@@ -141,7 +258,7 @@
           <label>PIN</label>
           <input id="pin" type="password" autocomplete="current-password" placeholder="PIN (min 4 caractere)"/>
         </div>
-        <button id="loginBtn">Intră în dashboard</button>
+        <button class="loginBtn" id="loginBtn">Intră în dashboard</button>
         <div class="err" id="err"></div>
         <div style="margin-top:10px;color:var(--muted);font-size:12px">
           Dacă nu găsești numele sau nu ai PIN, roagă adminul să seteze PIN-ul pentru tine.
@@ -152,9 +269,10 @@
 
 <script>
 (function(){
+  const TZ = "Europe/Bucharest";
   const LS_TOKEN = "pontaj_me_token";
   const LS_NAME  = "pontaj_me_name";
-  const cfgUrl = "config.json"; // same repo
+  const cfgUrl = "config.json";
   let CFG = null;
 
   function jsonp(url){
@@ -172,55 +290,27 @@
     });
   }
 
-  function hmFromHours(h){
-    if (h == null || h === "") return "00:00";
-    const min = Math.round(Number(h)*60);
-    const hh = String(Math.floor(min/60)).padStart(2,"0");
-    const mm = String(min%60).padStart(2,"0");
-    return `${hh}:${mm}`;
+  function hm(min){
+    min = Math.max(0, Math.round(Number(min)||0));
+    const h = String(Math.floor(min/60)).padStart(2,'0');
+    const m = String(min%60).padStart(2,'0');
+    return `${h}:${m}`;
   }
 
-  function setCards(model){
-    const cards = [
-      {k:"Lucrat azi", v: hmFromHours(model.today?.totalHours), bar:"#6d5efc"},
-      {k:"Pauză azi", v: `${model.pauseMinutesToday||0} min`, bar:"#b14cff"},
-      {k:"Suplimentar azi", v: hmFromHours(model.today?.overtime), bar:"#ff5a5f"},
-      {k:"Extra azi", v: hmFromHours(model.today?.extra), bar:"#00a4ff"},
-      {k:"Total luna curentă", v: model.month ? String(model.month.total||"—") : "—", bar:"#57c65f"},
-      {k:"Suplimentar luna", v: model.month ? String(model.month.overtime||"—") : "—", bar:"#ff5a5f"},
-      {k:"Extra luna", v: model.month ? String(model.month.extra||"—") : "—", bar:"#00a4ff"},
-    ];
-    const el = document.getElementById("cards");
-    el.innerHTML = cards.map(c=>`
-      <div class="card">
-        <div class="bar" style="background:${c.bar}"></div>
-        <div class="in">
-          <div class="k">${c.k}</div>
-          <div class="v">${c.v}</div>
-        </div>
-      </div>
-    `).join("");
+  function initials(name){
+    const parts = (name||"").trim().split(/\s+/).filter(Boolean);
+    const a = (parts[0]||"")[0]||"";
+    const b = (parts.length>1 ? (parts[parts.length-1]||"")[0] : "") || "";
+    return (a+b).toUpperCase() || "P";
   }
 
-  function setTable(rows){
-    const tb = document.querySelector("#tbl tbody");
-    tb.innerHTML = rows.map(r=>`
-      <tr>
-        <td>${r.day}</td>
-        <td>${r.work}</td>
-        <td>${r.overtime}</td>
-        <td>${r.extra}</td>
-      </tr>
-    `).join("");
-  }
-
-  function applyFilter(){
-    const q = document.getElementById("q").value.trim().toLowerCase();
-    const trs = Array.from(document.querySelectorAll("#tbl tbody tr"));
-    trs.forEach(tr=>{
-      const t = tr.innerText.toLowerCase();
-      tr.style.display = (!q || t.includes(q)) ? "" : "none";
-    });
+  function setStatePill(state){
+    const pill = document.getElementById("pillState");
+    if (!state) { pill.textContent = "—"; return; }
+    const normal = state.normal || {};
+    if (normal.running && normal.paused) pill.textContent = "În pauză";
+    else if (normal.running) pill.textContent = "În lucru";
+    else pill.textContent = "Inactiv";
   }
 
   async function loadConfig(){
@@ -228,14 +318,16 @@
     CFG = await r.json();
   }
 
-  function endpoint(){ return CFG?.adminEventsEndpoint || CFG?.stateEndpoint || ""; }
+  function endpoint(){
+    return CFG?.adminEventsEndpoint || CFG?.stateEndpoint || "";
+  }
 
   async function loadRoster(){
     const ep = endpoint();
     const data = await jsonp(`${ep}?fn=meRoster`);
     const sel = document.getElementById("nameSel");
     sel.innerHTML = "";
-    if (data.ok && data.employees && data.employees.length){
+    if (data.ok && Array.isArray(data.employees) && data.employees.length){
       data.employees.filter(x=>x.active).forEach(x=>{
         const opt = document.createElement("option");
         opt.value = x.name;
@@ -267,7 +359,7 @@
     localStorage.setItem(LS_TOKEN, data.token);
     localStorage.setItem(LS_NAME, data.name);
     document.getElementById("loginOverlay").classList.add("hidden");
-    await refresh();
+    await refreshAll();
   }
 
   function logout(){
@@ -276,48 +368,172 @@
     location.reload();
   }
 
-  async function refresh(){
+  function buildMonthOptions(curYm){
+    const sel = document.getElementById("monthSel");
+    sel.innerHTML = "";
+    // show last 12 months + next 1
+    const [cy, cm] = curYm.split("-").map(x=>parseInt(x,10));
+    const base = new Date(cy, cm-1, 1);
+    for (let i=-12; i<=1; i++){
+      const d = new Date(base.getFullYear(), base.getMonth()+i, 1);
+      const ym = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+      const opt = document.createElement("option");
+      opt.value = ym;
+      opt.textContent = d.toLocaleString("ro-RO", {month:"long", year:"numeric"});
+      if (ym === curYm) opt.selected = true;
+      sel.appendChild(opt);
+    }
+  }
+
+  function getWeekdayShort(dateStr){
+    // dateStr yyyy-mm-dd
+    const d = new Date(dateStr+"T00:00:00");
+    return d.toLocaleDateString("ro-RO", {weekday:"short"}).replace(".","");
+  }
+
+  function renderCalendar(model, monthModel){
+    const name = model.name;
+    const dept = model.dept || "";
+    document.getElementById("who").textContent = dept ? `${name} — ${dept}` : name;
+    document.getElementById("av").textContent = initials(name);
+
+    const days = monthModel.days || [];
+    const ym = monthModel.ym;
+
+    // header
+    const thead = document.getElementById("thead");
+    const headRow1 = [];
+    // sticky headers: #, Angajat, Dept
+    headRow1.push(`<tr>
+      <th class="stickyL" style="min-width:56px">#</th>
+      <th class="stickyL2" style="min-width:244px">Angajat</th>
+      <th class="stickyL3" style="min-width:160px">Departament</th>
+      ${days.map(d=>{
+        const wd = getWeekdayShort(d.day);
+        return `<th title="${d.day}">${String(d.d).padStart(2,'0')}<br><span style="font-weight:700">${wd}</span></th>`;
+      }).join("")}
+    </tr>`);
+    thead.innerHTML = headRow1.join("");
+
+    const tbody = document.getElementById("tbody");
+    const rowCells = days.map(d=>{
+      let cls = d.status || 'inactive';
+      let label = d.label || "";
+      let sub = "";
+      if (d.status === "leave" && d.leave && d.leave.type){
+        sub = d.leave.type;
+      } else if (d.w > 0){
+        const parts = [];
+        if ((d.ot||0) > 0) parts.push("OT "+hm(d.ot));
+        if ((d.ex||0) > 0) parts.push("EX "+hm(d.ex));
+        sub = parts.join(" · ");
+      }
+      const title = d.status === "leave"
+        ? `Concediu ${d.leave ? (d.leave.type||"") : ""} (${d.day})`
+        : (d.w>0 ? `Lucrat ${hm(d.w)} · OT ${hm(d.ot||0)} · EX ${hm(d.ex||0)} (${d.day})` : `Absent (${d.day})`);
+
+      return `<td class="dayCell">
+        <div class="cell ${cls}" title="${title.replace(/"/g,'&quot;')}">
+          ${label || "—"}
+          ${sub ? `<small>${sub}</small>` : ""}
+        </div>
+      </td>`;
+    }).join("");
+
+    tbody.innerHTML = `<tr>
+      <td class="stickyL">1</td>
+      <td class="stickyL2">
+        <div class="empCell">
+          <div class="empBubble">${initials(name)}</div>
+          <div>
+            <div class="empName">${name}</div>
+            <div class="empDept">${dept || "—"}</div>
+          </div>
+        </div>
+      </td>
+      <td class="stickyL3">${dept || "—"}</td>
+      ${rowCells}
+    </tr>`;
+
+    // Summary
+    const t = monthModel.totals || {};
+    const work = Number(t.workM||0);
+    const ot = Number(t.overtimeM||0);
+    const ex = Number(t.extraM||0);
+    const workedDays = Number(t.workedDays||0);
+    const leaveDays = Number(t.leaveDays||0);
+    const normMin = Number(monthModel.normMinutes||0);
+    const daysInMonth = days.length || 1;
+
+    document.getElementById("sumWork").textContent = hm(work);
+    document.getElementById("sumOT").textContent = hm(ot);
+    document.getElementById("sumEX").textContent = hm(ex);
+    document.getElementById("sumDays").textContent = `${workedDays} lucrate / ${leaveDays} concediu`;
+
+    // Progress bars (relative)
+    const maxWork = daysInMonth * normMin;
+    document.getElementById("pWork").style.width = (maxWork ? Math.min(100, (work/maxWork)*100) : 0) + "%";
+    document.getElementById("pOT").style.width = Math.min(100, (ot/(30*60))*100) + "%";
+    document.getElementById("pEX").style.width = Math.min(100, (ex/(30*60))*100) + "%";
+    document.getElementById("pDays").style.width = Math.min(100, ((workedDays+leaveDays)/daysInMonth)*100) + "%";
+  }
+
+  async function refreshAll(){
     const token = localStorage.getItem(LS_TOKEN);
     const name = localStorage.getItem(LS_NAME);
     if (!token || !name){
       document.getElementById("loginOverlay").classList.remove("hidden");
       return;
     }
-    document.getElementById("who").textContent = name;
 
     const ep = endpoint();
-    const data = await jsonp(`${ep}?fn=meDashboard&token=${encodeURIComponent(token)}&days=14`);
-    if (!data.ok){
+
+    // base model (state + identity)
+    const model = await jsonp(`${ep}?fn=meDashboard&token=${encodeURIComponent(token)}&days=14`);
+    if (!model.ok){
       document.getElementById("loginOverlay").classList.remove("hidden");
-      document.getElementById("err").textContent = data.error || "Sesiune invalidă.";
+      document.getElementById("err").textContent = model.error || "Sesiune invalidă.";
       return;
     }
 
-    setCards(data);
-    setTable(data.lastDays || []);
-    document.getElementById("q").value = "";
-    applyFilter();
+    setStatePill(model.state);
 
-    const st = data.state;
-    const pill = document.getElementById("pillState");
-    if (!st) { pill.textContent = "—"; return; }
-    const normal = st.normal || {};
-    if (normal.running && normal.paused) pill.textContent = "În pauză";
-    else if (normal.running) pill.textContent = "În lucru";
-    else pill.textContent = "Inactiv";
+    const sel = document.getElementById("monthSel");
+    const ym = sel.value || model.ym;
+    buildMonthOptions(ym);
+
+    const monthModel = await jsonp(`${ep}?fn=meCalendarMonth&token=${encodeURIComponent(token)}&ym=${encodeURIComponent(sel.value || model.ym)}`);
+    if (!monthModel.ok){
+      alert(monthModel.error || "Nu pot încărca calendarul.");
+      return;
+    }
+
+    renderCalendar(model, monthModel);
+  }
+
+  function shiftMonth(delta){
+    const sel = document.getElementById("monthSel");
+    const ym = sel.value;
+    const [y,m] = ym.split("-").map(x=>parseInt(x,10));
+    const d = new Date(y, m-1 + delta, 1);
+    const nym = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+    sel.value = nym;
+    refreshAll().catch(console.error);
   }
 
   document.getElementById("loginBtn").addEventListener("click", ()=>doLogin().catch(e=>{
     document.getElementById("err").textContent = "Eroare login: " + e.message;
   }));
   document.getElementById("logoutBtn").addEventListener("click", logout);
-  document.getElementById("q").addEventListener("input", applyFilter);
+  document.getElementById("refreshBtn").addEventListener("click", ()=>refreshAll().catch(console.error));
+  document.getElementById("prevBtn").addEventListener("click", ()=>shiftMonth(-1));
+  document.getElementById("nextBtn").addEventListener("click", ()=>shiftMonth(1));
+  document.getElementById("monthSel").addEventListener("change", ()=>refreshAll().catch(console.error));
 
   (async ()=>{
     await loadConfig();
     await loadRoster();
-    // show login or load data
-    await refresh();
+    await refreshAll();
   })();
 })();
 </script>
