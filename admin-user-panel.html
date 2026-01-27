@@ -109,7 +109,7 @@
           </div>
         </div>
         <div class="actions">
-          <a class="btn blue" id="backBtn" href="admin-calendar-prezenta.html">← Înapoi la calendar</a>
+          <a class="btn blue" id="backBtn" href="admin-calendar-prezenta.html" target="_top">← Înapoi la calendar</a>
           <a class="btn" id="openFixDay" href="fix-day.html" target="_blank">🛠 Editor complet (FixDay)</a>
           <button class="btn primary" id="saveBtn">✓ Salvează</button>
         </div>
@@ -177,19 +177,17 @@
 
 <script>
 (() => {
-  const ADMIN_LS_KEYS = ["pontaj/admin/v1","pontaj_admin_session"];
+  const LS_ADMIN = "pontaj/admin/v1";
+  const LS_ADMIN_FALLBACK = "pontaj_admin_session";
   function requireAdmin(){
-    for (const k of ADMIN_LS_KEYS){
-      const raw = localStorage.getItem(k);
-      if (!raw) continue;
-      try{
-        const s = JSON.parse(raw);
-        if (s && (s.user || s.label || s.role)) return s;
-      }catch(e){}
-    }
-    throw new Error("Neautentificat ca admin. Loghează-te în Admin înainte.");
+    const raw = localStorage.getItem(LS_ADMIN) || localStorage.getItem(LS_ADMIN_FALLBACK) || localStorage.getItem(LS_ADMIN_FALLBACK);
+    if (!raw) throw new Error("Neautentificat ca admin.");
+    const s = JSON.parse(raw);
+    if (!s || !s.user) throw new Error("Sesiune admin invalidă.");
+    return s;
   }
-function jsonp(url){
+
+  function jsonp(url){
     return new Promise((resolve,reject)=>{
       const cb = "cb_"+Math.random().toString(16).slice(2);
       window[cb] = (data)=>{ cleanup(); resolve(data); };
