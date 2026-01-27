@@ -281,7 +281,6 @@
     { id:'employees',   title:'Angajați', subtitle:'Index + detalii', src:'admin-angajati.html', icon:'users' },
     { id:'live',        title:'Live', subtitle:'Top + live pontaj', src:'admin-live.html', icon:'pulse' },
     { id:'alerts',      title:'Alerte', subtitle:'Live & istoric', src:'admin-alerte.html', icon:'bell' },
-        { id:'adminpanel', title:'Admin Panel', subtitle:'Profil & setări', src:'admin-panel.html', icon:'user' },
     { id:'reports',     title:'Rapoarte', subtitle:'PDF / zile / luni', src:'reports.html', icon:'doc' },
   ];
 
@@ -298,7 +297,6 @@
       users:`<svg ${common}><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M9 11a4 4 0 100-8 4 4 0 000 8z" stroke="currentColor" stroke-width="2"/><path d="M23 21v-2a4 4 0 00-3-3.87" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M16 3.13a4 4 0 010 7.75" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>`,
       pulse:`<svg ${common}><path d="M3 12h4l2-5 4 10 2-5h6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
       bell:`<svg ${common}><path d="M18 8a6 6 0 10-12 0c0 7-3 7-3 7h18s-3 0-3-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M13.73 21a2 2 0 01-3.46 0" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>`,
-      user:`<svg ${common}><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M12 11a4 4 0 100-8 4 4 0 000 8z" stroke="currentColor" stroke-width="2"/></svg>`,
       doc:`<svg ${common}><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" stroke="currentColor" stroke-width="2"/><path d="M14 2v6h6" stroke="currentColor" stroke-width="2"/><path d="M8 13h8M8 17h8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>`,
     };
     return s[name] || s.doc;
@@ -339,6 +337,20 @@
       localStorage.setItem(LS_KEY, JSON.stringify(st));
     }catch(e){}
   }
+
+
+  // Allow pages loaded in iframe to request navigation in this shell via postMessage.
+  // Example (inside child page): window.parent.postMessage({ type:'PONTAJ_NAV', id:'calendar' }, '*');
+  window.addEventListener('message', (ev) => {
+    try{
+      const data = ev && ev.data;
+      if (!data || data.type !== 'PONTAJ_NAV') return;
+      const id = String(data.id || '').trim();
+      if (!id) return;
+      if (!menu.some(x => x.id === id)) return;
+      setActive(id);
+    }catch(_){}
+  });
 
   // collapse
   document.getElementById('collapseBtn').addEventListener('click', () => {
