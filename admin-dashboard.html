@@ -31,7 +31,6 @@
       color:var(--text);
       font:14px/1.4 system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
     }
-    body.dragging-cards{ user-select:none; cursor:grabbing; }
 
     /* Container */
     .wrap{
@@ -189,47 +188,6 @@
       opacity:.55;
       border-style:dashed;
     }
-/* Better drag/reorder (handle + placeholder) */
-.kpi-card{
-  touch-action: none;
-}
-.kpi-controls{
-  display:flex;
-  align-items:center;
-  gap:10px;
-}
-.dragHandle{
-  width:26px;
-  height:26px;
-  display:inline-flex;
-  align-items:center;
-  justify-content:center;
-  border-radius: 10px;
-  border:1px solid transparent;
-  color: var(--muted);
-  cursor: grab;
-  user-select:none;
-  font-weight:900;
-  letter-spacing:-.5px;
-  line-height:1;
-}
-.dragHandle:hover{
-  background:#f3f2ff;
-  border-color: rgba(108,92,231,.22);
-  color: var(--purple);
-}
-.kpi-card.is-grabbed .dragHandle{ cursor: grabbing; }
-.kpi-placeholder{
-  background: rgba(108,92,231,.06);
-  border: 2px dashed rgba(108,92,231,.35);
-  border-radius: var(--r);
-  min-height: 72px;
-  box-shadow: inset 0 0 0 1px rgba(108,92,231,.06);
-}
-.kpi-drag-clone{
-  opacity:.96;
-  border:1px solid rgba(108,92,231,.25);
-}
 
     /* Section */
     .section{
@@ -413,6 +371,12 @@
         </div>
         <button class="btn" id="btnRefresh" type="button">
           ↻ Refresh
+        </button>
+        <button class="btn" id="btnCalendar" type="button" title="Calendar prezență">
+          📅 Calendar
+        </button>
+        <button class="btn" id="btnAdminPanel" type="button" title="Admin Panel">
+          👤 Admin Panel
         </button>
       </div>
     </div>
@@ -738,25 +702,22 @@
 
   // ======= KPI Cards =======
   function cardTemplate(def){
-  const el = document.createElement('div');
-  el.className = 'kpi-card';
-  el.dataset.cardId = def.id;
-  el.dataset.accent = def.accent || 'purple';
+    const el = document.createElement('div');
+    el.className = 'kpi-card';
+    el.dataset.cardId = def.id;
+    el.dataset.accent = def.accent || 'purple';
+    el.draggable = true;
 
-  el.innerHTML = `
-    <div class="kpi-label">
-      <span>${escapeHtml(def.label)}</span>
-      <span class="kpi-controls">
-        <span class="dragHandle" title="Trage ca să schimbi ordinea" aria-label="Trage ca să schimbi ordinea">⋮⋮</span>
+    el.innerHTML = `
+      <div class="kpi-label">
+        <span>${escapeHtml(def.label)}</span>
         <span class="chev">${def.chev ? '▾' : ''}</span>
-      </span>
-    </div>
-    <div class="kpi-value" id="val_${escapeAttr(def.id)}">—</div>
-    <div class="kpi-small" id="sub_${escapeAttr(def.id)}"></div>
-  `;
-  return el;
-}
-
+      </div>
+      <div class="kpi-value" id="val_${escapeAttr(def.id)}">—</div>
+      <div class="kpi-small" id="sub_${escapeAttr(def.id)}"></div>
+    `;
+    return el;
+  }
 
   function escapeHtml(s){ return String(s||'').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
   function escapeAttr(s){ return String(s||'').replace(/[^a-zA-Z0-9_\-]/g,'_'); }
@@ -773,7 +734,7 @@
     CARD_DEFS.forEach(d => { if (!ordered.some(x=>x.id===d.id)) ordered.push(d); });
 
     ordered.forEach(def => grid.appendChild(cardTemplate(def)));
-    makeCardsSortableGrid(grid);
+    makeCardsDraggable(grid);
   }
 
   function loadCardOrder(){
@@ -797,146 +758,50 @@
     if (subEl) subEl.textContent = sub;
   }
 
-  function makeCardsSortableGrid(container){
-  let draggingCard = null;
-  let placeholder = null;
-  let dragClone = null;
-  let pointerId = null;
-  let offsetX = 0;
-  let offsetY = 0;
+  function makeCardsDraggable(container){
+    let dragging = null;
 
-  function cleanup(){
-    if (dragClone){
-      dragClone.remove();
-      dragClone = null;
-    }
-    if (placeholder){
-      placeholder.remove();
-      placeholder = null;
-    }
-    if (draggingCard){
-      draggingCard.style.visibility = '';
-      draggingCard.classList.remove('dragging','is-grabbed');
-    }
-    draggingCard = null;
-
-    if (pointerId != null){
-      try{ container.releasePointerCapture(pointerId); }catch{}
-      pointerId = null;
-    }
-
-    document.body.classList.remove('dragging-cards');
-  }
-
-  function calcInsertBefore(x, y){
-    const cards = qsa('.kpi-card', container).filter(el => el !== draggingCard && el.style.visibility !== 'hidden');
-    if (!cards.length) return null;
-
-    // Sort cards by visual layout order (row then column)
-    const ordered = cards.slice().sort((a,b) => {
-      const ra = a.getBoundingClientRect();
-      const rb = b.getBoundingClientRect();
-      const rowThresh = Math.min(ra.height, rb.height) * 0.6;
-      if (Math.abs(ra.top - rb.top) > rowThresh) return ra.top - rb.top;
-      return ra.left - rb.left;
+    container.addEventListener('dragstart', (e) => {
+      const card = e.target.closest('.kpi-card');
+      if (!card) return;
+      dragging = card;
+      card.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+      try{ e.dataTransfer.setData('text/plain', card.dataset.cardId); }catch{}
     });
 
-    for (const el of ordered){
-      const r = el.getBoundingClientRect();
-      const cx = r.left + r.width / 2;
-      const cy = r.top + r.height / 2;
-      const rowThresh = r.height * 0.55;
+    container.addEventListener('dragend', () => {
+      if (dragging){
+        dragging.classList.remove('dragging');
+        dragging = null;
+        saveCardOrder();
+      }
+    });
 
-      // Above the row center => insert before
-      if (y < cy - rowThresh/2) return el;
+    container.addEventListener('dragover', (e) => {
+      if (!dragging) return;
+      e.preventDefault();
+      const after = getDragAfterElement(container, e.clientX, e.clientY);
+      if (after == null){
+        container.appendChild(dragging);
+      } else {
+        container.insertBefore(dragging, after);
+      }
+    });
 
-      // Same row => decide by X
-      if (Math.abs(y - cy) <= rowThresh && x < cx) return el;
-    }
-    return null; // append
-  }
-
-  function onPointerDown(e){
-    const handle = e.target.closest('.dragHandle');
-    if (!handle) return;
-
-    const card = e.target.closest('.kpi-card');
-    if (!card) return;
-
-    e.preventDefault();
-
-    pointerId = e.pointerId;
-    draggingCard = card;
-    draggingCard.classList.add('is-grabbed');
-    document.body.classList.add('dragging-cards');
-
-    const r = draggingCard.getBoundingClientRect();
-    offsetX = e.clientX - r.left;
-    offsetY = e.clientY - r.top;
-
-    placeholder = document.createElement('div');
-    placeholder.className = 'kpi-placeholder';
-    placeholder.style.height = r.height + 'px';
-    placeholder.style.width  = r.width + 'px';
-
-    draggingCard.parentNode.insertBefore(placeholder, draggingCard.nextSibling);
-
-    dragClone = draggingCard.cloneNode(true);
-    dragClone.classList.add('kpi-drag-clone');
-    dragClone.style.position = 'fixed';
-    dragClone.style.left = r.left + 'px';
-    dragClone.style.top  = r.top  + 'px';
-    dragClone.style.width  = r.width  + 'px';
-    dragClone.style.height = r.height + 'px';
-    dragClone.style.pointerEvents = 'none';
-    dragClone.style.zIndex = '9999';
-    dragClone.style.boxShadow = '0 18px 40px rgba(30,20,90,.18)';
-    dragClone.style.transform = 'scale(1.02)';
-    document.body.appendChild(dragClone);
-
-    draggingCard.classList.add('dragging');
-    draggingCard.style.visibility = 'hidden';
-
-    try{ container.setPointerCapture(pointerId); }catch{}
-  }
-
-  function onPointerMove(e){
-    if (pointerId == null || e.pointerId !== pointerId || !draggingCard) return;
-    e.preventDefault();
-
-    const x = e.clientX - offsetX;
-    const y = e.clientY - offsetY;
-
-    if (dragClone){
-      dragClone.style.left = x + 'px';
-      dragClone.style.top  = y + 'px';
-    }
-
-    const beforeEl = calcInsertBefore(e.clientX, e.clientY);
-    if (beforeEl){
-      container.insertBefore(placeholder, beforeEl);
-    } else {
-      container.appendChild(placeholder);
+    function getDragAfterElement(container, x, y){
+      const draggableElements = [...container.querySelectorAll('.kpi-card:not(.dragging)')];
+      let closest = { offset: Number.NEGATIVE_INFINITY, element: null };
+      for (const el of draggableElements){
+        const box = el.getBoundingClientRect();
+        const offset = (y - (box.top + box.height / 2));
+        if (offset < 0 && offset > closest.offset){
+          closest = { offset, element: el };
+        }
+      }
+      return closest.element;
     }
   }
-
-  function onPointerUp(e){
-    if (pointerId == null || e.pointerId !== pointerId || !draggingCard) return;
-    e.preventDefault();
-
-    draggingCard.style.visibility = '';
-    draggingCard.classList.remove('dragging','is-grabbed');
-    container.insertBefore(draggingCard, placeholder);
-
-    cleanup();
-    saveCardOrder();
-  }
-
-  container.addEventListener('pointerdown', onPointerDown);
-  container.addEventListener('pointermove', onPointerMove);
-  container.addEventListener('pointerup', onPointerUp);
-  container.addEventListener('pointercancel', onPointerUp);
-}
 
   // ======= Summary table =======
   function renderSummaryTable(rows){
@@ -1113,11 +978,25 @@
     renderSummaryTable(ROWS_CACHE);
   }
 
+    // ======= Shell navigation helper =======
+  function shellNavigate(id, url){
+    try{
+      if (window.parent && window.parent !== window){
+        window.parent.postMessage({ type:'PONTAJ_NAV', id }, '*');
+        return;
+      }
+    }catch(_){}
+    window.location.href = url;
+  }
+
   // ======= Init =======
   async function init(){
     buildKpiGrid();
 
     qs('#btnRefresh').addEventListener('click', () => { refresh(); });
+
+    qs('#btnCalendar').addEventListener('click', () => { shellNavigate('calendar', 'admin-calendar-prezenta.html'); });
+    qs('#btnAdminPanel').addEventListener('click', () => { shellNavigate('adminpanel', 'admin-panel.html'); });
 
     const searchTop = qs('#searchEmployee');
     const searchTbl = qs('#tableSearch');
