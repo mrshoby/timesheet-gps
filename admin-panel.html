@@ -107,7 +107,7 @@
 
 <script>
 (() => {
-  const LS_ADMIN = "pontaj_admin_session";
+  const ADMIN_LS_KEYS = ["pontaj/admin/v1","pontaj_admin_session"];
   function initials(name){
     const p=(name||"").trim().split(/\s+/).filter(Boolean);
     const a=(p[0]||"")[0]||"";
@@ -115,10 +115,10 @@
     return (a+b).toUpperCase()||"A";
   }
   function logout(){
-    localStorage.removeItem(LS_ADMIN);
+    ADMIN_LS_KEYS.forEach(k=>{ try{ localStorage.removeItem(k);}catch(e){} });
     location.href = "index.html";
   }
-  const raw = localStorage.getItem(LS_ADMIN);
+  const raw = (ADMIN_LS_KEYS.map(k=>localStorage.getItem(k)).find(Boolean));
   if (!raw){ location.href="index.html"; return; }
   const s = JSON.parse(raw);
   document.getElementById("name").textContent = s.user || "Admin";
