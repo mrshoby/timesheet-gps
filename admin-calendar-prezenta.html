@@ -1,840 +1,883 @@
 <!doctype html>
 <html lang="ro">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Calendar prezență (tabel lunar)</title>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Admin — Calendar prezență</title>
   <style>
     :root{
-      --bg: #f6f7fb;
-      --card: #ffffff;
-      --text: #151233;
-      --muted: #6b6a88;
-      --line: rgba(17, 16, 52, .10);
-      --shadow: 0 10px 30px rgba(17, 16, 52, .08);
-      --purple: #5a3fff;
-      --purple-2: #7b61ff;
+      --bg:#f5f6ff;
+      --card:#ffffff;
+      --ink:#1f2330;
+      --muted:#6f7890;
+      --line:#e7e9f6;
+      --accent:#6d5efc;
+      --shadow:0 10px 30px rgba(20,18,40,.08);
+      --r:18px;
 
-      /* status colors (aprox ca în exemple) */
-      --st-inprogress: #6a5cff;   /* mov */
-      --st-subnorm:    #ff5b5b;   /* roșu */
-      --st-complete:   #41c97a;   /* verde */
-      --st-overnorm:   #a66bff;   /* mov deschis */
-      --st-inactive:   #b7b9c8;   /* gri */
-      --st-leave:      #39b8ff;   /* albastru */
-      --st-pause:      #f6b53b;   /* galben/orange */
+      --c-inactive:#f1f3f9;
+      --c-under:#ffe9c7;
+      --c-complete:#dff7e4;
+      --c-over:#d9ecff;
+      --c-leave:#efe6ff;
+
+      --purple:#2f245c;
+      --purple2:#3a2d71;
+      --purpleInk:#f5f4ff;
+      --purpleMuted: rgba(245,244,255,.72);
+      --purpleLine: rgba(255,255,255,.12);
     }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial;background:var(--bg);color:var(--ink)}
+    .wrap{max-width:1440px;margin:18px auto;padding:0 14px}
 
-    * { box-sizing: border-box; }
-    html, body { height: 100%; }
-    body{
-      margin:0;
-      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
-      background: var(--bg);
-      color: var(--text);
+    .panel{
+      background:var(--card); border:1px solid var(--line); border-radius:22px;
+      box-shadow:var(--shadow); overflow:hidden;
     }
-
-    .wrap{
-      padding: 18px 18px 22px;
-      max-width: 1600px;
-      margin: 0 auto;
+    .panelHead{
+      padding:14px 16px; border-bottom:1px solid var(--line);
+      display:flex; gap:12px; align-items:center; justify-content:space-between; flex-wrap:wrap;
     }
-
-    .topbar{
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:12px;
-      margin-bottom: 14px;
+    .panelHead h2{margin:0;font-size:16px}
+    .note{font-size:12px;color:var(--muted)}
+    .controls{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+    .btn{
+      border:1px solid var(--line); background:#fff; color:var(--ink);
+      padding:10px 12px; border-radius:14px; font-weight:750; cursor:pointer;
     }
-
+    .btn.primary{background:var(--accent); border-color:var(--accent); color:#fff}
+    .select{
+      border:1px solid var(--line); background:#fff; padding:10px 12px;border-radius:14px;
+      font-weight:700; outline:none;
+    }
     .search{
-      flex: 1;
-      max-width: 340px;
-      display:flex;
-      align-items:center;
-      gap:10px;
-      background: var(--card);
-      border: 1px solid var(--line);
-      border-radius: 12px;
-      padding: 10px 12px;
-      box-shadow: 0 2px 10px rgba(17, 16, 52, .03);
+      display:flex;align-items:center;gap:8px;border:1px solid var(--line);
+      background:#fff;border-radius:14px;padding:10px 12px;min-width:260px
     }
-    .search svg{ width:18px; height:18px; color: var(--muted); }
-    .search input{
-      border:0;
-      outline:none;
-      width:100%;
-      font-size:14px;
-      background: transparent;
-      color: var(--text);
-    }
-    .search input::placeholder{ color: #9a9ab2; }
+    .search input{border:0;outline:0;width:100%;font-size:13px}
 
-    .monthbar{
-      display:flex;
-      align-items:center;
-      gap:10px;
-      min-width: 240px;
-      justify-content:center;
-    }
-    .monthbtn{
-      width:36px; height:36px;
-      border-radius: 12px;
-      border:1px solid var(--line);
-      background: var(--card);
-      display:grid;
-      place-items:center;
-      cursor:pointer;
-      box-shadow: 0 2px 10px rgba(17, 16, 52, .03);
-    }
-    .monthbtn:hover{ border-color: rgba(90,63,255,.35); }
-    .monthbtn svg{ width:18px; height:18px; color: var(--text); opacity:.75; }
-
-    .monthlabel{
-      font-weight: 700;
-      letter-spacing: .2px;
-      font-size: 15px;
-      color: var(--text);
-      padding: 4px 8px;
-      border-radius: 10px;
-    }
-
-    .actions{
-      display:flex;
-      align-items:center;
-      gap:8px;
-    }
-    .iconbtn{
-      width:36px; height:36px;
-      border-radius: 12px;
-      border:1px solid var(--line);
-      background: var(--card);
-      display:grid;
-      place-items:center;
-      cursor:pointer;
-      box-shadow: 0 2px 10px rgba(17, 16, 52, .03);
-    }
-    .iconbtn:hover{ border-color: rgba(90,63,255,.35); }
-    .iconbtn svg{ width:18px; height:18px; color: var(--text); opacity:.75; }
-
-    .card{
-      background: var(--card);
-      border: 1px solid var(--line);
-      border-radius: 18px;
-      box-shadow: var(--shadow);
-      overflow:hidden;
-    }
-
-    .table-wrap{
-      overflow:auto;
-      max-height: calc(100vh - 220px);
-    }
-
-    table{
-      border-collapse: separate;
-      border-spacing: 0;
-      width: 100%;
-      min-width: 1100px;
-      font-size: 12px;
-    }
-
+    .tableWrap{overflow:auto; max-height: calc(100vh - 220px);}
+    table{border-collapse:separate;border-spacing:0; width:max(1100px, 100%); font-size:13px}
     thead th{
-      position: sticky;
-      top: 0;
-      z-index: 5;
-      background: var(--card);
-      border-bottom: 1px solid var(--line);
-      text-align:center;
-      padding: 10px 8px;
-      color: var(--muted);
-      font-weight: 700;
-      white-space: nowrap;
+      position:sticky; top:0; z-index:5;
+      background:#fff; border-bottom:1px solid var(--line);
+      padding:10px 10px; text-align:center; color:var(--muted); font-weight:800; font-size:12px;
+      white-space:nowrap;
+    }
+    thead th.stickyL{ left:0; z-index:7; text-align:left; box-shadow: 10px 0 20px rgba(20,18,40,.04); }
+    thead th.stickyL2{ left:56px; z-index:7; text-align:left; box-shadow: 10px 0 20px rgba(20,18,40,.04); }
+    thead th.stickyL3{ left:320px; z-index:7; text-align:left; box-shadow: 10px 0 20px rgba(20,18,40,.04); }
+    thead th.stickyR{ right:0; z-index:7; text-align:center; box-shadow: -10px 0 20px rgba(20,18,40,.04); }
+
+    tbody td{
+      border-bottom:1px solid var(--line);
+      padding:10px 10px; text-align:center; background:#fff;
+      white-space:nowrap;
+    }
+    tbody td.stickyL{
+      position:sticky; left:0; z-index:3; text-align:left; background:#fff;
+      box-shadow: 10px 0 20px rgba(20,18,40,.04);
+      width:56px; min-width:56px;
+    }
+    tbody td.stickyL2{
+      position:sticky; left:56px; z-index:3; text-align:left; background:#fff;
+      box-shadow: 10px 0 20px rgba(20,18,40,.04);
+      width:264px; min-width:264px;
+    }
+    tbody td.stickyL3{
+      position:sticky; left:320px; z-index:3; text-align:left; background:#fff;
+      box-shadow: 10px 0 20px rgba(20,18,40,.04);
+      width:160px; min-width:160px;
+    }
+    tbody td.stickyR{
+      position:sticky; right:0; z-index:3; background:#fff;
+      box-shadow: -10px 0 20px rgba(20,18,40,.04);
+      width:74px; min-width:74px;
     }
 
-    thead th:first-child{
-      left: 0;
-      z-index: 7;
-      text-align:left;
-      padding-left: 14px;
+    .empCell{display:flex;align-items:center;gap:10px}
+    .empBubble{
+      width:28px;height:28px;border-radius:10px;background:var(--bg);
+      display:flex;align-items:center;justify-content:center;font-weight:900;color:#3b3f55;border:1px solid var(--line)
     }
+    .empName{font-weight:850}
+    .empDept{font-size:12px;color:var(--muted);margin-top:2px}
 
-    tbody td, tbody th{
-      border-bottom: 1px solid rgba(17, 16, 52, .07);
-      border-right: 1px solid rgba(17, 16, 52, .06);
-      padding: 0;
-      background: #fff;
-    }
-
-    tbody tr:last-child td, tbody tr:last-child th{
-      border-bottom: 0;
-    }
-
-    tbody th{
-      position: sticky;
-      left: 0;
-      z-index: 4;
-      background: #fff;
-      min-width: 260px;
-      border-right: 1px solid var(--line);
-    }
-
-    .empCell{
-      display:flex;
-      align-items:center;
-      gap:10px;
-      padding: 12px 14px;
-    }
-    .empIndex{
-      width: 28px;
-      color: #9a9ab2;
-      font-weight: 700;
-      text-align:center;
-      flex: 0 0 28px;
-    }
-    .avatar{
-      width: 34px;
-      height: 34px;
-      border-radius: 999px;
-      background: linear-gradient(180deg, rgba(90,63,255,.25), rgba(90,63,255,.08));
-      border: 1px solid rgba(90,63,255,.18);
-      display:grid;
-      place-items:center;
-      font-weight: 800;
-      color: var(--purple);
-      flex: 0 0 34px;
-    }
-    .empMeta{
-      display:flex;
-      flex-direction:column;
-      min-width: 0;
-    }
-    .empName{
-      font-weight: 800;
-      font-size: 13px;
-      color: var(--text);
-      line-height: 1.1;
-      white-space: nowrap;
-      overflow:hidden;
-      text-overflow: ellipsis;
-      max-width: 180px;
-    }
-    .empDept{
-      font-size: 11px;
-      color: var(--muted);
-      margin-top: 2px;
-      white-space: nowrap;
-      overflow:hidden;
-      text-overflow: ellipsis;
-      max-width: 180px;
-    }
-
-    .dayHead{
-      display:flex;
-      flex-direction:column;
-      align-items:center;
-      gap:2px;
-      line-height: 1;
-    }
-    .dayNum{ font-size: 12px; color: var(--text); font-weight: 800; }
-    .dayDow{ font-size: 10px; color: #9a9ab2; font-weight: 700; text-transform: uppercase; }
-
+    .dayCell{border-left:1px solid var(--line)}
     .cell{
-      position: relative;
-      height: 58px;
-      width: 92px;
-      padding: 7px 8px 7px;
-      display:flex;
-      flex-direction:column;
-      justify-content:space-between;
-      gap:4px;
-      overflow:hidden;
+      border-radius:12px;
+      padding:8px 8px;
+      border:1px solid rgba(0,0,0,0.03);
+      font-weight:800;
+      cursor:pointer;
+      user-select:none;
     }
-
-    .cell::before{
-      content:'';
-      position:absolute;
-      top:0; left:0; right:0;
-      height: 4px;
-      background: var(--st-inactive);
-      opacity: .95;
-    }
-
-    .cellTop{
-      display:flex;
-      justify-content:space-between;
-      font-size: 10px;
-      color: #8f8fad;
-      gap:6px;
-      white-space: nowrap;
-    }
-    .cellTop span{
-      overflow:hidden;
-      text-overflow: ellipsis;
-    }
-
-    .cellMid{
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      gap:6px;
-      font-weight: 900;
-      letter-spacing: .2px;
-      color: #1a183b;
-      min-height: 14px;
-    }
-
-    .cellTotal{
-      text-align:center;
-      font-weight: 900;
-      font-size: 12px;
-      color: #151233;
-      letter-spacing: .3px;
-      white-space: nowrap;
-    }
-
-    .cell.empty .cellTop,
-    .cell.empty .cellMid,
-    .cell.empty .cellTotal{ opacity: .0; }
-    .cell.empty{ background: #fff; }
-
-    /* statuses */
-    .st-inprogress::before{ background: var(--st-inprogress); }
-    .st-subnorm::before{ background: var(--st-subnorm); }
-    .st-complete::before{ background: var(--st-complete); }
-    .st-overnorm::before{ background: var(--st-overnorm); }
-    .st-inactive::before{ background: var(--st-inactive); }
-    .st-leave::before{ background: var(--st-leave); }
-    .st-pause::before{ background: var(--st-pause); }
-
-    .st-leave .cellMid{ color: #0f2b49; }
-    .st-inactive .cellTotal{ color: #8f8fad; }
-    .st-inprogress{ background: rgba(106,92,255,.04); }
-    .st-subnorm{ background: rgba(255,91,91,.04); }
-    .st-complete{ background: rgba(65,201,122,.05); }
-    .st-overnorm{ background: rgba(166,107,255,.05); }
-    .st-leave{ background: rgba(57,184,255,.05); }
-    .st-pause{ background: rgba(246,181,59,.05); }
-
-    .weekendHead{
-      background: linear-gradient(180deg, rgba(17, 16, 52, .02), rgba(17, 16, 52, 0));
-    }
-    .weekendCell{ background: rgba(17, 16, 52, .02); }
-
-    .hint{
-      padding: 14px 18px 10px;
-      color: var(--muted);
-      font-size: 12px;
-    }
+    .cell:hover{transform:translateY(-1px)}
+    .inactive{background:var(--c-inactive); color:rgba(31,35,48,.55)}
+    .under{background:var(--c-under)}
+    .complete{background:var(--c-complete)}
+    .over{background:var(--c-over)}
+    .leave{background:var(--c-leave)}
+    .cell small{display:block; font-size:10px; font-weight:800; opacity:.7; margin-top:2px}
 
     .legend{
-      display:flex;
-      flex-wrap:wrap;
-      gap:14px;
-      padding: 10px 18px 18px;
-      color: var(--muted);
-      font-size: 12px;
-      align-items:center;
+      display:flex; gap:10px; align-items:center; flex-wrap:wrap;
+      padding:12px 16px; border-top:1px solid var(--line); background:#fff;
+      color:var(--muted); font-size:12px;
     }
-    .dot{
-      width:9px; height:9px;
-      border-radius: 999px;
-      display:inline-block;
-      margin-right:8px;
-      vertical-align: middle;
+    .lg{display:flex;gap:8px;align-items:center}
+    .dot{width:10px;height:10px;border-radius:4px;border:1px solid rgba(0,0,0,.06)}
+
+    .iconBtn{
+      border:1px solid var(--line);
+      background:#fff;
+      width:40px;height:40px;border-radius:14px;
+      display:inline-flex;align-items:center;justify-content:center;
+      cursor:pointer;
+      font-size:18px;
+    }
+    .iconBtn:hover{transform:translateY(-1px)}
+    .iconBtn:active{transform:translateY(0)}
+
+    .iconBtn.sm{width:34px;height:34px;border-radius:12px;font-size:16px}
+
+
+    /* ===== Mini User Panel (purple, like the screenshot) ===== */
+    .overlay{
+      position:fixed; inset:0;
+      background:rgba(10,10,30,.45);
+      backdrop-filter: blur(6px);
+      display:none;
+      align-items:center; justify-content:center;
+      padding:18px;
+      z-index:1000;
+    }
+    .overlay.show{display:flex}
+    .miniPanel{
+      width:min(520px, calc(100% - 28px));
+      background:linear-gradient(180deg, var(--purple), var(--purple2));
+      color:var(--purpleInk);
+      border-radius:22px;
+      box-shadow:0 30px 90px rgba(0,0,0,.35);
+      overflow:hidden;
+      border:1px solid rgba(255,255,255,.10);
+    }
+    .miniHead{
+      padding:16px 16px 10px;
+      display:flex; align-items:flex-start; justify-content:space-between; gap:10px;
+    }
+    .miniTitle{font-weight:950;font-size:16px}
+    .miniSub{font-size:12px;color:var(--purpleMuted);margin-top:4px}
+    .miniClose{
+      width:40px;height:40px;border-radius:14px;
+      border:1px solid rgba(255,255,255,.16);
+      background:rgba(255,255,255,.08);
+      color:var(--purpleInk);
+      cursor:pointer;
+      display:inline-flex;align-items:center;justify-content:center;
+      font-size:18px;
+    }
+    .miniBody{padding:0 16px 14px}
+    .sec{padding:12px 0;border-top:1px solid var(--purpleLine)}
+    .sec:first-child{border-top:0}
+    .secLabel{color:var(--purpleMuted);font-size:12px;font-weight:800}
+    .secValue{font-size:18px;font-weight:950;margin-top:4px}
+    .row{display:flex;gap:14px;align-items:flex-start}
+    .col{flex:1}
+    .ava{
+      width:54px;height:54px;border-radius:18px;
+      background:rgba(255,255,255,.12);
+      border:1px solid rgba(255,255,255,.14);
+      display:flex;align-items:center;justify-content:center;
+      font-weight:950;font-size:18px;
+    }
+    .chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+    .chip{
+      border:1px solid rgba(255,255,255,.14);
+      background:rgba(255,255,255,.08);
+      border-radius:999px;
+      padding:8px 10px;
+      font-size:12px;
+      font-weight:850;
+      color:var(--purpleInk);
     }
 
-    .kbd{
-      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono","Courier New", monospace;
-      background: rgba(17, 16, 52, .06);
-      border: 1px solid rgba(17, 16, 52, .08);
-      border-radius: 8px;
-      padding: 2px 6px;
-      font-size: 11px;
-      color: #2b2950;
+    .editTable{width:100%; border-collapse:separate; border-spacing:0; margin-top:10px}
+    .editTable th,.editTable td{padding:8px 0; text-align:left; font-size:12px}
+    .editTable th{color:var(--purpleMuted); font-weight:900}
+    .inpt, .sel{
+      width:100%;
+      padding:10px 10px;
+      border-radius:14px;
+      border:1px solid rgba(255,255,255,.14);
+      background:rgba(255,255,255,.08);
+      color:var(--purpleInk);
+      outline:none;
+      font-weight:850;
+      font-size:12px;
     }
-
-    .banner{
-      margin: 10px 0 14px;
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:12px;
-      padding: 10px 14px;
-      border-radius: 14px;
-      border: 1px solid rgba(90,63,255,.15);
-      background: linear-gradient(180deg, rgba(90,63,255,.07), rgba(90,63,255,.02));
-      color: #3d2fbf;
-      font-size: 12px;
-      font-weight: 700;
+    .inpt::placeholder{color:rgba(245,244,255,.55)}
+    .delBtn{
+      width:40px;height:40px;border-radius:14px;
+      border:1px solid rgba(255,255,255,.14);
+      background:rgba(255,255,255,.08);
+      color:var(--purpleInk);
+      cursor:pointer;
+      display:inline-flex;align-items:center;justify-content:center;
+      font-size:16px;
     }
-    .banner small{ font-weight: 600; color: rgba(61,47,191,.85); }
-    .pill{
-      background: rgba(90,63,255,.11);
-      border: 1px solid rgba(90,63,255,.18);
-      color: rgba(61,47,191,.95);
-      border-radius: 999px;
-      padding: 6px 10px;
-      font-size: 12px;
-      font-weight: 800;
-      white-space: nowrap;
+    .miniFooter{
+      padding:14px 16px;
+      border-top:1px solid var(--purpleLine);
+      display:flex; gap:10px; justify-content:space-between; align-items:center;
+      background:rgba(0,0,0,.06);
     }
-
-    /* Loading */
-    .loading{
-      padding: 26px 18px;
-      color: var(--muted);
-      font-weight: 700;
-      display:flex;
-      align-items:center;
-      gap:10px;
+    .fleft{display:flex; gap:10px}
+    .fbtn{
+      border:1px solid rgba(255,255,255,.16);
+      background:rgba(255,255,255,.10);
+      color:var(--purpleInk);
+      padding:12px 14px;border-radius:16px;
+      font-weight:950;
+      cursor:pointer;
+      display:inline-flex;align-items:center;gap:10px;
     }
-    .spinner{
-      width: 18px;
-      height: 18px;
-      border-radius: 999px;
-      border: 3px solid rgba(90,63,255,.18);
-      border-top-color: rgba(90,63,255,.85);
-      animation: spin .9s linear infinite;
-    }
-    @keyframes spin{ to{ transform: rotate(360deg);} }
-
-    /* Responsive tweaks */
-    @media (max-width: 900px){
-      .monthbar{ display:none; }
-      .table-wrap{ max-height: calc(100vh - 190px); }
-      tbody th{ min-width: 220px; }
-      .cell{ width: 84px; }
-    }
+    .fbtn.primary{background:#6dde80; border-color:#6dde80; color:#102516}
+    .fbtn.danger{background:rgba(255,255,255,.10)}
+    .hint{color:var(--purpleMuted);font-size:12px}
   </style>
 </head>
 <body>
   <div class="wrap">
-    <div class="topbar">
-      <div class="search">
-        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-          <path d="M10.5 18a7.5 7.5 0 1 1 0-15 7.5 7.5 0 0 1 0 15Z" stroke="currentColor" stroke-width="2"/>
-          <path d="M16.3 16.3 21 21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-        </svg>
-        <input id="q" placeholder="Caută angajat" autocomplete="off" />
+    <div class="panel">
+      <div class="panelHead">
+        <div>
+          <h2>Calendar prezență</h2>
+          <div class="note">Click pe o zi → deschide User Panel (editare rapidă). Butonul 👤 deschide panelul pentru angajat.</div>
+        </div>
+        <div class="controls">
+          <div class="search">🔎 <input id="q" placeholder="Caută angajat"/></div>
+          <button class="btn" id="prevBtn">← Luna anterioară</button>
+          <select class="select" id="monthSel"></select>
+          <button class="btn" id="nextBtn">Luna următoare →</button>
+          <button class="btn primary" id="refreshBtn">Reîncarcă</button>
+        </div>
       </div>
 
-      <div class="monthbar">
-        <button id="prevMonth" class="monthbtn" title="Luna precedentă">
-          <svg viewBox="0 0 24 24" fill="none"><path d="M14 6 8 12l6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        </button>
-        <div class="monthlabel" id="monthLabel">—</div>
-        <button id="nextMonth" class="monthbtn" title="Luna următoare">
-          <svg viewBox="0 0 24 24" fill="none"><path d="M10 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        </button>
-      </div>
-
-      <div class="actions">
-        <button class="iconbtn" id="exportPdf" title="Export PDF (placeholder)">
-          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-            <path d="M7 3h7l3 3v15a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3V6a3 3 0 0 1 3-3Z" stroke="currentColor" stroke-width="2"/>
-            <path d="M14 3v4a2 2 0 0 0 2 2h4" stroke="currentColor" stroke-width="2"/>
-            <path d="M7.5 15.5h9" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-            <path d="M7.5 18.5h6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-          </svg>
-        </button>
-        <button class="iconbtn" id="exportXls" title="Export Excel (placeholder)">
-          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-            <path d="M7 3h7l3 3v15a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3V6a3 3 0 0 1 3-3Z" stroke="currentColor" stroke-width="2"/>
-            <path d="M14 3v4a2 2 0 0 0 2 2h4" stroke="currentColor" stroke-width="2"/>
-            <path d="M8 15l3 4m3-4-3 4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-          </svg>
-        </button>
-      </div>
-    </div>
-
-    <div class="banner">
-      <div>Condiția de prezență nu conține timp activ <small>(pontaje neîncheiate)</small></div>
-      <div class="pill"><span class="kbd">START</span> fără <span class="kbd">FINISH</span></div>
-    </div>
-
-    <div class="card">
-      <div id="loading" class="loading"><span class="spinner"></span>Se încarcă prezența lunară…</div>
-      <div class="table-wrap" id="tableWrap" style="display:none;">
-        <table id="tbl"></table>
-      </div>
-
-      <div class="hint">
-        Tips: poți derula orizontal și vertical. Coloana cu angajați și header-ul rămân <b>sticky</b>.
+      <div class="tableWrap">
+        <table id="cal">
+          <thead id="thead"></thead>
+          <tbody id="tbody"></tbody>
+        </table>
       </div>
 
       <div class="legend">
-        <span><i class="dot" style="background:var(--st-inprogress)"></i>În progres</span>
-        <span><i class="dot" style="background:var(--st-subnorm)"></i>Sub normă</span>
-        <span><i class="dot" style="background:var(--st-complete)"></i>Complet</span>
-        <span><i class="dot" style="background:var(--st-overnorm)"></i>Peste normă</span>
-        <span><i class="dot" style="background:var(--st-inactive)"></i>Inactiv/absent</span>
-        <span><i class="dot" style="background:var(--st-leave)"></i>Concediu</span>
-        <span><i class="dot" style="background:var(--st-pause)"></i>În pauză</span>
+        <div class="lg"><span class="dot" style="background:var(--c-inactive)"></span> Inactiv/absent</div>
+        <div class="lg"><span class="dot" style="background:var(--c-under)"></span> Sub normă</div>
+        <div class="lg"><span class="dot" style="background:var(--c-complete)"></span> Complet</div>
+        <div class="lg"><span class="dot" style="background:var(--c-over)"></span> Peste normă (OT/Extra)</div>
+        <div class="lg"><span class="dot" style="background:var(--c-leave)"></span> Concediu (CO/CM/etc)</div>
       </div>
     </div>
   </div>
 
-  <script>
-  (function(){
-    const DOW = ['Du','Lu','Ma','Mi','Jo','Vi','Sâ'];
-    const DOW2 = ['Dum','Lun','Mar','Mie','Joi','Vin','Sâm'];
-    const MONTHS = ['Ianuarie','Februarie','Martie','Aprilie','Mai','Iunie','Iulie','August','Septembrie','Octombrie','Noiembrie','Decembrie'];
+  <!-- MINI USER PANEL -->
+  <div class="overlay" id="overlay">
+    <div class="miniPanel" role="dialog" aria-modal="true">
+      <div class="miniHead">
+        <div class="row" style="align-items:center">
+          <div class="ava" id="mpAva">U</div>
+          <div>
+            <div class="miniTitle" id="mpTitle">User Panel</div>
+            <div class="miniSub" id="mpSub">—</div>
+          </div>
+        </div>
+        <button class="miniClose" id="mpClose" title="Închide">✕</button>
+      </div>
 
-    const qEl = document.getElementById('q');
-    const monthLabelEl = document.getElementById('monthLabel');
-    const prevBtn = document.getElementById('prevMonth');
-    const nextBtn = document.getElementById('nextMonth');
-    const tblEl = document.getElementById('tbl');
-    const loadingEl = document.getElementById('loading');
-    const tableWrapEl = document.getElementById('tableWrap');
+      <div class="miniBody">
+        <div class="sec">
+          <div class="secLabel">Selected day</div>
+          <div class="secValue" id="mpDay">—</div>
+          <div class="chips" id="mpChips"></div>
+        </div>
 
-    const exportPdf = document.getElementById('exportPdf');
-    const exportXls = document.getElementById('exportXls');
+        <div class="sec">
+          <div class="secLabel">Editare rapidă (intervale / acțiuni)</div>
 
-    let CFG = null;
-    let curYear = (new Date()).getFullYear();
-    let curMonth = (new Date()).getMonth(); // 0-11
+          <table class="editTable">
+            <thead>
+              <tr>
+                <th style="width:92px">Ora</th>
+                <th style="width:160px">Acțiune</th>
+                <th>Note</th>
+                <th style="width:56px"></th>
+              </tr>
+            </thead>
+            <tbody id="mpRows"></tbody>
+          </table>
 
-    let ALL_EVENTS = [];
-    let EMPLOYEES = [];
-
-    exportPdf.addEventListener('click', ()=> alert('Export PDF: aici îl legăm la raportul PDF lunar (în pasul următor).'));
-    exportXls.addEventListener('click', ()=> alert('Export Excel: aici îl legăm la export CSV/XLS (în pasul următor).'));
-
-    function pad2(n){ return String(n).padStart(2,'0'); }
-
-    function ymd(d){
-      return d.getFullYear() + '-' + pad2(d.getMonth()+1) + '-' + pad2(d.getDate());
-    }
-    function hm(d){
-      return pad2(d.getHours()) + ':' + pad2(d.getMinutes());
-    }
-    function isWeekend(dateObj){
-      const dow = dateObj.getDay();
-      return dow === 0 || dow === 6;
-    }
-
-    async function loadConfigSmart(){
-      const paths = ['./config.json','../config.json','/config.json'];
-      for (const p of paths){
-        try{
-          const r = await fetch(p, {cache:'no-store'});
-          if (!r.ok) continue;
-          const j = await r.json();
-          if (j && (j.adminEventsEndpoint || j.adminEventsUrl || j.endpoint || j.webAppUrl)) return j;
-        }catch(_){}
-      }
-      return {};
-    }
-
-    function buildUrl(base, params){
-      const u = new URL(base, window.location.href);
-      Object.entries(params || {}).forEach(([k,v])=>{
-        if (v === undefined || v === null || v === '') return;
-        u.searchParams.set(k, String(v));
-      });
-      return u.toString();
-    }
-
-    function adminEndpointBase(){
-      const b = (CFG && (CFG.adminEventsEndpoint || CFG.adminEventsUrl || CFG.endpoint || CFG.webAppUrl)) || '';
-      if (!b) return '';
-      // dacă e deja URL complet, ok
-      return b;
-    }
-
-    function initials(name){
-      const s = String(name||'').trim();
-      if (!s) return '•';
-      const parts = s.split(/\s+/).filter(Boolean);
-      const a = parts[0] ? parts[0][0] : '';
-      const b = parts.length>1 ? parts[parts.length-1][0] : '';
-      return (a+b).toUpperCase();
-    }
-
-    function parseISO(ts){
-      const d = new Date(ts);
-      return isNaN(d.getTime()) ? null : d;
-    }
-
-    function groupByNameDay(events){
-      const m = new Map();
-      for (const ev of (events||[])){
-        if (!ev || !ev.name || !ev.ts) continue;
-        const d = parseISO(ev.ts);
-        if (!d) continue;
-        const key = ev.name + '||' + ymd(d);
-        if (!m.has(key)) m.set(key, []);
-        m.get(key).push(ev);
-      }
-      for (const [k, arr] of m.entries()){
-        arr.sort((a,b)=> (new Date(a.ts)) - (new Date(b.ts)));
-      }
-      return m;
-    }
-
-    function computeDaySummary(evs){
-      // normalize action names (server poate da start/pause/unpause/finish etc)
-      const a = (x)=> String(x||'').toLowerCase().trim();
-      let running=false, paused=false;
-      let startTs=null, pauseStart=null;
-      let workMs=0, pauseMs=0;
-      let firstStart=null, lastFinish=null;
-
-      for (const ev of (evs||[])){
-        const d = parseISO(ev.ts);
-        if (!d) continue;
-        const t = d.getTime();
-        const act = a(ev.action);
-        if (act === 'start'){
-          if (!firstStart) firstStart = d;
-          // dacă eram deja running, resetăm segment (cazuri rare)
-          running = true;
-          paused = false;
-          startTs = t;
-          pauseStart = null;
-        } else if (act === 'pause'){
-          if (running && !paused){
-            paused = true;
-            pauseStart = t;
-          }
-        } else if (act === 'unpause'){
-          if (running && paused && pauseStart != null){
-            const delta = Math.max(0, t - pauseStart);
-            pauseMs += delta;
-            paused = false;
-            pauseStart = null;
-          }
-        } else if (act === 'finish'){
-          lastFinish = d;
-          if (running && startTs != null){
-            // dacă finish în pauză, închidem pauza
-            if (paused && pauseStart != null){
-              const delta = Math.max(0, t - pauseStart);
-              pauseMs += delta;
-              paused = false;
-              pauseStart = null;
-            }
-            const diff = Math.max(0, t - startTs);
-            workMs += Math.max(0, diff - pauseMs);
-          }
-          running = false;
-          startTs = null;
-          pauseStart = null;
-          // reset pauseMs segment? aici îl lăsăm total (simplu)
-        }
-      }
-
-      const hasStart = !!firstStart;
-      const hasFinish= !!lastFinish;
-      const completed = hasStart && hasFinish;
-      const open = hasStart && !hasFinish;
-
-      return {
-        start: firstStart,
-        finish: lastFinish,
-        workMs: workMs,
-        pauseMs: pauseMs,
-        completed,
-        open,
-        // heuristics: dacă e pauză "deschisă" (start + pause fără unpause/finish) → pause state
-        pausedOpen: false
-      };
-    }
-
-    function msToHHMM(ms){
-      const m = Math.max(0, Math.round(ms/60000));
-      const hh = Math.floor(m/60);
-      const mm = m%60;
-      return pad2(hh) + ':' + pad2(mm);
-    }
-
-    function statusForCell(sum, normMs){
-      if (!sum) return 'inactive';
-      if (!sum.start && !sum.finish) return 'inactive';
-      if (sum.open) return 'inprogress';
-      if (sum.completed){
-        const work = sum.workMs || 0;
-        if (work <= 0) return 'inactive';
-        if (work < normMs * 0.92) return 'subnorm';
-        if (work > normMs * 1.10) return 'overnorm';
-        return 'complete';
-      }
-      return 'inactive';
-    }
-
-    function render(){
-      const monthStart = new Date(curYear, curMonth, 1);
-      const monthEnd = new Date(curYear, curMonth+1, 0);
-
-      monthLabelEl.textContent = MONTHS[curMonth] + ' ' + curYear;
-
-      const days = [];
-      for (let d=1; d<=monthEnd.getDate(); d++){
-        const dt = new Date(curYear, curMonth, d);
-        days.push(dt);
-      }
-
-      // filter employees by query
-      const q = String(qEl.value||'').trim().toLowerCase();
-      const list = q
-        ? EMPLOYEES.filter(e => (e.name||'').toLowerCase().includes(q))
-        : EMPLOYEES.slice();
-
-      const byNameDay = groupByNameDay(ALL_EVENTS);
-      const normMs = ((CFG && CFG.defaultNormHours) ? Number(CFG.defaultNormHours) : 8) * 60 * 60 * 1000;
-
-      // build table HTML
-      let thead = '<thead><tr>';
-      thead += '<th><div style="display:flex;align-items:center;gap:8px;"><span style="font-weight:900;color:var(--text);">ANGAJAT</span><span style="color:#9a9ab2;font-weight:800;">↕</span></div></th>';
-
-      for (const dt of days){
-        const weekend = isWeekend(dt);
-        thead += `<th class="${weekend?'weekendHead':''}"><div class="dayHead"><div class="dayNum">${pad2(dt.getDate())}</div><div class="dayDow">${DOW2[dt.getDay()]}</div></div></th>`;
-      }
-      thead += '</tr></thead>';
-
-      let tbody = '<tbody>';
-      list.forEach((emp, idx) => {
-        tbody += '<tr>';
-        tbody += `<th><div class="empCell">
-            <div class="empIndex">${idx+1}</div>
-            <div class="avatar">${initials(emp.name)}</div>
-            <div class="empMeta">
-              <div class="empName">${escapeHtml(emp.name)}</div>
-              <div class="empDept">${escapeHtml(emp.dept || '—')}</div>
+          <div class="row" style="margin-top:10px">
+            <div class="col">
+              <input class="inpt" id="mpNewTime" type="time" value="08:00"/>
             </div>
-          </div></th>`;
+            <div class="col">
+              <select class="sel" id="mpNewAction"></select>
+            </div>
+            <div class="col">
+              <input class="inpt" id="mpNewNotes" placeholder="note (opțional)"/>
+            </div>
+            <div style="width:56px">
+              <button class="delBtn" id="mpAdd" title="Adaugă">＋</button>
+            </div>
+          </div>
 
-        for (const dt of days){
-          const dk = ymd(dt);
-          const key = emp.name + '||' + dk;
-          const evs = byNameDay.get(key) || [];
-          const sum = evs.length ? computeDaySummary(evs) : null;
+          <div class="hint" style="margin-top:10px">
+            Salvează modificările cu “Approve”. Pentru editare avansată, deschide panelul complet.
+          </div>
+        </div>
+      </div>
 
-          // TODO: leave integration (în pasul următor putem colora CO/BO etc)
-          const st = statusForCell(sum, normMs);
+      <div class="miniFooter">
+        <div class="fleft">
+          <button class="fbtn" id="mpOpenFull">⤢ Panel complet</button>
+        </div>
+        <div style="display:flex;gap:10px">
+          <button class="fbtn danger" id="mpReject">✕ Închide</button>
+          <button class="fbtn primary" id="mpApprove">✓ Approve</button>
+        </div>
+      </div>
+    </div>
+  </div>
 
-          const cls = 'cell ' +
-            (st==='inprogress'?'st-inprogress':
-            st==='subnorm'?'st-subnorm':
-            st==='complete'?'st-complete':
-            st==='overnorm'?'st-overnorm':
-            st==='leave'?'st-leave':
-            st==='pause'?'st-pause':'st-inactive') +
-            (isWeekend(dt) ? ' weekendCell' : '');
-
-          const s1 = sum && sum.start ? hm(sum.start) : '';
-          const s2 = sum && sum.finish ? hm(sum.finish) : '';
-          const total = sum && (sum.workMs>0) ? msToHHMM(sum.workMs) : '';
-
-          // dacă nu e nimic, păstrăm celula clean
-          const empty = (!s1 && !s2 && !total);
-
-          tbody += `<td>
-              <div class="${cls}${empty?' empty':''}" title="${emp.name} • ${dk}">
-                <div class="cellTop"><span>${s1||' '}</span><span>${s2||' '}</span></div>
-                <div class="cellMid">${st==='leave' ? 'CO' : (empty ? '&nbsp;' : '')}</div>
-                <div class="cellTotal">${total||' '}</div>
-              </div>
-            </td>`;
-        }
-
-        tbody += '</tr>';
-      });
-      tbody += '</tbody>';
-
-      tblEl.innerHTML = thead + tbody;
-
-      // show
-      loadingEl.style.display = 'none';
-      tableWrapEl.style.display = '';
+<script>
+(() => {
+  // ====== Admin guard (same idea as fix-day.html) ======
+  const LS_ADMIN = "pontaj_admin_session";
+  function requireAdmin(){
+    const raw = localStorage.getItem(LS_ADMIN);
+    if (!raw) throw new Error("Neautentificat ca admin. Loghează-te în Admin înainte.");
+    try {
+      const s = JSON.parse(raw);
+      if (!s || !s.user) throw new Error("Sesiune admin invalidă.");
+      return s;
+    } catch(e){
+      throw new Error("Sesiune admin invalidă.");
     }
+  }
 
-    function escapeHtml(s){
-      return String(s||'').replace(/[&<>"']/g, (c)=>({
-        '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
-      }[c]));
-    }
+  // ====== JSONP helper ======
+  function jsonp(url){
+    return new Promise((resolve,reject)=>{
+      const cb = "cb_"+Math.random().toString(16).slice(2);
+      window[cb] = (data)=>{ cleanup(); resolve(data); };
+      const s = document.createElement("script");
+      const cleanup = ()=>{
+        try{ delete window[cb]; }catch(e){ window[cb]=undefined; }
+        s.remove();
+      };
+      s.onerror = ()=>{ cleanup(); reject(new Error("JSONP error")); };
+      s.src = url + (url.includes("?") ? "&" : "?") + "callback="+cb;
+      document.head.appendChild(s);
+    });
+  }
 
-    async function loadMonthData(){
-      loadingEl.style.display = '';
-      tableWrapEl.style.display = 'none';
+  // ====== Utils ======
+  const TZ = "Europe/Bucharest";
+  function hm(min){
+    min = Math.max(0, Math.round(Number(min)||0));
+    const h = String(Math.floor(min/60)).padStart(2,'0');
+    const m = String(min%60).padStart(2,'0');
+    return `${h}:${m}`;
+  }
+  function initials(name){
+    const parts = (name||"").trim().split(/\s+/).filter(Boolean);
+    const a = (parts[0]||"")[0]||"";
+    const b = (parts.length>1 ? (parts[parts.length-1]||"")[0] : "") || "";
+    return (a+b).toUpperCase() || "U";
+  }
+  function parseIso(ts){
+    const d = new Date(ts);
+    return isNaN(d) ? null : d;
+  }
+  function dayKey(d){
+    const y = d.getFullYear();
+    const m = String(d.getMonth()+1).padStart(2,'0');
+    const da = String(d.getDate()).padStart(2,'0');
+    return `${y}-${m}-${da}`;
+  }
+  function getWeekdayShort(dateStr){
+    const d = new Date(dateStr+"T00:00:00");
+    return d.toLocaleDateString("ro-RO", {weekday:"short"}).replace(".","");
+  }
 
-      if (!CFG) CFG = await loadConfigSmart();
-      const base = adminEndpointBase();
-      if (!base){
-        loadingEl.innerHTML = '<b style="color:#c0392b">Lipsește adminEventsEndpoint în config.json</b>';
-        return;
-      }
+  // ====== State ======
+  let CFG = null;
+  let EVENTS = [];
+  let ROSTER = []; // {name, dept}
+  let YM = null;
+  let FILTER_Q = "";
 
-      const monthStart = new Date(curYear, curMonth, 1);
-      const monthEnd = new Date(curYear, curMonth+1, 0);
+  // mini panel state
+  const ACTIONS = ["START","FINISH","PAUSE","UNPAUSE","EXTRA START","EXTRA FINISH","VOID"];
+  let MP = { name:"", day:"", rows:[] };
 
-      const url = buildUrl(base, {
-        fn: 'adminEvents',
-        from: ymd(monthStart),
-        to: ymd(monthEnd),
-        v: Date.now()
-      });
+  // ====== Data loading ======
+  async function loadConfig(){
+    const r = await fetch("config.json", {cache:"no-store"});
+    CFG = await r.json();
+  }
+  function ep(){ return CFG?.adminEventsEndpoint || CFG?.stateEndpoint || ""; }
 
+  async function loadDepartmentsCsv(){
+    // prefer remote departmentsCsv
+    const url = CFG?.departmentsCsv;
+    const map = new Map();
+    if (url){
       try{
-        const r = await fetch(url, {cache:'no-store'});
+        const r = await fetch(url, {cache:"no-store"});
         const txt = await r.text();
-        let data = null;
-        try{ data = JSON.parse(txt); }catch(e){}
-
-        if (!data || !data.ok || !Array.isArray(data.events)){
-          throw new Error('adminEventsEndpoint nu a întors {ok:true, events:[]}.');
+        const lines = txt.split(/\r?\n/).map(x=>x.trim()).filter(Boolean);
+        // expect header: Departament,Angajat
+        for (let i=1;i<lines.length;i++){
+          const line = lines[i];
+          const parts = line.split(",");
+          if (parts.length < 2) continue;
+          const dept = (parts[0]||"").trim();
+          const name = (parts.slice(1).join(",")||"").trim();
+          if (name) map.set(name, dept);
         }
+      }catch(e){
+        // ignore; fallback below
+      }
+    }
+    return map;
+  }
 
-        ALL_EVENTS = data.events.map(ev => ({
-          ts: ev.ts,
-          name: ev.name || '',
-          dept: ev.dept || '',
-          action: String(ev.action||'').toLowerCase().trim()
-        })).filter(ev => ev.ts && ev.name);
+  async function buildRoster(){
+    const deptMap = await loadDepartmentsCsv();
+    // prefer CFG.employees list if present, else deptMap keys
+    let names = Array.isArray(CFG?.employees) && CFG.employees.length ? CFG.employees.slice() : Array.from(deptMap.keys());
+    names = names.filter(Boolean);
+    // if cfg.employees is a small demo list, deptMap may be larger; merge
+    if (deptMap.size){
+      const set = new Set(names);
+      for (const n of deptMap.keys()) set.add(n);
+      names = Array.from(set);
+    }
+    names.sort((a,b)=>a.localeCompare(b, "ro"));
+    ROSTER = names.map(n => ({ name:n, dept: deptMap.get(n) || "—" }));
+  }
 
-        // employees list
-        const set = new Map();
-        for (const ev of ALL_EVENTS){
-          if (!set.has(ev.name)){
-            set.set(ev.name, {name: ev.name, dept: ev.dept || ''});
-          } else if (!set.get(ev.name).dept && ev.dept){
-            set.get(ev.name).dept = ev.dept;
-          }
+  async function loadAdminEventsForMonth(ym){
+    const start = new Date(ym+"-01T00:00:00");
+    const end = new Date(start.getFullYear(), start.getMonth()+1, 1);
+    const res = await jsonp(`${ep()}?fn=adminEvents`);
+    if (!res || !res.ok) throw new Error(res?.error || "adminEvents failed");
+    const evs = (res.events || []).map(e => ({
+      ts: e.ts || e.timestamp || e.time || e.localTime,
+      name: e.name || e.employee || e.angajat || "",
+      action: (e.action || "").toUpperCase(),
+      notes: e.notes || ""
+    })).filter(e => e.ts && e.name && e.action);
+
+    EVENTS = evs.filter(e=>{
+      const d = parseIso(e.ts);
+      return d && d >= start && d < end;
+    });
+  }
+
+  // ====== Compute per employee per day from events ======
+  function getNormMinutesFor(name, dept){
+    const ns = CFG?.normSettings;
+    let normH = ns?.default?.normHours ?? 8;
+    // department override
+    if (ns?.departments && dept){
+      const key = Object.keys(ns.departments).find(k => k.toLowerCase() === String(dept).toLowerCase());
+      if (key && ns.departments[key]?.normHours != null) normH = ns.departments[key].normHours;
+    }
+    // employee override
+    if (ns?.employees && name && ns.employees[name]?.normHours != null) normH = ns.employees[name].normHours;
+    return Math.round(Number(normH)*60);
+  }
+
+  function computeDaySummary(events, normMin){
+    // events are within a single day for one employee
+    const rows = events
+      .map(e=>({ t: new Date(e.ts), action:e.action, notes:e.notes||"" }))
+      .filter(x=>!isNaN(x.t))
+      .sort((a,b)=>a.t-b.t);
+
+    let running = false;
+    let paused = false;
+    let lastStart = null;
+    let lastPause = null;
+    let workMin = 0;
+    let pauseMin = 0;
+
+    for (const r of rows){
+      if (r.action === "START"){
+        running = true; paused = false;
+        lastStart = r.t;
+        lastPause = null;
+      } else if (r.action === "PAUSE" && running && !paused){
+        paused = true;
+        lastPause = r.t;
+        // add worked from lastStart to pause
+        if (lastStart) workMin += Math.max(0, (r.t - lastStart) / 60000);
+      } else if (r.action === "UNPAUSE" && running && paused){
+        paused = false;
+        if (lastPause) pauseMin += Math.max(0, (r.t - lastPause) / 60000);
+        lastStart = r.t;
+        lastPause = null;
+      } else if (r.action === "FINISH" && running){
+        if (paused){
+          // if finish while paused -> close pause
+          if (lastPause) pauseMin += Math.max(0, (r.t - lastPause)/60000);
+        } else if (lastStart){
+          workMin += Math.max(0, (r.t - lastStart)/60000);
         }
-        EMPLOYEES = Array.from(set.values()).sort((a,b)=> a.name.localeCompare(b.name,'ro'));
-
-        render();
-      }catch(err){
-        console.error(err);
-        loadingEl.innerHTML = '<b style="color:#c0392b">Eroare:</b> ' + escapeHtml(err.message || String(err));
-        tableWrapEl.style.display = 'none';
+        running = false; paused = false;
+        lastStart = null; lastPause = null;
       }
     }
 
-    function shiftMonth(delta){
-      curMonth += delta;
-      if (curMonth < 0){
-        curMonth = 11;
-        curYear--;
-      } else if (curMonth > 11){
-        curMonth = 0;
-        curYear++;
-      }
-      loadMonthData();
+    workMin = Math.round(workMin);
+    pauseMin = Math.round(pauseMin);
+
+    let status = "inactive";
+    let label = "—";
+    let sub = "";
+    if (workMin > 0){
+      label = hm(workMin);
+      if (workMin < normMin) status = "under";
+      else status = "complete";
+      sub = pauseMin ? `pauză ${pauseMin}m` : "";
+    }
+    // if unfinished but started -> in progress -> treat as under with label?
+    if (running){
+      status = "over"; // highlight as in-progress (blue)
+      sub = paused ? "în pauză" : "în lucru";
+    }
+    return { workMin, pauseMin, status, label, sub, running, paused };
+  }
+
+  function computeMonthMatrix(ym){
+    const [y, m] = ym.split("-").map(x=>parseInt(x,10));
+    const first = new Date(y, m-1, 1);
+    const next = new Date(y, m, 1);
+    const daysInMonth = Math.round((next-first)/86400000);
+
+    // Index events by name->day
+    const byNameDay = new Map();
+    for (const e of EVENTS){
+      const d = parseIso(e.ts);
+      if (!d) continue;
+      const dk = dayKey(d);
+      const key = e.name + "||" + dk;
+      if (!byNameDay.has(key)) byNameDay.set(key, []);
+      byNameDay.get(key).push(e);
     }
 
-    prevBtn.addEventListener('click', ()=> shiftMonth(-1));
-    nextBtn.addEventListener('click', ()=> shiftMonth(+1));
-    qEl.addEventListener('input', ()=> render());
+    const matrix = [];
+    for (const emp of ROSTER){
+      if (FILTER_Q && !emp.name.toLowerCase().includes(FILTER_Q)) continue;
+      const normMin = getNormMinutesFor(emp.name, emp.dept);
+      const row = { name: emp.name, dept: emp.dept, days: [] };
+      for (let i=1;i<=daysInMonth;i++){
+        const dk = `${ym}-${String(i).padStart(2,'0')}`;
+        const key = emp.name + "||" + dk;
+        const evs = byNameDay.get(key) || [];
+        const s = computeDaySummary(evs, normMin);
+        row.days.push({ dk, ...s });
+      }
+      matrix.push(row);
+    }
+    return { y, m, daysInMonth, matrix };
+  }
 
-    // init
-    loadMonthData();
+  // ====== Render ======
+  function buildMonthOptions(curYm){
+    const sel = document.getElementById("monthSel");
+    sel.innerHTML = "";
+    const [cy, cm] = curYm.split("-").map(x=>parseInt(x,10));
+    const base = new Date(cy, cm-1, 1);
+    for (let i=-12; i<=1; i++){
+      const d = new Date(base.getFullYear(), base.getMonth()+i, 1);
+      const ym = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+      const opt = document.createElement("option");
+      opt.value = ym;
+      opt.textContent = d.toLocaleString("ro-RO", {month:"long", year:"numeric"});
+      if (ym === curYm) opt.selected = true;
+      sel.appendChild(opt);
+    }
+  }
 
+  function render(){
+    const {daysInMonth, matrix} = computeMonthMatrix(YM);
+    const thead = document.getElementById("thead");
+    thead.innerHTML = `<tr>
+      <th class="stickyL" style="min-width:56px">#</th>
+      <th class="stickyL2" style="min-width:264px">Angajat</th>
+      <th class="stickyL3" style="min-width:160px">Departament</th>
+      ${Array.from({length:daysInMonth}, (_,i)=>{
+        const dk = `${YM}-${String(i+1).padStart(2,'0')}`;
+        const wd = getWeekdayShort(dk);
+        return `<th title="${dk}">${String(i+1).padStart(2,'0')}<br><span style="font-weight:700">${wd}</span></th>`;
+      }).join("")}
+</tr>`;
+
+    const tbody = document.getElementById("tbody");
+    tbody.innerHTML = matrix.map((row, idx) => {
+      const cells = row.days.map(d => {
+        const title = `${row.name} • ${d.dk}\nLucrat: ${hm(d.workMin)}\nPauză: ${d.pauseMin}m\n${d.sub||""}`;
+        const label = d.label || "—";
+        const sub = d.sub ? `<small>${d.sub}</small>` : "";
+        return `<td class="dayCell">
+          <div class="cell ${d.status}" data-name="${escapeHtml(row.name)}" data-day="${d.dk}" title="${escapeHtml(title)}">
+            ${label}${sub}
+          </div>
+        </td>`;
+      }).join("");
+
+      return `<tr>
+        <td class="stickyL">${idx+1}</td>
+        <td class="stickyL2">
+          <div class="empCell">
+            <div class="empBubble">${escapeHtml(initials(row.name))}</div>
+            <div>
+              <div class="empName">${escapeHtml(row.name)}</div>
+              <div class="empDept">${escapeHtml(row.dept || "—")}</div>
+            </div>
+          </div>
+            <div style="margin-left:auto;display:flex;align-items:center;gap:8px">
+              <button class="iconBtn sm" data-openpanel="1" data-name="${escapeHtml(row.name)}" title="User Panel">👤</button>
+            </div>
+        </td>
+        <td class="stickyL3">${escapeHtml(row.dept || "—")}</td>
+        ${cells}
+</tr>`;
+    }).join("");
+
+    // bind cell click
+    tbody.querySelectorAll(".cell").forEach(el=>{
+      el.addEventListener("click", ()=>{
+        const name = el.getAttribute("data-name");
+        const day = el.getAttribute("data-day");
+        openMiniPanel(name, day).catch(err=>alert(err.message || String(err)));
+      });
+    });
+    // bind panel button
+    tbody.querySelectorAll("[data-openpanel='1']").forEach(btn=>{
+      btn.addEventListener("click", ()=>{
+        const name = btn.getAttribute("data-name");
+        // default: open with today in current month
+        const day = `${YM}-${String(new Date().getDate()).padStart(2,'0')}`;
+        openMiniPanel(name, day).catch(err=>alert(err.message || String(err)));
+      });
+    });
+  }
+
+  function escapeHtml(s){
+    return String(s||"").replace(/[&<>"']/g, c=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
+  }
+
+  // ====== Mini panel (load + edit via FixDay endpoints) ======
+  function setMiniUI(name, day){
+    MP.name = name;
+    MP.day = day;
+    document.getElementById("mpAva").textContent = initials(name);
+    document.getElementById("mpTitle").textContent = name;
+    document.getElementById("mpSub").textContent = "User Panel (admin) — editare rapidă";
+    document.getElementById("mpDay").textContent = day;
+
+    const chips = document.getElementById("mpChips");
+    chips.innerHTML = "";
+    // compute summary from matrix data if available
+    const key = name + "||" + day;
+    const dayEvents = EVENTS.filter(e => e.name === name && dayKey(new Date(e.ts)) === day);
+    // quick compute
+    const dept = (ROSTER.find(x=>x.name===name)?.dept)||"";
+    const normMin = getNormMinutesFor(name, dept);
+    const s = computeDaySummary(dayEvents, normMin);
+    const c = [
+      {t:"Lucrat "+hm(s.workMin)},
+      {t:"Pauză "+(s.pauseMin||0)+"m"},
+      {t: s.running ? (s.paused?"În pauză":"În lucru") : (s.workMin ? (s.workMin<normMin?"Sub normă":"Complet") : "Inactiv")}
+    ];
+    chips.innerHTML = c.map(x=>`<div class="chip">${escapeHtml(x.t)}</div>`).join("");
+
+    // action options
+    const sel = document.getElementById("mpNewAction");
+    sel.innerHTML = ACTIONS.filter(a=>a!=="VOID").map(a=>`<option value="${a}">${a}</option>`).join("");
+  }
+
+  async function openMiniPanel(name, day){
+    requireAdmin(); // throws if not admin
+
+    setMiniUI(name, day);
+    document.getElementById("overlay").classList.add("show");
+
+    // load day rows via fixDayGet
+    const res = await jsonp(`${ep()}?fn=fixDayGet&name=${encodeURIComponent(name)}&date=${encodeURIComponent(day)}`);
+    if (!res || !res.ok) throw new Error(res?.error || "fixDayGet failed");
+
+    MP.rows = (res.events || []).map(ev => ({
+      row: ev.row,
+      time: ev.time || "",
+      action: (ev.action || "").toUpperCase(),
+      notes: ev.notes || ""
+    }));
+    renderMiniRows();
+  }
+
+  function renderMiniRows(){
+    const tbody = document.getElementById("mpRows");
+    if (!MP.rows.length){
+      tbody.innerHTML = `<tr><td colspan="4" style="color:rgba(245,244,255,.72)">Nu există evenimente pentru ziua selectată.</td></tr>`;
+      return;
+    }
+    tbody.innerHTML = MP.rows.map((r, idx) => `
+      <tr>
+        <td><input class="inpt" type="time" value="${escapeHtml(r.time||'')}" data-i="${idx}" data-f="time"/></td>
+        <td>
+          <select class="sel" data-i="${idx}" data-f="action">
+            ${ACTIONS.map(a=>`<option value="${a}" ${a===r.action?'selected':''}>${a}</option>`).join("")}
+          </select>
+        </td>
+        <td><input class="inpt" value="${escapeHtml(r.notes||'')}" placeholder="note" data-i="${idx}" data-f="notes"/></td>
+        <td><button class="delBtn" data-del="${idx}" title="Șterge (VOID)">🗑</button></td>
+      </tr>
+    `).join("");
+
+    tbody.querySelectorAll("[data-f]").forEach(inp=>{
+      inp.addEventListener("input", ()=>{
+        const i = parseInt(inp.getAttribute("data-i"),10);
+        const f = inp.getAttribute("data-f");
+        MP.rows[i][f] = inp.value;
+      });
+      inp.addEventListener("change", ()=>{
+        const i = parseInt(inp.getAttribute("data-i"),10);
+        const f = inp.getAttribute("data-f");
+        MP.rows[i][f] = inp.value;
+      });
+    });
+    tbody.querySelectorAll("[data-del]").forEach(btn=>{
+      btn.addEventListener("click", ()=>{
+        const i = parseInt(btn.getAttribute("data-del"),10);
+        // mark as VOID
+        MP.rows[i].action = "VOID";
+        renderMiniRows();
+      });
+    });
+  }
+
+  async function approveSave(){
+    // build ops (update existing rows; for VOID -> void)
+    const ops = [];
+    for (const r of MP.rows){
+      if (!r.row) continue;
+      if (String(r.action).toUpperCase() === "VOID"){
+        ops.push({ type:"void", row:r.row, reason:"mini panel void" });
+      } else {
+        ops.push({ type:"update", row:r.row, time:r.time, action:r.action, notes:r.notes, reason:"mini panel update" });
+      }
+    }
+
+    // new insert
+    const nt = document.getElementById("mpNewTime").value;
+    const na = document.getElementById("mpNewAction").value;
+    const nn = document.getElementById("mpNewNotes").value;
+    if (nt && na){
+      ops.push({ type:"insert", time:nt, action:na, notes:nn||"", reason:"mini panel insert" });
+    }
+
+    if (!ops.length) return;
+
+    const res = await jsonp(`${ep()}?fn=fixDayApply&name=${encodeURIComponent(MP.name)}&date=${encodeURIComponent(MP.day)}&ops=${encodeURIComponent(JSON.stringify(ops))}`);
+    if (!res || !res.ok) throw new Error(res?.error || "fixDayApply failed");
+
+    // reload events (and also refresh table)
+    await loadAdminEventsForMonth(YM);
+    render();
+    closeMini();
+  }
+
+  function closeMini(){
+    document.getElementById("overlay").classList.remove("show");
+    MP = { name:"", day:"", rows:[] };
+    document.getElementById("mpRows").innerHTML = "";
+    document.getElementById("mpNewNotes").value = "";
+  }
+
+  function openFullPanel(){
+    // dedicated full page (admin) with same theme
+    const url = `admin-user-panel.html?name=${encodeURIComponent(MP.name)}&date=${encodeURIComponent(MP.day)}`;
+    window.open(url, "_blank");
+  }
+
+  // ====== Month navigation ======
+  function shiftMonth(delta){
+    const [y,m] = YM.split("-").map(x=>parseInt(x,10));
+    const d = new Date(y, m-1 + delta, 1);
+    YM = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+    document.getElementById("monthSel").value = YM;
+    refresh().catch(err=>alert(err.message||String(err)));
+  }
+
+  async function refresh(){
+    buildMonthOptions(YM);
+    await loadAdminEventsForMonth(YM);
+    render();
+  }
+
+  // ====== Bind UI ======
+  document.getElementById("q").addEventListener("input", (e)=>{
+    FILTER_Q = e.target.value.trim().toLowerCase();
+    render();
+  });
+  document.getElementById("prevBtn").addEventListener("click", ()=>shiftMonth(-1));
+  document.getElementById("nextBtn").addEventListener("click", ()=>shiftMonth(1));
+  document.getElementById("monthSel").addEventListener("change", (e)=>{
+    YM = e.target.value;
+    refresh().catch(err=>alert(err.message||String(err)));
+  });
+  document.getElementById("refreshBtn").addEventListener("click", ()=>refresh().catch(err=>alert(err.message||String(err))));
+
+  // mini panel buttons
+  document.getElementById("mpClose").addEventListener("click", closeMini);
+  document.getElementById("mpReject").addEventListener("click", closeMini);
+  document.getElementById("mpApprove").addEventListener("click", ()=>approveSave().catch(err=>alert(err.message||String(err))));
+  document.getElementById("mpOpenFull").addEventListener("click", openFullPanel);
+  document.getElementById("mpAdd").addEventListener("click", ()=>{
+    // insert will happen on approve; just clear
+    document.getElementById("mpNewNotes").value = "";
+  });
+  document.getElementById("overlay").addEventListener("click", (e)=>{
+    if (e.target.id === "overlay") closeMini();
+  });
+
+  // ====== Boot ======
+  (async ()=>{
+    try{
+      requireAdmin();
+      await loadConfig();
+      await buildRoster();
+
+      const now = new Date();
+      YM = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+      buildMonthOptions(YM);
+      await refresh();
+    }catch(err){
+      document.body.innerHTML = `<div style="padding:22px;font-family:ui-sans-serif,system-ui">
+        <h2 style="margin:0 0 10px">Calendar prezență</h2>
+        <div style="color:#b00020;font-weight:800">Eroare: ${escapeHtml(err.message || String(err))}</div>
+        <div style="margin-top:8px;color:#555">Asigură-te că ești logat ca admin și că endpoint-urile există: adminEvents, fixDayGet, fixDayApply.</div>
+      </div>`;
+    }
   })();
-  </script>
+})();
+</script>
 </body>
 </html>
