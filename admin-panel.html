@@ -79,7 +79,7 @@
           </div>
         </div>
         <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end">
-          <a class="btn" href="admin.html">← Înapoi la Admin</a>
+          <a class="btn" href="admin.html" target="_top">← Înapoi la Admin</a>
           <button class="btn primary" id="logoutBtn">Logout</button>
         </div>
       </div>
@@ -107,7 +107,8 @@
 
 <script>
 (() => {
-  const ADMIN_LS_KEYS = ["pontaj/admin/v1","pontaj_admin_session"];
+  const LS_ADMIN = "pontaj/admin/v1";
+  const LS_ADMIN_FALLBACK = "pontaj_admin_session";
   function initials(name){
     const p=(name||"").trim().split(/\s+/).filter(Boolean);
     const a=(p[0]||"")[0]||"";
@@ -115,11 +116,18 @@
     return (a+b).toUpperCase()||"A";
   }
   function logout(){
-    ADMIN_LS_KEYS.forEach(k=>{ try{ localStorage.removeItem(k);}catch(e){} });
+    localStorage.removeItem(LS_ADMIN);
     location.href = "index.html";
   }
-  const raw = (ADMIN_LS_KEYS.map(k=>localStorage.getItem(k)).find(Boolean));
-  if (!raw){ location.href="index.html"; return; }
+  const raw = localStorage.getItem(LS_ADMIN) || localStorage.getItem(LS_ADMIN_FALLBACK) || localStorage.getItem(LS_ADMIN_FALLBACK);
+  if (!raw) {
+    document.body.innerHTML = `<div style="padding:22px;font-family:ui-sans-serif,system-ui">
+      <h2 style="margin:0 0 10px">Admin Panel</h2>
+      <div style="color:#b00020;font-weight:800">Nu ești logat ca admin.</div>
+      <div style="margin-top:10px"><a href="index.html" target="_top" style="color:#6d5efc;font-weight:800">Deschide login</a></div>
+    </div>`;
+    return;
+  }
   const s = JSON.parse(raw);
   document.getElementById("name").textContent = s.user || "Admin";
   document.getElementById("meta").textContent = s.email ? s.email : "—";
