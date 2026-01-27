@@ -181,7 +181,51 @@
       box-shadow:0 0 0 2px var(--ring);
     }
 
-    .chip-btn{
+    
+
+    .chip-field select{
+      font-size:13px;
+      padding:8px 10px;
+      border-radius:10px;
+      border:1px solid #d1d5db;
+      outline:none;
+      background:#fff;
+    }
+    .chip-field select:focus{
+      border-color:var(--brand);
+      box-shadow:0 0 0 2px var(--ring);
+    }
+
+    .chip-tabs{
+      display:flex;
+      gap:6px;
+      margin:-4px -4px 10px;
+      padding:4px;
+      background:#f8fafc;
+      border:1px solid #e2e8f0;
+      border-radius:12px;
+    }
+    .chip-tab{
+      flex:1;
+      border:none;
+      background:transparent;
+      padding:8px 10px;
+      border-radius:10px;
+      font-size:12px;
+      font-weight:800;
+      cursor:pointer;
+      color:#0f172a;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap:6px;
+    }
+    .chip-tab.active{
+      background:#ffffff;
+      box-shadow:0 10px 30px rgba(15,23,42,.12);
+      border:1px solid rgba(15,23,42,.08);
+    }
+.chip-btn{
       width:100%;
       margin-top:4px;
       border:none;
@@ -310,7 +354,42 @@
         </div>
 
         <div class="chip-dropdown" id="cfgDropdown" aria-hidden="true">
-          <!-- Stare: NELOGAT -->
+          
+          <!-- Tabs -->
+          <div class="chip-tabs" role="tablist" aria-label="Autentificare">
+            <button type="button" class="chip-tab active" id="chipTabEmp" role="tab" aria-selected="true">👤 Angajat</button>
+            <button type="button" class="chip-tab" id="chipTabAdmin" role="tab" aria-selected="false">🛡️ Admin</button>
+          </div>
+
+          <!-- EMPLOYEE: NELOGAT -->
+          <div class="chip-dropdown-section" id="empLoginSection">
+            <div class="chip-dropdown-title">Dashboard angajat</div>
+            <div class="chip-field">
+              <span>Nume</span>
+              <select id="empDashName"></select>
+            </div>
+            <div class="chip-field">
+              <span>PIN</span>
+              <input type="password" id="empDashPin" autocomplete="current-password" />
+            </div>
+            <button type="button" class="chip-btn" id="empDashLoginBtn">Autentificare</button>
+            <div class="chip-hint" id="empDashHint"></div>
+          </div>
+
+          <!-- EMPLOYEE: LOGAT -->
+          <div class="chip-dropdown-section" id="empLoggedSection" hidden>
+            <div class="chip-dropdown-title">
+              Salut, <span id="empDashLabel">Angajat</span>
+            </div>
+            <button type="button" class="chip-btn chip-btn-secondary" id="goEmpDashBtn">
+              Deschide dashboard
+            </button>
+            <button type="button" class="chip-link-btn" id="empDashLogoutBtn">
+              Deconectare
+            </button>
+          </div>
+
+          <!-- ADMIN: NELOGAT -->
           <div class="chip-dropdown-section" id="adminLoginSection">
             <div class="chip-dropdown-title">Admin panel</div>
             <div class="chip-field">
@@ -938,6 +1017,252 @@ function sumPausesFromEvents(events, fallbackPair){
   const goAdminBtn = document.getElementById('goAdminBtn');
   const adminLogoutBtn = document.getElementById('adminLogoutBtn');
 
+  // ---- EMPLOYEE DASHBOARD LOGIN (PIN) ----
+  const chipTabEmp = document.getElementById('chipTabEmp');
+  const chipTabAdmin = document.getElementById('chipTabAdmin');
+
+  const empLoginSection = document.getElementById('empLoginSection');
+  const empLoggedSection = document.getElementById('empLoggedSection');
+  const empDashName = document.getElementById('empDashName');
+  const empDashPin = document.getElementById('empDashPin');
+  const empDashLoginBtn = document.getElementById('empDashLoginBtn');
+  const empDashHint = document.getElementById('empDashHint');
+  const empDashLabel = document.getElementById('empDashLabel');
+  const goEmpDashBtn = document.getElementById('goEmpDashBtn');
+  const empDashLogoutBtn = document.getElementById('empDashLogoutBtn');
+
+  const EMP_TOKEN_KEY = 'pontaj_me_token';
+  const EMP_NAME_KEY  = 'pontaj_me_name';
+  const CHIP_MODE_KEY = 'pontaj/chip_mode'; // 'employee' | 'admin'
+  let CHIP_MODE = 'employee';
+
+  function jsonp(url){
+    return new Promise((resolve, reject)=>{
+      const cb = 'cb_' + Math.random().toString(16).slice(2);
+      const s = document.createElement('script');
+      window[cb] = (data)=>{ cleanup(); resolve(data); };
+      function cleanup(){
+        try{ delete window[cb]; }catch(e){ window[cb] = undefined; }
+        try{ s.remove(); }catch(e){}
+      }
+      s.onerror = ()=>{ cleanup(); reject(new Error('JSONP error')); };
+      s.src = url + (url.includes('?') ? '&' : '?') + 'callback=' + cb;
+      document.head.appendChild(s);
+    });
+  }
+
+  function setEmpDashHint(text, cls){
+    if (!empDashHint) return;
+    empDashHint.textContent = text || '';
+    empDashHint.className = 'chip-hint' + (cls ? (' ' + cls) : '');
+  }
+
+  function getEmpSession(){
+    try{
+      const token = localStorage.getItem(EMP_TOKEN_KEY);
+      const name  = localStorage.getItem(EMP_NAME_KEY);
+      return (token && name) ? { token, name } : null;
+    }catch{ return null; }
+  }
+
+  function clearEmpSession(){
+    try{
+      localStorage.removeItem(EMP_TOKEN_KEY);
+      localStorage.removeItem(EMP_NAME_KEY);
+    }catch{}
+  }
+
+  function updateEmpUiLoggedIn(name){
+    if (empLoginSection) empLoginSection.hidden = true;
+    if (empLoggedSection) empLoggedSection.hidden = false;
+    if (empDashLabel) empDashLabel.textContent = name || 'Angajat';
+    setEmpDashHint('', '');
+    applyChipModeVisibility();
+  }
+
+  function updateEmpUiLoggedOut(){
+    if (empLoginSection) empLoginSection.hidden = false;
+    if (empLoggedSection) empLoggedSection.hidden = true;
+    if (empDashPin) empDashPin.value = '';
+    setEmpDashHint('', '');
+    applyChipModeVisibility();
+  }
+
+  function applyChipModeVisibility(){
+    const isEmp = (CHIP_MODE === 'employee');
+
+    // tab UI
+    if (chipTabEmp){
+      chipTabEmp.classList.toggle('active', isEmp);
+      chipTabEmp.setAttribute('aria-selected', isEmp ? 'true' : 'false');
+    }
+    if (chipTabAdmin){
+      chipTabAdmin.classList.toggle('active', !isEmp);
+      chipTabAdmin.setAttribute('aria-selected', !isEmp ? 'true' : 'false');
+    }
+
+    // sections visibility by mode (în interior, hidden decide "login vs logged")
+    const showEmp = isEmp ? '' : 'none';
+    const showAdm = isEmp ? 'none' : '';
+
+    if (empLoginSection) empLoginSection.style.display = showEmp;
+    if (empLoggedSection) empLoggedSection.style.display = showEmp;
+
+    if (adminLoginSection) adminLoginSection.style.display = showAdm;
+    if (adminLoggedSection) adminLoggedSection.style.display = showAdm;
+  }
+
+  function setChipMode(mode){
+    CHIP_MODE = (mode === 'admin') ? 'admin' : 'employee';
+    try{ localStorage.setItem(CHIP_MODE_KEY, CHIP_MODE); }catch{}
+    applyChipModeVisibility();
+  }
+
+  function getMeEndpoint(){
+    if (window.CFG && window.CFG.adminEventsEndpoint) return window.CFG.adminEventsEndpoint;
+    if (window.CFG && window.CFG.stateEndpoint) return window.CFG.stateEndpoint;
+    return '';
+  }
+
+  async function loadEmpRoster(){
+    if (!empDashName) return;
+    const ep = getMeEndpoint();
+    empDashName.innerHTML = '<option value="">Se încarcă…</option>';
+
+    if (!ep){
+      empDashName.innerHTML = '<option value="">(lipsește endpoint în config.json)</option>';
+      setEmpDashHint('Nu găsesc adminEventsEndpoint/stateEndpoint în config.json.', 'err');
+      return;
+    }
+
+    try{
+      const data = await jsonp(ep + '?fn=meRoster&ts=' + Date.now());
+      empDashName.innerHTML = '';
+      if (data && data.ok && Array.isArray(data.employees) && data.employees.length){
+        data.employees
+          .filter(x => x && x.name && x.active !== false)
+          .forEach(x=>{
+            const opt = document.createElement('option');
+            opt.value = x.name;
+            opt.textContent = x.dept ? (x.name + ' — ' + x.dept) : x.name;
+            empDashName.appendChild(opt);
+          });
+      } else {
+        const opt = document.createElement('option');
+        opt.value = '';
+        opt.textContent = 'Nu există listă (setează PIN-uri în EmployeeAuth)';
+        empDashName.appendChild(opt);
+      }
+    }catch(e){
+      console.warn('meRoster error:', e);
+      empDashName.innerHTML = '<option value="">(eroare roster)</option>';
+      setEmpDashHint('Nu pot încărca lista de angajați (meRoster).', 'err');
+    }
+  }
+
+  async function handleEmpDashLoginClick(){
+    if (!empDashName || !empDashPin) return;
+
+    const name = (empDashName.value || '').trim();
+    const pin  = (empDashPin.value || '').trim();
+
+    if (!name){
+      setEmpDashHint('Selectează numele.', 'warn');
+      return;
+    }
+    if (!pin){
+      setEmpDashHint('Introdu PIN-ul.', 'warn');
+      return;
+    }
+
+    if (empDashLoginBtn){
+      empDashLoginBtn.disabled = true;
+      empDashLoginBtn.textContent = 'Se verifică…';
+    }
+    setEmpDashHint('', '');
+
+    try{
+      const ep = getMeEndpoint();
+      if (!ep) throw new Error('Endpoint lipsă (config.json).');
+
+      const data = await jsonp(
+        ep + '?fn=meLogin&name=' + encodeURIComponent(name) +
+        '&pin=' + encodeURIComponent(pin) +
+        '&ts=' + Date.now()
+      );
+
+      if (!data || !data.ok){
+        setEmpDashHint((data && data.error) ? data.error : 'Autentificare eșuată.', 'err');
+        return;
+      }
+
+      try{
+        localStorage.setItem(EMP_TOKEN_KEY, data.token || '');
+        localStorage.setItem(EMP_NAME_KEY, data.name || name);
+      }catch{}
+
+      updateEmpUiLoggedIn(data.name || name);
+
+      // UX: după login, deschidem automat dashboard-ul (și păstrăm sesiunea în localStorage)
+      window.open('employee-dashboard.html', '_blank');
+
+    }catch(e){
+      setEmpDashHint('Eroare la login: ' + (e.message || e), 'err');
+    }finally{
+      if (empDashLoginBtn){
+        empDashLoginBtn.disabled = false;
+        empDashLoginBtn.textContent = 'Autentificare';
+      }
+      if (empDashPin) empDashPin.value = '';
+    }
+  }
+
+  function handleEmpDashLogout(){
+    clearEmpSession();
+    updateEmpUiLoggedOut();
+  }
+
+  function setupEmployeeChipMenu(){
+    // session UI
+    const s = getEmpSession();
+    if (s && s.name) updateEmpUiLoggedIn(s.name);
+    else updateEmpUiLoggedOut();
+
+    // mode
+    let savedMode = null;
+    try{ savedMode = localStorage.getItem(CHIP_MODE_KEY); }catch{}
+    if (savedMode){
+      setChipMode(savedMode);
+    } else {
+      const hasAdmin = (()=>{ const a = getAdminSession(); return a && a.user; })();
+      setChipMode(hasAdmin && !s ? 'admin' : 'employee');
+    }
+
+    if (chipTabEmp) chipTabEmp.addEventListener('click', (e)=>{ e.stopPropagation(); setChipMode('employee'); });
+    if (chipTabAdmin) chipTabAdmin.addEventListener('click', (e)=>{ e.stopPropagation(); setChipMode('admin'); });
+
+    if (empDashLoginBtn) empDashLoginBtn.addEventListener('click', handleEmpDashLoginClick);
+    if (empDashPin){
+      empDashPin.addEventListener('keydown', (e)=>{
+        if (e.key === 'Enter'){
+          e.preventDefault();
+          handleEmpDashLoginClick();
+        }
+      });
+    }
+    if (goEmpDashBtn){
+      goEmpDashBtn.addEventListener('click', (e)=>{
+        e.stopPropagation();
+        window.open('employee-dashboard.html', '_blank');
+      });
+    }
+    if (empDashLogoutBtn) empDashLogoutBtn.addEventListener('click', (e)=>{ e.stopPropagation(); handleEmpDashLogout(); });
+
+    // roster
+    loadEmpRoster();
+  }
+
+
   const ADMIN_LS_KEY = 'pontaj/admin/v1';
   let ADMIN_AUTH = null;
   let isAdminLogged = false;
@@ -967,6 +1292,7 @@ function sumPausesFromEvents(events, fallbackPair){
     if (adminLoggedSection) adminLoggedSection.hidden = false;
     if (adminNameSpan) adminNameSpan.textContent = label || 'Admin';
     setAdminHint('', '');
+    applyChipModeVisibility();
   }
   function updateAdminUiLoggedOut(){
     isAdminLogged = false;
@@ -975,6 +1301,7 @@ function sumPausesFromEvents(events, fallbackPair){
     if (adminUser) adminUser.value = '';
     if (adminPass) adminPass.value = '';
     setAdminHint('', '');
+    applyChipModeVisibility();
   }
 
   function getAdminAuthUrl(){
@@ -1942,6 +2269,7 @@ showToast(
       }
     });
     setupAdminChipMenu();
+    setupEmployeeChipMenu();
 
   })();
 
