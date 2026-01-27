@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="ro">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Admin — User Panel</title>
+  <style>
+    :root{
+      --bg:#f5f6ff;
+      --shadow:0 18px 50px rgba(20,18,40,.14);
+      --purple:#2f245c;
+      --purple2:#3a2d71;
+      --ink:#f5f4ff;
+      --muted:rgba(245,244,255,.72);
+      --line:rgba(255,255,255,.12);
+      --accent:#6d5efc;
+      --r:22px;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--bg);font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial}
+    .wrap{max-width:980px;margin:18px auto;padding:0 14px}
+    .panel{
+      background:linear-gradient(180deg, var(--purple), var(--purple2));
+      border-radius:var(--r);
+      border:1px solid rgba(255,255,255,.10);
+      box-shadow:var(--shadow);
+      color:var(--ink);
+      overflow:hidden;
+    }
+    .head{
+      padding:18px 18px 14px;
+      display:flex;align-items:flex-start;justify-content:space-between;gap:12px;
+      border-bottom:1px solid var(--line);
+    }
+    .title{display:flex;gap:12px;align-items:center}
+    .ava{
+      width:56px;height:56px;border-radius:18px;
+      background:rgba(255,255,255,.12);
+      border:1px solid rgba(255,255,255,.14);
+      display:flex;align-items:center;justify-content:center;
+      font-weight:950;font-size:18px;
+    }
+    h1{margin:0;font-size:18px}
+    .sub{margin-top:4px;color:var(--muted);font-size:12px}
+    .btn{
+      border:1px solid rgba(255,255,255,.16);
+      background:rgba(255,255,255,.10);
+      color:var(--ink);
+      padding:12px 14px;border-radius:16px;
+      font-weight:950;
+      cursor:pointer;
+      display:inline-flex;align-items:center;gap:10px;
+      text-decoration:none;
+    }
+    .btn.primary{background:rgba(109,94,252,.25); border-color:rgba(109,94,252,.35)}
+    .body{padding:14px 18px 18px}
+    .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+    @media (max-width:820px){ .grid{grid-template-columns:1fr} }
+    .card{
+      border:1px solid rgba(255,255,255,.12);
+      background:rgba(255,255,255,.08);
+      border-radius:20px;
+      padding:14px;
+    }
+    .k{font-size:12px;color:var(--muted);font-weight:900}
+    .v{font-size:18px;font-weight:950;margin-top:6px}
+    .list{margin-top:10px;color:var(--muted);font-size:12px;line-height:1.45}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="panel">
+      <div class="head">
+        <div class="title">
+          <div class="ava" id="ava">A</div>
+          <div>
+            <h1 id="name">Admin Panel</h1>
+            <div class="sub" id="meta">—</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end">
+          <a class="btn" href="admin.html">← Înapoi la Admin</a>
+          <button class="btn primary" id="logoutBtn">Logout</button>
+        </div>
+      </div>
+
+      <div class="body">
+        <div class="grid">
+          <div class="card">
+            <div class="k">Rol</div>
+            <div class="v" id="role">—</div>
+            <div class="list">Acest panel este pentru setări rapide și linkuri către module.</div>
+          </div>
+
+          <div class="card">
+            <div class="k">Linkuri rapide</div>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px">
+              <a class="btn" href="admin-calendar-prezenta.html">📅 Calendar prezență</a>
+              <a class="btn" href="fix-day.html" target="_blank">🛠 FixDay</a>
+              <a class="btn" href="reports.html">📄 Rapoarte</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+(() => {
+  const LS_ADMIN = "pontaj_admin_session";
+  function initials(name){
+    const p=(name||"").trim().split(/\s+/).filter(Boolean);
+    const a=(p[0]||"")[0]||"";
+    const b=(p.length>1?(p[p.length-1]||"")[0]:"")||"";
+    return (a+b).toUpperCase()||"A";
+  }
+  function logout(){
+    localStorage.removeItem(LS_ADMIN);
+    location.href = "index.html";
+  }
+  const raw = localStorage.getItem(LS_ADMIN);
+  if (!raw){ location.href="index.html"; return; }
+  const s = JSON.parse(raw);
+  document.getElementById("name").textContent = s.user || "Admin";
+  document.getElementById("meta").textContent = s.email ? s.email : "—";
+  document.getElementById("role").textContent = s.role || "admin";
+  document.getElementById("ava").textContent = initials(s.user||"Admin");
+  document.getElementById("logoutBtn").addEventListener("click", logout);
+})();
+</script>
+</body>
+</html>
