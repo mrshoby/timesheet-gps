@@ -363,10 +363,12 @@
     .empBtn:hover{transform: translateY(-1px); background: rgba(108,92,231,.14);}
     .empBtn:active{transform: translateY(0px);}
 
-    .upOverlay{position:fixed !important; inset:0; width:100vw; height:100vh; background: rgba(10, 8, 28, .55); display:none; align-items:center; justify-content:center; padding:18px; z-index: 2147483647; overflow:auto;}
+    .upOverlay{position:fixed; inset:0; background: rgba(10, 8, 28, .55); display:none; align-items:center; justify-content:center; padding:18px; z-index: 9999;}
     .upOverlay.show{display:flex;}
     .upModal{
       width: 920px; max-width: 96vw;
+      max-height: calc(100vh - 36px);
+      overflow:auto;
       background: radial-gradient(1200px 700px at 20% 0%, rgba(155,127,255,.22) 0%, rgba(155,127,255,0) 45%),
                   radial-gradient(1000px 600px at 90% 10%, rgba(0,210,255,.10) 0%, rgba(0,210,255,0) 55%),
                   linear-gradient(180deg, #2b2357 0%, #231a49 100%);
@@ -586,69 +588,6 @@
 
     .upErr{margin-top:10px; font-weight:900; color:#ffd1d1; display:none;}
 
-    /* ===== Timeline (state segments) ===== */
-    .timeline{
-      position:relative;
-      height:72px;
-      border-radius: 18px;
-      background: rgba(255,255,255,.06);
-      border: 1px solid rgba(255,255,255,.10);
-      overflow:hidden;
-      padding: 10px 12px;
-    }
-    .tlLane{
-      position:relative;
-      width:100%;
-      border-radius: 999px;
-      background: rgba(255,255,255,.08);
-      border: 1px solid rgba(255,255,255,.10);
-      overflow:hidden;
-    }
-    .tlLane.main{height:14px; margin-top:8px;}
-    .tlLane.extra{height:10px; margin-top:14px;}
-    .tlSeg{position:absolute; top:0; height:100%; border-radius:999px;}
-    .tlSeg.work{background: rgba(46, 204, 113, .78);}
-    .tlSeg.pause{background: rgba(241, 196, 15, .82);}
-    .tlSeg.idle{background: rgba(255,255,255,.10);}
-    .tlSeg.extra{background: rgba(52, 152, 219, .75);}
-    .tlMarks{position:absolute; inset:0; pointer-events:none;}
-    .tlMark{position:absolute; top:0; bottom:0; width:1px; background: rgba(255,255,255,.18);}
-    .tlDot{
-      position:absolute;
-      width:10px; height:10px;
-      border-radius: 999px;
-      top: 18px; /* aligns with main lane */
-      transform: translateX(-50%);
-      border:1px solid rgba(255,255,255,.35);
-      box-shadow: 0 6px 14px rgba(0,0,0,.25);
-      pointer-events:none;
-    }
-    .tlDot.START{background: rgba(46,204,113,.95);}
-    .tlDot.PAUSE{background: rgba(241,196,15,.95);}
-    .tlDot.UNPAUSE{background: rgba(243,156,18,.95);}
-    .tlDot.FINISH{background: rgba(231,76,60,.95);}
-    .tlDot.EXTRA_START{background: rgba(155,89,182,.95);}
-    .tlDot.EXTRA_FINISH{background: rgba(142,68,173,.95);}
-    .tlChips{display:flex; gap:8px; flex-wrap:wrap; margin-top:10px;}
-    .tlChip{
-      display:inline-flex; gap:8px; align-items:center;
-      padding: 8px 10px;
-      border-radius: 14px;
-      background: rgba(255,255,255,.06);
-      border: 1px solid rgba(255,255,255,.10);
-      color: rgba(255,255,255,.90);
-      font-weight: 950;
-      font-size: 12px;
-      white-space:nowrap;
-    }
-    .tlChip .mini{opacity:.75; font-weight:900;}
-    .tlChip.START{border-color: rgba(46,204,113,.25);}
-    .tlChip.PAUSE{border-color: rgba(241,196,15,.25);}
-    .tlChip.UNPAUSE{border-color: rgba(243,156,18,.25);}
-    .tlChip.FINISH{border-color: rgba(231,76,60,.25);}
-    .tlChip.EXTRA_START,.tlChip.EXTRA_FINISH{border-color: rgba(155,89,182,.25);}
-    
-
   
     /* ===== Mini User Panel PRO fixes ===== */
 
@@ -719,6 +658,87 @@
       background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.08); font-weight:950; }
     .rChip .tt{ font-size: 11px; color: rgba(255,255,255,.90); }
     .rChip .aa{ font-size: 11px; color: rgba(255,255,255,.70); }
+
+  
+    /* ===== Overlay lock + full-cover fix (prevents white area) ===== */
+    html.up-lock, html.up-lock body{ overflow:hidden !important; height:100% !important; }
+    .upOverlay{
+      overflow:auto;
+      position: fixed !important;
+      top:0 !important; left:0 !important; right:0 !important; bottom:0 !important;
+      width: 100vw !important; height: 100vh !important;
+      margin:0 !important;
+      transform: none !important;
+      z-index: 2147483647 !important;
+    }
+
+    /* ===== Timeline (linii colorate + etichete) ===== */
+    .tlWrap{margin-top:12px;}
+    .tlTicks{
+      display:flex; justify-content:space-between; align-items:center;
+      font-size:12px; font-weight:950;
+      color: rgba(255,255,255,.80);
+      padding: 0 2px 8px;
+    }
+    .tlTrack{
+      position:relative;
+      height: 48px;
+      border-radius: 16px;
+      background: rgba(255,255,255,.05);
+      border: 1px solid rgba(255,255,255,.10);
+      overflow:hidden;
+    }
+    .tlBase{
+      position:absolute; left:10px; right:10px; top:50%;
+      height:2px; transform: translateY(-50%);
+      background: rgba(255,255,255,.12);
+    }
+    .tlSeg{
+      position:absolute; top:50%; height:6px;
+      transform: translateY(-50%);
+      border-radius: 999px;
+      opacity:.95;
+    }
+    .tlSeg.work{ background: rgba(46, 204, 113, .85); }
+    .tlSeg.pause{ background: rgba(241, 196, 15, .90); }
+    .tlSeg.extra{ background: rgba(155, 89, 182, .85); }
+
+    .tlMark{
+      position:absolute; top:50%;
+      width: 10px; height: 10px;
+      transform: translate(-50%, -50%);
+      border-radius: 999px;
+      border: 2px solid rgba(255,255,255,.90);
+      background: rgba(0,0,0,.35);
+      box-shadow: 0 6px 14px rgba(0,0,0,.25);
+    }
+    .tlMark.START{ background: rgba(46,204,113,.95); }
+    .tlMark.UNPAUSE{ background: rgba(46,204,113,.95); }
+    .tlMark.PAUSE{ background: rgba(241,196,15,.98); }
+    .tlMark.FINISH{ background: rgba(231,76,60,.95); }
+    .tlMark.EXTRA_START{ background: rgba(155,89,182,.95); }
+    .tlMark.EXTRA_FINISH{ background: rgba(155,89,182,.95); }
+
+    .tlLegend{
+      display:flex; gap:8px; flex-wrap:wrap;
+      margin-top:10px;
+    }
+    .tlChip2{
+      display:inline-flex; align-items:center; gap:8px;
+      padding: 8px 10px;
+      border-radius: 14px;
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.10);
+      font-weight:950; font-size:12px;
+      color: rgba(255,255,255,.90);
+    }
+    .tlDot{width:10px;height:10px;border-radius:999px;}
+    .tlDot.work{ background: rgba(46, 204, 113, .95); }
+    .tlDot.pause{ background: rgba(241,196,15,.98); }
+    .tlDot.finish{ background: rgba(231,76,60,.95); }
+    .tlDot.extra{ background: rgba(155,89,182,.95); }
+    .tlTime{opacity:.85;}
+    .tlAct{opacity:.95;}
 
   </style>
 </head>
@@ -845,7 +865,18 @@
     return r.json();
   }
 
-  function adminEndpointBase(cfg){
+  
+  function _keyQS(){
+    try{
+      const cfg = window.CFG || {};
+      const k = (cfg && cfg.adminKey) ? String(cfg.adminKey) : '';
+      const ls = (localStorage.getItem('ADMIN_KEY') || localStorage.getItem('pontaj_adminKey') || '');
+      const key = (k || ls || '').trim();
+      return key ? ('&key=' + encodeURIComponent(key)) : '';
+    }catch(_){ return ''; }
+  }
+
+function adminEndpointBase(cfg){
     const raw = cfg.adminEventsEndpoint || cfg.webappUrl || cfg.scriptUrl || '';
     return String(raw || '').replace(/\?.*$/, '').trim();
   }
@@ -1192,7 +1223,11 @@
               <div class="emp-name">${escapeHtml(r.name)}</div>
               <div class="emp-dept">${escapeHtml(r.dept || '—')}</div>
             </div>
-          <button class="empBtn" type="button" data-open-userpanel="1" data-emp="${escapeHtml(r.name)}" data-dept="${escapeHtml(r.dept || '')}" title="User panel / editare intervale">👤</button>
+          <button class="empBtn" type="button" data-open-userpanel="1" data-emp="${escapeHtml(r.name)}" data-dept="${escapeHtml(r.dept || '')}" title="User panel / editare intervale" aria-label="User panel">
+            <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+              <path fill="currentColor" d="M12 12c2.76 0 5-2.24 5-5S14.76 2 12 2 7 4.24 7 7s2.24 5 5 5Zm0 2c-3.33 0-10 1.67-10 5v3h20v-3c0-3.33-6.67-5-10-5Z"/>
+            </svg>
+          </button>
           </div>
         </td>
         <td class="muted">${escapeHtml(r.manager || '—')}</td>
@@ -1325,7 +1360,7 @@
       return {
         name: emp.name || emp.email,
         dept: emp.dept,
-        manager: emp.manager || '—',
+        manager: (emp.isAdmin ? 'Admin' : (emp.manager || emp.managerEmail || '—')),
         initials,
         workPct,
         workLabel: fmtTimeHHMM(c.workMin),
@@ -1359,6 +1394,8 @@
   // ======= Init =======
   async function init(){
     buildKpiGrid();
+    await _loadAdminAuth();
+    await _loadManagersMap();
 
     qs('#btnRefresh').addEventListener('click', () => { refresh(); });
 
@@ -1389,33 +1426,10 @@
 
 
     // ===== Mini User Panel PRO (mov) =====
-    
-    // ===== Mini User Panel DOM guard (prevents null errors) =====
-    const __UP_MODAL_HTML = "<div class=\"upOverlay\" id=\"upOverlay\" aria-hidden=\"true\">\n    <div class=\"upModal\" role=\"dialog\" aria-modal=\"true\" aria-label=\"User Panel\">\n      <div class=\"upTop\">\n        <div class=\"upAvatar\" id=\"upAvatar\">??</div>\n        <div class=\"upWho\">\n          <div class=\"upName\">\n            <span id=\"upEmpName\">\u2014</span>\n            <span class=\"upPill\" id=\"upEmpDept\">\u2014</span>\n          </div>\n          <div class=\"upMeta\">\n            <span class=\"m\"><span class=\"mi\">Email</span><span id=\"upEmpEmail\" class=\"mv\">\u2014</span></span>\n            <span class=\"m\"><span class=\"mi\">Telegram</span><span id=\"upEmpChat\" class=\"mv\">\u2014</span></span>\n            <span class=\"m\"><span class=\"mi\">Status</span><span id=\"upEmpStatus\" class=\"mv\">\u2014</span></span>\n          </div>\n        </div>\n        <div class=\"upActions\">\n          <button class=\"upIcon\" id=\"upBell\" title=\"Notific\u0103ri\">\ud83d\udd14</button>\n          <button class=\"upIcon\" id=\"upHelp\" title=\"Ajutor\">\u2754</button>\n          <button class=\"upIcon upClose\" id=\"upClose\" title=\"\u00cenchide\">\u00d7</button>\n        </div>\n      </div>\n\n      <div class=\"upBody\">\n        <!-- LEFT -->\n        <div class=\"upCard\">\n          <h3>Zi selectat\u0103 <span class=\"hint\" id=\"upHeaderSummary\">\u2014</span></h3>\n          <div class=\"upRow2\">\n            <div class=\"upField\">\n              <label>Data</label>\n              <input type=\"date\" id=\"upDate\">\n            </div>\n            <div class=\"upField\">\n              <label>Navigare</label>\n              <div class=\"upNav\">\n                  <button class=\"btn\" id=\"upPrevDay\" type=\"button\">\u2039</button>\n                  <button class=\"btn\" id=\"upNextDay\" type=\"button\">\u203a</button>\n                </div>\n            </div>\n          </div>\n\n          <div style=\"height:12px\"></div>\n\n          <h3>Evenimente <span class=\"hint\"><span id=\"upEvCount\">0</span> evenimente</span></h3>\n          <div class=\"evList\" id=\"upEvents\"></div>\n          <button class=\"upAdd\" id=\"upAddEv\" type=\"button\">+ Adaug\u0103 eveniment</button>\n\n          <div style=\"height:12px\"></div>\n\n          <h3>Comentarii</h3>\n          <div class=\"upField\">\n            <textarea id=\"upNote\" placeholder=\"Adaug\u0103 o not\u0103...\"></textarea>\n          </div>\n\n          <div style=\"height:10px\"></div>\n\n          <div class=\"upTabs\">\n            <div class=\"upChip concediu\" data-tag=\"CONCEDIU\">\ud83c\udf34 Concediu</div>\n            <div class=\"upChip delegatie\" data-tag=\"DELEGATIE\">\u2708\ufe0f Delegatie</div>\n            <div class=\"upChip telepasirea\" data-tag=\"TELEPASIRE\">\u26a1 Telep\u0103\u0219irea</div>\n            <div class=\"upChip invoire\" data-tag=\"INVOIRE\">\ud83d\udd14 Invoire</div>\n          </div>\n\n          <div class=\"barWrap\">\n            <div class=\"timeline\" id=\"upTimeline\">\n              <div class=\"tlLane main\" id=\"tlMain\"></div>\n              <div class=\"tlLane extra\" id=\"tlExtra\"></div>\n              <div class=\"tlMarks\" id=\"tlMarks\"></div>\n            </div>\n            <div class=\"barMeta\">\n              <span id=\"upBarLeft\">\u2014</span>\n              <span id=\"upBarMid\">12:00</span>\n              <span id=\"upBarRight\">\u2014</span>\n            </div>\n          </div>\n\n          <div class=\"ruler\">\n            <div class=\"rLine\"></div>\n            <div class=\"rMarks\" id=\"upMarks\"></div>\n          </div>\n          <div class=\"rList\" id=\"upActionList\"></div>\n\n          <div class=\"upErr\" id=\"upErr\"></div>\n        </div>\n\n        <!-- RIGHT -->\n        <div class=\"upCard\">\n          <h3>Activitate zilnic\u0103</h3>\n          <div class=\"statGrid\">\n            <div class=\"stat\"><div class=\"k\">Activ</div><div class=\"v\" id=\"stWork\">\u2014</div></div>\n            <div class=\"stat\"><div class=\"k\">Pauz\u0103</div><div class=\"v\" id=\"stPause\">\u2014</div></div>\n            <div class=\"stat\"><div class=\"k\">Suplimentar</div><div class=\"v\" id=\"stExtra\">\u2014</div></div>\n            <div class=\"stat\"><div class=\"k\">Balans zi</div><div class=\"v\" id=\"stBalance\">\u2014</div></div>\n          </div>\n\n          <div style=\"height:12px\"></div>\n\n          <h3>Set\u0103ri</h3>\n          <div class=\"upField\">\n            <label>Timezone</label>\n            <select id=\"upTz\">\n              <option value=\"Europe/Bucharest\">Bucure\u0219ti (RO)</option>\n              <option value=\"UTC\">UTC</option>\n            </select>\n          </div>\n\n          <div class=\"togRow\">\n            <div class=\"toggle\" id=\"tgTelegram\"><div class=\"switch\"><div class=\"knob\"></div></div> Notific\u0103ri Telegram</div>\n            <div class=\"toggle\" id=\"tgRemind\"><div class=\"switch\"><div class=\"knob\"></div></div> Remind\u0103ri</div>\n          </div>\n\n          <div style=\"height:10px\"></div>\n\n          <div class=\"upRow2\">\n            <div class=\"upField\">\n              <label>Afi\u0219eaz\u0103 dup\u0103</label>\n              <select id=\"upAfter\">\n                <option value=\"1\">1 min</option>\n                <option value=\"5\" selected>5 min</option>\n                <option value=\"10\">10 min</option>\n                <option value=\"15\">15 min</option>\n              </select>\n            </div>\n            <div class=\"upField\">\n              <label>Ac\u021biuni</label>\n              <div class=\"upRow2\" style=\"grid-template-columns:1fr 1fr; gap:8px\">\n                <button class=\"btn\" id=\"upOpenFixDay\" type=\"button\">FixDay</button>\n                <button class=\"btn\" id=\"upOpenFull\" type=\"button\">Panel complet</button>\n              </div>\n            </div>\n          </div>\n\n          <div style=\"height:12px\"></div>\n\n          <h3>Manager</h3>\n          <div class=\"upRow2\" style=\"grid-template-columns: 1fr auto; gap:10px\">\n            <div class=\"upField\" style=\"margin:0\">\n              <label>Manager (admin)</label>\n              <select id=\"upMgrSelect\"></select>\n            </div>\n            <div class=\"upField\" style=\"margin:0; display:flex; align-items:flex-end\">\n              <button class=\"btn\" id=\"upMgrSave\" type=\"button\">Atribuie</button>\n            </div>\n          </div>\n\n          <h3>Admin</h3>\n          <div class=\"upRow2\" style=\"grid-template-columns:1fr 1fr; gap:10px\">\n            <button class=\"btn danger\" id=\"upDeleteDay\" type=\"button\">\u0218terge zi</button>\n            <button class=\"btn\" id=\"upNotify\" type=\"button\">Notific\u0103 angajat</button>\n          </div>\n          <div style=\"height:10px\"></div>\n          <button class=\"btn\" id=\"upAudit\" type=\"button\">FixDay: Audit zi</button>\n        </div>\n      </div>\n\n      <div class=\"upFooter\">\n        <button class=\"btn\" id=\"upCancel\" type=\"button\">Anuleaz\u0103</button>\n        <button class=\"btn primary\" id=\"upApprove\" type=\"button\">\u2713 Salveaz\u0103 modific\u0103rile</button>\n      </div>\n    </div>\n  </div>";
-    const __UP_MINI_CSS = "/* ===== Mini User Panel PRO (mov) ===== */\n    .emp{display:flex; align-items:center; gap:10px;}\n    .empBtn{margin-left:auto; width:34px; height:34px; border-radius:12px; border:1px solid rgba(108,92,231,.22);\n      background: rgba(108,92,231,.10); color: var(--purple); cursor:pointer; display:grid; place-items:center;\n      font-size:16px; font-weight:900; box-shadow: var(--shadow2);}\n    .empBtn:hover{transform: translateY(-1px); background: rgba(108,92,231,.14);}\n    .empBtn:active{transform: translateY(0px);}\n\n    .upOverlay{position:fixed !important; inset:0; width:100vw; height:100vh; background: rgba(10, 8, 28, .55); display:none; align-items:center; justify-content:center; padding:18px; z-index: 2147483647; overflow:auto;}\n    .upOverlay.show{display:flex;}\n    .upModal{\n      width: 920px; max-width: 96vw;\n      background: radial-gradient(1200px 700px at 20% 0%, rgba(155,127,255,.22) 0%, rgba(155,127,255,0) 45%),\n                  radial-gradient(1000px 600px at 90% 10%, rgba(0,210,255,.10) 0%, rgba(0,210,255,0) 55%),\n                  linear-gradient(180deg, #2b2357 0%, #231a49 100%);\n      color: rgba(255,255,255,.92);\n      border-radius: 26px;\n      box-shadow: 0 22px 60px rgba(0,0,0,.35);\n      border: 1px solid rgba(255,255,255,.08);\n      overflow:hidden;\n      position:relative;\n    }\n    .upTop{\n      display:flex; gap:16px; align-items:center;\n      padding: 18px 18px 14px;\n      border-bottom: 1px solid rgba(255,255,255,.08);\n    }\n    .upAvatar{\n      width:54px;height:54px;border-radius:50%;\n      background: rgba(255,255,255,.12);\n      border: 1px solid rgba(255,255,255,.10);\n      display:grid;place-items:center;font-weight:900;\n      overflow:hidden;\n    }\n    .upAvatar img{width:100%;height:100%;object-fit:cover;display:block;}\n    .upWho{flex:1; min-width: 0;}\n    .upName{display:flex; align-items:center; gap:10px; font-weight:950; font-size:22px; letter-spacing:.2px;}\n    .upPill{padding:6px 10px; border-radius: 999px; background: rgba(255,255,255,.10); border: 1px solid rgba(255,255,255,.10);\n      font-size:12px; font-weight:900; color: rgba(255,255,255,.85);}\n    .upMeta{display:flex; gap:10px; flex-wrap:wrap; margin-top: 6px; font-size:12px; color: rgba(255,255,255,.65); font-weight:800;}\n    .upMeta .m{display:flex; align-items:center; gap:6px;}\n    .upActions{display:flex; gap:10px; align-items:center;}\n    .upIcon{\n      width:42px;height:42px;border-radius:14px;\n      background: rgba(255,255,255,.06);\n      border: 1px solid rgba(255,255,255,.10);\n      color: rgba(255,255,255,.92);\n      display:grid;place-items:center;\n      cursor:pointer;\n    }\n    .upIcon:hover{background: rgba(255,255,255,.10);}\n    .upClose{font-size:22px; line-height:0; font-weight:900;}\n\n    .upBody{display:grid; grid-template-columns: 1.1fr .9fr; gap:16px; padding: 16px 18px 18px;}\n    @media (max-width: 900px){\n      .upBody{grid-template-columns: 1fr;}\n    }\n    .upCard{\n      background: rgba(255,255,255,.06);\n      border: 1px solid rgba(255,255,255,.08);\n      border-radius: 18px;\n      padding: 14px;\n    }\n    .upCard h3{\n      margin:0 0 10px 0;\n      font-size:14px;\n      font-weight:950;\n      color: rgba(255,255,255,.90);\n      display:flex; align-items:center; justify-content:space-between;\n    }\n    .upCard h3 .hint{font-size:12px; font-weight:900; color: rgba(255,255,255,.55);}\n    .upRow2{display:grid; grid-template-columns: 1fr 1fr; gap:10px;}\n    .upField label{display:block; font-size:12px; font-weight:900; color: rgba(255,255,255,.55); margin-bottom:6px;}\n    .upField input, .upField select, .upField textarea{\n      width:100%;\n      border: 1px solid rgba(255,255,255,.12);\n      background: rgba(0,0,0,.10);\n      color: rgba(255,255,255,.92);\n      border-radius: 14px;\n      padding: 10px 12px;\n      font: inherit;\n      outline: none;\n    }\n    .upField textarea{min-height: 44px; resize: vertical;}\n    .upTabs{display:flex; gap:8px; align-items:center; flex-wrap:wrap;}\n    .upChip{\n      display:inline-flex; align-items:center; gap:8px;\n      padding: 8px 12px;\n      border-radius: 14px;\n      border: 1px solid rgba(255,255,255,.10);\n      background: rgba(255,255,255,.06);\n      color: rgba(255,255,255,.88);\n      font-weight:950;\n      cursor:pointer;\n      user-select:none;\n      white-space:nowrap;\n    }\n    .upChip.on{background: rgba(46, 204, 113, .18); border-color: rgba(46,204,113,.22);}\n    .upChip.concediu.on{background: rgba(46, 204, 113, .18); border-color: rgba(46,204,113,.22);}\n    .upChip.delegatie.on{background: rgba(241, 196, 15, .18); border-color: rgba(241,196,15,.22);}\n    .upChip.telepasirea.on{background: rgba(52, 152, 219, .18); border-color: rgba(52,152,219,.22);}\n    .upChip.invoire.on{background: rgba(155, 89, 182, .20); border-color: rgba(155,89,182,.25);}\n\n    .evList{display:flex; flex-direction:column; gap:10px;}\n    .evItem{\n      display:grid;\n      grid-template-columns: 26px 180px 1fr 44px;\n      gap:10px;\n      align-items:center;\n      padding: 10px;\n      border-radius: 16px;\n      background: rgba(255,255,255,.05);\n      border: 1px solid rgba(255,255,255,.08);\n    }\n    @media (max-width: 900px){\n      .evItem{grid-template-columns: 26px 1fr 1fr 44px;}\n    }\n    .dot{width:12px;height:12px;border-radius:999px;}\n    .dot.START{background:#48c9b0}\n    .dot.PAUSE{background:#f1c40f}\n    .dot.UNPAUSE{background:#f39c12}\n    .dot.FINISH{background:#e74c3c}\n    .dot.EXTRA_START{background:#a569bd}\n    .dot.EXTRA_FINISH{background:#8e44ad}\n\n    .evItem select, .evItem input{\n      width:100%;\n      border: 1px solid rgba(255,255,255,.12);\n      background: rgba(0,0,0,.10);\n      color: rgba(255,255,255,.92);\n      border-radius: 14px;\n      padding: 10px 12px;\n      font: inherit;\n      outline:none;\n    }\n    .evDel{\n      width:44px;height:44px;border-radius: 16px;\n      border: 1px solid rgba(255,255,255,.12);\n      background: rgba(255,255,255,.06);\n      color: rgba(255,255,255,.9);\n      display:grid;place-items:center;\n      cursor:pointer;\n      font-weight:950;\n    }\n    .evDel:hover{background: rgba(255,255,255,.10);}\n    .upAdd{\n      width:100%;\n      border:1px dashed rgba(255,255,255,.18);\n      background: transparent;\n      color: rgba(255,255,255,.88);\n      border-radius: 16px;\n      padding: 12px 14px;\n      cursor:pointer;\n      font-weight:950;\n    }\n    .upAdd:hover{background: rgba(255,255,255,.06);}\n\n    .barWrap{margin-top:12px;}\n    .bar{\n      height: 12px;\n      border-radius: 999px;\n      overflow:hidden;\n      background: rgba(255,255,255,.08);\n      border: 1px solid rgba(255,255,255,.10);\n      display:flex;\n    }\n    .seg{height:100%;}\n    .seg.work{background: rgba(46, 204, 113, .65);}\n    .seg.pause{background: rgba(241, 196, 15, .70);}\n    .seg.extra{background: rgba(155, 89, 182, .65);}\n    .barMeta{display:flex; justify-content:space-between; margin-top:8px; font-size:12px; font-weight:900; color: rgba(255,255,255,.70);}\n    .statGrid{display:grid; grid-template-columns: 1fr 1fr; gap:10px;}\n    .stat{\n      background: rgba(255,255,255,.05);\n      border: 1px solid rgba(255,255,255,.08);\n      border-radius: 16px;\n      padding: 10px 12px;\n    }\n    .stat .k{font-size:12px; font-weight:900; color: rgba(255,255,255,.55);}\n    .stat .v{margin-top:6px; font-size:16px; font-weight:950;}\n    .togRow{display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-top:10px;}\n    .toggle{\n      display:flex; align-items:center; gap:10px;\n      padding: 10px 12px;\n      border-radius: 16px;\n      background: rgba(255,255,255,.05);\n      border: 1px solid rgba(255,255,255,.08);\n      font-weight:950;\n      cursor:pointer;\n      user-select:none;\n    }\n    .switch{\n      width:40px;height:22px;border-radius: 999px;\n      background: rgba(255,255,255,.16);\n      border: 1px solid rgba(255,255,255,.12);\n      position:relative;\n    }\n    .knob{\n      width:18px;height:18px;border-radius: 999px;\n      background: rgba(255,255,255,.92);\n      position:absolute; top:1px; left:1px;\n      transition: all .18s ease;\n    }\n    .toggle.on .switch{background: rgba(46, 204, 113, .55); border-color: rgba(46,204,113,.2);}\n    .toggle.on .knob{left:21px;}\n\n    .upFooter{\n      display:flex; gap:12px; align-items:center; justify-content:flex-end;\n      padding: 14px 18px 18px;\n      border-top: 1px solid rgba(255,255,255,.08);\n      background: rgba(0,0,0,.06);\n    }\n    .btn{\n      height: 46px;\n      border-radius: 16px;\n      border: 1px solid rgba(255,255,255,.12);\n      background: rgba(255,255,255,.06);\n      color: rgba(255,255,255,.92);\n      padding: 0 16px;\n      display:inline-flex; align-items:center; gap:10px;\n      cursor:pointer;\n      font-weight:950;\n    }\n    .btn:hover{background: rgba(255,255,255,.10);}\n    .btn.primary{background: rgba(46, 204, 113, .85); border-color: rgba(46,204,113,.1); color:#0d2a1a;}\n    .btn.primary:hover{filter:brightness(1.03);}\n    .btn.danger{background: rgba(231, 76, 60, .18); border-color: rgba(231,76,60,.20);}\n    .btn:disabled{opacity:.55; cursor:not-allowed;}\n\n    .upErr{margin-top:10px; font-weight:900; color:#ffd1d1; display:none;}\n\n    /* ===== Timeline (state segments) ===== */\n    .timeline{\n      position:relative;\n      height:72px;\n      border-radius: 18px;\n      background: rgba(255,255,255,.06);\n      border: 1px solid rgba(255,255,255,.10);\n      overflow:hidden;\n      padding: 10px 12px;\n    }\n    .tlLane{\n      position:relative;\n      width:100%;\n      border-radius: 999px;\n      background: rgba(255,255,255,.08);\n      border: 1px solid rgba(255,255,255,.10);\n      overflow:hidden;\n    }\n    .tlLane.main{height:14px; margin-top:8px;}\n    .tlLane.extra{height:10px; margin-top:14px;}\n    .tlSeg{position:absolute; top:0; height:100%; border-radius:999px;}\n    .tlSeg.work{background: rgba(46, 204, 113, .78);}\n    .tlSeg.pause{background: rgba(241, 196, 15, .82);}\n    .tlSeg.idle{background: rgba(255,255,255,.10);}\n    .tlSeg.extra{background: rgba(52, 152, 219, .75);}\n    .tlMarks{position:absolute; inset:0; pointer-events:none;}\n    .tlMark{position:absolute; top:0; bottom:0; width:1px; background: rgba(255,255,255,.18);}\n    .tlDot{\n      position:absolute;\n      width:10px; height:10px;\n      border-radius: 999px;\n      top: 18px; /* aligns with main lane */\n      transform: translateX(-50%);\n      border:1px solid rgba(255,255,255,.35);\n      box-shadow: 0 6px 14px rgba(0,0,0,.25);\n      pointer-events:none;\n    }\n    .tlDot.START{background: rgba(46,204,113,.95);}\n    .tlDot.PAUSE{background: rgba(241,196,15,.95);}\n    .tlDot.UNPAUSE{background: rgba(243,156,18,.95);}\n    .tlDot.FINISH{background: rgba(231,76,60,.95);}\n    .tlDot.EXTRA_START{background: rgba(155,89,182,.95);}\n    .tlDot.EXTRA_FINISH{background: rgba(142,68,173,.95);}\n    .tlChips{display:flex; gap:8px; flex-wrap:wrap; margin-top:10px;}\n    .tlChip{\n      display:inline-flex; gap:8px; align-items:center;\n      padding: 8px 10px;\n      border-radius: 14px;\n      background: rgba(255,255,255,.06);\n      border: 1px solid rgba(255,255,255,.10);\n      color: rgba(255,255,255,.90);\n      font-weight: 950;\n      font-size: 12px;\n      white-space:nowrap;\n    }\n    .tlChip .mini{opacity:.75; font-weight:900;}\n    .tlChip.START{border-color: rgba(46,204,113,.25);}\n    .tlChip.PAUSE{border-color: rgba(241,196,15,.25);}\n    .tlChip.UNPAUSE{border-color: rgba(243,156,18,.25);}\n    .tlChip.FINISH{border-color: rgba(231,76,60,.25);}\n    .tlChip.EXTRA_START,.tlChip.EXTRA_FINISH{border-color: rgba(155,89,182,.25);}\n    \n\n  \n    /* ===== Mini User Panel PRO fixes ===== */\n\n    /* Ensure dashboard global .btn can't break modal buttons */\n    .upModal .btn{\n      position: relative;\n      display:inline-flex;\n      align-items:center;\n      justify-content:center;\n      height: 46px;\n      border-radius: 16px;\n      border: 1px solid rgba(255,255,255,.12);\n      background: rgba(255,255,255,.06);\n      color: rgba(255,255,255,.92);\n      padding: 0 16px;\n      gap:10px;\n      cursor:pointer;\n      font-weight:950;\n      user-select:none;\n      white-space:nowrap;\n      min-width: 0;\n    }\n    .upModal .btn:hover{background: rgba(255,255,255,.10);}\n    .upModal .btn.primary{background: rgba(46, 204, 113, .85); border-color: rgba(46,204,113,.1); color:#0d2a1a;}\n    .upModal .btn.primary:hover{filter:brightness(1.03);}\n    .upModal .btn.danger{background: rgba(231, 76, 60, .18); border-color: rgba(231,76,60,.20);}\n    .upModal .btn:disabled{opacity:.55; cursor:not-allowed;}\n\n    .upOverlay{ position: fixed !important; inset: 0 !important; width: 100vw !important; height: 100vh !important; z-index: 2147483647 !important; }\n    .upOverlay.show{ display:flex !important; }\n    .upModal, .upModal *, .upModal *::before, .upModal *::after{ box-sizing: border-box; }\n    .upWho{min-width:0;}\n    .upMeta{gap:10px; flex-wrap:wrap; align-items:center;}\n    .upMeta .m{display:flex; gap:8px; align-items:center; padding:6px 10px; border-radius:999px;\n      background: rgba(255,255,255,.07); border:1px solid rgba(255,255,255,.10);}\n    .upMeta .mi{font-size:11px; font-weight:950; color: rgba(255,255,255,.65);}\n    .upMeta .mv{font-size:11px; font-weight:950; color: rgba(255,255,255,.92); max-width: 260px; overflow:hidden; text-overflow: ellipsis; white-space:nowrap;}\n    .upActions{flex-shrink:0;}\n\n    .upNav{display:flex; gap:8px;}\n    .upNav .btn{flex:1; justify-content:center;}\n\n    .evItem{grid-template-columns: 18px minmax(140px, 1fr) 150px 44px;}\n    .evItem select, .evItem input{min-width:0;}\n    .evDel{flex-shrink:0;}\n\n    /* Ruler + markers under timeline */\n    .ruler{ position: relative; height: 64px; margin-top: 12px; border-radius: 16px;\n      background: rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.06); overflow:hidden; }\n    .rLine{ position:absolute; left:14px; right:14px; top: 22px; height:2px; border-radius:999px; background: rgba(255,255,255,.10); }\n    .rMarks{ position:absolute; inset: 0; }\n    .mark{ position:absolute; top: 8px; transform: translateX(-50%); width: 92px; text-align:center; pointer-events:none; }\n    .mark .tick{ width:2px; height: 22px; margin: 0 auto; border-radius:999px; background: rgba(255,255,255,.70); }\n    .mark .t{ margin-top: 6px; font-size: 11px; font-weight: 950; color: rgba(255,255,255,.92); }\n    .mark .a{ margin-top: 3px; font-size: 10px; font-weight: 900; color: rgba(255,255,255,.72); }\n    .mark .tag{ display:inline-flex; align-items:center; gap:6px; padding: 5px 8px; border-radius: 999px;\n      background: rgba(0,0,0,.14); border: 1px solid rgba(255,255,255,.10); }\n    .mark .dot2{ width:8px; height:8px; border-radius:999px; }\n    .dot2.START{ background:#48c9b0; }\n    .dot2.PAUSE{ background:#f1c40f; }\n    .dot2.UNPAUSE{ background:#f39c12; }\n    .dot2.FINISH{ background:#e74c3c; }\n    .dot2.EXTRA_START{ background:#a569bd; }\n    .dot2.EXTRA_FINISH{ background:#8e44ad; }\n\n    .rList{ display:flex; gap:8px; flex-wrap:wrap; margin-top: 10px; }\n    .rChip{ display:inline-flex; align-items:center; gap:8px; padding: 8px 10px; border-radius: 14px;\n      background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.08); font-weight:950; }\n    .rChip .tt{ font-size: 11px; color: rgba(255,255,255,.90); }\n    .rChip .aa{ font-size: 11px; color: rgba(255,255,255,.70); }";
+    const ADMINS = { list: [], byEmail: new Map(), byName: new Map() };
+    const MANAGERS = { map: new Map() }; // empNameLower -> {email,name}
 
-    function __ensureUserPanelDom(){
-      // Inject style if missing (in case this dashboard is loaded as partial HTML)
-      if (!document.getElementById('upMiniStyle')) {
-        const st = document.createElement('style');
-        st.id = 'upMiniStyle';
-        st.textContent = __UP_MINI_CSS;
-        document.head.appendChild(st);
-      }
-      // Inject modal if missing
-      if (!document.getElementById('upOverlay')) {
-        // ensure body exists
-        (document.body || document.documentElement).insertAdjacentHTML('beforeend', __UP_MODAL_HTML);
-      }
-      // Ensure overlay is attached to body (avoid being clipped by containers)
-      const ov = document.getElementById('upOverlay');
-      if (ov && ov.parentElement !== document.body) {
-        document.body.appendChild(ov);
-      }
-      return ov;
-    }
-
-const UP = {
+    const UP = {
       name:'', dept:'', email:'', chat:'', date:'', note:'',
       tags:new Set(),
       tz:'Europe/Bucharest',
@@ -1423,7 +1437,6 @@ const UP = {
       remindOn:true,
       afterMin:5,
       events:[],
-      manager:'',
       busy:false
     };
 
@@ -1481,39 +1494,107 @@ const UP = {
 
     function _webappBase(){
       const cfg = window.CFG || CFG || {};
-
-    // Load admin list from admin-auth.json (GitHub Pages)
-    let __ADMIN_AUTH_CACHE = null;
-    async function _loadAdminAuth(){
-      if (__ADMIN_AUTH_CACHE) return __ADMIN_AUTH_CACHE;
-      const candidates = ['admin-auth.json','./admin-auth.json','../admin-auth.json','./data/admin-auth.json','./assets/admin-auth.json'];
-      for (const p of candidates){
-        try{
-          const res = await fetch(p, {cache:'no-store'});
-          if (!res.ok) continue;
-          const j = await res.json();
-          // supports {admins:[...]} or [...]
-          const arr = Array.isArray(j) ? j : (Array.isArray(j.admins)? j.admins : (Array.isArray(j.users)? j.users : []));
-          if (arr && arr.length){
-            __ADMIN_AUTH_CACHE = arr;
-            return arr;
-          }
-        }catch(_){}
-      }
-      __ADMIN_AUTH_CACHE = [];
-      return [];
-    }
-
-    function _adminLabel(a){
-      if (!a) return '';
-      return a.name || a.email || a.user || a.username || String(a);
-    }
-    function _adminEmail(a){
-      return (a && (a.email || a.user || a.username)) ? String(a.email || a.user || a.username) : '';
-    }
       const raw = cfg.adminEventsEndpoint || cfg.webappUrl || cfg.scriptUrl || '';
       return String(raw || '').replace(/\?.*$/, '').trim();
     }
+
+    async function _loadAdminAuth(){
+      try{
+        const cfg = window.CFG || CFG || {};
+        const url = String(cfg.adminAuthUrl || '').trim();
+        if (!url) return;
+        const r = await fetch(url + (url.includes('?')?'&':'?') + 'v=' + Date.now(), {cache:'no-store'});
+        if (!r.ok) throw new Error('admin-auth.json HTTP ' + r.status);
+        const data = await r.json();
+
+        // Accept multiple shapes: array or {admins:[...]} or {list:[...]}
+        const arr = Array.isArray(data) ? data : (data.admins || data.list || data.users || []);
+        ADMINS.list = arr
+          .map(a => ({
+            name: String(a.name || a.n || a.user || a.username || '').trim(),
+            email: String(a.email || a.e || a.mail || '').trim()
+          }))
+          .filter(a => a.name || a.email);
+
+        ADMINS.byEmail = new Map(ADMINS.list.filter(a=>a.email).map(a=>[a.email.toLowerCase(), a]));
+        ADMINS.byName = new Map(ADMINS.list.filter(a=>a.name).map(a=>[a.name.toLowerCase(), a]));
+      }catch(err){
+        console.warn('Nu pot încărca admin-auth.json:', err);
+      }
+    }
+
+    async function _loadManagersMap(){
+      // optional server-side map via JSONP
+      try{
+        const base = _webappBase();
+        if (!base) return;
+        const url = base + '?fn=adminManagersMap' + _keyQS();
+        const data = await _jsonp(url);
+        if (!data || !data.ok || !data.map) return;
+        const mp = data.map || {};
+        MANAGERS.map = new Map(Object.keys(mp).map(k => [String(k).toLowerCase(), mp[k]]));
+      }catch(err){
+        // fallback local storage
+        try{
+          const s = localStorage.getItem('pontaj/managers/v1');
+          if (s){
+            const o = JSON.parse(s);
+            MANAGERS.map = new Map(Object.keys(o).map(k => [k.toLowerCase(), o[k]]));
+          }
+        }catch(_){}
+      }
+    }
+
+    function _isAdminName(name){
+      const n = String(name||'').trim().toLowerCase();
+      if (!n) return false;
+      return ADMINS.byName.has(n);
+    }
+
+    function _getManagerFor(name){
+      const k = String(name||'').trim().toLowerCase();
+      return MANAGERS.map.get(k) || null;
+    }
+
+    async function _setManagerFor(empName, managerEmail){
+      const empKey = String(empName||'').trim().toLowerCase();
+      if (!empKey) return {ok:false, error:'Nume invalid'};
+      const mgr = managerEmail ? String(managerEmail).trim() : '';
+      // server-side if available
+      try{
+        const base = _webappBase();
+        if (base){
+          const url = base + '?fn=adminSetManager&name=' + encodeURIComponent(empName) + '&managerEmail=' + encodeURIComponent(mgr) + _keyQS();
+          const data = await _jsonp(url);
+          if (data && data.ok){
+            // refresh map from response if provided
+            if (data.map){
+              const mp = data.map;
+              MANAGERS.map = new Map(Object.keys(mp).map(k => [String(k).toLowerCase(), mp[k]]));
+            }else{
+              if (mgr) MANAGERS.map.set(empKey, {email:mgr});
+              else MANAGERS.map.delete(empKey);
+            }
+            // local cache
+            const o = {};
+            for (const [k,v] of MANAGERS.map.entries()) o[k]=v;
+            localStorage.setItem('pontaj/managers/v1', JSON.stringify(o));
+            return {ok:true};
+          }
+        }
+      }catch(err){
+        console.warn('adminSetManager fallback:', err);
+      }
+
+      // local fallback
+      if (mgr) MANAGERS.map.set(empKey, {email:mgr});
+      else MANAGERS.map.delete(empKey);
+      const o = {};
+      for (const [k,v] of MANAGERS.map.entries()) o[k]=v;
+      localStorage.setItem('pontaj/managers/v1', JSON.stringify(o));
+      return {ok:true, local:true};
+    }
+
 
     function _upShowErr(msg){
       const el = qs('#upErr');
@@ -1547,161 +1628,48 @@ const UP = {
       return allowed.includes(a) ? a : 'START';
     }
 
-    function _buildModel(){
-      // returns {min,max,range, segMain, segExtra, markers, totals:{workMin,pauseMin,extraMin}}
-      const evs = UP.events
-        .map(ev => ({action:_allowedAction(ev.action), t:_toMin(ev.time), time:ev.time}))
-        .filter(ev => ev.t!=null)
-        .sort((a,b)=>a.t-b.t);
-
-      let min = Infinity, max = -Infinity;
-      for (const e of evs){ min = Math.min(min, e.t); max = Math.max(max, e.t); }
-      if (!isFinite(min) || !isFinite(max)){ min = 9*60; max = 17*60; }
-      // Ensure a usable window (>= 6h)
-      let range = max - min;
-      const MIN_RANGE = 6*60;
-      if (range < MIN_RANGE){
-        const mid = (min + max) / 2;
-        min = Math.max(0, Math.round(mid - MIN_RANGE/2));
-        max = Math.min(1440, min + MIN_RANGE);
-      }
-      // Clamp
-      min = Math.max(0, Math.min(1440, min));
-      max = Math.max(0, Math.min(1440, max));
-      range = Math.max(1, max-min);
-
-      const segMain = [];
-      const segExtra = [];
-      const markers = [];
-
-      let state = 'idle'; // idle | work | pause
-      let extraOn = false;
-
-      let t0 = min;
-      for (const e of evs){
-        const t = Math.max(min, Math.min(max, e.t));
-        if (t > t0){
-          segMain.push({from:t0, to:t, kind: state});
-          segExtra.push({from:t0, to:t, kind: extraOn ? 'extra' : 'idle'});
-          t0 = t;
-        }
-        markers.push({t, action:e.action, time:e.time});
-
-        switch(e.action){
-          case 'START': state='work'; break;
-          case 'PAUSE': state='pause'; break;
-          case 'UNPAUSE': state='work'; break;
-          case 'FINISH': state='idle'; break;
-          case 'EXTRA_START': extraOn=true; break;
-          case 'EXTRA_FINISH': extraOn=false; break;
-        }
-      }
-      if (max > t0){
-        segMain.push({from:t0, to:max, kind: state});
-        segExtra.push({from:t0, to:max, kind: extraOn ? 'extra' : 'idle'});
-      }
-
-      // Totals (full day)
-      const totals = (()=>{
-        const startDay = 0, endDay = 1440;
-        let stateD = 'idle';
-        let extraOnD = false;
-        let tD = startDay;
-        let work=0, pause=0, extra=0;
-
-        for (const e of evs){
-          const t = Math.max(startDay, Math.min(endDay, e.t));
-          if (t > tD){
-            const d = t - tD;
-            if (stateD==='work') work += d;
-            if (stateD==='pause') pause += d;
-            if (extraOnD) extra += d;
-            tD = t;
-          }
-          switch(e.action){
-            case 'START': stateD='work'; break;
-            case 'PAUSE': stateD='pause'; break;
-            case 'UNPAUSE': stateD='work'; break;
-            case 'FINISH': stateD='idle'; break;
-            case 'EXTRA_START': extraOnD=true; break;
-            case 'EXTRA_FINISH': extraOnD=false; break;
-          }
-        }
-        if (endDay > tD){
-          const d = endDay - tD;
-          if (stateD==='work') work += d;
-          if (stateD==='pause') pause += d;
-          if (extraOnD) extra += d;
-        }
-        return {workMin:work, pauseMin:pause, extraMin:extra};
-      })();
-
-      return {min,max,range, segMain, segExtra, markers, totals};
-    }
-
-    function _renderTimeline(model){
-      const main = qs('#tlMain');
-      const extra = qs('#tlExtra');
-      const marks = qs('#tlMarks');
-      const chips = qs('#tlChips');
-
-      if (!main || !extra || !marks || !chips) return;
-
-      const min = model.min, max = model.max, range = model.range;
-      const pct = (t)=> ((t-min)/range)*100;
-
-      main.innerHTML = '';
-      extra.innerHTML = '';
-      marks.innerHTML = '';
-      chips.innerHTML = '';
-
-      // segments main
-      for (const s of model.segMain){
-        const div = document.createElement('div');
-        div.className = 'tlSeg ' + (s.kind==='work'?'work':(s.kind==='pause'?'pause':'idle'));
-        div.style.left = pct(s.from).toFixed(3)+'%';
-        div.style.width = Math.max(0, pct(s.to)-pct(s.from)).toFixed(3)+'%';
-        main.appendChild(div);
-      }
-      // segments extra
-      for (const s of model.segExtra){
-        if (s.kind!=='extra') continue;
-        const div = document.createElement('div');
-        div.className = 'tlSeg extra';
-        div.style.left = pct(s.from).toFixed(3)+'%';
-        div.style.width = Math.max(0, pct(s.to)-pct(s.from)).toFixed(3)+'%';
-        extra.appendChild(div);
-      }
-
-      // markers (thin lines + dots)
-      for (const m of model.markers){
-        const x = pct(m.t);
-        const line = document.createElement('div');
-        line.className = 'tlMark';
-        line.style.left = x.toFixed(3)+'%';
-        marks.appendChild(line);
-
-        const dot = document.createElement('div');
-        dot.className = 'tlDot ' + m.action;
-        dot.style.left = x.toFixed(3)+'%';
-        marks.appendChild(dot);
-
-        // chips below
-        const chip = document.createElement('div');
-        chip.className = 'tlChip ' + m.action;
-        chip.innerHTML = `<span>${escapeHtml(m.time||'')}</span><span class="mini">${escapeHtml(m.action.replace('_',' '))}</span>`;
-        chips.appendChild(chip);
-      }
-
-      // axis labels
-      qs('#upBarLeft').textContent = _fmt(min);
-      qs('#upBarMid').textContent = _fmt(Math.round((min+max)/2));
-      qs('#upBarRight').textContent = _fmt(max);
-    }
-
     function _calc(){
-      const model = _buildModel();
-      return { ...model.totals, model };
+      let start=null, finish=null;
+      let extraStart=null, extraFinish=null;
+      let openPause=null;
+      let pauseMin=0;
+
+      const evs = UP.events.slice().sort((A,B)=> (_toMin(A.time)||0)-(_toMin(B.time)||0));
+      for (const ev of evs){
+        const t = _toMin(ev.time);
+        if (t==null) continue;
+        if (ev.action==='START') start = (start==null? t : Math.min(start,t));
+        if (ev.action==='FINISH') finish = (finish==null? t : Math.max(finish,t));
+        if (ev.action==='EXTRA_START') extraStart = (extraStart==null? t : Math.min(extraStart,t));
+        if (ev.action==='EXTRA_FINISH') extraFinish = (extraFinish==null? t : Math.max(extraFinish,t));
+
+        if (ev.action==='PAUSE') openPause = t;
+        if (ev.action==='UNPAUSE' && openPause!=null){
+          if (t>openPause) pauseMin += (t-openPause);
+          openPause = null;
+        }
+      }
+
+      let span = (start!=null && finish!=null && finish>start) ? (finish-start) : 0;
+      // Fallback: if actions are mislabeled but we have times, infer a basic span from min..max
+      if (span===0){
+        const ts = evs.map(e=>_toMin(e.time)).filter(v=>v!=null);
+        if (ts.length>=2){
+          const mn = Math.min.apply(null, ts);
+          const mx = Math.max.apply(null, ts);
+          if (mx>mn){
+            start = (start==null)? mn : start;
+            finish = (finish==null)? mx : finish;
+            if (finish<=start){ start = mn; finish = mx; }
+            span = finish-start;
+          }
+        }
+      }
+      const workMin = Math.max(0, span - pauseMin);
+
+      const extraSpan = (extraStart!=null && extraFinish!=null && extraFinish>extraStart) ? (extraFinish-extraStart) : 0;
+
+      return {workMin, pauseMin, extraMin: extraSpan, start, finish, extraStart, extraFinish};
     }
 
     function _renderStats(){
@@ -1716,11 +1684,119 @@ const UP = {
 
       qs('#upHeaderSummary').textContent = `pauză ${_fmt(c.pauseMin)} • extra ${_fmt(c.extraMin)}`;
 
+      const total = Math.max(1, c.workMin + c.pauseMin + c.extraMin);
+      qs('#segWork').style.width = ((c.workMin/total)*100).toFixed(1)+'%';
+      qs('#segPause').style.width = ((c.pauseMin/total)*100).toFixed(1)+'%';
+      qs('#segExtra').style.width = ((c.extraMin/total)*100).toFixed(1)+'%';
       qs('#upEvCount').textContent = String(UP.events.length);
-
-      // timeline
-      _renderTimeline(c.model);
     }
+
+
+    function _eventColorClass(a){
+      a = _allowedAction(a);
+      if (a==='PAUSE') return 'pause';
+      if (a==='FINISH') return 'finish';
+      if (a==='EXTRA_START' || a==='EXTRA_FINISH') return 'extra';
+      return 'work';
+    }
+
+    function _renderTimeline(){
+      const track = qs('#upTimeline');
+      const legend = qs('#upTimelineLegend');
+      if (!track || !legend) return;
+
+      // clear previous (keep base line)
+      track.innerHTML = '<div class="tlBase"></div>';
+      legend.innerHTML = '';
+
+      const evs = UP.events
+        .map(ev => ({ action:_allowedAction(ev.action), time:String(ev.time||'').slice(0,5), m:_toMin(ev.time) }))
+        .filter(ev => ev.m!=null)
+        .sort((a,b)=> a.m-b.m);
+
+      if (!evs.length){
+        qs('#tlL').textContent = '—';
+        qs('#tlM').textContent = '—';
+        qs('#tlR').textContent = '—';
+        return;
+      }
+
+      // axis: min..max with padding, minimum span 120 min
+      let minM = evs[0].m;
+      let maxM = evs[evs.length-1].m;
+      let pad = 30;
+      minM = Math.max(0, minM - pad);
+      maxM = Math.min(1440, maxM + pad);
+      if (maxM - minM < 120){
+        const mid = (minM + maxM)/2;
+        minM = Math.max(0, Math.floor(mid - 60));
+        maxM = Math.min(1440, Math.ceil(mid + 60));
+      }
+      const span = Math.max(1, maxM - minM);
+
+      const leftLabel = _fmt(minM);
+      const rightLabel = _fmt(maxM);
+      const midLabel = _fmt(Math.round((minM+maxM)/2));
+      qs('#tlL').textContent = leftLabel;
+      qs('#tlM').textContent = midLabel;
+      qs('#tlR').textContent = rightLabel;
+
+      // build intervals (state machine)
+      const intervals = [];
+      let state = 'off'; // off/work/pause/extra
+      let prev = minM;
+
+      function pushInterval(a,b,s){
+        if (b<=a) return;
+        intervals.push({a,b,s});
+      }
+
+      function applyAction(a){
+        if (a==='START' || a==='UNPAUSE') state = 'work';
+        else if (a==='PAUSE') state = 'pause';
+        else if (a==='FINISH') state = 'off';
+        else if (a==='EXTRA_START') state = 'extra';
+        else if (a==='EXTRA_FINISH') state = 'work';
+      }
+
+      for (const ev of evs){
+        pushInterval(prev, ev.m, state);
+        applyAction(ev.action);
+        prev = ev.m;
+      }
+      pushInterval(prev, maxM, state);
+
+      // render segments (skip off)
+      for (const it of intervals){
+        if (it.s === 'off') continue;
+        const seg = document.createElement('div');
+        seg.className = 'tlSeg ' + (it.s==='work'?'work':it.s==='pause'?'pause':'extra');
+        const left = ((it.a - minM)/span)*100;
+        const width = ((it.b - it.a)/span)*100;
+        seg.style.left = `calc(${left}% + 10px)`;
+        seg.style.width = `calc(${width}% - 0px)`;
+        seg.style.right = 'auto';
+        track.appendChild(seg);
+      }
+
+      // render markers
+      for (const ev of evs){
+        const mk = document.createElement('div');
+        mk.className = 'tlMark ' + ev.action;
+        const left = ((ev.m - minM)/span)*100;
+        mk.style.left = `calc(${left}% + 10px)`;
+        mk.title = `${ev.time} • ${ev.action}`;
+        track.appendChild(mk);
+
+        const chip = document.createElement('div');
+        const cc = _eventColorClass(ev.action);
+        chip.className = 'tlChip2';
+        chip.innerHTML = `<span class="tlDot ${cc}"></span><span class="tlTime">${escapeHtml(ev.time)}</span><span class="tlAct">${escapeHtml(ev.action)}</span>`;
+        legend.appendChild(chip);
+      }
+    }
+
+
 
     function _renderEvents(){
       // sort events by time so they don't appear over each other / out of order
@@ -1751,6 +1827,7 @@ const UP = {
         row.querySelector('select').value = _allowedAction(ev.action);
       });
       _renderStats();
+      _renderTimeline();
     }
 
     function _toggleEl(el, on){ el.classList.toggle('on', !!on); }
@@ -1772,24 +1849,6 @@ const UP = {
         UP.chat = data.telegramChatId || prof.telegramChatId || UP.chat || '—';
         UP.dept = data.dept || prof.dept || UP.dept || '—';
 
-        // manager
-        UP.manager = data.manager || prof.manager || '';
-        const sel = qs('#upMgrSelect');
-        if (sel){ sel.value = UP.manager || ''; }
-
-        // disable manager assignment if employee is admin
-        try{
-          const admins = await _loadAdminAuth();
-          const isAdmin = admins.some(a => {
-            const em = (_adminEmail(a)||'').toLowerCase();
-            const nm = (_adminLabel(a)||'').toLowerCase();
-            return (UP.email && UP.email.toLowerCase()===em) || (UP.name && UP.name.toLowerCase()===nm);
-          });
-          if (sel){ sel.disabled = !!isAdmin; }
-          qs('#upMgrSave').disabled = !!isAdmin;
-        }catch(_){ }
-
-
         UP.note = String(data.note || prof.note || '');
         qs('#upNote').value = UP.note;
 
@@ -1803,9 +1862,9 @@ const UP = {
         qs('#upEmpEmail').textContent = UP.email || '—';
         qs('#upEmpChat').textContent = (UP.chat && String(UP.chat).trim()) ? String(UP.chat).trim() : '—';
         qs('#upEmpDept').textContent = UP.dept || '—';
-        const _mgrHdr = qs('#upEmpMgr'); if (_mgrHdr) _mgrHdr.textContent = UP.manager || '—';
 
         _renderEvents();
+        _renderTimeline();
       }catch(err){
         console.error(err);
         _upShowErr('Eroare: ' + (err && err.message ? err.message : err));
@@ -1859,7 +1918,6 @@ const UP = {
     }
 
     function _openPanel(name, dept){
-      __ensureUserPanelDom();
       UP.name = String(name||'').trim();
       UP.dept = String(dept||'').trim();
       UP.date = ymdLocal(new Date());
@@ -1871,10 +1929,8 @@ const UP = {
 
       qs('#upEmpName').textContent = UP.name || '—';
       qs('#upEmpDept').textContent = UP.dept || '—';
-        const _mgrHdr = qs('#upEmpMgr'); if (_mgrHdr) _mgrHdr.textContent = UP.manager || '—';
       qs('#upEmpEmail').textContent = '—';
       qs('#upEmpChat').textContent = '—';
-      const _mgrEl = qs('#upEmpMgr'); if (_mgrEl) _mgrEl.textContent = '—';
       qs('#upDate').value = UP.date;
       qs('#upNote').value = '';
 
@@ -1884,48 +1940,56 @@ const UP = {
       qs('#upTz').value = UP.tz || 'Europe/Bucharest';
 
       document.querySelectorAll('.upChip').forEach(c=> c.classList.remove('on'));
+      _fillManagerSelect();
 
-      // populate manager list
-      (async ()=>{
-        const sel = qs('#upMgrSelect');
-        if (!sel) return;
-        sel.innerHTML = '<option value="">— alege manager —</option>';
-        const admins = await _loadAdminAuth();
-        for (const a of admins){
-          const em = _adminEmail(a);
-          const label = _adminLabel(a);
-          if (!label) continue;
-          const opt = document.createElement('option');
-          opt.value = em || label;
-          opt.textContent = em ? (label + ' — ' + em) : label;
-          sel.appendChild(opt);
-        }
-      })();
-
+      document.documentElement.classList.add('up-lock');
       const ov = qs('#upOverlay');
-      // ensure overlay lives at document.body (fixed isn't broken by transformed containers)
-      if (ov && ov.parentElement !== document.body){
-        document.body.appendChild(ov);
-      }
-      document.documentElement.classList.add('upOpen');
-      document.body.style.overflow = 'hidden';
       ov.classList.add('show');
       ov.setAttribute('aria-hidden','false');
 
       _loadDay();
-}
+    }
 
     function _closePanel(){
       const ov = qs('#upOverlay');
       ov.classList.remove('show');
+      document.documentElement.classList.remove('up-lock');
       ov.setAttribute('aria-hidden','true');
-      document.documentElement.classList.remove('upOpen');
-      document.body.style.overflow = '';
       _upShowErr('');
     }
 
+
+    function _fillManagerSelect(){
+      const sel = qs('#upManagerSelect');
+      if (!sel) return;
+      sel.innerHTML = '';
+      // If employee is admin, hide manager controls
+      const isAdm = _isAdminName(UP.name);
+      qs('#mgrWrap').style.display = isAdm ? 'none' : '';
+      qs('#upAssignManager').style.display = isAdm ? 'none' : '';
+      qs('#upClearManager').style.display = isAdm ? 'none' : '';
+      if (isAdm) return;
+
+      const opt0 = document.createElement('option');
+      opt0.value = '';
+      opt0.textContent = '— Selectează manager —';
+      sel.appendChild(opt0);
+
+      for (const a of ADMINS.list){
+        const o = document.createElement('option');
+        o.value = a.email || a.name;
+        o.textContent = a.name ? (a.name + (a.email ? ' • ' + a.email : '')) : (a.email || 'admin');
+        sel.appendChild(o);
+      }
+
+      const cur = _getManagerFor(UP.name);
+      if (cur && cur.email) sel.value = cur.email;
+      else sel.value = '';
+    }
+
+
+
     function _wirePanel(){
-      __ensureUserPanelDom();
       document.addEventListener('click', (e)=>{
         const btn = e.target.closest('[data-open-userpanel="1"]');
         if (!btn) return;
@@ -1933,7 +1997,6 @@ const UP = {
         const name = btn.getAttribute('data-emp') || '';
         const dept = btn.getAttribute('data-dept') || '';
         if (!name) return;
-        __ensureUserPanelDom();
         _openPanel(name, dept);
       });
 
@@ -2009,27 +2072,6 @@ const UP = {
       qs('#upAfter').addEventListener('change', ()=>{ UP.afterMin = parseInt(qs('#upAfter').value,10) || 5; });
       qs('#upTz').addEventListener('change', ()=>{ UP.tz = String(qs('#upTz').value||'Europe/Bucharest'); });
 
-
-      qs('#upMgrSave').addEventListener('click', async ()=>{
-        const sel = qs('#upMgrSelect');
-        const val = sel ? String(sel.value||'').trim() : '';
-        if (!val){ alert('Alege un manager.'); return; }
-        try{
-          const base = _webappBase();
-          if (!base) throw new Error('Lipsește webappUrl/adminEventsEndpoint în config.json');
-          const url = base + '?fn=employeeManagerSet&name=' + encodeURIComponent(UP.name) + '&manager=' + encodeURIComponent(val);
-          const res = await _jsonp(url);
-          if (!res || !res.ok) throw new Error((res && res.error) ? res.error : 'Eșec atribuire');
-          UP.manager = val;
-        const _mgrHdr2 = qs('#upEmpMgr'); if (_mgrHdr2) _mgrHdr2.textContent = UP.manager || '—';
-          alert('Manager atribuit: ' + val);
-          if (typeof window.__adminDashboardRefresh === 'function'){ await window.__adminDashboardRefresh(); }
-        }catch(err){
-          console.error(err);
-          alert('Eroare: ' + (err && err.message ? err.message : err));
-        }
-      });
-
       qs('#upOpenFull').addEventListener('click', ()=>{
         const url = 'admin-user-panel.html?name=' + encodeURIComponent(UP.name) + '&date=' + encodeURIComponent(UP.date);
         window.open(url, '_blank');
@@ -2047,6 +2089,25 @@ const UP = {
 
       qs('#upNotify').addEventListener('click', ()=>{
         alert('Notifică angajat: implementez endpoint-ul dacă vrei (ex: fn=adminNotify). Acum e doar UI.');
+      });
+
+
+      qs('#upAssignManager').addEventListener('click', async ()=>{
+        const sel = qs('#upManagerSelect');
+        const v = sel ? String(sel.value||'').trim() : '';
+        if (!v){ alert('Alege un manager din listă.'); return; }
+        const res = await _setManagerFor(UP.name, v);
+        if (!res.ok){ alert('Eroare: ' + (res.error||'')); return; }
+        // refresh rows so manager appears in tabel
+        computeDashboard();
+        alert('Manager atribuit.');
+      });
+      qs('#upClearManager').addEventListener('click', async ()=>{
+        const res = await _setManagerFor(UP.name, '');
+        if (!res.ok){ alert('Eroare: ' + (res.error||'')); return; }
+        _fillManagerSelect();
+        computeDashboard();
+        alert('Manager șters.');
       });
 
       qs('#upAudit').addEventListener('click', ()=>{
@@ -2107,7 +2168,6 @@ const UP = {
             <span class="m"><span class="mi">Email</span><span id="upEmpEmail" class="mv">—</span></span>
             <span class="m"><span class="mi">Telegram</span><span id="upEmpChat" class="mv">—</span></span>
             <span class="m"><span class="mi">Status</span><span id="upEmpStatus" class="mv">—</span></span>
-            <span class="m">👤 <span id="upEmpMgr">—</span></span>
           </div>
         </div>
         <div class="upActions">
@@ -2157,18 +2217,19 @@ const UP = {
             <div class="upChip invoire" data-tag="INVOIRE">🔔 Invoire</div>
           </div>
 
-          <div class="barWrap">
-            <div class="timeline" id="upTimeline">
-              <div class="tlLane main" id="tlMain"></div>
-              <div class="tlLane extra" id="tlExtra"></div>
-              <div class="tlMarks" id="tlMarks"></div>
+          
+          <div class="tlWrap">
+            <div class="tlTicks">
+              <span id="tlL">—</span>
+              <span id="tlM">—</span>
+              <span id="tlR">—</span>
             </div>
-            <div class="barMeta">
-              <span id="upBarLeft">—</span>
-              <span id="upBarMid">12:00</span>
-              <span id="upBarRight">—</span>
+            <div class="tlTrack" id="upTimeline" aria-label="Timeline activitate">
+              <div class="tlBase"></div>
             </div>
+            <div class="tlLegend" id="upTimelineLegend" aria-label="Legenda evenimente"></div>
           </div>
+
 
           <div class="ruler">
             <div class="rLine"></div>
@@ -2228,18 +2289,18 @@ const UP = {
 
           <div style="height:12px"></div>
 
-          <h3>Manager</h3>
-          <div class="upRow2" style="grid-template-columns: 1fr auto; gap:10px">
-            <div class="upField" style="margin:0">
-              <label>Manager (admin)</label>
-              <select id="upMgrSelect"></select>
-            </div>
-            <div class="upField" style="margin:0; display:flex; align-items:flex-end">
-              <button class="btn" id="upMgrSave" type="button">Atribuie</button>
-            </div>
-          </div>
-
           <h3>Admin</h3>
+          <div class="upField" id="mgrWrap" style="margin-top:10px;">
+            <label>Manager alocat</label>
+            <select id="upManagerSelect"></select>
+          </div>
+          <div style="height:10px"></div>
+          <div class="upRow2" style="grid-template-columns:1fr 1fr; gap:10px">
+            <button class="btn" id="upAssignManager" type="button">Atribuie</button>
+            <button class="btn" id="upClearManager" type="button">Șterge manager</button>
+          </div>
+          <div style="height:12px"></div>
+
           <div class="upRow2" style="grid-template-columns:1fr 1fr; gap:10px">
             <button class="btn danger" id="upDeleteDay" type="button">Șterge zi</button>
             <button class="btn" id="upNotify" type="button">Notifică angajat</button>
