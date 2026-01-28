@@ -407,6 +407,25 @@
     .upClose{font-size:22px; line-height:0; font-weight:900;}
 
     .upBody{display:grid; grid-template-columns: 1.1fr .9fr; gap:16px; padding: 16px 18px 18px; flex:1 1 auto; min-height:0; overflow:auto; overscroll-behavior:contain;}
+
+    /* custom scrollbar (match mini panel design) */
+    .upBody{
+      scrollbar-width: thin;
+      scrollbar-color: rgba(255,255,255,.22) rgba(255,255,255,.06);
+    }
+    .upBody::-webkit-scrollbar{ width: 10px; height: 10px; }
+    .upBody::-webkit-scrollbar-track{
+      background: rgba(255,255,255,.06);
+      border-radius: 999px;
+    }
+    .upBody::-webkit-scrollbar-thumb{
+      background: rgba(255,255,255,.22);
+      border-radius: 999px;
+      border: 2px solid rgba(0,0,0,0);
+      background-clip: padding-box;
+    }
+    .upBody::-webkit-scrollbar-thumb:hover{ background: rgba(255,255,255,.30); }
+
     @media (max-width: 900px){
       .upBody{grid-template-columns: 1fr;}
     }
@@ -459,7 +478,7 @@
     .evList{display:flex; flex-direction:column; gap:10px;}
     .evItem{
       display:grid;
-      grid-template-columns: 26px 180px 1fr 44px;
+      grid-template-columns: 26px 180px 1fr 44px 44px;
       gap:10px;
       align-items:center;
       padding: 10px;
@@ -468,7 +487,7 @@
       border: 1px solid rgba(255,255,255,.08);
     }
     @media (max-width: 900px){
-      .evItem{grid-template-columns: 26px 1fr 1fr 44px;}
+      .evItem{grid-template-columns: 26px 1fr 1fr 44px 44px;}
     }
     .dot{width:12px;height:12px;border-radius:999px;}
     .dot.START{background:#48c9b0}
@@ -497,6 +516,45 @@
       cursor:pointer;
       font-weight:950;
     }
+
+    .evMore{
+      width:44px;height:40px;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.06);
+      color: rgba(255,255,255,.88);
+      cursor:pointer;
+      display:grid;place-items:center;
+    }
+    .evMore:hover{ background: rgba(255,255,255,.10); }
+
+    .evExtra{
+      margin: 10px 0 0 0;
+      padding: 12px;
+      border-radius: 16px;
+      border: 1px solid rgba(255,255,255,.08);
+      background: rgba(255,255,255,.04);
+    }
+    .fGrid{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:10px 12px;
+    }
+    @media (max-width: 900px){ .fGrid{ grid-template-columns: 1fr; } }
+    .fField{display:flex; flex-direction:column; gap:6px;}
+    .fField span{font-size:12px; color: rgba(255,255,255,.70);}
+    .fField input, .fField textarea{
+      width:100%;
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(0,0,0,.18);
+      color: rgba(255,255,255,.92);
+      outline:none;
+    }
+    .fField textarea{ min-height: 72px; resize: vertical; }
+    .fField input:focus, .fField textarea:focus{ border-color: rgba(255,255,255,.18); }
+    .fReadonly{ opacity:.65; pointer-events:none; }
     .evDel:hover{background: rgba(255,255,255,.10);}
     .upAdd{
       width:100%;
@@ -1812,9 +1870,45 @@ function adminEndpointBase(cfg){
           </select>
           <input type="time" step="60" value="${escapeHtml(ev.time||'')}" data-k="time" data-i="${i}">
           <button class="evDel" type="button" data-k="del" data-i="${i}" title="Șterge">🗑</button>
+          <button class="evMore" type="button" data-k="more" data-i="${i}" title="Detalii">➔</button>
         `;
         wrap.appendChild(row);
         row.querySelector('select').value = _allowedAction(ev.action);
+
+        if (ev.expanded){
+          const extra = document.createElement('div');
+          extra.className = 'evExtra';
+          const f = ev.fields || (ev.fields = {});
+          // normalize a few always-present props
+          if (f.name === undefined) f.name = UP.name;
+          extra.innerHTML = `
+            <div class="fGrid">
+              <div class="fField fReadonly"><span>Name</span><input value="${escapeHtml(f.name||UP.name||'')}" /></div>
+              <div class="fField"><span>Email personal</span><input data-k="f:emailPersonal" data-i="${i}" value="${escapeHtml(f.emailPersonal||'')}" placeholder=""/></div>
+
+              <div class="fField"><span>Tip de activitate</span><input data-k="f:tip" data-i="${i}" value="${escapeHtml(f.tip||'')}" placeholder="birou-lucrare"/></div>
+              <div class="fField"><span>Departament</span><input data-k="f:departament" data-i="${i}" value="${escapeHtml(f.departament||'')}" placeholder=""/></div>
+
+              <div class="fField"><span>Latitude</span><input data-k="f:latitude" data-i="${i}" value="${escapeHtml(f.latitude||'')}" placeholder="46.7874"/></div>
+              <div class="fField"><span>Longitude</span><input data-k="f:longitude" data-i="${i}" value="${escapeHtml(f.longitude||'')}" placeholder="23.628"/></div>
+
+              <div class="fField"><span>Accuracy(m)</span><input data-k="f:accuracy" data-i="${i}" value="${escapeHtml(f.accuracy||'')}" placeholder=""/></div>
+              <div class="fField"><span>Device</span><input data-k="f:device" data-i="${i}" value="${escapeHtml(f.device||'')}" placeholder="Browser / device"/></div>
+
+              <div class="fField"><span>MapsLink</span><input data-k="f:mapsLink" data-i="${i}" value="${escapeHtml(f.mapsLink||'')}" placeholder="https://maps.google.com/?q=..."/></div>
+              <div class="fField"><span>Locations</span><input data-k="f:locations" data-i="${i}" value="${escapeHtml(f.locations||'')}" placeholder=""/></div>
+
+              <div class="fField"><span>Durata (ore)</span><input data-k="f:durataOre" data-i="${i}" value="${escapeHtml(f.durataOre||'')}" placeholder="0,00"/></div>
+              <div class="fField"><span>Suplimentar (h)</span><input data-k="f:suplimentarH" data-i="${i}" value="${escapeHtml(f.suplimentarH||'')}" placeholder="0,00"/></div>
+
+              <div class="fField"><span>Extra (h)</span><input data-k="f:extraH" data-i="${i}" value="${escapeHtml(f.extraH||'')}" placeholder="0,00"/></div>
+              <div class="fField"><span>Marcaj de timp</span><input data-k="f:submitted" data-i="${i}" value="${escapeHtml(_fmtSubmitted(f.submitted))}" placeholder="05.11.2025 10:33:34"/></div>
+
+              <div class="fField" style="grid-column:1/-1"><span>Notes</span><textarea data-k="f:notes" data-i="${i}" placeholder="">${escapeHtml(f.notes||'')}</textarea></div>
+            </div>
+          `;
+          wrap.appendChild(extra);
+        }
       });
       _renderStats();
       _renderTimeline();
@@ -1887,7 +1981,7 @@ function adminEndpointBase(cfg){
           reason: 'Admin mini panel',
           note: UP.note,
           tags: Array.from(UP.tags),
-          events: UP.events.map(ev => ({ time: ev.time, action: ev.action }))
+          events: UP.events.map(ev => ({ time: ev.time, action: ev.action, notes: (ev.notes||''), fields: (ev.fields||{}) }))
         };
 
         const b64 = _b64ws(JSON.stringify(payload));
@@ -2007,14 +2101,41 @@ function adminEndpointBase(cfg){
 
       qs('#upEvents').addEventListener('change', (e)=>{
         const i = parseInt(e.target.getAttribute('data-i')||'-1',10);
-        const k = e.target.getAttribute('data-k');
+        const k = e.target.getAttribute('data-k') || '';
         if (i<0 || i>=UP.events.length) return;
-        if (k=='time') UP.events[i].time = String(e.target.value||'').slice(0,5);
-        if (k=='action') UP.events[i].action = _allowedAction(e.target.value);
-        _renderEvents();
+
+        if (k==='time'){
+          UP.events[i].time = String(e.target.value||'').slice(0,5);
+          _renderEvents();
+          return;
+        }
+        if (k==='action'){
+          UP.events[i].action = _allowedAction(e.target.value);
+          _renderEvents();
+          return;
+        }
+
+        // extra fields
+        if (k.startsWith('f:')){
+          const key = k.slice(2);
+          UP.events[i].fields = UP.events[i].fields || {};
+          UP.events[i].fields[key] = (e.target.tagName==='TEXTAREA') ? String(e.target.value||'') : String(e.target.value||'');
+          // keep notes mirrored
+          if (key==='notes') UP.events[i].notes = String(e.target.value||'');
+          return;
+        }
       });
 
       qs('#upEvents').addEventListener('click', (e)=>{
+        const more = e.target.closest('[data-k="more"]');
+        if (more){
+          const i = parseInt(more.getAttribute('data-i')||'-1',10);
+          if (i<0 || i>=UP.events.length) return;
+          UP.events[i].expanded = !UP.events[i].expanded;
+          _renderEvents();
+          return;
+        }
+
         const del = e.target.closest('[data-k="del"]');
         if (!del) return;
         const i = parseInt(del.getAttribute('data-i')||'-1',10);
