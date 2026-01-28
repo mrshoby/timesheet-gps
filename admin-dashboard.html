@@ -363,11 +363,10 @@
     .empBtn:hover{transform: translateY(-1px); background: rgba(108,92,231,.14);}
     .empBtn:active{transform: translateY(0px);}
 
-    .upOverlay{position:fixed; inset:0; background: rgba(10, 8, 28, .55); display:none; align-items:center; justify-content:center; padding:18px; z-index: 9999;}
+    .upOverlay{position:fixed !important; touch-action:none; inset:0 !important; width:100vw !important; height:100vh !important; height:100dvh !important; margin:0 !important; padding:18px !important; background: rgba(10, 8, 28, .60); display:none; align-items:center; justify-content:center; z-index:2147483647; overflow:hidden; overscroll-behavior:contain;}
     .upOverlay.show{display:flex;}
-    .upModal{
-      width: 920px; max-width: 96vw;
-      max-height: calc(100vh - 36px);
+    .upModal{width: 920px; max-width: 96vw;
+      
       overflow:auto;
       background: radial-gradient(1200px 700px at 20% 0%, rgba(155,127,255,.22) 0%, rgba(155,127,255,0) 45%),
                   radial-gradient(1000px 600px at 90% 10%, rgba(0,210,255,.10) 0%, rgba(0,210,255,0) 55%),
@@ -377,13 +376,10 @@
       box-shadow: 0 22px 60px rgba(0,0,0,.35);
       border: 1px solid rgba(255,255,255,.08);
       overflow:hidden;
-      position:relative;
-    }
-    .upTop{
-      display:flex; gap:16px; align-items:center;
+      position:relative; max-height:calc(100vh - 24px); display:flex; flex-direction:column;}
+    .upTop{display:flex; gap:16px; align-items:center;
       padding: 18px 18px 14px;
-      border-bottom: 1px solid rgba(255,255,255,.08);
-    }
+      border-bottom: 1px solid rgba(255,255,255,.08); flex:0 0 auto;}
     .upAvatar{
       width:54px;height:54px;border-radius:50%;
       background: rgba(255,255,255,.12);
@@ -410,7 +406,7 @@
     .upIcon:hover{background: rgba(255,255,255,.10);}
     .upClose{font-size:22px; line-height:0; font-weight:900;}
 
-    .upBody{display:grid; grid-template-columns: 1.1fr .9fr; gap:16px; padding: 16px 18px 18px;}
+    .upBody{display:grid; grid-template-columns: 1.1fr .9fr; gap:16px; padding: 16px 18px 18px; flex:1 1 auto; min-height:0; overflow:auto; overscroll-behavior:contain;}
     @media (max-width: 900px){
       .upBody{grid-template-columns: 1fr;}
     }
@@ -563,12 +559,10 @@
     .toggle.on .switch{background: rgba(46, 204, 113, .55); border-color: rgba(46,204,113,.2);}
     .toggle.on .knob{left:21px;}
 
-    .upFooter{
-      display:flex; gap:12px; align-items:center; justify-content:flex-end;
+    .upFooter{display:flex; gap:12px; align-items:center; justify-content:flex-end;
       padding: 14px 18px 18px;
       border-top: 1px solid rgba(255,255,255,.08);
-      background: rgba(0,0,0,.06);
-    }
+      background: rgba(0,0,0,.06); flex:0 0 auto;}
     .btn{
       height: 46px;
       border-radius: 16px;
@@ -616,8 +610,8 @@
     .upModal .btn.danger{background: rgba(231, 76, 60, .18); border-color: rgba(231,76,60,.20);}
     .upModal .btn:disabled{opacity:.55; cursor:not-allowed;}
 
-    .upOverlay{ position: fixed !important; inset: 0 !important; width: 100vw !important; height: 100vh !important; z-index: 2147483647 !important; }
-    .upOverlay.show{ display:flex !important; }
+    .upOverlay{position:fixed !important; touch-action:none; inset:0 !important; width:100vw !important; height:100vh !important; height:100dvh !important; margin:0 !important; padding:18px !important; background: rgba(10, 8, 28, .60); display:none; align-items:center; justify-content:center; z-index:2147483647; overflow:hidden; overscroll-behavior:contain;}
+    .upOverlay.show{display:flex;}
     .upModal, .upModal *, .upModal *::before, .upModal *::after{ box-sizing: border-box; }
     .upWho{min-width:0;}
     .upMeta{gap:10px; flex-wrap:wrap; align-items:center;}
@@ -662,15 +656,7 @@
   
     /* ===== Overlay lock + full-cover fix (prevents white area) ===== */
     html.up-lock, html.up-lock body{ overflow:hidden !important; height:100% !important; }
-    .upOverlay{
-      overflow:auto;
-      position: fixed !important;
-      top:0 !important; left:0 !important; right:0 !important; bottom:0 !important;
-      width: 100vw !important; height: 100vh !important;
-      margin:0 !important;
-      transform: none !important;
-      z-index: 2147483647 !important;
-    }
+    .upOverlay{position:fixed !important; touch-action:none; inset:0 !important; width:100vw !important; height:100vh !important; height:100dvh !important; margin:0 !important; padding:18px !important; background: rgba(10, 8, 28, .60); display:none; align-items:center; justify-content:center; z-index:2147483647; overflow:hidden; overscroll-behavior:contain;}
 
     /* ===== Timeline (linii colorate + etichete) ===== */
     .tlWrap{margin-top:12px;}
@@ -740,7 +726,11 @@
     .tlTime{opacity:.85;}
     .tlAct{opacity:.95;}
 
-  </style>
+  
+    /* lock page scroll when modal open */
+    html.upLockScroll, body.upLockScroll{overflow:hidden !important; height:100% !important;}
+    
+</style>
 </head>
 <body>
   <div class="wrap">
@@ -1946,6 +1936,8 @@ function adminEndpointBase(cfg){
       const ov = qs('#upOverlay');
       ov.classList.add('show');
       ov.setAttribute('aria-hidden','false');
+      document.documentElement.classList.add('upLockScroll');
+      document.body.classList.add('upLockScroll');
 
       _loadDay();
     }
