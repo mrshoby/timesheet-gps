@@ -363,7 +363,7 @@
     .empBtn:hover{transform: translateY(-1px); background: rgba(108,92,231,.14);}
     .empBtn:active{transform: translateY(0px);}
 
-    .upOverlay{position:fixed; inset:0; background: rgba(10, 8, 28, .55); display:none; align-items:center; justify-content:center; padding:18px; z-index: 9999;}
+    .upOverlay{position:fixed !important; inset:0; width:100vw; height:100vh; background: rgba(10, 8, 28, .55); display:none; align-items:center; justify-content:center; padding:18px; z-index: 2147483647; overflow:auto;}
     .upOverlay.show{display:flex;}
     .upModal{
       width: 920px; max-width: 96vw;
@@ -585,6 +585,69 @@
     .btn:disabled{opacity:.55; cursor:not-allowed;}
 
     .upErr{margin-top:10px; font-weight:900; color:#ffd1d1; display:none;}
+
+    /* ===== Timeline (state segments) ===== */
+    .timeline{
+      position:relative;
+      height:72px;
+      border-radius: 18px;
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.10);
+      overflow:hidden;
+      padding: 10px 12px;
+    }
+    .tlLane{
+      position:relative;
+      width:100%;
+      border-radius: 999px;
+      background: rgba(255,255,255,.08);
+      border: 1px solid rgba(255,255,255,.10);
+      overflow:hidden;
+    }
+    .tlLane.main{height:14px; margin-top:8px;}
+    .tlLane.extra{height:10px; margin-top:14px;}
+    .tlSeg{position:absolute; top:0; height:100%; border-radius:999px;}
+    .tlSeg.work{background: rgba(46, 204, 113, .78);}
+    .tlSeg.pause{background: rgba(241, 196, 15, .82);}
+    .tlSeg.idle{background: rgba(255,255,255,.10);}
+    .tlSeg.extra{background: rgba(52, 152, 219, .75);}
+    .tlMarks{position:absolute; inset:0; pointer-events:none;}
+    .tlMark{position:absolute; top:0; bottom:0; width:1px; background: rgba(255,255,255,.18);}
+    .tlDot{
+      position:absolute;
+      width:10px; height:10px;
+      border-radius: 999px;
+      top: 18px; /* aligns with main lane */
+      transform: translateX(-50%);
+      border:1px solid rgba(255,255,255,.35);
+      box-shadow: 0 6px 14px rgba(0,0,0,.25);
+      pointer-events:none;
+    }
+    .tlDot.START{background: rgba(46,204,113,.95);}
+    .tlDot.PAUSE{background: rgba(241,196,15,.95);}
+    .tlDot.UNPAUSE{background: rgba(243,156,18,.95);}
+    .tlDot.FINISH{background: rgba(231,76,60,.95);}
+    .tlDot.EXTRA_START{background: rgba(155,89,182,.95);}
+    .tlDot.EXTRA_FINISH{background: rgba(142,68,173,.95);}
+    .tlChips{display:flex; gap:8px; flex-wrap:wrap; margin-top:10px;}
+    .tlChip{
+      display:inline-flex; gap:8px; align-items:center;
+      padding: 8px 10px;
+      border-radius: 14px;
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.10);
+      color: rgba(255,255,255,.90);
+      font-weight: 950;
+      font-size: 12px;
+      white-space:nowrap;
+    }
+    .tlChip .mini{opacity:.75; font-weight:900;}
+    .tlChip.START{border-color: rgba(46,204,113,.25);}
+    .tlChip.PAUSE{border-color: rgba(241,196,15,.25);}
+    .tlChip.UNPAUSE{border-color: rgba(243,156,18,.25);}
+    .tlChip.FINISH{border-color: rgba(231,76,60,.25);}
+    .tlChip.EXTRA_START,.tlChip.EXTRA_FINISH{border-color: rgba(155,89,182,.25);}
+    
 
   
     /* ===== Mini User Panel PRO fixes ===== */
@@ -1334,6 +1397,7 @@
       remindOn:true,
       afterMin:5,
       events:[],
+      manager:'',
       busy:false
     };
 
@@ -1391,6 +1455,36 @@
 
     function _webappBase(){
       const cfg = window.CFG || CFG || {};
+
+    // Load admin list from admin-auth.json (GitHub Pages)
+    let __ADMIN_AUTH_CACHE = null;
+    async function _loadAdminAuth(){
+      if (__ADMIN_AUTH_CACHE) return __ADMIN_AUTH_CACHE;
+      const candidates = ['admin-auth.json','./admin-auth.json','../admin-auth.json','./data/admin-auth.json','./assets/admin-auth.json'];
+      for (const p of candidates){
+        try{
+          const res = await fetch(p, {cache:'no-store'});
+          if (!res.ok) continue;
+          const j = await res.json();
+          // supports {admins:[...]} or [...]
+          const arr = Array.isArray(j) ? j : (Array.isArray(j.admins)? j.admins : (Array.isArray(j.users)? j.users : []));
+          if (arr && arr.length){
+            __ADMIN_AUTH_CACHE = arr;
+            return arr;
+          }
+        }catch(_){}
+      }
+      __ADMIN_AUTH_CACHE = [];
+      return [];
+    }
+
+    function _adminLabel(a){
+      if (!a) return '';
+      return a.name || a.email || a.user || a.username || String(a);
+    }
+    function _adminEmail(a){
+      return (a && (a.email || a.user || a.username)) ? String(a.email || a.user || a.username) : '';
+    }
       const raw = cfg.adminEventsEndpoint || cfg.webappUrl || cfg.scriptUrl || '';
       return String(raw || '').replace(/\?.*$/, '').trim();
     }
@@ -1427,48 +1521,161 @@
       return allowed.includes(a) ? a : 'START';
     }
 
-    function _calc(){
-      let start=null, finish=null;
-      let extraStart=null, extraFinish=null;
-      let openPause=null;
-      let pauseMin=0;
+    function _buildModel(){
+      // returns {min,max,range, segMain, segExtra, markers, totals:{workMin,pauseMin,extraMin}}
+      const evs = UP.events
+        .map(ev => ({action:_allowedAction(ev.action), t:_toMin(ev.time), time:ev.time}))
+        .filter(ev => ev.t!=null)
+        .sort((a,b)=>a.t-b.t);
 
-      const evs = UP.events.slice().sort((A,B)=> (_toMin(A.time)||0)-(_toMin(B.time)||0));
-      for (const ev of evs){
-        const t = _toMin(ev.time);
-        if (t==null) continue;
-        if (ev.action==='START') start = (start==null? t : Math.min(start,t));
-        if (ev.action==='FINISH') finish = (finish==null? t : Math.max(finish,t));
-        if (ev.action==='EXTRA_START') extraStart = (extraStart==null? t : Math.min(extraStart,t));
-        if (ev.action==='EXTRA_FINISH') extraFinish = (extraFinish==null? t : Math.max(extraFinish,t));
+      let min = Infinity, max = -Infinity;
+      for (const e of evs){ min = Math.min(min, e.t); max = Math.max(max, e.t); }
+      if (!isFinite(min) || !isFinite(max)){ min = 9*60; max = 17*60; }
+      // Ensure a usable window (>= 6h)
+      let range = max - min;
+      const MIN_RANGE = 6*60;
+      if (range < MIN_RANGE){
+        const mid = (min + max) / 2;
+        min = Math.max(0, Math.round(mid - MIN_RANGE/2));
+        max = Math.min(1440, min + MIN_RANGE);
+      }
+      // Clamp
+      min = Math.max(0, Math.min(1440, min));
+      max = Math.max(0, Math.min(1440, max));
+      range = Math.max(1, max-min);
 
-        if (ev.action==='PAUSE') openPause = t;
-        if (ev.action==='UNPAUSE' && openPause!=null){
-          if (t>openPause) pauseMin += (t-openPause);
-          openPause = null;
+      const segMain = [];
+      const segExtra = [];
+      const markers = [];
+
+      let state = 'idle'; // idle | work | pause
+      let extraOn = false;
+
+      let t0 = min;
+      for (const e of evs){
+        const t = Math.max(min, Math.min(max, e.t));
+        if (t > t0){
+          segMain.push({from:t0, to:t, kind: state});
+          segExtra.push({from:t0, to:t, kind: extraOn ? 'extra' : 'idle'});
+          t0 = t;
+        }
+        markers.push({t, action:e.action, time:e.time});
+
+        switch(e.action){
+          case 'START': state='work'; break;
+          case 'PAUSE': state='pause'; break;
+          case 'UNPAUSE': state='work'; break;
+          case 'FINISH': state='idle'; break;
+          case 'EXTRA_START': extraOn=true; break;
+          case 'EXTRA_FINISH': extraOn=false; break;
         }
       }
+      if (max > t0){
+        segMain.push({from:t0, to:max, kind: state});
+        segExtra.push({from:t0, to:max, kind: extraOn ? 'extra' : 'idle'});
+      }
 
-      let span = (start!=null && finish!=null && finish>start) ? (finish-start) : 0;
-      // Fallback: if actions are mislabeled but we have times, infer a basic span from min..max
-      if (span===0){
-        const ts = evs.map(e=>_toMin(e.time)).filter(v=>v!=null);
-        if (ts.length>=2){
-          const mn = Math.min.apply(null, ts);
-          const mx = Math.max.apply(null, ts);
-          if (mx>mn){
-            start = (start==null)? mn : start;
-            finish = (finish==null)? mx : finish;
-            if (finish<=start){ start = mn; finish = mx; }
-            span = finish-start;
+      // Totals (full day)
+      const totals = (()=>{
+        const startDay = 0, endDay = 1440;
+        let stateD = 'idle';
+        let extraOnD = false;
+        let tD = startDay;
+        let work=0, pause=0, extra=0;
+
+        for (const e of evs){
+          const t = Math.max(startDay, Math.min(endDay, e.t));
+          if (t > tD){
+            const d = t - tD;
+            if (stateD==='work') work += d;
+            if (stateD==='pause') pause += d;
+            if (extraOnD) extra += d;
+            tD = t;
+          }
+          switch(e.action){
+            case 'START': stateD='work'; break;
+            case 'PAUSE': stateD='pause'; break;
+            case 'UNPAUSE': stateD='work'; break;
+            case 'FINISH': stateD='idle'; break;
+            case 'EXTRA_START': extraOnD=true; break;
+            case 'EXTRA_FINISH': extraOnD=false; break;
           }
         }
+        if (endDay > tD){
+          const d = endDay - tD;
+          if (stateD==='work') work += d;
+          if (stateD==='pause') pause += d;
+          if (extraOnD) extra += d;
+        }
+        return {workMin:work, pauseMin:pause, extraMin:extra};
+      })();
+
+      return {min,max,range, segMain, segExtra, markers, totals};
+    }
+
+    function _renderTimeline(model){
+      const main = qs('#tlMain');
+      const extra = qs('#tlExtra');
+      const marks = qs('#tlMarks');
+      const chips = qs('#tlChips');
+
+      if (!main || !extra || !marks || !chips) return;
+
+      const min = model.min, max = model.max, range = model.range;
+      const pct = (t)=> ((t-min)/range)*100;
+
+      main.innerHTML = '';
+      extra.innerHTML = '';
+      marks.innerHTML = '';
+      chips.innerHTML = '';
+
+      // segments main
+      for (const s of model.segMain){
+        const div = document.createElement('div');
+        div.className = 'tlSeg ' + (s.kind==='work'?'work':(s.kind==='pause'?'pause':'idle'));
+        div.style.left = pct(s.from).toFixed(3)+'%';
+        div.style.width = Math.max(0, pct(s.to)-pct(s.from)).toFixed(3)+'%';
+        main.appendChild(div);
       }
-      const workMin = Math.max(0, span - pauseMin);
+      // segments extra
+      for (const s of model.segExtra){
+        if (s.kind!=='extra') continue;
+        const div = document.createElement('div');
+        div.className = 'tlSeg extra';
+        div.style.left = pct(s.from).toFixed(3)+'%';
+        div.style.width = Math.max(0, pct(s.to)-pct(s.from)).toFixed(3)+'%';
+        extra.appendChild(div);
+      }
 
-      const extraSpan = (extraStart!=null && extraFinish!=null && extraFinish>extraStart) ? (extraFinish-extraStart) : 0;
+      // markers (thin lines + dots)
+      for (const m of model.markers){
+        const x = pct(m.t);
+        const line = document.createElement('div');
+        line.className = 'tlMark';
+        line.style.left = x.toFixed(3)+'%';
+        marks.appendChild(line);
 
-      return {workMin, pauseMin, extraMin: extraSpan, start, finish, extraStart, extraFinish};
+        const dot = document.createElement('div');
+        dot.className = 'tlDot ' + m.action;
+        dot.style.left = x.toFixed(3)+'%';
+        marks.appendChild(dot);
+
+        // chips below
+        const chip = document.createElement('div');
+        chip.className = 'tlChip ' + m.action;
+        chip.innerHTML = `<span>${escapeHtml(m.time||'')}</span><span class="mini">${escapeHtml(m.action.replace('_',' '))}</span>`;
+        chips.appendChild(chip);
+      }
+
+      // axis labels
+      qs('#upBarLeft').textContent = _fmt(min);
+      qs('#upBarMid').textContent = _fmt(Math.round((min+max)/2));
+      qs('#upBarRight').textContent = _fmt(max);
+    }
+
+    function _calc(){
+      const model = _buildModel();
+      return { ...model.totals, model };
     }
 
     function _renderStats(){
@@ -1483,15 +1690,10 @@
 
       qs('#upHeaderSummary').textContent = `pauză ${_fmt(c.pauseMin)} • extra ${_fmt(c.extraMin)}`;
 
-      const total = Math.max(1, c.workMin + c.pauseMin + c.extraMin);
-      qs('#segWork').style.width = ((c.workMin/total)*100).toFixed(1)+'%';
-      qs('#segPause').style.width = ((c.pauseMin/total)*100).toFixed(1)+'%';
-      qs('#segExtra').style.width = ((c.extraMin/total)*100).toFixed(1)+'%';
-
-      qs('#upBarLeft').textContent = (c.start!=null)? `${String(Math.floor(c.start/60)).padStart(2,'0')}:${String(c.start%60).padStart(2,'0')}` : '—';
-      qs('#upBarRight').textContent = (c.finish!=null)? `${String(Math.floor(c.finish/60)).padStart(2,'0')}:${String(c.finish%60).padStart(2,'0')}` : '—';
-
       qs('#upEvCount').textContent = String(UP.events.length);
+
+      // timeline
+      _renderTimeline(c.model);
     }
 
     function _renderEvents(){
@@ -1544,6 +1746,24 @@
         UP.chat = data.telegramChatId || prof.telegramChatId || UP.chat || '—';
         UP.dept = data.dept || prof.dept || UP.dept || '—';
 
+        // manager
+        UP.manager = data.manager || prof.manager || '';
+        const sel = qs('#upMgrSelect');
+        if (sel){ sel.value = UP.manager || ''; }
+
+        // disable manager assignment if employee is admin
+        try{
+          const admins = await _loadAdminAuth();
+          const isAdmin = admins.some(a => {
+            const em = (_adminEmail(a)||'').toLowerCase();
+            const nm = (_adminLabel(a)||'').toLowerCase();
+            return (UP.email && UP.email.toLowerCase()===em) || (UP.name && UP.name.toLowerCase()===nm);
+          });
+          if (sel){ sel.disabled = !!isAdmin; }
+          qs('#upMgrSave').disabled = !!isAdmin;
+        }catch(_){ }
+
+
         UP.note = String(data.note || prof.note || '');
         qs('#upNote').value = UP.note;
 
@@ -1557,6 +1777,7 @@
         qs('#upEmpEmail').textContent = UP.email || '—';
         qs('#upEmpChat').textContent = (UP.chat && String(UP.chat).trim()) ? String(UP.chat).trim() : '—';
         qs('#upEmpDept').textContent = UP.dept || '—';
+        qs('#upEmpMgr').textContent = UP.manager || '—';
 
         _renderEvents();
       }catch(err){
@@ -1623,8 +1844,10 @@
 
       qs('#upEmpName').textContent = UP.name || '—';
       qs('#upEmpDept').textContent = UP.dept || '—';
+        qs('#upEmpMgr').textContent = UP.manager || '—';
       qs('#upEmpEmail').textContent = '—';
       qs('#upEmpChat').textContent = '—';
+      const _mgrEl = qs('#upEmpMgr'); if (_mgrEl) _mgrEl.textContent = '—';
       qs('#upDate').value = UP.date;
       qs('#upNote').value = '';
 
@@ -1635,17 +1858,42 @@
 
       document.querySelectorAll('.upChip').forEach(c=> c.classList.remove('on'));
 
+      // populate manager list
+      (async ()=>{
+        const sel = qs('#upMgrSelect');
+        if (!sel) return;
+        sel.innerHTML = '<option value="">— alege manager —</option>';
+        const admins = await _loadAdminAuth();
+        for (const a of admins){
+          const em = _adminEmail(a);
+          const label = _adminLabel(a);
+          if (!label) continue;
+          const opt = document.createElement('option');
+          opt.value = em || label;
+          opt.textContent = em ? (label + ' — ' + em) : label;
+          sel.appendChild(opt);
+        }
+      })();
+
       const ov = qs('#upOverlay');
+      // ensure overlay lives at document.body (fixed isn't broken by transformed containers)
+      if (ov && ov.parentElement !== document.body){
+        document.body.appendChild(ov);
+      }
+      document.documentElement.classList.add('upOpen');
+      document.body.style.overflow = 'hidden';
       ov.classList.add('show');
       ov.setAttribute('aria-hidden','false');
 
       _loadDay();
-    }
+}
 
     function _closePanel(){
       const ov = qs('#upOverlay');
       ov.classList.remove('show');
       ov.setAttribute('aria-hidden','true');
+      document.documentElement.classList.remove('upOpen');
+      document.body.style.overflow = '';
       _upShowErr('');
     }
 
@@ -1731,6 +1979,26 @@
 
       qs('#upAfter').addEventListener('change', ()=>{ UP.afterMin = parseInt(qs('#upAfter').value,10) || 5; });
       qs('#upTz').addEventListener('change', ()=>{ UP.tz = String(qs('#upTz').value||'Europe/Bucharest'); });
+
+
+      qs('#upMgrSave').addEventListener('click', async ()=>{
+        const sel = qs('#upMgrSelect');
+        const val = sel ? String(sel.value||'').trim() : '';
+        if (!val){ alert('Alege un manager.'); return; }
+        try{
+          const base = _webappBase();
+          if (!base) throw new Error('Lipsește webappUrl/adminEventsEndpoint în config.json');
+          const url = base + '?fn=employeeManagerSet&name=' + encodeURIComponent(UP.name) + '&manager=' + encodeURIComponent(val);
+          const res = await _jsonp(url);
+          if (!res || !res.ok) throw new Error((res && res.error) ? res.error : 'Eșec atribuire');
+          UP.manager = val;
+          alert('Manager atribuit: ' + val);
+          if (typeof window.__adminDashboardRefresh === 'function'){ await window.__adminDashboardRefresh(); }
+        }catch(err){
+          console.error(err);
+          alert('Eroare: ' + (err && err.message ? err.message : err));
+        }
+      });
 
       qs('#upOpenFull').addEventListener('click', ()=>{
         const url = 'admin-user-panel.html?name=' + encodeURIComponent(UP.name) + '&date=' + encodeURIComponent(UP.date);
@@ -1859,10 +2127,10 @@
           </div>
 
           <div class="barWrap">
-            <div class="bar" id="upBar">
-              <div class="seg work" id="segWork" style="width:0%"></div>
-              <div class="seg pause" id="segPause" style="width:0%"></div>
-              <div class="seg extra" id="segExtra" style="width:0%"></div>
+            <div class="timeline" id="upTimeline">
+              <div class="tlLane main" id="tlMain"></div>
+              <div class="tlLane extra" id="tlExtra"></div>
+              <div class="tlMarks" id="tlMarks"></div>
             </div>
             <div class="barMeta">
               <span id="upBarLeft">—</span>
@@ -1928,6 +2196,17 @@
           </div>
 
           <div style="height:12px"></div>
+
+          <h3>Manager</h3>
+          <div class="upRow2" style="grid-template-columns: 1fr auto; gap:10px">
+            <div class="upField" style="margin:0">
+              <label>Manager (admin)</label>
+              <select id="upMgrSelect"></select>
+            </div>
+            <div class="upField" style="margin:0; display:flex; align-items:flex-end">
+              <button class="btn" id="upMgrSave" type="button">Atribuie</button>
+            </div>
+          </div>
 
           <h3>Admin</h3>
           <div class="upRow2" style="grid-template-columns:1fr 1fr; gap:10px">
