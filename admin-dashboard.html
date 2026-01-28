@@ -586,6 +586,77 @@
 
     .upErr{margin-top:10px; font-weight:900; color:#ffd1d1; display:none;}
 
+  
+    /* ===== Mini User Panel PRO fixes ===== */
+
+    /* Ensure dashboard global .btn can't break modal buttons */
+    .upModal .btn{
+      position: relative;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      height: 46px;
+      border-radius: 16px;
+      border: 1px solid rgba(255,255,255,.12);
+      background: rgba(255,255,255,.06);
+      color: rgba(255,255,255,.92);
+      padding: 0 16px;
+      gap:10px;
+      cursor:pointer;
+      font-weight:950;
+      user-select:none;
+      white-space:nowrap;
+      min-width: 0;
+    }
+    .upModal .btn:hover{background: rgba(255,255,255,.10);}
+    .upModal .btn.primary{background: rgba(46, 204, 113, .85); border-color: rgba(46,204,113,.1); color:#0d2a1a;}
+    .upModal .btn.primary:hover{filter:brightness(1.03);}
+    .upModal .btn.danger{background: rgba(231, 76, 60, .18); border-color: rgba(231,76,60,.20);}
+    .upModal .btn:disabled{opacity:.55; cursor:not-allowed;}
+
+    .upOverlay{ position: fixed !important; inset: 0 !important; width: 100vw !important; height: 100vh !important; z-index: 2147483647 !important; }
+    .upOverlay.show{ display:flex !important; }
+    .upModal, .upModal *, .upModal *::before, .upModal *::after{ box-sizing: border-box; }
+    .upWho{min-width:0;}
+    .upMeta{gap:10px; flex-wrap:wrap; align-items:center;}
+    .upMeta .m{display:flex; gap:8px; align-items:center; padding:6px 10px; border-radius:999px;
+      background: rgba(255,255,255,.07); border:1px solid rgba(255,255,255,.10);}
+    .upMeta .mi{font-size:11px; font-weight:950; color: rgba(255,255,255,.65);}
+    .upMeta .mv{font-size:11px; font-weight:950; color: rgba(255,255,255,.92); max-width: 260px; overflow:hidden; text-overflow: ellipsis; white-space:nowrap;}
+    .upActions{flex-shrink:0;}
+
+    .upNav{display:flex; gap:8px;}
+    .upNav .btn{flex:1; justify-content:center;}
+
+    .evItem{grid-template-columns: 18px minmax(140px, 1fr) 150px 44px;}
+    .evItem select, .evItem input{min-width:0;}
+    .evDel{flex-shrink:0;}
+
+    /* Ruler + markers under timeline */
+    .ruler{ position: relative; height: 64px; margin-top: 12px; border-radius: 16px;
+      background: rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.06); overflow:hidden; }
+    .rLine{ position:absolute; left:14px; right:14px; top: 22px; height:2px; border-radius:999px; background: rgba(255,255,255,.10); }
+    .rMarks{ position:absolute; inset: 0; }
+    .mark{ position:absolute; top: 8px; transform: translateX(-50%); width: 92px; text-align:center; pointer-events:none; }
+    .mark .tick{ width:2px; height: 22px; margin: 0 auto; border-radius:999px; background: rgba(255,255,255,.70); }
+    .mark .t{ margin-top: 6px; font-size: 11px; font-weight: 950; color: rgba(255,255,255,.92); }
+    .mark .a{ margin-top: 3px; font-size: 10px; font-weight: 900; color: rgba(255,255,255,.72); }
+    .mark .tag{ display:inline-flex; align-items:center; gap:6px; padding: 5px 8px; border-radius: 999px;
+      background: rgba(0,0,0,.14); border: 1px solid rgba(255,255,255,.10); }
+    .mark .dot2{ width:8px; height:8px; border-radius:999px; }
+    .dot2.START{ background:#48c9b0; }
+    .dot2.PAUSE{ background:#f1c40f; }
+    .dot2.UNPAUSE{ background:#f39c12; }
+    .dot2.FINISH{ background:#e74c3c; }
+    .dot2.EXTRA_START{ background:#a569bd; }
+    .dot2.EXTRA_FINISH{ background:#8e44ad; }
+
+    .rList{ display:flex; gap:8px; flex-wrap:wrap; margin-top: 10px; }
+    .rChip{ display:inline-flex; align-items:center; gap:8px; padding: 8px 10px; border-radius: 14px;
+      background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.08); font-weight:950; }
+    .rChip .tt{ font-size: 11px; color: rgba(255,255,255,.90); }
+    .rChip .aa{ font-size: 11px; color: rgba(255,255,255,.70); }
+
   </style>
 </head>
 <body>
@@ -1378,7 +1449,21 @@
         }
       }
 
-      const span = (start!=null && finish!=null && finish>start) ? (finish-start) : 0;
+      let span = (start!=null && finish!=null && finish>start) ? (finish-start) : 0;
+      // Fallback: if actions are mislabeled but we have times, infer a basic span from min..max
+      if (span===0){
+        const ts = evs.map(e=>_toMin(e.time)).filter(v=>v!=null);
+        if (ts.length>=2){
+          const mn = Math.min.apply(null, ts);
+          const mx = Math.max.apply(null, ts);
+          if (mx>mn){
+            start = (start==null)? mn : start;
+            finish = (finish==null)? mx : finish;
+            if (finish<=start){ start = mn; finish = mx; }
+            span = finish-start;
+          }
+        }
+      }
       const workMin = Math.max(0, span - pauseMin);
 
       const extraSpan = (extraStart!=null && extraFinish!=null && extraFinish>extraStart) ? (extraFinish-extraStart) : 0;
@@ -1410,6 +1495,12 @@
     }
 
     function _renderEvents(){
+      // sort events by time so they don't appear over each other / out of order
+      UP.events.sort((a,b)=>{
+        const A=_toMin(a.time)||0, B=_toMin(b.time)||0;
+        if (A!==B) return A-B;
+        return String(a.action||'').localeCompare(String(b.action||''));
+      });
       const wrap = qs('#upEvents');
       wrap.innerHTML = '';
       UP.events.forEach((ev, i)=>{
@@ -1464,7 +1555,7 @@
 
         qs('#upAvatar').textContent = _upInit();
         qs('#upEmpEmail').textContent = UP.email || '—';
-        qs('#upEmpChat').textContent = UP.chat ? ('#'+UP.chat).replace('##','#') : '—';
+        qs('#upEmpChat').textContent = (UP.chat && String(UP.chat).trim()) ? String(UP.chat).trim() : '—';
         qs('#upEmpDept').textContent = UP.dept || '—';
 
         _renderEvents();
@@ -1715,8 +1806,9 @@
             <span class="upPill" id="upEmpDept">—</span>
           </div>
           <div class="upMeta">
-            <span class="m">✉️ <span id="upEmpEmail">—</span></span>
-            <span class="m">✅ <span id="upEmpChat">—</span></span>
+            <span class="m"><span class="mi">Email</span><span id="upEmpEmail" class="mv">—</span></span>
+            <span class="m"><span class="mi">Telegram</span><span id="upEmpChat" class="mv">—</span></span>
+            <span class="m"><span class="mi">Status</span><span id="upEmpStatus" class="mv">—</span></span>
           </div>
         </div>
         <div class="upActions">
@@ -1737,10 +1829,10 @@
             </div>
             <div class="upField">
               <label>Navigare</label>
-              <div class="upRow2" style="grid-template-columns:1fr 1fr; gap:8px">
-                <button class="btn" id="upPrevDay" type="button">‹</button>
-                <button class="btn" id="upNextDay" type="button">›</button>
-              </div>
+              <div class="upNav">
+                  <button class="btn" id="upPrevDay" type="button">‹</button>
+                  <button class="btn" id="upNextDay" type="button">›</button>
+                </div>
             </div>
           </div>
 
@@ -1778,6 +1870,12 @@
               <span id="upBarRight">—</span>
             </div>
           </div>
+
+          <div class="ruler">
+            <div class="rLine"></div>
+            <div class="rMarks" id="upMarks"></div>
+          </div>
+          <div class="rList" id="upActionList"></div>
 
           <div class="upErr" id="upErr"></div>
         </div>
