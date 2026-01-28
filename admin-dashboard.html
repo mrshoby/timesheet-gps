@@ -1803,7 +1803,7 @@ const UP = {
         qs('#upEmpEmail').textContent = UP.email || '—';
         qs('#upEmpChat').textContent = (UP.chat && String(UP.chat).trim()) ? String(UP.chat).trim() : '—';
         qs('#upEmpDept').textContent = UP.dept || '—';
-        qs('#upEmpMgr').textContent = UP.manager || '—';
+        const _mgrHdr = qs('#upEmpMgr'); if (_mgrHdr) _mgrHdr.textContent = UP.manager || '—';
 
         _renderEvents();
       }catch(err){
@@ -1871,7 +1871,7 @@ const UP = {
 
       qs('#upEmpName').textContent = UP.name || '—';
       qs('#upEmpDept').textContent = UP.dept || '—';
-        qs('#upEmpMgr').textContent = UP.manager || '—';
+        const _mgrHdr = qs('#upEmpMgr'); if (_mgrHdr) _mgrHdr.textContent = UP.manager || '—';
       qs('#upEmpEmail').textContent = '—';
       qs('#upEmpChat').textContent = '—';
       const _mgrEl = qs('#upEmpMgr'); if (_mgrEl) _mgrEl.textContent = '—';
@@ -2021,6 +2021,7 @@ const UP = {
           const res = await _jsonp(url);
           if (!res || !res.ok) throw new Error((res && res.error) ? res.error : 'Eșec atribuire');
           UP.manager = val;
+        const _mgrHdr2 = qs('#upEmpMgr'); if (_mgrHdr2) _mgrHdr2.textContent = UP.manager || '—';
           alert('Manager atribuit: ' + val);
           if (typeof window.__adminDashboardRefresh === 'function'){ await window.__adminDashboardRefresh(); }
         }catch(err){
@@ -2106,6 +2107,7 @@ const UP = {
             <span class="m"><span class="mi">Email</span><span id="upEmpEmail" class="mv">—</span></span>
             <span class="m"><span class="mi">Telegram</span><span id="upEmpChat" class="mv">—</span></span>
             <span class="m"><span class="mi">Status</span><span id="upEmpStatus" class="mv">—</span></span>
+            <span class="m">👤 <span id="upEmpMgr">—</span></span>
           </div>
         </div>
         <div class="upActions">
