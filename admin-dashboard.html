@@ -459,7 +459,7 @@
     .evList{display:flex; flex-direction:column; gap:10px;}
     .evItem{
       display:grid;
-      grid-template-columns: 26px 180px 1fr 44px;
+      grid-template-columns: 26px 180px 1fr 44px 44px;
       gap:10px;
       align-items:center;
       padding: 10px;
@@ -498,6 +498,39 @@
       font-weight:950;
     }
     .evDel:hover{background: rgba(255,255,255,.10);}
+    .evMore{
+      width:44px;height:44px;border-radius: 16px;
+      border: 1px solid rgba(255,255,255,.12);
+      background: rgba(255,255,255,.06);
+      color: rgba(255,255,255,.9);
+      display:grid;place-items:center;
+      cursor:pointer;
+      font-weight:950;
+    }
+    .evMore:hover{background: rgba(255,255,255,.10);}
+    .evDetails{
+      margin: 8px 0 12px 36px;
+      padding: 12px;
+      border-radius: 16px;
+      background: rgba(255,255,255,.04);
+      border: 1px solid rgba(255,255,255,.08);
+      display:none;
+    }
+    .evDetails.show{display:block;}
+    .evGrid{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    @media (max-width: 900px){
+      .evGrid{grid-template-columns: 1fr;}
+      .evDetails{margin-left: 0;}
+    }
+    .evDetails .upField input,
+    .evDetails .upField textarea{
+      background: rgba(0,0,0,.12);
+    }
+
     .upAdd{
       width:100%;
       border:1px dashed rgba(255,255,255,.18);
@@ -730,6 +763,26 @@
     /* lock page scroll when modal open */
     html.upLockScroll, body.upLockScroll{overflow:hidden !important; height:100% !important;}
     
+
+    /* --- Mini Panel scrollbar (match theme) --- */
+    .upBody{scrollbar-width: thin; scrollbar-color: rgba(155,127,255,.65) rgba(255,255,255,.10);}
+    .upBody::-webkit-scrollbar{width: 12px;}
+    .upBody::-webkit-scrollbar-track{
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 999px;
+      margin: 10px 6px;
+    }
+    .upBody::-webkit-scrollbar-thumb{
+      background: linear-gradient(180deg, rgba(155,127,255,.75), rgba(0,210,255,.35));
+      border: 3px solid rgba(35,26,73,.75);
+      border-radius: 999px;
+      box-shadow: 0 6px 20px rgba(0,0,0,.25);
+    }
+    .upBody::-webkit-scrollbar-thumb:hover{
+      background: linear-gradient(180deg, rgba(155,127,255,.92), rgba(0,210,255,.45));
+    }
+
 </style>
 </head>
 <body>
@@ -1800,6 +1853,7 @@ function adminEndpointBase(cfg){
       UP.events.forEach((ev, i)=>{
         const row = document.createElement('div');
         row.className = 'evItem';
+        const expanded = !!ev._expanded;
         row.innerHTML = `
           <div class="dot ${_allowedAction(ev.action)}"></div>
           <select data-k="action" data-i="${i}">
@@ -1811,10 +1865,44 @@ function adminEndpointBase(cfg){
             <option value="EXTRA_FINISH">EXTRA_FINISH</option>
           </select>
           <input type="time" step="60" value="${escapeHtml(ev.time||'')}" data-k="time" data-i="${i}">
+          <button class="evMore" type="button" data-k="more" data-i="${i}" title="Extinde câmpuri">${expanded ? '▾' : '▸'}</button>
           <button class="evDel" type="button" data-k="del" data-i="${i}" title="Șterge">🗑</button>
         `;
         wrap.appendChild(row);
         row.querySelector('select').value = _allowedAction(ev.action);
+
+        // details block (Excel columns)
+        const det = document.createElement('div');
+        det.className = 'evDetails' + (expanded ? ' show' : '');
+        det.setAttribute('data-i', String(i));
+        det.innerHTML = `
+          <div class="evGrid">
+            <div class="upField"><label>Marcaj de timp</label><input data-k="formTs" data-i="${i}" value="${escapeHtml(ev.formTs||'')}" placeholder="DD.MM.YYYY HH:mm:ss"></div>
+            <div class="upField"><label>Name</label><input data-k="name" data-i="${i}" value="${escapeHtml(ev.name||UP.name||'')}" placeholder="Nume"></div>
+
+            <div class="upField"><label>Email personal</label><input data-k="emailPersonal" data-i="${i}" value="${escapeHtml(ev.emailPersonal||'')}" placeholder="email@..."></div>
+            <div class="upField"><label>Timestamp (ISO)</label><input data-k="isoTs" data-i="${i}" value="${escapeHtml(ev.isoTs||'')}" placeholder="2025-11-05T08:33:33.358Z"></div>
+
+            <div class="upField"><label>Tip de activitate</label><input data-k="tip" data-i="${i}" value="${escapeHtml(ev.tip||'')}" placeholder="birou-lucrare / teren / ..."></div>
+            <div class="upField"><label>Device</label><input data-k="device" data-i="${i}" value="${escapeHtml(ev.device||'')}" placeholder="Mozilla/5.0 ..."></div>
+
+            <div class="upField"><label>Latitude</label><input type="number" step="0.000001" data-k="lat" data-i="${i}" value="${escapeHtml(ev.lat||'')}" placeholder="46.7874"></div>
+            <div class="upField"><label>Longitude</label><input type="number" step="0.000001" data-k="lon" data-i="${i}" value="${escapeHtml(ev.lon||'')}" placeholder="23.628"></div>
+
+            <div class="upField"><label>Accuracy (m)</label><input type="number" step="0.1" data-k="acc" data-i="${i}" value="${escapeHtml(ev.acc||'')}" placeholder="10"></div>
+            <div class="upField"><label>MapsLink</label><input data-k="mapsLink" data-i="${i}" value="${escapeHtml(ev.mapsLink||'')}" placeholder="https://maps.google.com/?q=..."></div>
+
+            <div class="upField"><label>Locations</label><input data-k="locations" data-i="${i}" value="${escapeHtml(ev.locations||'')}" placeholder="serv / ..."></div>
+            <div class="upField"><label>Departament</label><input data-k="dept" data-i="${i}" value="${escapeHtml(ev.dept||UP.dept||'')}" placeholder="productie"></div>
+
+            <div class="upField"><label>Durata (ore)</label><input type="number" step="0.01" data-k="durataOre" data-i="${i}" value="${escapeHtml(ev.durataOre||'')}" placeholder="0.00"></div>
+            <div class="upField"><label>Suplimentar (h)</label><input type="number" step="0.01" data-k="suplimentarH" data-i="${i}" value="${escapeHtml(ev.suplimentarH||'')}" placeholder="0.00"></div>
+
+            <div class="upField"><label>Extra (h)</label><input type="number" step="0.01" data-k="extraH" data-i="${i}" value="${escapeHtml(ev.extraH||'')}" placeholder="0.00"></div>
+            <div class="upField"><label>Notes</label><textarea data-k="notes" data-i="${i}" placeholder="Notă...">${escapeHtml(ev.notes||'')}</textarea></div>
+          </div>
+        `;
+        wrap.appendChild(det);
       });
       _renderStats();
       _renderTimeline();
@@ -1844,11 +1932,27 @@ function adminEndpointBase(cfg){
 
         const evs = Array.isArray(data.events) ? data.events : [];
         UP.events = evs.map(ev => ({
-          time: String(ev.localTime || ev.time || '').slice(0,5),
-          action: _allowedAction(ev.action || ev.rawAction || ev.Action || 'START')
-        })).filter(ev => ev.time);
-
-        qs('#upAvatar').textContent = _upInit();
+          time: String(ev.localTime || ev.time || ev.hhmm || '').slice(0,5),
+          action: _allowedAction(ev.action || ev.rawAction || ev.Action || 'START'),
+          // extra columns (best-effort)
+          formTs: ev.formTs || ev.formTimestamp || ev.marcaj || ev.marcajDeTimp || ev['Marcaj de timp'] || '',
+          name: ev.name || ev.Name || ev.nume || ev['Name'] || UP.name || '',
+          emailPersonal: ev.emailPersonal || ev.email || ev['Email personal'] || '',
+          isoTs: ev.isoTs || ev.Timestamp || ev.timestamp || ev.isoTimestamp || ev['Timestamp'] || '',
+          tip: ev.tip || ev.tipActivitate || ev['Tip de activitate'] || '',
+          lat: ev.lat || ev.latitude || ev['Latitude'] || '',
+          lon: ev.lon || ev.longitude || ev['Longitude'] || '',
+          acc: ev.acc || ev.accuracy || ev['Accuracy(m)'] || '',
+          device: ev.device || ev.Device || '',
+          notes: ev.notes || ev.Notes || '',
+          mapsLink: ev.mapsLink || ev.MapsLink || '',
+          locations: ev.locations || ev.Locations || '',
+          durataOre: ev.durataOre || ev['Durata (ore)'] || '',
+          suplimentarH: ev.suplimentarH || ev.suplimentar || ev['Suplimentar (h)'] || '',
+          extraH: ev.extraH || ev.extra || ev['Extra (h)'] || '',
+          dept: ev.dept || ev.Departament || UP.dept || '',
+          _expanded: false
+        })).filter(ev => ev.time);qs('#upAvatar').textContent = _upInit();
         qs('#upEmpEmail').textContent = UP.email || '—';
         qs('#upEmpChat').textContent = (UP.chat && String(UP.chat).trim()) ? String(UP.chat).trim() : '—';
         qs('#upEmpDept').textContent = UP.dept || '—';
@@ -1887,7 +1991,26 @@ function adminEndpointBase(cfg){
           reason: 'Admin mini panel',
           note: UP.note,
           tags: Array.from(UP.tags),
-          events: UP.events.map(ev => ({ time: ev.time, action: ev.action }))
+          events: UP.events.map(ev => ({
+            time: ev.time,
+            action: ev.action,
+            formTs: ev.formTs || '',
+            name: ev.name || UP.name || '',
+            emailPersonal: ev.emailPersonal || '',
+            isoTs: ev.isoTs || '',
+            tip: ev.tip || '',
+            lat: ev.lat || '',
+            lon: ev.lon || '',
+            acc: ev.acc || '',
+            device: ev.device || '',
+            notes: ev.notes || '',
+            mapsLink: ev.mapsLink || '',
+            locations: ev.locations || '',
+            durataOre: ev.durataOre || '',
+            suplimentarH: ev.suplimentarH || '',
+            extraH: ev.extraH || '',
+            dept: ev.dept || UP.dept || ''
+          })))
         };
 
         const b64 = _b64ws(JSON.stringify(payload));
@@ -1932,8 +2055,12 @@ function adminEndpointBase(cfg){
       document.querySelectorAll('.upChip').forEach(c=> c.classList.remove('on'));
       _fillManagerSelect();
 
-      document.documentElement.classList.add('up-lock');
-      const ov = qs('#upOverlay');
+            const ov = qs('#upOverlay');
+      // ensure overlay is a direct child of <body> (avoids fixed/transform issues)
+      if (ov && ov.parentElement !== document.body) document.body.appendChild(ov);
+      // lock page scroll and avoid layout shift
+      const sbw = window.innerWidth - document.documentElement.clientWidth;
+      if (sbw > 0) document.body.style.paddingRight = sbw + 'px';
       ov.classList.add('show');
       ov.setAttribute('aria-hidden','false');
       document.documentElement.classList.add('upLockScroll');
@@ -1945,7 +2072,11 @@ function adminEndpointBase(cfg){
     function _closePanel(){
       const ov = qs('#upOverlay');
       ov.classList.remove('show');
-      document.documentElement.classList.remove('up-lock');
+            document.documentElement.classList.remove('up-lock');
+      document.body.classList.remove('up-lock');
+document.documentElement.classList.remove('upLockScroll');
+      document.body.classList.remove('upLockScroll');
+      document.body.style.paddingRight = '';
       ov.setAttribute('aria-hidden','true');
       _upShowErr('');
     }
@@ -2005,25 +2136,39 @@ function adminEndpointBase(cfg){
         _renderEvents();
       });
 
+      qs('#upEvents').addEventListener('input', (e)=>{
+        const i = parseInt(e.target.getAttribute('data-i')||'-1',10);
+        const k = e.target.getAttribute('data-k');
+        if (i<0 || i>=UP.events.length || !k) return;
+        if (k==='notes') { UP.events[i].notes = String(e.target.value||''); }
+      });
+
       qs('#upEvents').addEventListener('change', (e)=>{
         const i = parseInt(e.target.getAttribute('data-i')||'-1',10);
         const k = e.target.getAttribute('data-k');
-        if (i<0 || i>=UP.events.length) return;
-        if (k=='time') UP.events[i].time = String(e.target.value||'').slice(0,5);
-        if (k=='action') UP.events[i].action = _allowedAction(e.target.value);
+        if (i<0 || i>=UP.events.length || !k) return;
+        const v = (e.target.value==null) ? '' : String(e.target.value);
+        if (k==='time') UP.events[i].time = v.slice(0,5);
+        else if (k==='action') UP.events[i].action = _allowedAction(v);
+        else UP.events[i][k] = v;
         _renderEvents();
-      });
-
-      qs('#upEvents').addEventListener('click', (e)=>{
+      });qs('#upEvents').addEventListener('click', (e)=>{
+        const more = e.target.closest('[data-k="more"]');
+        if (more){
+          const i = parseInt(more.getAttribute('data-i')||'-1',10);
+          if (i>=0 && i<UP.events.length){
+            UP.events[i]._expanded = !UP.events[i]._expanded;
+            _renderEvents();
+          }
+          return;
+        }
         const del = e.target.closest('[data-k="del"]');
         if (!del) return;
         const i = parseInt(del.getAttribute('data-i')||'-1',10);
         if (i<0 || i>=UP.events.length) return;
         UP.events.splice(i,1);
         _renderEvents();
-      });
-
-      qs('#upDate').addEventListener('change', ()=>{
+      });qs('#upDate').addEventListener('change', ()=>{
         UP.date = String(qs('#upDate').value || '').trim();
         if (UP.date) _loadDay();
       });
