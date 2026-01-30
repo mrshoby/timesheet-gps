@@ -1468,7 +1468,21 @@ function adminEndpointBase(cfg){
     hookSearch();
 
 
-    // ===== Mini User Panel PRO (mov) =====
+    
+    function _getAdminKey(){
+      // priority: localStorage, then CFG/admin config
+      try{
+        const v = localStorage.getItem('pontaj_adminKey') || localStorage.getItem('pontaj/adminKey') || localStorage.getItem('ADMIN_KEY');
+        if (v && String(v).trim()) return String(v).trim();
+      }catch(_){}
+      try{
+        const cfg = window.CFG || {};
+        if (cfg.adminKey && String(cfg.adminKey).trim()) return String(cfg.adminKey).trim();
+      }catch(_){}
+      return '';
+    }
+
+// ===== Mini User Panel PRO (mov) =====
     const ADMINS = { list: [], byEmail: new Map(), byName: new Map() };
     const MANAGERS = { map: new Map() }; // empNameLower -> {email,name}
 
@@ -1985,8 +1999,8 @@ function adminEndpointBase(cfg){
         }catch(_){}
 
         const payload = {
-          admin,
-          adminKey: (()=>{ try{ const k=(cfg && cfg.adminKey)?String(cfg.adminKey):''; const ls=(localStorage.getItem('ADMIN_KEY')||localStorage.getItem('pontaj_adminKey')||''); return (k||ls||'').trim(); }catch(_){ return ''; } })(),
+          
+          adminKey: _getAdminKey(),admin,
           name: UP.name,
           date: UP.date,
           reason: 'Admin mini panel',
@@ -2015,14 +2029,39 @@ function adminEndpointBase(cfg){
         };
 
         const b64 = _b64ws(JSON.stringify(payload));
-        const url = base + '?fn=fixDayApply&payload=' + encodeURIComponent(b64) + _keyQS(cfg);
-        const res = await _jsonp(url);
+        const k = _getAdminKey();
+
+        // Large payload? Use chunked JSONP upload to avoid URL limits.
+        const CHUNK = 2400;
+        let res;
+        if (b64.length <= CHUNK){
+          const url = base + '?fn=fixDayApply&payload=' + encodeURIComponent(b64)
+            + (k ? ('&key=' + encodeURIComponent(k)) : '');
+          res = await _jsonp(url);
+        } else {
+          const sid = 'fd' + Date.now() + '_' + Math.random().toString(16).slice(2);
+          const total = Math.ceil(b64.length / CHUNK);
+          for (let i=0;i<total;i++){
+            const part = b64.slice(i*CHUNK, (i+1)*CHUNK);
+            const urlC = base + '?fn=fixDayApplyChunk&sid=' + encodeURIComponent(sid)
+              + '&i=' + i + '&total=' + total
+              + '&data=' + encodeURIComponent(part)
+              + (k ? ('&key=' + encodeURIComponent(k)) : '');
+            const rC = await _jsonp(urlC);
+            if (!rC || !rC.ok) throw new Error((rC && rC.error) ? rC.error : ('Chunk upload failed ' + i));
+          }
+          const urlF = base + '?fn=fixDayApplyFinalize&sid=' + encodeURIComponent(sid)
+            + '&total=' + total
+            + (k ? ('&key=' + encodeURIComponent(k)) : '');
+          res = await _jsonp(urlF);
+        }
         if (!res || !res.ok) throw new Error((res && res.error) ? res.error : 'Salvare eșuată');
 
         if (typeof window.__adminDashboardRefresh === 'function'){
           await window.__adminDashboardRefresh();
         }
-        _closePanel();
+        _upShowErr('Salvat' + (res.sheet ? (' ['+res.sheet+']') : '') + ': updated ' + (res.updated||0) + ', appended ' + (res.appended||0) + ', deleted ' + (res.deleted||0));
+        setTimeout(()=>{ _closePanel(); }, 650);
       }catch(err){
         console.error(err);
         _upShowErr('Eroare salvare: ' + (err && err.message ? err.message : err));
