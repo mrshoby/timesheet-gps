@@ -1468,7 +1468,21 @@ function adminEndpointBase(cfg){
     hookSearch();
 
 
-    // ===== Mini User Panel PRO (mov) =====
+    
+    function _getAdminKey(){
+      // priority: localStorage, then CFG/admin config
+      try{
+        const v = localStorage.getItem('pontaj_adminKey') || localStorage.getItem('pontaj/adminKey') || localStorage.getItem('ADMIN_KEY');
+        if (v && String(v).trim()) return String(v).trim();
+      }catch(_){}
+      try{
+        const cfg = window.CFG || {};
+        if (cfg.adminKey && String(cfg.adminKey).trim()) return String(cfg.adminKey).trim();
+      }catch(_){}
+      return '';
+    }
+
+// ===== Mini User Panel PRO (mov) =====
     const ADMINS = { list: [], byEmail: new Map(), byName: new Map() };
     const MANAGERS = { map: new Map() }; // empNameLower -> {email,name}
 
@@ -1985,7 +1999,8 @@ function adminEndpointBase(cfg){
         }catch(_){}
 
         const payload = {
-          admin,
+          
+          adminKey: _getAdminKey(),admin,
           name: UP.name,
           date: UP.date,
           reason: 'Admin mini panel',
@@ -2010,18 +2025,21 @@ function adminEndpointBase(cfg){
             suplimentarH: ev.suplimentarH || '',
             extraH: ev.extraH || '',
             dept: ev.dept || UP.dept || ''
-          }))
+          })))
         };
 
         const b64 = _b64ws(JSON.stringify(payload));
-        const url = base + '?fn=fixDayApply&payload=' + encodeURIComponent(b64);
+        const k = _getAdminKey();
+        const url = base + '?fn=fixDayApply&payload=' + encodeURIComponent(b64) + (k ? ('&key=' + encodeURIComponent(k)) : '');
+        if (url.length > 7000) { throw new Error('Payload prea mare pentru JSONP (URL > 7000). Redu câmpurile extinse (Device/MapsLink) sau dezactivează expand.'); }
         const res = await _jsonp(url);
         if (!res || !res.ok) throw new Error((res && res.error) ? res.error : 'Salvare eșuată');
 
         if (typeof window.__adminDashboardRefresh === 'function'){
           await window.__adminDashboardRefresh();
         }
-        _closePanel();
+        _upShowErr('Salvat: updated ' + (res.updated||0) + ', appended ' + (res.appended||0) + ', deleted ' + (res.deleted||0));
+        setTimeout(()=>{ _closePanel(); }, 650);
       }catch(err){
         console.error(err);
         _upShowErr('Eroare salvare: ' + (err && err.message ? err.message : err));
