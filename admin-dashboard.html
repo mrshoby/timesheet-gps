@@ -1997,6 +1997,9 @@ function adminEndpointBase(cfg){
       _upShowErr('');
       _upSetBusy(true);
 
+      // ensure latest edits (even if inputs not blurred)
+      _syncEventsFromDom();
+
       try{
         const base = _webappBase();
         if (!base) throw new Error('Lipsește webappUrl/adminEventsEndpoint în config.json');
@@ -2050,9 +2053,66 @@ function adminEndpointBase(cfg){
       }
     }
 
-    async function _saveDay(){
+    
+    function _syncEventsFromDom(){
+      try{
+        const nodes = document.querySelectorAll('#upEvents [data-k][data-i]');
+        nodes.forEach(el=>{
+          const k = el.getAttribute('data-k');
+          if (!k || k==='more' || k==='del') return;
+          const i = parseInt(el.getAttribute('data-i')||'-1',10);
+          if (i<0 || i>=UP.events.length) return;
+
+          // Only sync inputs/selects/textarea
+          const tag = (el.tagName||'').toLowerCase();
+          if (tag !== 'input' && tag !== 'select' && tag !== 'textarea') return;
+
+          let v = (el.value==null) ? '' : String(el.value);
+          if (k==='action') v = _allowedAction(v);
+          if (k==='time') v = v.slice(0,5);
+
+          UP.events[i][k] = v;
+        });
+      }catch(err){
+        console.warn('sync dom failed', err);
+      }
+    }
+    async function _jsonpFixDayChunked(base, payloadB64, adminKey){
+      // JSONP chunk upload -> finalize (uses fn=fixDayApplyChunk / fn=fixDayApplyFinalize)
+      const sid = 'fd_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2,8);
+      const chunkSize = 2500; // keep URL small
+      const total = Math.ceil(payloadB64.length / chunkSize) || 1;
+
+      for (let i=0; i<total; i++){
+        const part = payloadB64.slice(i*chunkSize, (i+1)*chunkSize);
+        const u = base
+          + '?fn=fixDayApplyChunk'
+          + '&sid=' + encodeURIComponent(sid)
+          + '&i=' + i
+          + '&n=' + total
+          + '&part=' + encodeURIComponent(part)
+          + (adminKey ? ('&key=' + encodeURIComponent(adminKey)) : '');
+        const r = await _jsonp(u);
+        if (!r || !r.ok) throw new Error((r && r.error) ? r.error : ('Chunk upload eșuat: '+i+'/'+total));
+      }
+
+      const u2 = base
+        + '?fn=fixDayApplyFinalize'
+        + '&sid=' + encodeURIComponent(sid)
+        + '&n=' + total
+        + (adminKey ? ('&key=' + encodeURIComponent(adminKey)) : '');
+      const res = await _jsonp(u2);
+      return res;
+    }
+
+
+
+async function _saveDay(){
       _upShowErr('');
       _upSetBusy(true);
+
+      // ensure latest edits (even if inputs not blurred)
+      _syncEventsFromDom();
 
       try{
         const base = _webappBase();
@@ -2069,7 +2129,9 @@ function adminEndpointBase(cfg){
 
         const payload = {
           
-          adminKey: _getAdminKey(),admin,
+          adminKey: _getAdminKey(),
+          admin: admin,
+
           name: UP.name,
           date: UP.date,
           reason: 'Admin mini panel',
@@ -2100,8 +2162,14 @@ function adminEndpointBase(cfg){
         const b64 = _b64ws(JSON.stringify(payload));
         const k = _getAdminKey();
         const url = base + '?fn=fixDayApply&payload=' + encodeURIComponent(b64) + (k ? ('&key=' + encodeURIComponent(k)) : '');
-        if (url.length > 7000) { throw new Error('Payload prea mare pentru JSONP (URL > 7000). Redu câmpurile extinse (Device/MapsLink) sau dezactivează expand.'); }
-        const res = await _jsonp(url);
+
+        let res;
+        if (url.length <= 7000){
+          res = await _jsonp(url);
+        }else{
+          // fallback: chunked JSONP (works even with huge Device/MapsLink fields)
+          res = await _jsonpFixDayChunked(base, b64, k);
+        }
         if (!res || !res.ok) throw new Error((res && res.error) ? res.error : 'Salvare eșuată');
 
         if (typeof window.__adminDashboardRefresh === 'function'){
@@ -2227,7 +2295,15 @@ document.documentElement.classList.remove('upLockScroll');
         const i = parseInt(e.target.getAttribute('data-i')||'-1',10);
         const k = e.target.getAttribute('data-k');
         if (i<0 || i>=UP.events.length || !k) return;
-        if (k==='notes') { UP.events[i].notes = String(e.target.value||''); }
+        // ignore buttons
+        const tag = (e.target.tagName||'').toLowerCase();
+        if (tag !== 'input' && tag !== 'select' && tag !== 'textarea') return;
+
+        let v = (e.target.value==null) ? '' : String(e.target.value);
+        if (k==='time') v = v.slice(0,5);
+        if (k==='action') v = _allowedAction(v);
+
+        UP.events[i][k] = v;
       });
 
       qs('#upEvents').addEventListener('change', (e)=>{
@@ -2235,10 +2311,13 @@ document.documentElement.classList.remove('upLockScroll');
         const k = e.target.getAttribute('data-k');
         if (i<0 || i>=UP.events.length || !k) return;
         const v = (e.target.value==null) ? '' : String(e.target.value);
-        if (k==='time') UP.events[i].time = v.slice(0,5);
-        else if (k==='action') UP.events[i].action = _allowedAction(v);
-        else UP.events[i][k] = v;
-        _renderEvents();
+
+        let rerender = false;
+        if (k==='time') { UP.events[i].time = v.slice(0,5); rerender = true; }
+        else if (k==='action') { UP.events[i].action = _allowedAction(v); rerender = true; }
+        else { UP.events[i][k] = v; }
+
+        if (rerender) _renderEvents();
       });qs('#upEvents').addEventListener('click', (e)=>{
         const more = e.target.closest('[data-k="more"]');
         if (more){
