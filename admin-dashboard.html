@@ -2025,7 +2025,7 @@ function adminEndpointBase(cfg){
             suplimentarH: ev.suplimentarH || '',
             extraH: ev.extraH || '',
             dept: ev.dept || UP.dept || ''
-          })
+          }))
         };
 
         const b64 = _b64ws(JSON.stringify(payload));
