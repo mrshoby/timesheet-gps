@@ -1417,7 +1417,7 @@ function adminEndpointBase(cfg){
       return {
         name: emp.name || emp.email,
         dept: emp.dept,
-        manager: (emp.isAdmin ? 'Admin' : (emp.manager || emp.managerEmail || '—')),
+        manager: (()=>{ const nm = emp.name || emp.email; const isAdm = _isAdminName(nm); if (isAdm) return 'Admin'; const mg = _getManagerFor(nm); return (mg && (mg.label||mg.name||mg.id)) ? (mg.label||mg.name||mg.id) : '—'; })(),
         initials,
         workPct,
         workLabel: fmtTimeHHMM(c.workMin),
@@ -1497,7 +1497,7 @@ function adminEndpointBase(cfg){
     }
 
 // ===== Mini User Panel PRO (mov) =====
-    const ADMINS = { list: [], byEmail: new Map(), byName: new Map() };
+    const ADMINS = { list: [], byId: new Map(), byName: new Map() };
     const MANAGERS = { map: new Map() }; // empNameLower -> {email,name}
 
     const UP = {
@@ -1578,24 +1578,25 @@ function adminEndpointBase(cfg){
         if (!r.ok) throw new Error('admin-auth.json HTTP ' + r.status);
         const data = await r.json();
 
-        // Accept multiple shapes: array or {admins:[...]} or {list:[...]}
+        // Accept: {admins:[{label,usernameHash,...}]} or array
         const arr = Array.isArray(data) ? data : (data.admins || data.list || data.users || []);
-        ADMINS.list = arr
+        ADMINS.list = (arr || [])
           .map(a => ({
-            name: String(a.name || a.n || a.user || a.username || '').trim(),
-            email: String(a.email || a.e || a.mail || '').trim()
+            id: String(a.usernameHash || a.userHash || a.id || a.user || a.key || '').trim(),
+            label: String(a.label || a.name || a.n || a.title || a.userLabel || '').trim()
           }))
-          .filter(a => a.name || a.email);
+          .filter(a => a.id && a.label);
 
-        ADMINS.byEmail = new Map(ADMINS.list.filter(a=>a.email).map(a=>[a.email.toLowerCase(), a]));
-        ADMINS.byName = new Map(ADMINS.list.filter(a=>a.name).map(a=>[a.name.toLowerCase(), a]));
+        // quick lookups
+        ADMINS.byId = new Map(ADMINS.list.map(a => [a.id, a]));
+        ADMINS.byName = new Map(ADMINS.list.map(a => [a.label.toLowerCase(), a]));
       }catch(err){
         console.warn('Nu pot încărca admin-auth.json:', err);
       }
     }
 
     async function _loadManagersMap(){
-      // optional server-side map via JSONP
+      // server-side map via JSONP (persisted in spreadsheet)
       try{
         const base = _webappBase();
         if (!base) return;
@@ -1604,6 +1605,12 @@ function adminEndpointBase(cfg){
         if (!data || !data.ok || !data.map) return;
         const mp = data.map || {};
         MANAGERS.map = new Map(Object.keys(mp).map(k => [String(k).toLowerCase(), mp[k]]));
+        // optional admins list from server (same as admin-auth)
+        if (Array.isArray(data.admins) && data.admins.length){
+          ADMINS.list = data.admins.map(a=>({id:String(a.id||a.usernameHash||'').trim(), label:String(a.label||a.name||'').trim()})).filter(a=>a.id&&a.label);
+          ADMINS.byId = new Map(ADMINS.list.map(a=>[a.id,a]));
+          ADMINS.byName = new Map(ADMINS.list.map(a=>[a.label.toLowerCase(), a]));
+        }
       }catch(err){
         // fallback local storage
         try{
@@ -1627,24 +1634,28 @@ function adminEndpointBase(cfg){
       return MANAGERS.map.get(k) || null;
     }
 
-    async function _setManagerFor(empName, managerEmail){
+    async function _setManagerFor(empName, managerId){
       const empKey = String(empName||'').trim().toLowerCase();
       if (!empKey) return {ok:false, error:'Nume invalid'};
-      const mgr = managerEmail ? String(managerEmail).trim() : '';
+      const mgrId = managerId ? String(managerId).trim() : '';
+
       // server-side if available
       try{
         const base = _webappBase();
         if (base){
-          const url = base + '?fn=adminSetManager&name=' + encodeURIComponent(empName) + '&managerEmail=' + encodeURIComponent(mgr) + _keyQS();
+          const url = base + '?fn=adminSetManager&name=' + encodeURIComponent(empName) + '&managerId=' + encodeURIComponent(mgrId) + '&managerLabel=' + encodeURIComponent((ADMINS.byId && ADMINS.byId.get(mgrId) ? ADMINS.byId.get(mgrId).label : '')) + _keyQS();
           const data = await _jsonp(url);
           if (data && data.ok){
-            // refresh map from response if provided
             if (data.map){
               const mp = data.map;
               MANAGERS.map = new Map(Object.keys(mp).map(k => [String(k).toLowerCase(), mp[k]]));
             }else{
-              if (mgr) MANAGERS.map.set(empKey, {email:mgr});
-              else MANAGERS.map.delete(empKey);
+              if (mgrId){
+                const a = ADMINS.byId && ADMINS.byId.get(mgrId);
+                MANAGERS.map.set(empKey, {id:mgrId, label:(a?a.label:'')});
+              } else {
+                MANAGERS.map.delete(empKey);
+              }
             }
             // local cache
             const o = {};
@@ -1658,8 +1669,12 @@ function adminEndpointBase(cfg){
       }
 
       // local fallback
-      if (mgr) MANAGERS.map.set(empKey, {email:mgr});
-      else MANAGERS.map.delete(empKey);
+      if (mgrId){
+        const a = ADMINS.byId && ADMINS.byId.get(mgrId);
+        MANAGERS.map.set(empKey, {id:mgrId, label:(a?a.label:'')});
+      } else {
+        MANAGERS.map.delete(empKey);
+      }
       const o = {};
       for (const [k,v] of MANAGERS.map.entries()) o[k]=v;
       localStorage.setItem('pontaj/managers/v1', JSON.stringify(o));
@@ -2244,11 +2259,15 @@ document.documentElement.classList.remove('upLockScroll');
       const sel = qs('#upManagerSelect');
       if (!sel) return;
       sel.innerHTML = '';
+
       // If employee is admin, hide manager controls
       const isAdm = _isAdminName(UP.name);
-      qs('#mgrWrap').style.display = isAdm ? 'none' : '';
-      qs('#upAssignManager').style.display = isAdm ? 'none' : '';
-      qs('#upClearManager').style.display = isAdm ? 'none' : '';
+      const wrap = qs('#mgrWrap');
+      const b1 = qs('#upAssignManager');
+      const b2 = qs('#upClearManager');
+      if (wrap) wrap.style.display = isAdm ? 'none' : '';
+      if (b1) b1.style.display = isAdm ? 'none' : '';
+      if (b2) b2.style.display = isAdm ? 'none' : '';
       if (isAdm) return;
 
       const opt0 = document.createElement('option');
@@ -2256,15 +2275,15 @@ document.documentElement.classList.remove('upLockScroll');
       opt0.textContent = '— Selectează manager —';
       sel.appendChild(opt0);
 
-      for (const a of ADMINS.list){
+      for (const a of (ADMINS.list || [])){
         const o = document.createElement('option');
-        o.value = a.email || a.name;
-        o.textContent = a.name ? (a.name + (a.email ? ' • ' + a.email : '')) : (a.email || 'admin');
+        o.value = a.id;
+        o.textContent = a.label;
         sel.appendChild(o);
       }
 
       const cur = _getManagerFor(UP.name);
-      if (cur && cur.email) sel.value = cur.email;
+      if (cur && cur.id) sel.value = cur.id;
       else sel.value = '';
     }
 
