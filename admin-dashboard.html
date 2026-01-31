@@ -681,7 +681,21 @@
     .dot2.EXTRA_FINISH{ background:#8e44ad; }
 
     .rList{ display:flex; gap:8px; flex-wrap:wrap; margin-top: 10px; }
-    .rChip{ display:inline-flex; align-items:center; gap:8px; padding: 8px 10px; border-radius: 14px;
+    
+    /* XY chart (ora × actiune) — in locul ruler-ului dublat */
+    .xyChart{ margin-top: 12px; border-radius: 18px; padding: 12px 12px 10px;
+      background: rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.06); }
+    .xyHead{ display:flex; align-items:baseline; justify-content:space-between; margin-bottom: 8px; gap:10px; }
+    .xyTitle{ font-weight: 900; letter-spacing:.2px; }
+    .xyHint{ font-size: 12px; opacity:.75; }
+    #upXYSvg{ width:100%; height: 160px; display:block; }
+    .xyGrid{ stroke: rgba(255,255,255,.10); stroke-width:1; }
+    .xyAxis{ stroke: rgba(255,255,255,.18); stroke-width:1.2; }
+    .xyLbl{ fill: rgba(255,255,255,.80); font-size: 12px; }
+    .xyTick{ fill: rgba(255,255,255,.65); font-size: 11px; }
+    .xyLine{ fill: none; stroke: rgba(255,255,255,.55); stroke-width: 2; }
+    .xyDot{ stroke: rgba(0,0,0,.25); stroke-width: 1; }
+.rChip{ display:inline-flex; align-items:center; gap:8px; padding: 8px 10px; border-radius: 14px;
       background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.08); font-weight:950; }
     .rChip .tt{ font-size: 11px; color: rgba(255,255,255,.90); }
     .rChip .aa{ font-size: 11px; color: rgba(255,255,255,.70); }
@@ -1878,49 +1892,106 @@ function adminEndpointBase(cfg){
         legend.appendChild(chip);
       }
     }
+    
     function _renderUnderRuler(){
-      const marks = qs('#upMarks');
-      const list = qs('#upActionList');
-      if (!marks || !list) return;
+      const svg = qs('#upXYSvg');
+      if (!svg) return;
 
-      marks.innerHTML = '';
-      list.innerHTML = '';
+      // clear svg
+      while (svg.firstChild) svg.removeChild(svg.firstChild);
 
       const evs = UP.events
         .map(ev => ({ action:_allowedAction(ev.action), time:String(ev.time||'').slice(0,5), m:_toMin(ev.time) }))
         .filter(ev => ev.m!=null)
         .sort((a,b)=> a.m-b.m);
 
-      if (!evs.length) return;
+      const W = 1000, H = 220;
+      const PAD_L = 140, PAD_R = 24, PAD_T = 18, PAD_B = 34;
 
-      // Use same axis as timeline when available
-      let minM = 0, maxM = 1440, span = 1440;
-      if (UP._axis && typeof UP._axis.minM==='number'){
-        minM = UP._axis.minM; maxM = UP._axis.maxM; span = Math.max(1, UP._axis.span || (maxM-minM));
+      function addEl(tag, attrs={}, text=null){
+        const el = document.createElementNS('http://www.w3.org/2000/svg', tag);
+        for (const k in attrs) el.setAttribute(k, String(attrs[k]));
+        if (text!=null) el.textContent = text;
+        svg.appendChild(el);
+        return el;
       }
 
-      // Marks under line (time + action)
-      for (const ev of evs){
-        const left = ((ev.m - minM) / span) * 100;
-        const mk = document.createElement('div');
-        mk.className = 'mark';
-        mk.style.left = `calc(${left}% + 14px)`;
-        mk.innerHTML = `
-          <div class="tick"></div>
-          <div class="t">${escapeHtml(ev.time)}</div>
-          <div class="a">${escapeHtml(ev.action)}</div>
-        `;
-        marks.appendChild(mk);
+      if (!evs.length){
+        addEl('text', { x: W/2, y: H/2, 'text-anchor':'middle', class:'xyTick' }, 'Nu există evenimente pentru ziua selectată');
+        return;
+      }
 
-        // Chips list
-        const chip = document.createElement('div');
-        chip.className = 'rChip';
-        const cc = _eventColorClass(ev.action);
-        chip.innerHTML = `<span class="tlDot ${cc}"></span><span class="tt">${escapeHtml(ev.time)}</span><span class="aa">${escapeHtml(ev.action)}</span>`;
-        list.appendChild(chip);
+      // axis from timeline if available
+      let minM = evs[0].m, maxM = evs[evs.length-1].m, span = Math.max(1, maxM-minM);
+      if (UP._axis && typeof UP._axis.minM === 'number'){
+        minM = UP._axis.minM; maxM = UP._axis.maxM; span = Math.max(1, UP._axis.span || (maxM-minM));
+      } else {
+        // small padding like timeline
+        const pad = 30;
+        minM = Math.max(0, minM - pad);
+        maxM = Math.min(1440, maxM + pad);
+        if (maxM - minM < 120){
+          const mid = (minM + maxM)/2;
+          minM = Math.max(0, Math.floor(mid - 60));
+          maxM = Math.min(1440, Math.ceil(mid + 60));
+        }
+        span = Math.max(1, maxM - minM);
+      }
+
+      // categories (Y)
+      const ORDER = ['START','PAUSE','UNPAUSE','FINISH','EXTRA_START','EXTRA_FINISH'];
+      const present = ORDER.filter(a => evs.some(e => e.action === a));
+      let cats = present.length ? present : Array.from(new Set(evs.map(e => e.action)));
+      // keep readable and stable
+      cats = cats.slice(0, 8);
+
+      const innerW = W - PAD_L - PAD_R;
+      const innerH = H - PAD_T - PAD_B;
+      const rowH = innerH / Math.max(1, cats.length);
+
+      const xOf = (m) => PAD_L + ((m - minM) / span) * innerW;
+      const yOf = (act) => PAD_T + (cats.indexOf(act) + 0.5) * rowH;
+
+      // grid: horizontal
+      for (let i=0;i<cats.length;i++){
+        const y = PAD_T + (i+0.5)*rowH;
+        addEl('line', { x1: PAD_L, y1: y, x2: W-PAD_R, y2: y, class:'xyGrid' });
+        addEl('text', { x: PAD_L-10, y: y+4, 'text-anchor':'end', class:'xyLbl' }, cats[i].replace('_',' '));
+      }
+
+      // grid: vertical ticks
+      const ticks = 5;
+      for (let i=0;i<ticks;i++){
+        const mm = Math.round(minM + (span*(i/(ticks-1))));
+        const x = xOf(mm);
+        addEl('line', { x1: x, y1: PAD_T, x2: x, y2: H-PAD_B, class:'xyGrid' });
+        addEl('text', { x: x, y: H-12, 'text-anchor':'middle', class:'xyTick' }, _fmt(mm));
+      }
+
+      // axis line bottom
+      addEl('line', { x1: PAD_L, y1: H-PAD_B, x2: W-PAD_R, y2: H-PAD_B, class:'xyAxis' });
+
+      // polyline (chronological)
+      const pts = evs.map(e => `${xOf(e.m).toFixed(1)},${yOf(e.action).toFixed(1)}`).join(' ');
+      addEl('polyline', { points: pts, class:'xyLine' });
+
+      // dots
+      const COLORS = {
+        work: 'rgba(46, 204, 113, .95)',
+        pause:'rgba(241,196,15,.98)',
+        finish:'rgba(231,76,60,.95)',
+        extra:'rgba(155,89,182,.95)'
+      };
+
+      for (const e of evs){
+        const cc = _eventColorClass(e.action);
+        const cx = xOf(e.m), cy = yOf(e.action);
+        const c = addEl('circle', { cx, cy, r: 6, class:'xyDot', fill: COLORS[cc] || COLORS.work });
+        const title = document.createElementNS('http://www.w3.org/2000/svg','title');
+        title.textContent = `${e.time} • ${e.action}`;
+        c.appendChild(title);
       }
     }
-
 
 
 
@@ -1997,9 +2068,6 @@ function adminEndpointBase(cfg){
       _upShowErr('');
       _upSetBusy(true);
 
-      // ensure latest edits (even if inputs not blurred)
-      _syncEventsFromDom();
-
       try{
         const base = _webappBase();
         if (!base) throw new Error('Lipsește webappUrl/adminEventsEndpoint în config.json');
@@ -2053,66 +2121,9 @@ function adminEndpointBase(cfg){
       }
     }
 
-    
-    function _syncEventsFromDom(){
-      try{
-        const nodes = document.querySelectorAll('#upEvents [data-k][data-i]');
-        nodes.forEach(el=>{
-          const k = el.getAttribute('data-k');
-          if (!k || k==='more' || k==='del') return;
-          const i = parseInt(el.getAttribute('data-i')||'-1',10);
-          if (i<0 || i>=UP.events.length) return;
-
-          // Only sync inputs/selects/textarea
-          const tag = (el.tagName||'').toLowerCase();
-          if (tag !== 'input' && tag !== 'select' && tag !== 'textarea') return;
-
-          let v = (el.value==null) ? '' : String(el.value);
-          if (k==='action') v = _allowedAction(v);
-          if (k==='time') v = v.slice(0,5);
-
-          UP.events[i][k] = v;
-        });
-      }catch(err){
-        console.warn('sync dom failed', err);
-      }
-    }
-    async function _jsonpFixDayChunked(base, payloadB64, adminKey){
-      // JSONP chunk upload -> finalize (uses fn=fixDayApplyChunk / fn=fixDayApplyFinalize)
-      const sid = 'fd_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2,8);
-      const chunkSize = 2500; // keep URL small
-      const total = Math.ceil(payloadB64.length / chunkSize) || 1;
-
-      for (let i=0; i<total; i++){
-        const part = payloadB64.slice(i*chunkSize, (i+1)*chunkSize);
-        const u = base
-          + '?fn=fixDayApplyChunk'
-          + '&sid=' + encodeURIComponent(sid)
-          + '&i=' + i
-          + '&n=' + total
-          + '&part=' + encodeURIComponent(part)
-          + (adminKey ? ('&key=' + encodeURIComponent(adminKey)) : '');
-        const r = await _jsonp(u);
-        if (!r || !r.ok) throw new Error((r && r.error) ? r.error : ('Chunk upload eșuat: '+i+'/'+total));
-      }
-
-      const u2 = base
-        + '?fn=fixDayApplyFinalize'
-        + '&sid=' + encodeURIComponent(sid)
-        + '&n=' + total
-        + (adminKey ? ('&key=' + encodeURIComponent(adminKey)) : '');
-      const res = await _jsonp(u2);
-      return res;
-    }
-
-
-
-async function _saveDay(){
+    async function _saveDay(){
       _upShowErr('');
       _upSetBusy(true);
-
-      // ensure latest edits (even if inputs not blurred)
-      _syncEventsFromDom();
 
       try{
         const base = _webappBase();
@@ -2129,9 +2140,7 @@ async function _saveDay(){
 
         const payload = {
           
-          adminKey: _getAdminKey(),
-          admin: admin,
-
+          adminKey: _getAdminKey(),admin,
           name: UP.name,
           date: UP.date,
           reason: 'Admin mini panel',
@@ -2162,14 +2171,8 @@ async function _saveDay(){
         const b64 = _b64ws(JSON.stringify(payload));
         const k = _getAdminKey();
         const url = base + '?fn=fixDayApply&payload=' + encodeURIComponent(b64) + (k ? ('&key=' + encodeURIComponent(k)) : '');
-
-        let res;
-        if (url.length <= 7000){
-          res = await _jsonp(url);
-        }else{
-          // fallback: chunked JSONP (works even with huge Device/MapsLink fields)
-          res = await _jsonpFixDayChunked(base, b64, k);
-        }
+        if (url.length > 7000) { throw new Error('Payload prea mare pentru JSONP (URL > 7000). Redu câmpurile extinse (Device/MapsLink) sau dezactivează expand.'); }
+        const res = await _jsonp(url);
         if (!res || !res.ok) throw new Error((res && res.error) ? res.error : 'Salvare eșuată');
 
         if (typeof window.__adminDashboardRefresh === 'function'){
@@ -2295,15 +2298,7 @@ document.documentElement.classList.remove('upLockScroll');
         const i = parseInt(e.target.getAttribute('data-i')||'-1',10);
         const k = e.target.getAttribute('data-k');
         if (i<0 || i>=UP.events.length || !k) return;
-        // ignore buttons
-        const tag = (e.target.tagName||'').toLowerCase();
-        if (tag !== 'input' && tag !== 'select' && tag !== 'textarea') return;
-
-        let v = (e.target.value==null) ? '' : String(e.target.value);
-        if (k==='time') v = v.slice(0,5);
-        if (k==='action') v = _allowedAction(v);
-
-        UP.events[i][k] = v;
+        if (k==='notes') { UP.events[i].notes = String(e.target.value||''); }
       });
 
       qs('#upEvents').addEventListener('change', (e)=>{
@@ -2311,13 +2306,10 @@ document.documentElement.classList.remove('upLockScroll');
         const k = e.target.getAttribute('data-k');
         if (i<0 || i>=UP.events.length || !k) return;
         const v = (e.target.value==null) ? '' : String(e.target.value);
-
-        let rerender = false;
-        if (k==='time') { UP.events[i].time = v.slice(0,5); rerender = true; }
-        else if (k==='action') { UP.events[i].action = _allowedAction(v); rerender = true; }
-        else { UP.events[i][k] = v; }
-
-        if (rerender) _renderEvents();
+        if (k==='time') UP.events[i].time = v.slice(0,5);
+        else if (k==='action') UP.events[i].action = _allowedAction(v);
+        else UP.events[i][k] = v;
+        _renderEvents();
       });qs('#upEvents').addEventListener('click', (e)=>{
         const more = e.target.closest('[data-k="more"]');
         if (more){
@@ -2534,11 +2526,13 @@ document.documentElement.classList.remove('upLockScroll');
           </div>
 
 
-          <div class="ruler">
-            <div class="rLine"></div>
-            <div class="rMarks" id="upMarks"></div>
+          <div class="xyChart" id="upXYChart" aria-label="Grafic activitate (ora vs acțiune)">
+            <div class="xyHead">
+              <div class="xyTitle">Grafic activitate (ora × acțiune)</div>
+              <div class="xyHint">X: oră • Y: acțiune</div>
+            </div>
+            <svg id="upXYSvg" viewBox="0 0 1000 220" preserveAspectRatio="none" role="img" aria-label="Grafic ora în funcție de activitate"></svg>
           </div>
-          <div class="rList" id="upActionList"></div>
 
           <div class="upErr" id="upErr"></div>
         </div>
