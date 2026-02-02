@@ -1097,8 +1097,42 @@ function adminEndpointBase(cfg){
     for (const e of events){
       const key = (e.email || e.name).toLowerCase();
       if (!map.has(key)){
-        map.set(key, {key, name:e.name || e.email, email:e.email||'', dept:e.dept||'', manager:e.manager||''});
+        map.set(key, {
+          key,
+          name: e.name || e.email,
+          email: e.email || '',
+          dept: e.dept || '',
+          // manager from events (legacy)
+          manager: e.manager || ''
+        });
+      }else{
+        // merge dept if missing
+        const cur = map.get(key);
+        if (!cur.dept && e.dept) cur.dept = e.dept;
       }
+    }
+
+    const arr = Array.from(map.values());
+
+    // enrich with role + assigned manager map
+    for (const emp of arr){
+      emp.isAdmin = _isAdminName(emp.name);
+      const m = _getManagerFor(emp.name);
+      if (m){
+        if (typeof m === 'string'){
+          emp.managerEmail = m;
+          emp.manager = m;
+        }else{
+          emp.managerEmail = (m.email || m.name || '');
+          emp.manager = (m.name || m.email || '');
+        }
+      }else{
+        emp.managerEmail = '';
+      }
+    }
+
+    return arr.sort((a,b)=> (a.name||'').localeCompare(b.name||''));
+  }
     }
     return Array.from(map.values()).sort((a,b)=> (a.name||'').localeCompare(b.name||''));
   }
@@ -1451,8 +1485,6 @@ function adminEndpointBase(cfg){
   // ======= Init =======
   async function init(){
     buildKpiGrid();
-    await _loadAdminAuth();
-    await _loadManagersMap();
 
     qs('#btnRefresh').addEventListener('click', () => { refresh(); });
 
@@ -1570,90 +1602,46 @@ function adminEndpointBase(cfg){
     }
 
     async function _loadAdminAuth(){
-  try{
-    const cfg = window.CFG || CFG || {};
-    // Prefer explicit URL from config, but fall back to common relative paths
-    const candidates = [];
-    const explicit = String(cfg.adminAuthUrl || '').trim();
-    if (explicit) candidates.push(explicit);
-
-    // Fallbacks (same folder / parent / site root)
-    candidates.push('admin-auth.json');
-    candidates.push('./admin-auth.json');
-    candidates.push('../admin-auth.json');
-    candidates.push('/admin-auth.json');
-
-    let data = null;
-    let lastErr = null;
-
-    for (const baseUrl of candidates){
       try{
-        const url = baseUrl + (String(baseUrl).includes('?') ? '&' : '?') + 'v=' + Date.now();
-        const r = await fetch(url, {cache:'no-store'});
-        if (!r.ok) throw new Error('HTTP ' + r.status);
-        data = await r.json();
-        lastErr = null;
-        break;
+        const cfg = window.CFG || CFG || {};
+        const url = String(cfg.adminAuthUrl || '').trim();
+        if (!url) return;
+        const r = await fetch(url + (url.includes('?')?'&':'?') + 'v=' + Date.now(), {cache:'no-store'});
+        if (!r.ok) throw new Error('admin-auth.json HTTP ' + r.status);
+        const data = await r.json();
+
+        // Accept multiple shapes: array or {admins:[...]} or {list:[...]}
+        const arr = Array.isArray(data) ? data : (data.admins || data.list || data.users || []);
+        ADMINS.list = arr
+          .map(a => ({
+            // accept admin-auth.json variants:
+            // - {label, usernameHash, passwordHash}
+            // - {name,email}
+            // - {displayName,email}
+            name: String(a.label || a.name || a.displayName || a.n || a.user || a.username || a.managerName || '').trim(),
+            email: String(a.email || a.e || a.mail || a.managerEmail || '').trim()
+          }))
+          .filter(a => a.name || a.email);
+
+        // de-dup (by email|name)
+        (function(){
+          const seen = new Set();
+          ADMINS.list = ADMINS.list.filter(a=>{
+            const k = (a.email||'').toLowerCase() + '|' + (a.name||'').toLowerCase();
+            if (seen.has(k)) return false;
+            seen.add(k);
+            return true;
+          });
+        })();
+
+        ADMINS.byEmail = new Map(ADMINS.list.filter(a=>a.email).map(a=>[a.email.toLowerCase(), a]));
+        ADMINS.byName = new Map(ADMINS.list.filter(a=>a.name).map(a=>[a.name.toLowerCase(), a]));
       }catch(err){
-        lastErr = err;
+        console.warn('Nu pot încărca admin-auth.json:', err);
       }
     }
 
-    if (!data){
-      if (lastErr) console.warn('Nu pot încărca admin-auth.json (toate fallback-urile au eșuat):', lastErr);
-      return;
-    }
-
-    // Normalize shapes:
-    // - array
-    // - {admins:[...]} / {users:[...]} / {list:[...]} / {managers:[...]} / {allowed:[...]}
-    // - {users:{email:{...}}} or {admins:{email:{...}}} or {email:"Name"} map
-    let arr = [];
-    if (Array.isArray(data)){
-      arr = data;
-    } else if (data && typeof data === 'object'){
-      const pick = data.admins || data.users || data.list || data.managers || data.allowed || data.allow || data.accounts || null;
-      if (Array.isArray(pick)){
-        arr = pick;
-      } else if (pick && typeof pick === 'object'){
-        // object map -> values + optional key email fallback
-        arr = Object.keys(pick).map(k => {
-          const v = pick[k];
-          if (v && typeof v === 'object') return Object.assign({ _key:k }, v);
-          return { _key:k, name:String(v||'') };
-        });
-      } else {
-        // If the object itself looks like a map
-        arr = Object.keys(data).map(k => {
-          const v = data[k];
-          if (v && typeof v === 'object') return Object.assign({ _key:k }, v);
-          return { _key:k, name:String(v||'') };
-        });
-      }
-    }
-
-    ADMINS.list = (arr || [])
-      .map(a => {
-        const name = String(a.name || a.n || a.user || a.username || a.fullName || a.displayName || '').trim();
-        // If it's a map, the key might be the email
-        const email = String(a.email || a.e || a.mail || a._key || '').trim();
-        const role = String(a.role || a.r || a.type || '').trim().toLowerCase();
-        return { name, email, role };
-      })
-      .filter(a => a.name || a.email);
-
-    // If roles exist, keep only admins/managers for manager dropdown usage.
-    const hasRole = ADMINS.list.some(x => x.role);
-    if (hasRole){
-      ADMINS.list = ADMINS.list.filter(x => x.role === 'admin' || x.role === 'manager');
-    }
-
-    ADMINS.byEmail = new Map(ADMINS.list.filter(a=>a.email).map(a=>[a.email.toLowerCase(), a]));
-    ADMINS.byName  = new Map(ADMINS.list.filter(a=>a.name).map(a=>[a.name.toLowerCase(), a]));
-  }catch(err){
-    console.warn('Nu pot încărca admin-auth.json:', err);
-  }
-}async function _loadManagersMap(){
+    async function _loadManagersMap(){
       // optional server-side map via JSONP
       try{
         const base = _webappBase();
@@ -1686,15 +1674,47 @@ function adminEndpointBase(cfg){
       return MANAGERS.map.get(k) || null;
     }
 
-    async function _setManagerFor(empName, managerEmail){
+    async function _setManagerFor(empName, managerPick){
       const empKey = String(empName||'').trim().toLowerCase();
       if (!empKey) return {ok:false, error:'Nume invalid'};
-      const mgr = managerEmail ? String(managerEmail).trim() : '';
+
+      const pick = managerPick ? String(managerPick).trim() : '';
+      // resolve pick -> (mgrName, mgrEmail/id)
+      let mgrName = '';
+      let mgrEmail = '';
+      if (pick){
+        const k = pick.toLowerCase();
+        const a = ADMINS.byEmail.get(k) || ADMINS.byName.get(k) || null;
+        mgrName = (a && a.name) ? String(a.name).trim() : '';
+        mgrEmail = (a && a.email) ? String(a.email).trim() : '';
+        // If admin-auth doesn't have email, we store the label as "email/id" for compat.
+        if (!mgrName) mgrName = pick;
+        if (!mgrEmail) mgrEmail = pick;
+      }
+
+      // who is doing the change (best-effort)
+      let by = 'admin';
+      try{
+        const s = localStorage.getItem('pontaj/admin/v1');
+        if (s){
+          const o = JSON.parse(s);
+          by = o.email || o.user || o.name || by;
+        }
+      }catch(_){}
+
       // server-side if available
       try{
         const base = _webappBase();
         if (base){
-          const url = base + '?fn=adminSetManager&name=' + encodeURIComponent(empName) + '&managerEmail=' + encodeURIComponent(mgr) + _keyQS();
+          const url =
+            base +
+            '?fn=adminSetManager' +
+            '&name=' + encodeURIComponent(empName) +
+            '&managerEmail=' + encodeURIComponent(mgrEmail) +
+            '&managerName=' + encodeURIComponent(mgrName) +
+            '&by=' + encodeURIComponent(by) +
+            _keyQS();
+
           const data = await _jsonp(url);
           if (data && data.ok){
             // refresh map from response if provided
@@ -1702,7 +1722,7 @@ function adminEndpointBase(cfg){
               const mp = data.map;
               MANAGERS.map = new Map(Object.keys(mp).map(k => [String(k).toLowerCase(), mp[k]]));
             }else{
-              if (mgr) MANAGERS.map.set(empKey, {email:mgr});
+              if (mgrEmail) MANAGERS.map.set(empKey, {email:mgrEmail, name:mgrName});
               else MANAGERS.map.delete(empKey);
             }
             // local cache
@@ -1717,7 +1737,7 @@ function adminEndpointBase(cfg){
       }
 
       // local fallback
-      if (mgr) MANAGERS.map.set(empKey, {email:mgr});
+      if (mgrEmail) MANAGERS.map.set(empKey, {email:mgrEmail, name:mgrName});
       else MANAGERS.map.delete(empKey);
       const o = {};
       for (const [k,v] of MANAGERS.map.entries()) o[k]=v;
@@ -2453,6 +2473,7 @@ document.documentElement.classList.remove('upLockScroll');
         const res = await _setManagerFor(UP.name, v);
         if (!res.ok){ alert('Eroare: ' + (res.error||'')); return; }
         // refresh rows so manager appears in tabel
+        _fillManagerSelect();
         computeDashboard();
         alert('Manager atribuit.');
       });
@@ -2486,6 +2507,10 @@ document.documentElement.classList.remove('upLockScroll');
       try{
         CFG = await loadConfig();
         window.CFG = CFG;
+
+        // load admins list + managers map AFTER config is available
+        await _loadAdminAuth();
+        await _loadManagersMap();
 
         const data = await fetchAdminEvents();
         ALL_EVENTS = buildIndices(data.events);
