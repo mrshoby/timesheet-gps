@@ -11,125 +11,127 @@
 <meta content="#516A75" name="theme-color"/>
 <link href="admin-core.css" rel="stylesheet"/><link href="admin-embed.css" rel="stylesheet"/>
 <style>
-  /* ===== Angajați (redesign ca 3.webp) ===== */
-  :root{
-    --bg:#f3f4fb;
-    --card:#ffffff;
-    --line:#e7e8f2;
-    --text:#1f2330;
-    --muted:#7c8096;
-    --purple:#7a63ff;
-    --green:#79c77d;
-    --green2:#5fbf69;
-    --btn:#f2f2fb;
-  }
-  body.admin-embed.view-employees{ background:var(--bg) !important; }
-  .shell{ max-width:1180px; margin:0 auto; padding:18px 14px 28px; }
-  nav.nav.card{ background:transparent !important; border:0 !important; box-shadow:none !important; padding:0 !important; margin:0 0 14px; }
-  nav.nav.card .nav-actions{ gap:10px; }
-  nav.nav.card .chip{ background:rgba(122,99,255,.12); color:var(--purple); border:1px solid rgba(122,99,255,.25); }
-  .pageCard{
-    background:var(--card);
-    border:1px solid var(--line);
-    border-radius:22px;
-    box-shadow:0 20px 50px rgba(30,30,60,.08);
-    overflow:hidden;
-  }
-  .pageHead{
-    padding:18px 18px 12px;
-    display:flex; align-items:center; justify-content:space-between; gap:12px;
-  }
-  .pageTitle{
-    font-size:20px; font-weight:900; color:var(--text);
-    display:flex; align-items:baseline; gap:10px;
-  }
-  .pageTitle small{
-    font-size:12px; font-weight:800; color:var(--muted);
-  }
-  .filters{
-    padding:0 18px 14px;
-    display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end;
-  }
-  .filters label{ display:flex; flex-direction:column; gap:6px; font-size:11px; font-weight:900; color:var(--muted
-<main class="admin-layout" style="display:block">
-  <section class="pageCard">
-    <div class="pageHead">
-      <div class="pageTitle">
-        Index angajați
-        <small id="subTitle">—</small>
+  /* ===== Employees page (3.webp style) ===== */
+  .emp-page{max-width:1180px;margin:0 auto;padding:18px 14px 28px}
+  .emp-card{background:rgba(255,255,255,.92);border:1px solid rgba(255,255,255,.55);box-shadow:0 20px 60px rgba(20,18,40,.10);border-radius:22px;overflow:hidden}
+  .emp-top{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:18px 18px 10px}
+  .emp-top h1{margin:0;font-size:22px;letter-spacing:.2px}
+  .emp-sub{margin:4px 0 0;font-size:12px;color:rgba(76,79,97,.75);font-weight:600}
+  .emp-filters{display:flex;flex-wrap:wrap;gap:10px;align-items:end;padding:0 18px 14px}
+  .emp-filters label{display:flex;flex-direction:column;gap:6px;font-size:11px;color:rgba(76,79,97,.75);font-weight:800}
+  .emp-filters input,.emp-filters select{height:38px;border-radius:12px;border:1px solid rgba(20,18,40,.12);padding:0 12px;background:rgba(255,255,255,.95);font-weight:700;color:#2b2f3a;outline:none}
+  .emp-filters input:focus,.emp-filters select:focus{border-color:rgba(113,93,240,.45);box-shadow:0 0 0 4px rgba(113,93,240,.10)}
+  .emp-filters .grow{flex:1;min-width:240px}
+  .chipline{display:flex;gap:8px;flex-wrap:wrap;margin-left:auto}
+  .pill{display:inline-flex;align-items:center;gap:8px;padding:9px 12px;border-radius:999px;background:rgba(113,93,240,.10);border:1px solid rgba(113,93,240,.18);color:#4b3fd9;font-weight:900;font-size:12px}
+  .pill.warn{backgr
+<main class="admin-layout">
+  <section class="emp-page">
+    <div class="emp-card">
+      <div class="emp-top">
+        <div>
+          <h1>Angajați</h1>
+          <div class="emp-sub" id="subLine">Se încarcă…</div>
+        </div>
+        <div class="chipline">
+          <div class="pill" id="mePill">👤 —</div>
+          <div class="pill ok" id="scopePill" style="display:none">✅ Angajații mei</div>
+          <div class="pill warn" id="keyPill" style="display:none">🔑 Lipsă Admin Key</div>
+        </div>
       </div>
-      <div class="right">
-        <button class="pill" id="refreshBtn" type="button">⟳ Reîncarcă</button>
+
+      <div class="emp-filters">
+        <label class="grow">
+          <span>Caută angajat</span>
+          <input id="q" placeholder="Scrie nume / departament / manager…"/>
+        </label>
+
+        <label>
+          <span>Vizibilitate</span>
+          <select id="scopeSel">
+            <option value="mine">Angajații mei</option>
+            <option value="all">Toți angajații</option>
+          </select>
+        </label>
+
+        <label>
+          <span>Departament</span>
+          <select id="deptSel">
+            <option value="all">Toate</option>
+          </select>
+        </label>
+
+        <label>
+          <span>Perioadă</span>
+          <select id="rangeSel">
+            <option value="week">Săptămâna curentă</option>
+            <option value="month">Luna curentă</option>
+            <option value="custom">Custom</option>
+          </select>
+        </label>
+
+        <label>
+          <span>De la</span>
+          <input id="from" type="date"/>
+        </label>
+
+        <label>
+          <span>Până la</span>
+          <input id="to" type="date"/>
+        </label>
       </div>
-    </div>
 
-    <div class="filters">
-      <label class="grow">
-        <span>Caută angajat</span>
-        <input id="q" placeholder="Tastează pentru a filtra..." />
-      </label>
-
-      <label>
-        <span>Perioadă</span>
-        <select id="range">
-          <option value="today">Astăzi</option>
-          <option value="last7" selected>Ultimele 7 zile</option>
-          <option value="month">Luna curentă</option>
-          <option value="all">Toate datele</option>
-        </select>
-      </label>
-
-      <label>
-        <span>Departament</span>
-        <select id="dept">
-          <option value="all">Toate</option>
-        </select>
-      </label>
-
-      <label>
-        <span>Filtru</span>
-        <select id="scope">
-          <option value="mine">Repartizați mie</option>
-          <option value="all">Toți angajații</option>
-        </select>
-      </label>
-    </div>
-
-    <div class="tblWrap">
-      <table class="empTbl">
-        <thead>
+      <table class="emp-table" aria-label="Lista angajați">
+        <thead class="emp-head">
           <tr>
-            <th style="width:46%">
-              ANGAJAT
-              <span class="sort" id="sortName" title="Sortează după angajat">↑<span style="margin-top:-2px">↓</span></span>
-            </th>
-            <th style="width:32%">
-              PERIOADA
-              <span class="sort" id="sortPeriod" title="Sortează după perioadă">↑<span style="margin-top:-2px">↓</span></span>
-            </th>
-            <th style="width:22%">ACȚIUNI</th>
+            <th style="width:44%;">ANGAJAT <span class="sort" data-sort="name" title="Sortează">↕</span></th>
+            <th style="width:26%;">PERIOADA <span class="sort" data-sort="period" title="Sortează">↕</span></th>
+            <th style="width:30%;">ACȚIUNI</th>
           </tr>
         </thead>
-        <tbody id="body">
-          <tr><td class="empty" colspan="3">Se încarcă…</td></tr>
-        </tbody>
+        <tbody id="list"></tbody>
       </table>
     </div>
   </section>
 </main>
 
-<div class="toast" id="toast">—</div>
-ss="btn" href="#" id="employeeSelfLink" rel="noopener" style="display:none;margin:8px 0 10px" target="_blank">
-  🧾 Deschide pontajul angajatului
-</a>
-<div id="employeeDetailsBody">
-<div class="admin-empty">Niciun angajat selectat.</div>
+<!-- settings menu -->
+<div class="menu" id="rowMenu"></div>
+
+<!-- modal pin -->
+<div class="overlay" id="pinOverlay" aria-hidden="true">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="pinTitle">
+    <div class="modalHead">
+      <h3 id="pinTitle">Setează PIN</h3>
+      <button class="btnG btnIcon" id="pinClose" title="Închide">✕</button>
+    </div>
+    <div class="modalBody">
+      <div class="muted" id="pinFor">—</div>
+      <div style="height:10px"></div>
+      <div class="modalRow">
+        <label>
+          <span class="muted">PIN (4–8 cifre)</span>
+          <input id="pin1" inputmode="numeric" autocomplete="new-password" placeholder="ex: 1234"/>
+        </label>
+        <label>
+          <span class="muted">Confirmare PIN</span>
+          <input id="pin2" inputmode="numeric" autocomplete="new-password" placeholder="repetă PIN"/>
+        </label>
+      </div>
+      <div style="display:flex;gap:10px;align-items:center;margin-top:10px;flex-wrap:wrap">
+        <button class="btnG btnGhost" id="pinGen">🎲 Generează</button>
+        <div class="muted">PIN-ul nu este afișat niciodată în listă după salvare.</div>
+      </div>
+    </div>
+    <div class="modalFoot">
+      <button class="btnG btnGhost" id="pinClear">Șterge PIN</button>
+      <button class="btnG btnGreen" id="pinSave"><span class="ico">✓</span> Salvează</button>
+    </div>
+  </div>
 </div>
-</section>
-</div>
-</section>
-<!-- TAB NOU: Alerte LIVE -->
-<section id="alertsPage" style="display:none">
+
+<div class="toast" id="toast"></div>
+e" style="display:none">
 <div class="admin-filter-line" style="margin:0 0 10px;">
 <label>
 <span>Tip alertă</span>
@@ -295,523 +297,568 @@ ss="btn" href="#" id="employeeSelfLink" rel="noopener" style="display:none;margi
 </div>
 <script>(function(){try{const t=document.body.getAttribute('data-page-title')||'Admin';document.title=t;}catch(e){}})();</script>
 <script>
-(function(){
-  // ===== Utilities =====
-  const LS_ADMIN = 'pontaj/admin/v1';
-  const LS_ADMIN_KEY = 'pontaj/adminKey/v1';
-  const ADMIN_KEY_FALLBACK = 'Servelect_2026!_AdminKey';
+(() => {
+  // ===== util =====
+  const $ = (s, r=document) => r.querySelector(s);
+  const $$ = (s, r=document) => Array.from(r.querySelectorAll(s));
+  const esc = (x) => String(x ?? "").replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const sleep = (ms)=>new Promise(r=>setTimeout(r,ms));
 
-  const $ = (id)=>document.getElementById(id);
-  const toastEl = $('toast');
-  function toast(msg){
-    if (!toastEl) return;
-    toastEl.textContent = msg;
-    toastEl.classList.add('show');
-    clearTimeout(toastEl._t);
-    toastEl._t = setTimeout(()=>toastEl.classList.remove('show'), 2200);
+  function toast(msg, ok=true){
+    const el = $("#toast");
+    el.textContent = msg;
+    el.style.background = ok ? "#222" : "#b11c1c";
+    el.classList.add("show");
+    clearTimeout(el._t);
+    el._t = setTimeout(()=>el.classList.remove("show"), 2800);
   }
 
+  function ymdd(d){
+    const y=d.getFullYear();
+    const m=String(d.getMonth()+1).padStart(2,"0");
+    const da=String(d.getDate()).padStart(2,"0");
+    return `${y}-${m}-${da}`;
+  }
+  function fmtRo(d){
+    const dd=String(d.getDate()).padStart(2,"0");
+    const mm=String(d.getMonth()+1).padStart(2,"0");
+    const yy=d.getFullYear();
+    return `${dd}.${mm}.${yy}`;
+  }
+
+  // ===== admin session =====
+  const LS_ADMIN = "pontaj/admin/v1";
+  const LS_ADMIN_FALLBACK = "pontaj_admin_session";
   function getAdminSession(){
-    try{ return JSON.parse(localStorage.getItem(LS_ADMIN)||'null'); }catch{ return null; }
-  }
-  function ensureAdmin(){
-    const s = getAdminSession();
-    if (!s || !s.user){
-      document.body.innerHTML = `
-        <div style="max-width:820px;margin:40px auto;padding:18px;font-family:Montserrat,sans-serif">
-          <div style="background:#fff;border:1px solid #e7e8f2;border-radius:16px;padding:18px">
-            <h2 style="margin:0 0 6px">Nu ești logat ca admin</h2>
-            <div style="color:#7c8096;font-weight:700;margin-bottom:12px">
-              Te rog intră în index.html și loghează-te în zona Admin, apoi revino aici.
-            </div>
-            <a href="index.html" style="display:inline-block;padding:10px 14px;border-radius:12px;background:#7a63ff;color:#fff;font-weight:900;text-decoration:none">Deschide index.html</a>
-          </div>
-        </div>`;
-      return null;
-    }
-    return s;
+    const raw = localStorage.getItem(LS_ADMIN) || localStorage.getItem(LS_ADMIN_FALLBACK) || "";
+    if (!raw) return null;
+    try { return JSON.parse(raw); } catch(e){ return null; }
   }
 
+  function getAdminKey(){
+    return (
+      localStorage.getItem("pontaj_adminKey") ||
+      localStorage.getItem("pontaj/adminKey") ||
+      localStorage.getItem("ADMIN_KEY") ||
+      localStorage.getItem("adminKey") ||
+      ""
+    ).trim();
+  }
 
-  function bindNav(){
-    const adminLabel = document.getElementById('adminLabel');
-    if (adminLabel && ADMIN && ADMIN.user) adminLabel.textContent = ADMIN.user;
-
-    const btn = document.getElementById('adminHamburgerBtn');
-    const menu = document.getElementById('adminHamburgerMenu');
-    if (btn && menu){
-      btn.addEventListener('click', (e)=>{
-        e.stopPropagation();
-        const open = btn.getAttribute('aria-expanded') === 'true';
-        btn.setAttribute('aria-expanded', String(!open));
-        menu.style.display = open ? 'none' : 'block';
-      });
-      document.addEventListener('click', ()=>{
-        btn.setAttribute('aria-expanded','false');
-        menu.style.display = 'none';
-      });
-      menu.addEventListener('click', (e)=>e.stopPropagation());
-    }
-
-    const logoutBtn = document.getElementById('logoutBtn');
-    if (logoutBtn){
-      logoutBtn.addEventListener('click', ()=>{
-        try{ localStorage.removeItem(LS_ADMIN); }catch{}
-        toast('Deconectat.');
-        setTimeout(()=>{ window.location.href='index.html'; }, 400);
-      });
-    }
+  async function fetchJson(url){
+    const r = await fetch(url, {cache:"no-store"});
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    return await r.json();
   }
 
   async function loadConfig(){
-    const candidates = [
-      'config.json',
-      './config.json',
-      '../config.json',
-      '/config.json'
-    ];
-    for (const p of candidates){
-      try{
-        const r = await fetch(p + '?ts=' + Date.now(), {cache:'no-store'});
-        if (!r.ok) continue;
-        const j = await r.json();
-        return j;
-      }catch(e){}
+    const tries = ["config.json","./config.json","../config.json","/config.json"];
+    for (const p of tries){
+      try { return await fetchJson(p); } catch(e){}
     }
-    return null;
+    throw new Error("Nu pot încărca config.json");
   }
 
-  function ymd(d){
-    const y=d.getFullYear();
-    const m=String(d.getMonth()+1).padStart(2,'0');
-    const da=String(d.getDate()).padStart(2,'0');
-    return `${y}-${m}-${da}`;
-  }
-  function dmy(ymdStr){
-    if (!ymdStr) return '—';
-    const m = String(ymdStr).match(/^(\d{4})-(\d{2})-(\d{2})$/);
-    if (!m) return ymdStr;
-    return `${m[3]}.${m[2]}.${m[1]}`;
+  async function loadAdminAuth(cfg){
+    const url = cfg.adminAuthUrl || "admin-auth.json";
+    try { return await fetchJson(url); } catch(e){}
+    // fallback local
+    const tries = ["admin-auth.json","./admin-auth.json","../admin-auth.json","/admin-auth.json"];
+    for (const p of tries){
+      try { return await fetchJson(p); } catch(e){}
+    }
+    throw new Error("Nu pot încărca admin-auth.json");
   }
 
-  function jsonp(url){
-    return new Promise((resolve,reject)=>{
-      const cb = 'cb_' + Math.random().toString(16).slice(2);
-      const s = document.createElement('script');
-      const sep = url.includes('?') ? '&' : '?';
-      s.src = url + sep + 'callback=' + cb;
+  // ===== JSONP =====
+  function jsonp(endpoint, params){
+    return new Promise((resolve, reject)=>{
+      const cb = "cb_" + Math.random().toString(16).slice(2);
+      const q = new URLSearchParams({...params, callback: cb});
+      const src = endpoint + (endpoint.includes("?") ? "&" : "?") + q.toString();
+
+      const s = document.createElement("script");
+      s.src = src;
       s.async = true;
-      const t = setTimeout(()=>cleanup(new Error('JSONP timeout')), 15000);
-      function cleanup(err, data){
-        clearTimeout(t);
-        try{ delete window[cb]; }catch{}
+
+      let done = false;
+      window[cb] = (data)=>{
+        done = true;
+        cleanup();
+        resolve(data);
+      };
+      function cleanup(){
+        try { delete window[cb]; } catch(e){ window[cb]=undefined; }
         if (s && s.parentNode) s.parentNode.removeChild(s);
-        if (err) reject(err); else resolve(data);
       }
-      window[cb] = (data)=>cleanup(null, data);
-      s.onerror = ()=>cleanup(new Error('JSONP error'));
+      s.onerror = ()=>{ if (done) return; cleanup(); reject(new Error("JSONP error")); };
       document.head.appendChild(s);
+      setTimeout(()=>{ if (done) return; cleanup(); reject(new Error("JSONP timeout")); }, 15000);
     });
   }
 
-  // ===== State =====
-  let CFG = null;
-  let ENDPOINT = '';
-  let ADMIN = null;
-  let ADMIN_KEY = '';
-  let managersByName = {}; // employeeName -> {managerName, managerEmail, ...}
-  let pinsByName = {};     // name -> {hasPin, active, updatedAt}
-  let eventsData = null;   // adminEvents response
-  let sortMode = {key:'name', dir:1}; // 1 asc, -1 desc
+  // ===== state =====
+  const STATE = {
+    cfg:null,
+    auth:null,
+    me:null,
+    isSuper:false,
+    key:"",
+    managersMap:{},
+    employeeAuth:[],
+    roster:[],
+    sort:"name",
+    sortDir:1
+  };
 
-  function initials(name){
-    const parts = String(name||'').trim().split(/\s+/).filter(Boolean);
-    const a = (parts[0]||'').charAt(0);
-    const b = (parts[1]||'').charAt(0);
-    return (a + b).toUpperCase() || '?';
+  // ===== nav (hamburger + logout) =====
+  function bindNav(){
+    const btn = $("#adminHamburgerBtn");
+    const menu = $("#adminHamburgerMenu");
+    btn?.addEventListener("click", ()=>{
+      const open = btn.getAttribute("aria-expanded")==="true";
+      btn.setAttribute("aria-expanded", open ? "false":"true");
+      menu?.classList.toggle("open", !open);
+    });
+    document.addEventListener("click", (e)=>{
+      if (!menu || !btn) return;
+      if (menu.contains(e.target) || btn.contains(e.target)) return;
+      btn.setAttribute("aria-expanded","false");
+      menu.classList.remove("open");
+    });
+
+    $("#logoutBtn")?.addEventListener("click", ()=>{
+      localStorage.removeItem(LS_ADMIN);
+      localStorage.removeItem(LS_ADMIN_FALLBACK);
+      toast("Deconectat.");
+      setTimeout(()=>location.href="index.html", 450);
+    });
   }
-  function esc(s){ return String(s||'').replace(/[&<>"']/g, c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c])); }
 
-  function getAvatarHtml(name){
-    const url = CFG && CFG.employeeAvatars && CFG.employeeAvatars[name] ? String(CFG.employeeAvatars[name]) : '';
-    if (url) return `<div class="avatar"><img src="${esc(url)}" alt=""></div>`;
-    return `<div class="avatar">${esc(initials(name))}</div>`;
+  // ===== manager filter =====
+  function myLabel(){
+    return (STATE.me && (STATE.me.label || STATE.me.name)) ? String(STATE.me.label || STATE.me.name) : "";
+  }
+  function isMine(emp){
+    const ml = myLabel().toLowerCase();
+    if (!ml) return false;
+    const m = emp.managerName ? String(emp.managerName).toLowerCase() : "";
+    return m && m === ml;
   }
 
-  function calcPeriodFor(name){
-    if (!eventsData || !Array.isArray(eventsData.events)) return {from:'', to:''};
-    let min=null, max=null;
-    for (const e of eventsData.events){
-      if (!e || e.name !== name) continue;
-      const day = String(e.day || '').slice(0,10); // server often provides day
-      if (!day) continue;
-      if (!min || day < min) min = day;
-      if (!max || day > max) max = day;
+  function buildDeptOptions(list){
+    const sel = $("#deptSel");
+    const set = new Set();
+    list.forEach(x=>{ if (x.dept) set.add(String(x.dept)); });
+    const arr = Array.from(set).sort((a,b)=>a.localeCompare(b));
+    sel.innerHTML = `<option value="all">Toate</option>` + arr.map(d=>`<option value="${esc(d)}">${esc(d)}</option>`).join("");
+  }
+
+  function computePeriodLabel(){
+    const from = $("#from").value;
+    const to = $("#to").value;
+    if (!from || !to) return "—";
+    const a = new Date(from+"T00:00:00");
+    const b = new Date(to+"T00:00:00");
+    return `${fmtRo(a)} - ${fmtRo(b)}`;
+  }
+
+  function applyRangePreset(){
+    const now = new Date();
+    const r = $("#rangeSel").value;
+    if (r === "week"){
+      const d = new Date(now);
+      const day = (d.getDay() + 6) % 7; // monday=0
+      d.setDate(d.getDate() - day);
+      const start = d;
+      const end = new Date(d);
+      end.setDate(end.getDate()+6);
+      $("#from").value = ymdd(start);
+      $("#to").value = ymdd(end);
+      $("#from").disabled = true;
+      $("#to").disabled = true;
+    } else if (r === "month"){
+      const start = new Date(now.getFullYear(), now.getMonth(), 1);
+      const end = new Date(now.getFullYear(), now.getMonth()+1, 0);
+      $("#from").value = ymdd(start);
+      $("#to").value = ymdd(end);
+      $("#from").disabled = true;
+      $("#to").disabled = true;
+    } else {
+      $("#from").disabled = false;
+      $("#to").disabled = false;
+      if (!$("#from").value) $("#from").value = ymdd(new Date(now.getFullYear(), now.getMonth(), 1));
+      if (!$("#to").value) $("#to").value = ymdd(new Date(now.getFullYear(), now.getMonth()+1, 0));
     }
-    return {from:min||'', to:max||''};
   }
 
-  function inScope(empName){
-    const scope = $('scope').value;
-    if (scope === 'all') return true;
-    const m = managersByName[empName];
-    if (!m) return false;
-    const adminLabel = String(ADMIN.user||'');
-    const adminEmail = String(ADMIN.email||'');
-    return (m.managerName && m.managerName === adminLabel) || (adminEmail && m.managerEmail && m.managerEmail === adminEmail);
+  // ===== load data =====
+  async function loadManagersMap(){
+    const ep = STATE.cfg.adminEventsEndpoint;
+    if (!ep) throw new Error("Lipsește adminEventsEndpoint în config.json");
+    const key = STATE.key;
+    const r = await jsonp(ep, { fn:"adminManagersMap", key });
+    if (!r || !r.ok) throw new Error(r?.message || "adminManagersMap failed");
+    STATE.managersMap = r.map || {};
   }
 
-  function matchesFilters(emp){
-    const q = String($('q').value||'').trim().toLowerCase();
-    const dept = $('dept').value;
-    if (!inScope(emp.name)) return false;
-    if (dept !== 'all' && String(emp.dept||'') !== dept) return false;
-    if (q){
-      const hay = (emp.name + ' ' + (emp.dept||'')).toLowerCase();
-      if (!hay.includes(q)) return false;
+  async function loadEmployeeAuth(){
+    const ep = STATE.cfg.adminEventsEndpoint;
+    const key = STATE.key;
+    const r = await jsonp(ep, { fn:"adminEmployeeAuthList", key });
+    if (!r || !r.ok) throw new Error(r?.message || "adminEmployeeAuthList failed");
+    STATE.employeeAuth = r.items || [];
+  }
+
+  function mergeRoster(){
+    const cfgList = Array.isArray(STATE.cfg.employees) ? STATE.cfg.employees : [];
+    const map = new Map();
+    for (const name of cfgList){
+      const n = String(name||"").trim();
+      if (!n) continue;
+      map.set(n.toLowerCase(), { name:n, dept:"", active:true, hasPin:false });
     }
-    return true;
-  }
-
-  function sortEmployees(list){
-    const dir = sortMode.dir;
-    if (sortMode.key === 'name'){
-      return list.sort((a,b)=> String(a.name).localeCompare(String(b.name), 'ro') * dir);
-    }
-    if (sortMode.key === 'period'){
-      return list.sort((a,b)=>{
-        const pa = a._periodTo || '';
-        const pb = b._periodTo || '';
-        if (pa === pb) return String(a.name).localeCompare(String(b.name), 'ro') * dir;
-        return (pa < pb ? -1 : 1) * dir;
+    for (const it of STATE.employeeAuth){
+      const n = String(it.name||"").trim();
+      if (!n) continue;
+      const key = n.toLowerCase();
+      map.set(key, { 
+        name:n,
+        dept: String(it.dept||""),
+        active: it.active !== false,
+        hasPin: !!it.hasPin,
+        updatedAt: String(it.updatedAt||"")
       });
     }
-    return list;
+    // attach manager
+    const out = Array.from(map.values()).map(e=>{
+      const mm = STATE.managersMap[e.name.toLowerCase()] || null;
+      // managersMap key may be employeeKey; fallback by name as key:
+      // We'll also search by matching stored employeeName field
+      let mgrName = "";
+      if (mm && mm.managerName) mgrName = String(mm.managerName||"");
+      else {
+        // brute find by employeeName
+        const found = Object.values(STATE.managersMap).find(x => String(x.employeeName||"").toLowerCase() === e.name.toLowerCase());
+        if (found) mgrName = String(found.managerName||"");
+      }
+      return { ...e, managerName: mgrName };
+    });
+    STATE.roster = out;
+    buildDeptOptions(out);
   }
 
+  // ===== render =====
   function render(){
-    const body = $('body');
-    if (!eventsData || !Array.isArray(eventsData.employees)){
-      body.innerHTML = `<tr><td class="empty" colspan="3">Nu am primit listă de angajați.</td></tr>`;
-      return;
+    const q = ($("#q").value || "").trim().toLowerCase();
+    const dept = $("#deptSel").value;
+    const scope = $("#scopeSel").value;
+    const periodLabel = computePeriodLabel();
+
+    let list = STATE.roster.slice();
+
+    // scope rules
+    if (!STATE.isSuper) {
+      $("#scopeSel").value = "mine";
+      $("#scopeSel").disabled = true;
+      $("#scopePill").style.display = "";
+    } else {
+      $("#scopeSel").disabled = false;
+      $("#scopePill").style.display = (scope === "mine") ? "" : "none";
+    }
+    if (scope === "mine") list = list.filter(isMine);
+
+    if (dept !== "all") list = list.filter(x => String(x.dept||"") === dept);
+
+    if (q) {
+      list = list.filter(x=>{
+        const hay = `${x.name} ${x.dept||""} ${x.managerName||""}`.toLowerCase();
+        return hay.includes(q);
+      });
     }
 
-    // dept options
-    const depts = Array.from(new Set(eventsData.employees.map(e=>String(e.dept||'—')).filter(Boolean))).sort((a,b)=>a.localeCompare(b,'ro'));
-    const deptSel = $('dept');
-    const prev = deptSel.value;
-    deptSel.innerHTML = `<option value="all">Toate</option>` + depts.map(d=>`<option value="${esc(d)}">${esc(d)}</option>`).join('');
-    if (depts.includes(prev)) deptSel.value = prev;
+    // sort
+    if (STATE.sort === "name"){
+      list.sort((a,b)=>a.name.localeCompare(b.name) * STATE.sortDir);
+    }
 
-    // subtitle
-    const meta = eventsData.meta || {};
-    $('subTitle').textContent = `${dmy(meta.from)} – ${dmy(meta.to)} • ${esc(ADMIN.user)}${$('scope').value==='mine' ? ' • repartizați mie' : ''}`;
-
-    let list = eventsData.employees.map(e=>{
-      const p = calcPeriodFor(e.name);
-      return {...e, _periodFrom:p.from, _periodTo:p.to};
-    }).filter(matchesFilters);
-
-    list = sortEmployees(list);
-
+    const tbody = $("#list");
     if (!list.length){
-      body.innerHTML = `<tr><td class="empty" colspan="3">Nu există angajați pentru filtrul curent.</td></tr>`;
+      tbody.innerHTML = `<tr class="emp-row"><td colspan="3" style="padding:22px 18px;color:rgba(76,79,97,.75);font-weight:900">Nu există angajați în filtrul curent.</td></tr>`;
       return;
     }
 
-    body.innerHTML = list.map(emp=>{
-      const pFrom = emp._periodFrom ? dmy(emp._periodFrom) : '—';
-      const pTo   = emp._periodTo ? dmy(emp._periodTo) : '—';
-      const hasPeriod = emp._periodFrom && emp._periodTo;
-      const pinMeta = pinsByName[emp.name];
-      const pinTag = pinMeta ? (pinMeta.hasPin ? `<span class="tag ok">🔒 PIN setat</span>` : `<span class="tag bad">PIN lipsă</span>`) : `<span class="tag">PIN: ?</span>`;
+    tbody.innerHTML = list.map(emp=>{
+      const avatarUrl = (STATE.cfg.employeeAvatars && STATE.cfg.employeeAvatars[emp.name]) ? String(STATE.cfg.employeeAvatars[emp.name]) : "";
+      const initials = emp.name.split(/\s+/).slice(0,2).map(s=>s[0]||"").join("").toUpperCase();
+      const pinBadge = emp.hasPin
+        ? `<span class="badge pin">🔒 PIN setat</span>`
+        : `<span class="badge nopin">⚠ PIN lipsă</span>`;
+      const mineBadge = isMine(emp) ? `<span class="badge mine">👤 al meu</span>` : ``;
+      const mgr = emp.managerName ? `<div class="emp-dept">Manager: <b>${esc(emp.managerName)}</b></div>` : ``;
 
-      return `<tr data-name="${esc(emp.name)}">
+      const period = `<div class="period">${esc(periodLabel)}</div><div class="muted">${esc(emp.updatedAt ? ("update " + emp.updatedAt) : "")}</div>`;
+      const openLabel = "Deschide";
+      const openBtn = `<button class="btnG btnGreen" data-act="open" data-name="${esc(emp.name)}">
+          <span class="ico">✓</span> ${openLabel}
+        </button>`;
+      const rejectBtn = `<button class="btnG btnGhost" data-act="fixday" data-name="${esc(emp.name)}">🛠 FixDay</button>`;
+      const gearBtn = `<button class="btnG btnIcon" data-act="menu" data-name="${esc(emp.name)}" title="Setări">⚙</button>`;
+
+      return `<tr class="emp-row">
         <td>
-          <div class="empCell">
-            ${getAvatarHtml(emp.name)}
-            <div class="empMeta">
-              <div class="empName">${esc(emp.name)}</div>
-              <div class="empDept">${esc(emp.dept || '—')}</div>
-              ${pinTag}
+          <div class="emp-cell">
+            <div class="avatar">${avatarUrl ? `<img src="${esc(avatarUrl)}" alt="">` : esc(initials)}</div>
+            <div class="emp-meta">
+              <div class="emp-name">${esc(emp.name)}</div>
+              <div class="emp-dept">${esc(emp.dept || "—")}</div>
+              ${mgr}
+              <div class="emp-badges">${pinBadge}${mineBadge}</div>
             </div>
           </div>
         </td>
+        <td>${period}</td>
         <td>
-          <div class="period">
-            ${hasPeriod ? `${esc(pFrom)} – ${esc(pTo)}` : `<span class="muted">Fără pontaj în perioadă</span>`}
-          </div>
-        </td>
-        <td>
-          <div class="actions">
-            <button class="btnOk" type="button" data-open="${esc(emp.name)}" title="Deschide / acțiune rapidă">
-              <span style="display:inline-flex;width:22px;height:22px;align-items:center;justify-content:center;background:rgba(255,255,255,.18);border-radius:8px">
-                ✓
-              </span>
-              Aprobă
-            </button>
-
-            <button class="btnIcon" type="button" data-reject="${esc(emp.name)}" title="Acțiune secundară">✕</button>
-
-            <div class="gearMenu">
-              <button class="btnIcon" type="button" data-gear="${esc(emp.name)}" title="Setări">⚙</button>
-              <div class="menu" id="menu_${esc(emp.name).replace(/[^a-z0-9]/gi,'_')}">
-                <h4>Setări: ${esc(emp.name)}</h4>
-                <div class="row">
-                  <input type="password" inputmode="numeric" pattern="[0-9]*" maxlength="8" placeholder="PIN (4–8 cifre)" data-pin="${esc(emp.name)}">
-                  <button class="save primary" type="button" data-savepin="${esc(emp.name)}">Salvează</button>
-                </div>
-                <div class="row" style="margin-top:8px">
-                  <button class="save" type="button" data-clearpin="${esc(emp.name)}">Șterge PIN</button>
-                  <button class="save" type="button" data-close="${esc(emp.name)}">Închide</button>
-                </div>
-                <div class="hint">PIN-ul este folosit la login în <b>index.html</b> (chip „Angajat”).</div>
-              </div>
-            </div>
-          </div>
+          <div class="acts">${openBtn}${rejectBtn}${gearBtn}</div>
         </td>
       </tr>`;
     }).join("");
 
-    bindRowActions();
+    // bind actions
+    $$("[data-act]", tbody).forEach(btn=>{
+      btn.addEventListener("click", (e)=>onRowAction(e));
+    });
+
+    $("#subLine").textContent = `${list.length} angajați afișați • Perioadă: ${periodLabel}`;
   }
 
-  function closeAllMenus(){
-    document.querySelectorAll('.menu.open').forEach(m=>m.classList.remove('open'));
+  // ===== actions =====
+  const menu = $("#rowMenu");
+  let menuFor = null;
+
+  function closeMenu(){
+    menu.classList.remove("open");
+    menu.style.left = "-9999px";
+    menu.style.top = "-9999px";
+    menuFor = null;
   }
 
-  function bindRowActions(){
-    // primary/secondary are placeholders for now
-    document.querySelectorAll('[data-open]').forEach(btn=>{
-      btn.addEventListener('click', ()=>{
-        const name = btn.getAttribute('data-open');
-        toast('Acțiune: ' + name);
-      });
-    });
-    document.querySelectorAll('[data-reject]').forEach(btn=>{
-      btn.addEventListener('click', ()=>{
-        const name = btn.getAttribute('data-reject');
-        toast('Acțiune secundară: ' + name);
-      });
-    });
+  function openMenu(anchor, empName){
+    menuFor = empName;
+    menu.innerHTML = `
+      <button data-m="pin">🔑 Setează PIN</button>
+      <button data-m="clearpin">🧽 Șterge PIN</button>
+      <button data-m="toggle">${getEmp(empName)?.active ? "⛔ Dezactivează" : "✅ Activează"}</button>
+    `;
+    const r = anchor.getBoundingClientRect();
+    const x = Math.min(window.innerWidth - 240, Math.max(12, r.right - 230));
+    const y = Math.min(window.innerHeight - 140, Math.max(12, r.bottom + 8));
+    menu.style.left = x + "px";
+    menu.style.top = y + "px";
+    menu.classList.add("open");
 
-    // gear menu open/close
-    document.querySelectorAll('[data-gear]').forEach(btn=>{
-      btn.addEventListener('click', (ev)=>{
-        ev.stopPropagation();
-        const name = btn.getAttribute('data-gear');
-        const id = 'menu_' + name.replace(/[^a-z0-9]/gi,'_');
-        const menu = document.getElementById(id);
-        if (!menu) return;
-        const open = menu.classList.contains('open');
-        closeAllMenus();
-        if (!open) menu.classList.add('open');
-      });
-    });
-    document.querySelectorAll('[data-close]').forEach(btn=>{
-      btn.addEventListener('click', (ev)=>{
-        ev.stopPropagation();
-        closeAllMenus();
-      });
-    });
-
-    document.querySelectorAll('[data-savepin]').forEach(btn=>{
-      btn.addEventListener('click', async (ev)=>{
-        ev.stopPropagation();
-        const name = btn.getAttribute('data-savepin');
-        const inp = document.querySelector('input[data-pin="'+CSS.escape(name)+'"]');
-        const pin = inp ? String(inp.value||'').trim() : '';
-        if (!/^\d{4,8}$/.test(pin)){
-          toast('PIN invalid (4–8 cifre).');
-          return;
-        }
-        btn.disabled = true;
-        btn.textContent = '...';
-        try{
-          const res = await jsonp(ENDPOINT + '?fn=adminSetEmployeePin&key=' + encodeURIComponent(ADMIN_KEY) +
-            '&name=' + encodeURIComponent(name) +
-            '&dept=' + encodeURIComponent(getDeptFor(name)) +
-            '&pin=' + encodeURIComponent(pin) +
-            '&ts=' + Date.now()
-          );
-          if (!res || !res.ok) throw new Error((res && res.error) ? res.error : 'Eroare la salvare.');
-          pinsByName[name] = {hasPin:true, active:true, updatedAt:res.updatedAt||''};
-          toast('PIN salvat: ' + name);
-          closeAllMenus();
-          render();
-        }catch(e){
-          console.warn(e);
-          toast('Eroare: ' + (e && e.message ? e.message : e));
-        }finally{
-          btn.disabled = false;
-          btn.textContent = 'Salvează';
-        }
-      });
-    });
-
-    document.querySelectorAll('[data-clearpin]').forEach(btn=>{
-      btn.addEventListener('click', async (ev)=>{
-        ev.stopPropagation();
-        const name = btn.getAttribute('data-clearpin');
-        btn.disabled = true;
-        btn.textContent = '...';
-        try{
-          const res = await jsonp(ENDPOINT + '?fn=adminSetEmployeePin&key=' + encodeURIComponent(ADMIN_KEY) +
-            '&name=' + encodeURIComponent(name) +
-            '&dept=' + encodeURIComponent(getDeptFor(name)) +
-            '&clear=1' +
-            '&ts=' + Date.now()
-          );
-          if (!res || !res.ok) throw new Error((res && res.error) ? res.error : 'Eroare la ștergere.');
-          pinsByName[name] = {hasPin:false, active:true, updatedAt:res.updatedAt||''};
-          toast('PIN șters: ' + name);
-          closeAllMenus();
-          render();
-        }catch(e){
-          console.warn(e);
-          toast('Eroare: ' + (e && e.message ? e.message : e));
-        }finally{
-          btn.disabled = false;
-          btn.textContent = 'Șterge PIN';
-        }
+    $$("button", menu).forEach(b=>{
+      b.addEventListener("click", async ()=>{
+        const k = b.getAttribute("data-m");
+        closeMenu();
+        if (k === "pin") return openPinModal(empName);
+        if (k === "clearpin") return savePin(empName, "");
+        if (k === "toggle") return toggleActive(empName);
       });
     });
   }
 
-  function getDeptFor(name){
-    if (!eventsData || !Array.isArray(eventsData.employees)) return '';
-    const e = eventsData.employees.find(x=>x && x.name===name);
-    return e ? (e.dept||'') : '';
-  }
-
-  async function loadManagers(){
-    try{
-      const res = await jsonp(ENDPOINT + '?fn=adminManagersMap&key=' + encodeURIComponent(ADMIN_KEY) + '&ts=' + Date.now());
-      if (res && res.ok && Array.isArray(res.items)){
-        managersByName = {};
-        res.items.forEach(it=>{
-          if (it && it.employeeName){
-            managersByName[it.employeeName] = it;
-          }
-        });
-      }
-    }catch(e){
-      console.warn('adminManagersMap failed:', e);
-      managersByName = {};
+  document.addEventListener("click", (e)=>{
+    if (menu.classList.contains("open")){
+      if (menu.contains(e.target)) return;
+      closeMenu();
     }
+  });
+
+  function getEmp(name){
+    const n = String(name||"").toLowerCase();
+    return STATE.roster.find(x=>x.name.toLowerCase()===n) || null;
   }
 
-  async function loadPins(){
-    try{
-      const res = await jsonp(ENDPOINT + '?fn=adminEmployeePins&key=' + encodeURIComponent(ADMIN_KEY) + '&ts=' + Date.now());
-      if (res && res.ok && Array.isArray(res.items)){
-        pinsByName = {};
-        res.items.forEach(it=>{
-          if (it && it.name){
-            pinsByName[it.name] = {hasPin:!!it.hasPin, active:it.active!==false, updatedAt:it.updatedAt||''};
-          }
-        });
-      }
-    }catch(e){
-      console.warn('adminEmployeePins failed:', e);
-      pinsByName = {};
-    }
-  }
+  async function onRowAction(e){
+    const btn = e.currentTarget;
+    const act = btn.getAttribute("data-act");
+    const name = btn.getAttribute("data-name");
+    if (!name) return;
 
-  async function loadAdminEvents(){
-    const range = $('range').value;
-    const now = new Date();
-    let from = null, to = null;
-    if (range === 'today'){
-      from = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      to   = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    } else if (range === 'last7'){
-      to = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      from = new Date(to);
-      from.setDate(from.getDate()-6);
-    } else if (range === 'month'){
-      from = new Date(now.getFullYear(), now.getMonth(), 1);
-      to = new Date(now.getFullYear(), now.getMonth()+1, 0);
-    } else { // all
-      from = new Date(now.getFullYear(), 0, 1);
-      to = new Date(now.getFullYear(), 11, 31);
-    }
+    if (act === "menu") return openMenu(btn, name);
 
-    const url = ENDPOINT + '?fn=adminEvents' +
-      '&from=' + encodeURIComponent(ymd(from)) +
-      '&to='   + encodeURIComponent(ymd(to)) +
-      '&ts=' + Date.now();
-
-    const data = await jsonp(url);
-    if (!data || !data.ok) throw new Error((data && data.error) ? data.error : 'adminEvents error');
-    eventsData = data;
-  }
-
-  async function refresh(){
-    closeAllMenus();
-    $('body').innerHTML = `<tr><td class="empty" colspan="3">Se încarcă…</td></tr>`;
-    await loadManagers();
-    await loadPins();
-    await loadAdminEvents();
-    render();
-  }
-
-  function bindUi(){
-    ['q','dept','scope','range'].forEach(id=>{
-      $(id).addEventListener('input', ()=>render());
-      $(id).addEventListener('change', ()=>{ if (id==='range') refresh(); else render(); });
-    });
-
-    $('refreshBtn').addEventListener('click', ()=>refresh());
-
-    $('sortName').addEventListener('click', ()=>{
-      if (sortMode.key==='name') sortMode.dir *= -1; else { sortMode.key='name'; sortMode.dir=1; }
-      render();
-    });
-    $('sortPeriod').addEventListener('click', ()=>{
-      if (sortMode.key==='period') sortMode.dir *= -1; else { sortMode.key='period'; sortMode.dir=1; }
-      render();
-    });
-
-    document.addEventListener('click', ()=>closeAllMenus());
-    document.addEventListener('keydown', (e)=>{ if (e.key==='Escape') closeAllMenus(); });
-  }
-
-  async function init(){
-    ADMIN = ensureAdmin();
-    if (!ADMIN) return;
-    bindNav();
-
-    CFG = await loadConfig();
-    ENDPOINT = CFG && CFG.adminEventsEndpoint ? String(CFG.adminEventsEndpoint) : '';
-    if (!ENDPOINT){
-      $('body').innerHTML = `<tr><td class="empty" colspan="3">Lipsește <b>adminEventsEndpoint</b> în config.json.</td></tr>`;
+    if (act === "fixday"){
+      // open fix-day.html if exists
+      const url = `fix-day.html#${encodeURIComponent(name)}`;
+      window.open(url, "_blank", "noopener");
       return;
     }
 
-    // admin key
-    ADMIN_KEY = '';
-    try{ ADMIN_KEY = String(localStorage.getItem(LS_ADMIN_KEY)||'').trim(); }catch{}
-    if (!ADMIN_KEY){
-      // fallback (same as existing project key)
-      ADMIN_KEY = ADMIN_KEY_FALLBACK;
-      try{ localStorage.setItem(LS_ADMIN_KEY, ADMIN_KEY); }catch{}
+    if (act === "open"){
+      // open self-service for employee if available
+      const base = STATE.cfg.selfServiceBaseUrl || (STATE.cfg.selfService && STATE.cfg.selfService.baseUrl) || "";
+      const from = $("#from").value;
+      const to = $("#to").value;
+      if (base){
+        const u = base + (base.includes("?") ? "&" : "?") + new URLSearchParams({ employee:name, from, to }).toString();
+        window.open(u, "_blank", "noopener");
+      } else {
+        toast("selfServiceBaseUrl lipsește în config.json", false);
+      }
+      return;
     }
-
-    // scope default: for role admin show all, for manager show mine
-    if (String(ADMIN.role||'').toLowerCase() === 'admin') $('scope').value = 'all';
-    else $('scope').value = 'mine';
-
-    bindUi();
-    await refresh();
   }
 
-  init().catch(e=>{
-    console.warn(e);
-    $('body').innerHTML = `<tr><td class="empty" colspan="3">Eroare: ${esc(e && e.message ? e.message : e)}</td></tr>`;
+  // ===== PIN modal =====
+  const ov = $("#pinOverlay");
+  let pinEmp = null;
+
+  function openPinModal(name){
+    pinEmp = name;
+    $("#pinFor").innerHTML = `Angajat: <b>${esc(name)}</b>`;
+    $("#pin1").value = "";
+    $("#pin2").value = "";
+    ov.classList.add("open");
+    ov.setAttribute("aria-hidden","false");
+    setTimeout(()=>$("#pin1").focus(), 10);
+  }
+  function closePinModal(){
+    ov.classList.remove("open");
+    ov.setAttribute("aria-hidden","true");
+    pinEmp = null;
+  }
+  $("#pinClose").addEventListener("click", closePinModal);
+  ov.addEventListener("click", (e)=>{ if (e.target === ov) closePinModal(); });
+
+  $("#pinGen").addEventListener("click", ()=>{
+    const pin = String(Math.floor(1000 + Math.random()*9000));
+    $("#pin1").value = pin;
+    $("#pin2").value = pin;
   });
 
+  $("#pinSave").addEventListener("click", async ()=>{
+    if (!pinEmp) return;
+    const a = ($("#pin1").value||"").trim();
+    const b = ($("#pin2").value||"").trim();
+    if (!/^\d{4,8}$/.test(a)) return toast("PIN invalid (4–8 cifre).", false);
+    if (a !== b) return toast("PIN-urile nu coincid.", false);
+    await savePin(pinEmp, a);
+    closePinModal();
+  });
+
+  $("#pinClear").addEventListener("click", async ()=>{
+    if (!pinEmp) return;
+    await savePin(pinEmp, "");
+    closePinModal();
+  });
+
+  async function savePin(name, pin){
+    try{
+      const ep = STATE.cfg.adminEventsEndpoint;
+      const r = await jsonp(ep, { fn:"adminSetEmployeePin", key: STATE.key, name, dept:(getEmp(name)?.dept||""), pin });
+      if (!r || !r.ok) throw new Error(r?.message || "Eroare setare PIN");
+      toast(pin ? "PIN salvat." : "PIN șters.");
+      // refresh auth list
+      await loadEmployeeAuth();
+      mergeRoster();
+      render();
+    }catch(err){
+      toast(err.message || String(err), false);
+    }
+  }
+
+  async function toggleActive(name){
+    try{
+      const emp = getEmp(name);
+      if (!emp) return;
+      const ep = STATE.cfg.adminEventsEndpoint;
+      const active = !emp.active;
+      const r = await jsonp(ep, { fn:"adminSetEmployeePin", key: STATE.key, name, dept:(emp.dept||""), active: active ? "TRUE":"FALSE" });
+      if (!r || !r.ok) throw new Error(r?.message || "Eroare activare/dezactivare");
+      toast(active ? "Angajat activat." : "Angajat dezactivat.");
+      await loadEmployeeAuth();
+      mergeRoster();
+      render();
+    }catch(err){
+      toast(err.message || String(err), false);
+    }
+  }
+
+  // ===== init =====
+  async function init(){
+    bindNav();
+
+    const sess = getAdminSession();
+    if (!sess){
+      toast("Nu ești logat ca admin.", false);
+      $("#subLine").textContent = "Nu ești logat ca admin.";
+      return;
+    }
+
+    STATE.cfg = await loadConfig();
+    STATE.auth = await loadAdminAuth(STATE.cfg);
+
+    // identify me by label in session or default to first admin
+    const admins = Array.isArray(STATE.auth.admins) ? STATE.auth.admins : [];
+    const label = String(sess.label || sess.name || "").trim();
+    const me = admins.find(a=>String(a.label||"")===label) || (admins.length ? admins[0] : {label});
+    STATE.me = me;
+
+    // super admin: first admin or explicit label
+    STATE.isSuper = (admins.length && me.label === admins[0].label) || String(me.label||"").toLowerCase().includes("servelect admin");
+
+    $("#adminLabel").textContent = me.label || "Admin";
+    $("#mePill").textContent = `👤 ${me.label || "Admin"}`;
+
+    STATE.key = getAdminKey();
+    if (!STATE.key){
+      $("#keyPill").style.display = "";
+      toast("Lipsește Admin Key (localStorage).", false);
+      $("#subLine").textContent = "Lipsește Admin Key. Deschide dashboard-ul admin și setează cheia, apoi revino.";
+      return;
+    }
+
+    // hide "Toți angajații" for non-super
+    if (!STATE.isSuper){
+      $("#scopeSel").innerHTML = `<option value="mine">Angajații mei</option>`;
+    }
+
+    applyRangePreset();
+
+    await loadManagersMap();
+    await loadEmployeeAuth();
+    mergeRoster();
+
+    $("#subLine").textContent = "Listă încărcată.";
+    render();
+
+    // binds
+    $("#q").addEventListener("input", ()=>render());
+    $("#deptSel").addEventListener("change", ()=>render());
+    $("#scopeSel").addEventListener("change", ()=>render());
+    $("#rangeSel").addEventListener("change", ()=>{ applyRangePreset(); render(); });
+    $("#from").addEventListener("change", ()=>render());
+    $("#to").addEventListener("change", ()=>render());
+
+    // sort handlers
+    $$(".sort").forEach(s=>{
+      s.addEventListener("click", ()=>{
+        const key = s.getAttribute("data-sort");
+        if (STATE.sort === key) STATE.sortDir *= -1;
+        else { STATE.sort = key; STATE.sortDir = 1; }
+        render();
+      });
+    });
+  }
+
+  init().catch(err=>{
+    console.error(err);
+    toast(err.message || String(err), false);
+    $("#subLine").textContent = err.message || String(err);
+  });
 })();
 </script>
+
 </body>
 </html>
