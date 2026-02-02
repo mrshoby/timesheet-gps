@@ -66,8 +66,7 @@
       white-space:nowrap;
     }
     thead th.stickyL{ left:0; z-index:7; text-align:left; box-shadow: 10px 0 20px rgba(20,18,40,.04); }
-    thead th.stickyL2{ left:56px; z-index:7; text-align:left; box-shadow: 10px 0 20px rgba(20,18,40,.04); }
-    thead th.stickyL3{ left:320px; z-index:7; text-align:left; box-shadow: 10px 0 20px rgba(20,18,40,.04); }
+    thead th.stickyL2{ left:44px; z-index:7; text-align:left; box-shadow: 10px 0 20px rgba(20,18,40,.04); }
     thead th.stickyR{ right:0; z-index:7; text-align:center; box-shadow: -10px 0 20px rgba(20,18,40,.04); }
 
     tbody td{
@@ -78,17 +77,12 @@
     tbody td.stickyL{
       position:sticky; left:0; z-index:3; text-align:left; background:#fff;
       box-shadow: 10px 0 20px rgba(20,18,40,.04);
-      width:56px; min-width:56px;
+      width:44px; min-width:44px;
     }
     tbody td.stickyL2{
       position:sticky; left:56px; z-index:3; text-align:left; background:#fff;
       box-shadow: 10px 0 20px rgba(20,18,40,.04);
       width:264px; min-width:264px;
-    }
-    tbody td.stickyL3{
-      position:sticky; left:320px; z-index:3; text-align:left; background:#fff;
-      box-shadow: 10px 0 20px rgba(20,18,40,.04);
-      width:160px; min-width:160px;
     }
     tbody td.stickyR{
       position:sticky; right:0; z-index:3; background:#fff;
@@ -104,6 +98,80 @@
     .empName{font-weight:850}
     .empDept{font-size:12px;color:var(--muted);margin-top:2px}
 
+    /* ===== Presence cell like screenshot ===== */
+    .thIdx,.tdIdx{ text-align:center; color:var(--muted); font-weight:900; }
+    .thEmp{ text-align:left; padding-left:14px; }
+    .sortHint{ font-weight:950; color:rgba(111,120,144,.9); margin-left:8px; }
+    .thDay{ min-width:64px; }
+    .wd{ font-weight:800; color:rgba(111,120,144,.9); }
+
+    .tdEmp{ padding:10px 12px; }
+    .empCell{display:flex;align-items:center;gap:10px}
+    .empAvatar{
+      width:34px;height:34px;border-radius:999px;
+      background:#f0f2ff;
+      border:1px solid var(--line);
+      display:flex;align-items:center;justify-content:center;
+      font-weight:950; color:#3b3f55;
+    }
+
+    .empPhoto{
+      width:34px;height:34px;border-radius:999px;
+      border:2px solid #fff;
+      box-shadow:0 6px 14px rgba(20,18,40,.10);
+      object-fit:cover;
+      background:#f0f2ff;
+    }
+    .empMeta{min-width:0}
+    .empName{font-weight:950; line-height:1.1}
+    .empDept{font-size:12px;color:var(--muted);margin-top:2px}
+
+    .dayCell{padding:0; border-left:1px solid var(--line); background:#fff;}
+    .weekCut{border-left:3px solid #d9dced !important;}
+    .dayBox{
+      position:relative;
+      height:72px;
+      display:flex;
+      flex-direction:column;
+      justify-content:space-between;
+      align-items:center;
+      padding:8px 6px 8px;
+      background:#fbfcff;
+      border:1px solid var(--line);
+      border-radius:0;
+      cursor:pointer;
+      user-select:none;
+    }
+    .dayBox:hover{filter:brightness(0.99)}
+    .dayBox::before,.dayBox::after{
+      content:"";
+      position:absolute; left:0; right:0;
+      height:4px;
+      background:var(--st, transparent);
+    }
+    .dayBox::before{top:0}
+    .dayBox::after{bottom:0}
+
+    .dayBox .t{font-size:11px; font-weight:850; color:var(--muted); line-height:1.05}
+    .dayBox .dur{font-size:13px; font-weight:950; color:#1f2330; line-height:1.05}
+    .dayBox .muted{opacity:.35}
+    .dayBox .code{font-size:12px; font-weight:950; color:#1f2330; margin-top:22px; letter-spacing:.4px}
+
+    .dayBox.weekend{background:#f5f6fb}
+
+    /* status color bars */
+    .st-inactive{--st:#c8cfdf}
+    .st-under{--st:#ff4d4d}
+    .st-complete{--st:#59d17d}
+    .st-over{--st:#49a9ff}
+    .st-leave{--st:#35c8ff}
+    .st-progress{--st:#6d5efc}
+    .st-pause{--st:#ff4db8}
+
+    /* cleaner grid look */
+    tbody td{padding:0}
+    tbody tr td.stickyL, tbody tr td.stickyL2{padding:10px 10px}
+
     .dayCell{border-left:1px solid var(--line)}
     .cell{
       border-radius:12px;
@@ -113,7 +181,7 @@
       cursor:pointer;
       user-select:none;
     }
-    .cell:hover{transform:translateY(-1px)}
+    
     .inactive{background:var(--c-inactive); color:rgba(31,35,48,.55)}
     .under{background:var(--c-under)}
     .complete{background:var(--c-complete)}
@@ -137,7 +205,7 @@
       cursor:pointer;
       font-size:18px;
     }
-    .iconBtn:hover{transform:translateY(-1px)}
+    .iconBtn:hover{filter:brightness(0.98)}
     .iconBtn:active{transform:translateY(0)}
 
     .iconBtn.sm{width:34px;height:34px;border-radius:12px;font-size:16px}
@@ -258,6 +326,8 @@
         </div>
         <div class="controls">
           <div class="search">🔎 <input id="q" placeholder="Caută angajat"/></div>
+          <button class="iconBtn sm" id="expPdf" title="Export PDF">📄</button>
+          <button class="iconBtn sm" id="expXls" title="Export Excel">🧾</button>
           <button class="btn" id="prevBtn">← Luna anterioară</button>
           <select class="select" id="monthSel"></select>
           <button class="btn" id="nextBtn">Luna următoare →</button>
@@ -272,12 +342,29 @@
         </table>
       </div>
 
+      
       <div class="legend">
-        <div class="lg"><span class="dot" style="background:var(--c-inactive)"></span> Inactiv/absent</div>
-        <div class="lg"><span class="dot" style="background:var(--c-under)"></span> Sub normă</div>
-        <div class="lg"><span class="dot" style="background:var(--c-complete)"></span> Complet</div>
-        <div class="lg"><span class="dot" style="background:var(--c-over)"></span> Peste normă (OT/Extra)</div>
-        <div class="lg"><span class="dot" style="background:var(--c-leave)"></span> Concediu (CO/CM/etc)</div>
+        <div style="width:100%;padding:2px 0 6px;color:#574bb8;font-weight:850">
+          Condiția de prezență nu conține timp activ (pontaje neîncheiate)
+        </div>
+
+        <div style="width:100%;display:flex;gap:14px;flex-wrap:wrap;align-items:center">
+          <div><b>CO</b> - Concediu de odihnă</div>
+          <div><b>BO</b> - Concediu medical</div>
+          <div><b>CCC</b> - Concediu pentru creșterea copilului</div>
+          <div><b>CFP</b> - Concediu fără plată</div>
+          <div><b>EV</b> - Eveniment</div>
+        </div>
+
+        <div style="width:100%;display:flex;gap:14px;flex-wrap:wrap;align-items:center;margin-top:6px">
+          <div class="lg"><span class="dot" style="background:var(--st-progress)"></span> În progres</div>
+          <div class="lg"><span class="dot" style="background:var(--st-under)"></span> Sub normă</div>
+          <div class="lg"><span class="dot" style="background:var(--st-complete)"></span> Complet</div>
+          <div class="lg"><span class="dot" style="background:var(--st-over)"></span> Peste normă</div>
+          <div class="lg"><span class="dot" style="background:var(--st-inactive)"></span> Inactiv/absent</div>
+          <div class="lg"><span class="dot" style="background:var(--st-leave)"></span> Concediu</div>
+          <div class="lg"><span class="dot" style="background:var(--st-pause)"></span> În pauză</div>
+        </div>
       </div>
     </div>
   </div>
@@ -505,10 +592,46 @@
 
   function computeDaySummary(events, normMin){
     // events are within a single day for one employee
+    const leaveCodes = ["CO","CM","BO","CCC","CFP","EV"];
     const rows = events
-      .map(e=>({ t: new Date(e.ts), action:e.action, notes:e.notes||"" }))
+      .map(e=>({ t: new Date(e.ts), action:String(e.action||"").toUpperCase(), notes:e.notes||"" }))
       .filter(x=>!isNaN(x.t))
       .sort((a,b)=>a.t-b.t);
+
+    // detect leave (either action is leave code or notes contains 'LEAVE:CO')
+    let leaveCode = "";
+    for (const r of rows){
+      if (leaveCodes.includes(r.action)) { leaveCode = r.action; break; }
+      const m = String(r.notes||"").match(/\b(CO|CM|BO|CCC|CFP|EV)\b/i);
+      if (r.action === "LEAVE" && m) { leaveCode = m[1].toUpperCase(); break; }
+    }
+    if (leaveCode){
+      return {
+        workMin: 0,
+        pauseMin: 0,
+        status: "leave",
+        startHm: "",
+        endHm: "",
+        label: leaveCode,
+        sub: "",
+        running: false,
+        paused: false,
+        leaveCode
+      };
+    }
+
+    // pick first START and last FINISH for display
+    const starts = rows.filter(r=>r.action==="START" || r.action==="EXTRA START");
+    const finishes = rows.filter(r=>r.action==="FINISH" || r.action==="EXTRA FINISH");
+    const firstStart = starts.length ? starts[0].t : null;
+    const lastFinish = finishes.length ? finishes[finishes.length-1].t : null;
+
+    function hhmm(d){
+      if (!d) return "";
+      const h = String(d.getHours()).padStart(2,"0");
+      const m = String(d.getMinutes()).padStart(2,"0");
+      return `${h}:${m}`;
+    }
 
     let running = false;
     let paused = false;
@@ -525,7 +648,6 @@
       } else if (r.action === "PAUSE" && running && !paused){
         paused = true;
         lastPause = r.t;
-        // add worked from lastStart to pause
         if (lastStart) workMin += Math.max(0, (r.t - lastStart) / 60000);
       } else if (r.action === "UNPAUSE" && running && paused){
         paused = false;
@@ -534,7 +656,6 @@
         lastPause = null;
       } else if (r.action === "FINISH" && running){
         if (paused){
-          // if finish while paused -> close pause
           if (lastPause) pauseMin += Math.max(0, (r.t - lastPause)/60000);
         } else if (lastStart){
           workMin += Math.max(0, (r.t - lastStart)/60000);
@@ -547,21 +668,23 @@
     workMin = Math.round(workMin);
     pauseMin = Math.round(pauseMin);
 
+    const overtimeMin = Number(CFG?.normSettings?.overtimeMin ?? 30); // > norm + 30m => 'peste normă'
     let status = "inactive";
-    let label = "—";
-    let sub = "";
-    if (workMin > 0){
-      label = hm(workMin);
-      if (workMin < normMin) status = "under";
-      else status = "complete";
-      sub = pauseMin ? `pauză ${pauseMin}m` : "";
-    }
-    // if unfinished but started -> in progress -> treat as under with label?
+
     if (running){
-      status = "over"; // highlight as in-progress (blue)
-      sub = paused ? "în pauză" : "în lucru";
+      status = paused ? "pause" : "progress";
+    } else if (workMin > 0){
+      if (workMin < normMin) status = "under";
+      else if (workMin >= normMin + overtimeMin) status = "over";
+      else status = "complete";
+    } else {
+      status = "inactive";
     }
-    return { workMin, pauseMin, status, label, sub, running, paused };
+
+    const label = workMin > 0 ? hm(workMin) : "";
+    const sub = pauseMin ? `pauză ${pauseMin}m` : "";
+
+    return { workMin, pauseMin, status, startHm: hhmm(firstStart), endHm: hhmm(lastFinish), label, sub, running, paused, leaveCode:"" };
   }
 
   function computeMonthMatrix(ym){
@@ -619,50 +742,67 @@
     const {daysInMonth, matrix} = computeMonthMatrix(YM);
     const thead = document.getElementById("thead");
     thead.innerHTML = `<tr>
-      <th class="stickyL" style="min-width:56px">#</th>
-      <th class="stickyL2" style="min-width:264px">Angajat</th>
-      <th class="stickyL3" style="min-width:160px">Departament</th>
+      <th class="stickyL thIdx">#</th>
+      <th class="stickyL2 thEmp">
+        ANGAJAT <span class="sortHint">↑↓</span>
+      </th>
       ${Array.from({length:daysInMonth}, (_,i)=>{
         const dk = `${YM}-${String(i+1).padStart(2,'0')}`;
         const wd = getWeekdayShort(dk);
-        return `<th title="${dk}">${String(i+1).padStart(2,'0')}<br><span style="font-weight:700">${wd}</span></th>`;
+        const dow = new Date(dk+"T00:00:00").getDay();
+        const cut = (dow===1) ? " weekCut" : "";
+        return `<th class="thDay${cut}" title="${dk}">${String(i+1).padStart(2,'0')}<br><span class="wd">${wd}</span></th>`;
       }).join("")}
-</tr>`;
+    </tr>`;
 
     const tbody = document.getElementById("tbody");
     tbody.innerHTML = matrix.map((row, idx) => {
       const cells = row.days.map(d => {
-        const title = `${row.name} • ${d.dk}\nLucrat: ${hm(d.workMin)}\nPauză: ${d.pauseMin}m\n${d.sub||""}`;
-        const label = d.label || "—";
-        const sub = d.sub ? `<small>${d.sub}</small>` : "";
-        return `<td class="dayCell">
-          <div class="cell ${d.status}" data-name="${escapeHtml(row.name)}" data-day="${d.dk}" title="${escapeHtml(title)}">
-            ${label}${sub}
+        const dateObj = new Date(d.dk + "T00:00:00");
+        const dow = dateObj.getDay(); // 0 Sun..6 Sat
+        const weekend = (dow === 0 || dow === 6) ? " weekend" : "";
+        const weekCut = (dow === 1) ? " weekCut" : "";
+        const title = `${row.name} • ${d.dk}\nStart: ${d.startHm||"—"}\nFinish: ${d.endHm||"—"}\nLucrat: ${d.label||"—"}\n${d.sub||""}`;
+        const top = d.startHm ? `<div class="t">${escapeHtml(d.startHm)}</div>` : `<div class="t muted">—</div>`;
+        const mid = d.endHm ? `<div class="t">${escapeHtml(d.endHm)}</div>` : `<div class="t muted"> </div>`;
+        const bottom = d.label ? `<div class="dur">${escapeHtml(d.label)}</div>` : `<div class="dur muted"> </div>`;
+
+        let inner = `${top}${mid}${bottom}`;
+        if (d.leaveCode){
+          inner = `<div class="code">${escapeHtml(d.leaveCode)}</div>`;
+        }
+
+        return `<td class="dayCell${weekCut}">
+          <div class="dayBox st-${d.status}${weekend}" data-name="${escapeHtml(row.name)}" data-day="${d.dk}" title="${escapeHtml(title)}">
+            ${inner}
           </div>
         </td>`;
       }).join("");
 
+      const deptLine = row.dept && row.dept !== "—" ? `<div class="empDept">${escapeHtml(row.dept)}</div>` : ``;
+
+      const avatarUrl = (CFG && CFG.employeeAvatars && CFG.employeeAvatars[row.name]) ? String(CFG.employeeAvatars[row.name]) : "";
+      const avatarHtml = avatarUrl
+        ? `<img class="empPhoto" src="${escapeHtml(avatarUrl)}" alt="">`
+        : `<div class="empAvatar">${escapeHtml(initials(row.name))}</div>`;
+
       return `<tr>
-        <td class="stickyL">${idx+1}</td>
-        <td class="stickyL2">
+        <td class="stickyL tdIdx">${idx+1}</td>
+        <td class="stickyL2 tdEmp">
           <div class="empCell">
-            <div class="empBubble">${escapeHtml(initials(row.name))}</div>
-            <div>
+            ${avatarHtml}<div class="empMeta">
               <div class="empName">${escapeHtml(row.name)}</div>
-              <div class="empDept">${escapeHtml(row.dept || "—")}</div>
+              ${deptLine}
             </div>
+            <button class="iconBtn sm openPanel" data-openpanel="1" data-name="${escapeHtml(row.name)}" title="User Panel">👤</button>
           </div>
-            <div style="margin-left:auto;display:flex;align-items:center;gap:8px">
-              <button class="iconBtn sm" data-openpanel="1" data-name="${escapeHtml(row.name)}" title="User Panel">👤</button>
-            </div>
         </td>
-        <td class="stickyL3">${escapeHtml(row.dept || "—")}</td>
         ${cells}
-</tr>`;
+      </tr>`;
     }).join("");
 
-    // bind cell click
-    tbody.querySelectorAll(".cell").forEach(el=>{
+    // bind day click
+    tbody.querySelectorAll(".dayBox").forEach(el=>{
       el.addEventListener("click", ()=>{
         const name = el.getAttribute("data-name");
         const day = el.getAttribute("data-day");
@@ -671,9 +811,9 @@
     });
     // bind panel button
     tbody.querySelectorAll("[data-openpanel='1']").forEach(btn=>{
-      btn.addEventListener("click", ()=>{
+      btn.addEventListener("click", (ev)=>{
+        ev.stopPropagation();
         const name = btn.getAttribute("data-name");
-        // default: open with today in current month
         const day = `${YM}-${String(new Date().getDate()).padStart(2,'0')}`;
         openMiniPanel(name, day).catch(err=>alert(err.message || String(err)));
       });
@@ -833,7 +973,12 @@
     render();
   }
 
-  // ====== Bind UI ======
+  
+  // export (stub - implement later)
+  document.getElementById("expPdf").addEventListener("click", ()=>alert("Export PDF: TODO"));
+  document.getElementById("expXls").addEventListener("click", ()=>alert("Export Excel: TODO"));
+
+// ====== Bind UI ======
   document.getElementById("q").addEventListener("input", (e)=>{
     FILTER_Q = e.target.value.trim().toLowerCase();
     render();
