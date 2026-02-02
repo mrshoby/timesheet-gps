@@ -9,338 +9,117 @@
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&amp;display=swap" rel="stylesheet"/>
 <link href="favicon.png" rel="icon"/>
 <meta content="#516A75" name="theme-color"/>
-<link href="admin-core.css" rel="stylesheet"/><link href="admin-embed.css" rel="stylesheet"/></head>
-<body class="admin-embed view-employees" data-page-title="Index angajați • Admin">
-<div class="shell">
-<nav class="nav card">
-<a aria-label="Spre pontaj" class="brand" href="index.html">
-<img alt="Siglă SERVELECT" src="favicon.png"/>
-<div>
-<h1><span>SERVELECT</span><small>Pontaj &amp; Management Concedii</small></h1>
-</div>
-</a>
-<div class="nav-actions">
-<!-- Înapoi la pontaj -->
-<a class="btn" href="index.html" id="backToTimesheetLink">
-      ← Înapoi la pontaj
-    </a>
-<!-- Badge de context -->
-<div class="chip">Admin dashboard</div>
-<!-- Meniu hamburger (user + Deconectare) -->
-<div class="nav-menu-wrapper">
-<button aria-expanded="false" aria-label="Meniu admin" class="hamburger-btn" id="adminHamburgerBtn" type="button">
-<span class="hamburger-box">
-<span class="hamburger-inner"></span>
-</span>
-</button>
-<div class="nav-menu" id="adminHamburgerMenu">
-<div class="nav-menu-section">
-<div class="nav-menu-user-label">Utilizator logat</div>
-<div class="chip" id="adminLabel">Admin</div>
-</div>
-<div class="nav-menu-section nav-menu-actions">
-<button class="nav-menu-item nav-menu-item-danger" id="logoutBtn" type="button">
-<span>Deconectare</span>
-</button>
-</div>
-</div>
-</div>
-<!-- Self-service: lăsat în DOM pentru script, dar ascuns prin CSS -->
-<a class="btn" href="self.html" id="selfServiceLink" rel="noopener" target="_blank">
-      🧾 Self-service – raportul meu
-    </a>
-</div>
-</nav>
-<main class="admin-layout">
-<section class="admin-main">
-<header class="admin-header">
-<h1>Index angajați</h1>
-<!-- ACȚIUNI HEADER: status + reset filtre + refresh -->
-<div class="admin-header-actions">
-<span class="nav-status" id="lastUpdate"></span>
-<!-- Reset filtre (icon „filter reset”) -->
-<button class="nav-icon-btn" id="resetFiltersBtn" title="Reset: perioadă=astăzi, dept=toate, angajat=toți, zi=null, incomplete=off" type="button">
-<span aria-hidden="true" class="nav-icon">
-<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-<g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8">
-<!-- coadă mătură -->
-<path d="M5 3l11 11"></path>
-<path d="M14 6l4 4"></path>
-<!-- perie -->
-<path d="M11 14l-4 4"></path>
-<path d="M7 18c2-2 6-2 8 0"></path>
-<path d="M6 19c2-2 8-2 10 0"></path>
-<path d="M5 20c2-2 10-2 12 0"></path>
-</g>
-</svg>
-</span>
-</button>
-<!-- Refresh (icon „circular arrows”) -->
-<button class="nav-icon-btn" id="adminRefreshBtn" title="Reîncarcă datele din server" type="button">
-<span aria-hidden="true" class="nav-icon">
-<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-<g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8">
-<path d="M7 2h10"></path>
-<path d="M7 22h10"></path>
-<path d="M7 2c0 6 5 6 5 10s-5 4-5 10"></path>
-<path d="M17 2c0 6-5 6-5 10s5 4 5 10"></path>
-<path d="M10 12h4"></path>
-</g>
-</svg>
-</span>
-</button>
-</div>
-<div class="admin-filter-line">
-<div class="admin-filter-summary">
-<div class="filter-chips" id="filterChips"></div>
-</div>
-<label>
-<span>Perioadă</span>
-<select id="rangeSelect">
-<option value="today">Astăzi</option>
-<option value="last7">Ultimele 7 zile</option>
-<option value="all">Toate datele</option>
-</select>
-</label>
-<label class="label-dept">
-<span>Departament</span>
-<div class="dept-filter-row">
-<select id="deptFilter">
-<option value="all">Toate</option>
-</select>
-<!-- toggle incomplete -> buton verde/galben -->
-<button class="incomplete-btn" id="incompleteToggleBtn" title="Comută între toate zilele și doar zilele incomplete (START / PAUSE / EXTRA deschise)" type="button">
-                  ⚠ Incomplete
-                </button>
-</div>
-</label>
-<label>
-<span>Angajat</span>
-<select id="employeeFilter">
-<option value="all">Toți</option>
-</select>
-</label>
-</div>
-</header>
-<!-- TAB-uri: Dashboard / Alerte LIVE / Rapoarte -->
-<div class="admin-tabs">
-<button class="admin-tab-btn active" data-tab="dashboard" type="button">
-            📊 Dashboard
-          </button>
-<button class="admin-tab-btn" data-tab="alerts" type="button">
-            ⏰ Alerte LIVE
-          </button>
-<a class="admin-tab-btn" href="reports.html" role="button">
-            📑 Rapoarte
-          </a>
-<a class="admin-tab-btn" href="fix-day.html" role="button">
-            🛠️ Fix Day (Editor zi)
-          </a>
-</div>
-<div class="admin-error" id="error" style="display:none"></div>
-<div class="admin-loading" id="loading">Se încarcă datele din server…</div>
-<!-- TAB PRINCIPAL: Dashboard -->
-<section id="dashboard" style="display:none">
-<!-- KPI-uri principale -->
-<div class="admin-kpis">
-<div class="card kpi">
-<div class="kpi-label">Pontaje în filtrul curent</div>
-<div class="kpi-value" id="kpiTotal">–</div>
-</div>
-<div class="card kpi">
-<div class="kpi-label">Angajați implicați</div>
-<div class="kpi-value" id="kpiEmployees">–</div>
-</div>
-<div class="card kpi">
-<div class="kpi-label">START</div>
-<div class="kpi-value" id="kpiStart">–</div>
-</div>
-<div class="card kpi">
-<div class="kpi-label">FINISH</div>
-<div class="kpi-value" id="kpiFinish">–</div>
-</div>
-<div class="card kpi">
-<div class="kpi-label">Norme complete (azi)</div>
-<div class="kpi-value" id="kpiCompletedToday">–</div>
-</div>
-</div>
-<div class="admin-grid">
-<section class="card admin-card" data-section="dept">
-<h2>Distribuție pe departamente</h2>
-<div class="admin-small-text">Număr de pontaje în perioada și filtrele selectate.</div>
-<div class="admin-list" id="deptList"></div>
-</section>
-<section class="card admin-card" data-section="dept">
-<h2 id="lastEventsTitle">Ultimele pontaje</h2>
-<div class="admin-small-text" id="lastEventsHint">
-<span>Perioadă listă:</span>
-<select id="lastEventsRange">
-<option value="today">Ziua curentă</option>
-<option value="week">Săptămâna curentă</option>
-<option value="month">Luna curentă</option>
-<option value="all">Toate înregistrările</option>
-</select>
-<span id="lastEventsHintText">
-                  Toate înregistrările din perioada aleasă, după filtrele de mai sus.
-                </span>
-</div>
-<div class="table-wrap">
-<table class="admin-table">
-<thead>
-<tr>
-<th>Data / ora</th>
-<th>Angajat</th>
-<th>Departament</th>
-<th>Acțiune</th>
-<th>Activitate</th>
-</tr>
-</thead>
-<tbody id="lastEventsBody"></tbody>
-</table>
-</div>
-</section>
-</div>
-<!-- A3: Zile incomplete -->
-<section class="card admin-card" data-section="incomplete">
-<h2>Zile incomplete</h2>
-<div class="admin-small-text">
-              Zile în care există probleme de închidere: START fără FINISH, PAUSE fără UNPAUSE, EXTRA START fără EXTRA FINISH sau sesiune rămasă deschisă (după filtrul curent).
-            </div>
-<div style="margin:6px 0 10px;display:flex;gap:6px;flex-wrap:wrap;">
-<button class="top-toggle active" id="incompleteDayAllBtn" type="button">Toate</button>
-<button class="top-toggle" id="incompleteDayWeekendBtn" type="button">Doar weekend</button>
-<button class="top-toggle" id="incompleteDayWorkBtn" type="button">Doar zile lucrătoare</button>
-</div>
-<div class="table-wrap">
-<table class="admin-table">
-<thead>
-<tr>
-<th>Data</th>
-<th>Angajat</th>
-<th>Departament</th>
-<th>Normă</th>
-<th>Extra</th>
-<th>Stare</th>
-</tr>
-</thead>
-<tbody id="incompleteDaysBody"></tbody>
-</table>
-</div>
-</section>
-<!-- A3: Anomalii -->
-<section class="card admin-card" data-section="anomalies">
-<h2>Anomalii pontaj</h2>
-<div class="admin-small-text">
-              Zile cu posibile probleme de pontaj: pauze neînchise, EXTRA neînchis, pauze prea lungi, ore foarte multe sau pontaj în weekend.
-            </div>
-<div style="margin:6px 0 10px;display:flex;gap:6px;flex-wrap:wrap;">
-<button class="top-toggle active" id="anomalyDayAllBtn" type="button">Toate</button>
-<button class="top-toggle" id="anomalyDayWeekendBtn" type="button">Doar weekend</button>
-<button class="top-toggle" id="anomalyDayWorkBtn" type="button">Doar zile lucrătoare</button>
-</div>
-<div class="table-wrap">
-<table class="admin-table">
-<thead>
-<tr>
-<th>Data</th>
-<th>Angajat</th>
-<th>Departament</th>
-<th>Normă</th>
-<th>Extra</th>
-<th>Detalii</th>
-</tr>
-</thead>
-<tbody id="anomaliesBody"></tbody>
-</table>
-</div>
-</section>
-<!-- Log brut -->
-<section class="card admin-card" data-section="rawlog">
-<h2 id="rawLogTitle">Log brut (filtru curent)</h2>
-<div class="admin-small-text">
-              Lista completă a evenimentelor care trec de filtrele de mai sus — utilă pentru debugging sau verificări rapide.
-            </div>
-<pre class="admin-log" id="rawLog">–</pre>
-</section>
-<!-- A3: Prezență pe zile -->
-<section class="card admin-card" data-section="daily">
-<h2>Prezență pe zile</h2>
-<div class="admin-small-text">
-              Pentru perioada și filtrele de mai sus: câți angajați au avut cel puțin un START, câți au normă completă și câți sunt în concediu.
-            </div>
-<div class="table-wrap">
-<table class="admin-table">
-<thead>
-<tr>
-<th>Data</th>
-<th>Angajați cu pontaj</th>
-<th>Normă completă</th>
-<th>% complet</th>
-<th>Concedii aprobate</th>
-</tr>
-</thead>
-<tbody id="dailyPresenceBody"></tbody>
-</table>
-</div>
-</section>
-<!-- A4: Calendar prezență -->
-<section class="card admin-card" data-section="calendar">
-<h2>Calendar prezență (lună curentă)</h2>
-<div class="admin-small-text">
-              Fiecare zi arată câți angajați au avut pontaj și câți au normă completă, pentru luna curentă. Click pe o zi pentru a filtra mai jos.
-            </div>
-<div style="margin:6px 0 10px;display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap;">
-<button class="top-toggle" id="calPrevBtn" type="button">‹ Luna anterioară</button>
-<div class="chip" id="calendarMonthLabel">–</div>
-<button class="top-toggle" id="calNextBtn" type="button">Luna următoare ›</button>
-</div>
-<div class="calendar-grid" id="presenceCalendar"></div>
-<div class="calendar-legend">
-<span class="calendar-legend-label">Legendă:</span>
-<span class="calendar-legend-item">
-<span class="calendar-legend-box calendar-legend-nodata"></span> fără pontaj
-              </span>
-<span class="calendar-legend-item">
-<span class="calendar-legend-box calendar-legend-low"></span> &lt;50% complet
-              </span>
-<span class="calendar-legend-item">
-<span class="calendar-legend-box calendar-legend-med"></span> 50–90% complet
-              </span>
-<span class="calendar-legend-item">
-<span class="calendar-legend-box calendar-legend-high"></span> &gt;90% complet
-              </span>
-</div>
-<div id="calendarDayDetails" style="display:none;margin-top:12px;">
-<div class="admin-small-text">
-<b>Zi selectată:</b> <span id="calendarSelectedDayLabel">–</span>
-</div>
-<div style="margin:6px 0 6px;font-weight:700;font-size:12px;color:var(--muted);">
-    Inactivi (fără pontaj)
-  </div>
-<div class="admin-list" id="calendarInactiveList"></div>
-</div>
-</section>
-<!-- A2: Index & detalii angajat -->
-<div class="admin-grid">
-<section class="card admin-card" data-section="employees">
-<h2>Index angajați</h2>
-<div class="admin-small-text">
-                Listă angajați (după filtrul de departament). Click pe un nume pentru a vedea statistici detaliate (all time).
-              </div>
-<div class="admin-filter-line" style="margin:8px 0 6px;">
-<label style="flex:1;">
-<span>Caută angajat / departament</span>
-<input id="employeeSearch" placeholder="Tastează pentru a filtra..." type="text"/>
-</label>
-</div>
-<div class="admin-list" id="employeeIndexList"></div>
-</section>
-<section class="card admin-card" data-section="employees">
-<h2>Detalii angajat</h2>
-<div class="admin-small-text" id="employeeDetailsHeader">
-                Selectează un angajat din listă pentru a vedea situația pe toate zilele (normă, extra, overtime, zile complete, concediu).
-              </div>
-<a class="btn" href="#" id="employeeSelfLink" rel="noopener" style="display:none;margin:8px 0 10px" target="_blank">
+<link href="admin-core.css" rel="stylesheet"/><link href="admin-embed.css" rel="stylesheet"/>
+<style>
+  /* ===== Angajați (redesign ca 3.webp) ===== */
+  :root{
+    --bg:#f3f4fb;
+    --card:#ffffff;
+    --line:#e7e8f2;
+    --text:#1f2330;
+    --muted:#7c8096;
+    --purple:#7a63ff;
+    --green:#79c77d;
+    --green2:#5fbf69;
+    --btn:#f2f2fb;
+  }
+  body.admin-embed.view-employees{ background:var(--bg) !important; }
+  .shell{ max-width:1180px; margin:0 auto; padding:18px 14px 28px; }
+  nav.nav.card{ background:transparent !important; border:0 !important; box-shadow:none !important; padding:0 !important; margin:0 0 14px; }
+  nav.nav.card .nav-actions{ gap:10px; }
+  nav.nav.card .chip{ background:rgba(122,99,255,.12); color:var(--purple); border:1px solid rgba(122,99,255,.25); }
+  .pageCard{
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:22px;
+    box-shadow:0 20px 50px rgba(30,30,60,.08);
+    overflow:hidden;
+  }
+  .pageHead{
+    padding:18px 18px 12px;
+    display:flex; align-items:center; justify-content:space-between; gap:12px;
+  }
+  .pageTitle{
+    font-size:20px; font-weight:900; color:var(--text);
+    display:flex; align-items:baseline; gap:10px;
+  }
+  .pageTitle small{
+    font-size:12px; font-weight:800; color:var(--muted);
+  }
+  .filters{
+    padding:0 18px 14px;
+    display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end;
+  }
+  .filters label{ display:flex; flex-direction:column; gap:6px; font-size:11px; font-weight:900; color:var(--muted
+<main class="admin-layout" style="display:block">
+  <section class="pageCard">
+    <div class="pageHead">
+      <div class="pageTitle">
+        Index angajați
+        <small id="subTitle">—</small>
+      </div>
+      <div class="right">
+        <button class="pill" id="refreshBtn" type="button">⟳ Reîncarcă</button>
+      </div>
+    </div>
+
+    <div class="filters">
+      <label class="grow">
+        <span>Caută angajat</span>
+        <input id="q" placeholder="Tastează pentru a filtra..." />
+      </label>
+
+      <label>
+        <span>Perioadă</span>
+        <select id="range">
+          <option value="today">Astăzi</option>
+          <option value="last7" selected>Ultimele 7 zile</option>
+          <option value="month">Luna curentă</option>
+          <option value="all">Toate datele</option>
+        </select>
+      </label>
+
+      <label>
+        <span>Departament</span>
+        <select id="dept">
+          <option value="all">Toate</option>
+        </select>
+      </label>
+
+      <label>
+        <span>Filtru</span>
+        <select id="scope">
+          <option value="mine">Repartizați mie</option>
+          <option value="all">Toți angajații</option>
+        </select>
+      </label>
+    </div>
+
+    <div class="tblWrap">
+      <table class="empTbl">
+        <thead>
+          <tr>
+            <th style="width:46%">
+              ANGAJAT
+              <span class="sort" id="sortName" title="Sortează după angajat">↑<span style="margin-top:-2px">↓</span></span>
+            </th>
+            <th style="width:32%">
+              PERIOADA
+              <span class="sort" id="sortPeriod" title="Sortează după perioadă">↑<span style="margin-top:-2px">↓</span></span>
+            </th>
+            <th style="width:22%">ACȚIUNI</th>
+          </tr>
+        </thead>
+        <tbody id="body">
+          <tr><td class="empty" colspan="3">Se încarcă…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+</main>
+
+<div class="toast" id="toast">—</div>
+ss="btn" href="#" id="employeeSelfLink" rel="noopener" style="display:none;margin:8px 0 10px" target="_blank">
   🧾 Deschide pontajul angajatului
 </a>
 <div id="employeeDetailsBody">
@@ -514,5 +293,525 @@
 </aside>
 </main>
 </div>
-<script>(function(){try{const t=document.body.getAttribute('data-page-title')||'Admin';document.title=t;}catch(e){}})();</script><script src="admin-core.js"></script></body>
+<script>(function(){try{const t=document.body.getAttribute('data-page-title')||'Admin';document.title=t;}catch(e){}})();</script>
+<script>
+(function(){
+  // ===== Utilities =====
+  const LS_ADMIN = 'pontaj/admin/v1';
+  const LS_ADMIN_KEY = 'pontaj/adminKey/v1';
+  const ADMIN_KEY_FALLBACK = 'Servelect_2026!_AdminKey';
+
+  const $ = (id)=>document.getElementById(id);
+  const toastEl = $('toast');
+  function toast(msg){
+    if (!toastEl) return;
+    toastEl.textContent = msg;
+    toastEl.classList.add('show');
+    clearTimeout(toastEl._t);
+    toastEl._t = setTimeout(()=>toastEl.classList.remove('show'), 2200);
+  }
+
+  function getAdminSession(){
+    try{ return JSON.parse(localStorage.getItem(LS_ADMIN)||'null'); }catch{ return null; }
+  }
+  function ensureAdmin(){
+    const s = getAdminSession();
+    if (!s || !s.user){
+      document.body.innerHTML = `
+        <div style="max-width:820px;margin:40px auto;padding:18px;font-family:Montserrat,sans-serif">
+          <div style="background:#fff;border:1px solid #e7e8f2;border-radius:16px;padding:18px">
+            <h2 style="margin:0 0 6px">Nu ești logat ca admin</h2>
+            <div style="color:#7c8096;font-weight:700;margin-bottom:12px">
+              Te rog intră în index.html și loghează-te în zona Admin, apoi revino aici.
+            </div>
+            <a href="index.html" style="display:inline-block;padding:10px 14px;border-radius:12px;background:#7a63ff;color:#fff;font-weight:900;text-decoration:none">Deschide index.html</a>
+          </div>
+        </div>`;
+      return null;
+    }
+    return s;
+  }
+
+
+  function bindNav(){
+    const adminLabel = document.getElementById('adminLabel');
+    if (adminLabel && ADMIN && ADMIN.user) adminLabel.textContent = ADMIN.user;
+
+    const btn = document.getElementById('adminHamburgerBtn');
+    const menu = document.getElementById('adminHamburgerMenu');
+    if (btn && menu){
+      btn.addEventListener('click', (e)=>{
+        e.stopPropagation();
+        const open = btn.getAttribute('aria-expanded') === 'true';
+        btn.setAttribute('aria-expanded', String(!open));
+        menu.style.display = open ? 'none' : 'block';
+      });
+      document.addEventListener('click', ()=>{
+        btn.setAttribute('aria-expanded','false');
+        menu.style.display = 'none';
+      });
+      menu.addEventListener('click', (e)=>e.stopPropagation());
+    }
+
+    const logoutBtn = document.getElementById('logoutBtn');
+    if (logoutBtn){
+      logoutBtn.addEventListener('click', ()=>{
+        try{ localStorage.removeItem(LS_ADMIN); }catch{}
+        toast('Deconectat.');
+        setTimeout(()=>{ window.location.href='index.html'; }, 400);
+      });
+    }
+  }
+
+  async function loadConfig(){
+    const candidates = [
+      'config.json',
+      './config.json',
+      '../config.json',
+      '/config.json'
+    ];
+    for (const p of candidates){
+      try{
+        const r = await fetch(p + '?ts=' + Date.now(), {cache:'no-store'});
+        if (!r.ok) continue;
+        const j = await r.json();
+        return j;
+      }catch(e){}
+    }
+    return null;
+  }
+
+  function ymd(d){
+    const y=d.getFullYear();
+    const m=String(d.getMonth()+1).padStart(2,'0');
+    const da=String(d.getDate()).padStart(2,'0');
+    return `${y}-${m}-${da}`;
+  }
+  function dmy(ymdStr){
+    if (!ymdStr) return '—';
+    const m = String(ymdStr).match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (!m) return ymdStr;
+    return `${m[3]}.${m[2]}.${m[1]}`;
+  }
+
+  function jsonp(url){
+    return new Promise((resolve,reject)=>{
+      const cb = 'cb_' + Math.random().toString(16).slice(2);
+      const s = document.createElement('script');
+      const sep = url.includes('?') ? '&' : '?';
+      s.src = url + sep + 'callback=' + cb;
+      s.async = true;
+      const t = setTimeout(()=>cleanup(new Error('JSONP timeout')), 15000);
+      function cleanup(err, data){
+        clearTimeout(t);
+        try{ delete window[cb]; }catch{}
+        if (s && s.parentNode) s.parentNode.removeChild(s);
+        if (err) reject(err); else resolve(data);
+      }
+      window[cb] = (data)=>cleanup(null, data);
+      s.onerror = ()=>cleanup(new Error('JSONP error'));
+      document.head.appendChild(s);
+    });
+  }
+
+  // ===== State =====
+  let CFG = null;
+  let ENDPOINT = '';
+  let ADMIN = null;
+  let ADMIN_KEY = '';
+  let managersByName = {}; // employeeName -> {managerName, managerEmail, ...}
+  let pinsByName = {};     // name -> {hasPin, active, updatedAt}
+  let eventsData = null;   // adminEvents response
+  let sortMode = {key:'name', dir:1}; // 1 asc, -1 desc
+
+  function initials(name){
+    const parts = String(name||'').trim().split(/\s+/).filter(Boolean);
+    const a = (parts[0]||'').charAt(0);
+    const b = (parts[1]||'').charAt(0);
+    return (a + b).toUpperCase() || '?';
+  }
+  function esc(s){ return String(s||'').replace(/[&<>"']/g, c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c])); }
+
+  function getAvatarHtml(name){
+    const url = CFG && CFG.employeeAvatars && CFG.employeeAvatars[name] ? String(CFG.employeeAvatars[name]) : '';
+    if (url) return `<div class="avatar"><img src="${esc(url)}" alt=""></div>`;
+    return `<div class="avatar">${esc(initials(name))}</div>`;
+  }
+
+  function calcPeriodFor(name){
+    if (!eventsData || !Array.isArray(eventsData.events)) return {from:'', to:''};
+    let min=null, max=null;
+    for (const e of eventsData.events){
+      if (!e || e.name !== name) continue;
+      const day = String(e.day || '').slice(0,10); // server often provides day
+      if (!day) continue;
+      if (!min || day < min) min = day;
+      if (!max || day > max) max = day;
+    }
+    return {from:min||'', to:max||''};
+  }
+
+  function inScope(empName){
+    const scope = $('scope').value;
+    if (scope === 'all') return true;
+    const m = managersByName[empName];
+    if (!m) return false;
+    const adminLabel = String(ADMIN.user||'');
+    const adminEmail = String(ADMIN.email||'');
+    return (m.managerName && m.managerName === adminLabel) || (adminEmail && m.managerEmail && m.managerEmail === adminEmail);
+  }
+
+  function matchesFilters(emp){
+    const q = String($('q').value||'').trim().toLowerCase();
+    const dept = $('dept').value;
+    if (!inScope(emp.name)) return false;
+    if (dept !== 'all' && String(emp.dept||'') !== dept) return false;
+    if (q){
+      const hay = (emp.name + ' ' + (emp.dept||'')).toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
+    return true;
+  }
+
+  function sortEmployees(list){
+    const dir = sortMode.dir;
+    if (sortMode.key === 'name'){
+      return list.sort((a,b)=> String(a.name).localeCompare(String(b.name), 'ro') * dir);
+    }
+    if (sortMode.key === 'period'){
+      return list.sort((a,b)=>{
+        const pa = a._periodTo || '';
+        const pb = b._periodTo || '';
+        if (pa === pb) return String(a.name).localeCompare(String(b.name), 'ro') * dir;
+        return (pa < pb ? -1 : 1) * dir;
+      });
+    }
+    return list;
+  }
+
+  function render(){
+    const body = $('body');
+    if (!eventsData || !Array.isArray(eventsData.employees)){
+      body.innerHTML = `<tr><td class="empty" colspan="3">Nu am primit listă de angajați.</td></tr>`;
+      return;
+    }
+
+    // dept options
+    const depts = Array.from(new Set(eventsData.employees.map(e=>String(e.dept||'—')).filter(Boolean))).sort((a,b)=>a.localeCompare(b,'ro'));
+    const deptSel = $('dept');
+    const prev = deptSel.value;
+    deptSel.innerHTML = `<option value="all">Toate</option>` + depts.map(d=>`<option value="${esc(d)}">${esc(d)}</option>`).join('');
+    if (depts.includes(prev)) deptSel.value = prev;
+
+    // subtitle
+    const meta = eventsData.meta || {};
+    $('subTitle').textContent = `${dmy(meta.from)} – ${dmy(meta.to)} • ${esc(ADMIN.user)}${$('scope').value==='mine' ? ' • repartizați mie' : ''}`;
+
+    let list = eventsData.employees.map(e=>{
+      const p = calcPeriodFor(e.name);
+      return {...e, _periodFrom:p.from, _periodTo:p.to};
+    }).filter(matchesFilters);
+
+    list = sortEmployees(list);
+
+    if (!list.length){
+      body.innerHTML = `<tr><td class="empty" colspan="3">Nu există angajați pentru filtrul curent.</td></tr>`;
+      return;
+    }
+
+    body.innerHTML = list.map(emp=>{
+      const pFrom = emp._periodFrom ? dmy(emp._periodFrom) : '—';
+      const pTo   = emp._periodTo ? dmy(emp._periodTo) : '—';
+      const hasPeriod = emp._periodFrom && emp._periodTo;
+      const pinMeta = pinsByName[emp.name];
+      const pinTag = pinMeta ? (pinMeta.hasPin ? `<span class="tag ok">🔒 PIN setat</span>` : `<span class="tag bad">PIN lipsă</span>`) : `<span class="tag">PIN: ?</span>`;
+
+      return `<tr data-name="${esc(emp.name)}">
+        <td>
+          <div class="empCell">
+            ${getAvatarHtml(emp.name)}
+            <div class="empMeta">
+              <div class="empName">${esc(emp.name)}</div>
+              <div class="empDept">${esc(emp.dept || '—')}</div>
+              ${pinTag}
+            </div>
+          </div>
+        </td>
+        <td>
+          <div class="period">
+            ${hasPeriod ? `${esc(pFrom)} – ${esc(pTo)}` : `<span class="muted">Fără pontaj în perioadă</span>`}
+          </div>
+        </td>
+        <td>
+          <div class="actions">
+            <button class="btnOk" type="button" data-open="${esc(emp.name)}" title="Deschide / acțiune rapidă">
+              <span style="display:inline-flex;width:22px;height:22px;align-items:center;justify-content:center;background:rgba(255,255,255,.18);border-radius:8px">
+                ✓
+              </span>
+              Aprobă
+            </button>
+
+            <button class="btnIcon" type="button" data-reject="${esc(emp.name)}" title="Acțiune secundară">✕</button>
+
+            <div class="gearMenu">
+              <button class="btnIcon" type="button" data-gear="${esc(emp.name)}" title="Setări">⚙</button>
+              <div class="menu" id="menu_${esc(emp.name).replace(/[^a-z0-9]/gi,'_')}">
+                <h4>Setări: ${esc(emp.name)}</h4>
+                <div class="row">
+                  <input type="password" inputmode="numeric" pattern="[0-9]*" maxlength="8" placeholder="PIN (4–8 cifre)" data-pin="${esc(emp.name)}">
+                  <button class="save primary" type="button" data-savepin="${esc(emp.name)}">Salvează</button>
+                </div>
+                <div class="row" style="margin-top:8px">
+                  <button class="save" type="button" data-clearpin="${esc(emp.name)}">Șterge PIN</button>
+                  <button class="save" type="button" data-close="${esc(emp.name)}">Închide</button>
+                </div>
+                <div class="hint">PIN-ul este folosit la login în <b>index.html</b> (chip „Angajat”).</div>
+              </div>
+            </div>
+          </div>
+        </td>
+      </tr>`;
+    }).join("");
+
+    bindRowActions();
+  }
+
+  function closeAllMenus(){
+    document.querySelectorAll('.menu.open').forEach(m=>m.classList.remove('open'));
+  }
+
+  function bindRowActions(){
+    // primary/secondary are placeholders for now
+    document.querySelectorAll('[data-open]').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        const name = btn.getAttribute('data-open');
+        toast('Acțiune: ' + name);
+      });
+    });
+    document.querySelectorAll('[data-reject]').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        const name = btn.getAttribute('data-reject');
+        toast('Acțiune secundară: ' + name);
+      });
+    });
+
+    // gear menu open/close
+    document.querySelectorAll('[data-gear]').forEach(btn=>{
+      btn.addEventListener('click', (ev)=>{
+        ev.stopPropagation();
+        const name = btn.getAttribute('data-gear');
+        const id = 'menu_' + name.replace(/[^a-z0-9]/gi,'_');
+        const menu = document.getElementById(id);
+        if (!menu) return;
+        const open = menu.classList.contains('open');
+        closeAllMenus();
+        if (!open) menu.classList.add('open');
+      });
+    });
+    document.querySelectorAll('[data-close]').forEach(btn=>{
+      btn.addEventListener('click', (ev)=>{
+        ev.stopPropagation();
+        closeAllMenus();
+      });
+    });
+
+    document.querySelectorAll('[data-savepin]').forEach(btn=>{
+      btn.addEventListener('click', async (ev)=>{
+        ev.stopPropagation();
+        const name = btn.getAttribute('data-savepin');
+        const inp = document.querySelector('input[data-pin="'+CSS.escape(name)+'"]');
+        const pin = inp ? String(inp.value||'').trim() : '';
+        if (!/^\d{4,8}$/.test(pin)){
+          toast('PIN invalid (4–8 cifre).');
+          return;
+        }
+        btn.disabled = true;
+        btn.textContent = '...';
+        try{
+          const res = await jsonp(ENDPOINT + '?fn=adminSetEmployeePin&key=' + encodeURIComponent(ADMIN_KEY) +
+            '&name=' + encodeURIComponent(name) +
+            '&dept=' + encodeURIComponent(getDeptFor(name)) +
+            '&pin=' + encodeURIComponent(pin) +
+            '&ts=' + Date.now()
+          );
+          if (!res || !res.ok) throw new Error((res && res.error) ? res.error : 'Eroare la salvare.');
+          pinsByName[name] = {hasPin:true, active:true, updatedAt:res.updatedAt||''};
+          toast('PIN salvat: ' + name);
+          closeAllMenus();
+          render();
+        }catch(e){
+          console.warn(e);
+          toast('Eroare: ' + (e && e.message ? e.message : e));
+        }finally{
+          btn.disabled = false;
+          btn.textContent = 'Salvează';
+        }
+      });
+    });
+
+    document.querySelectorAll('[data-clearpin]').forEach(btn=>{
+      btn.addEventListener('click', async (ev)=>{
+        ev.stopPropagation();
+        const name = btn.getAttribute('data-clearpin');
+        btn.disabled = true;
+        btn.textContent = '...';
+        try{
+          const res = await jsonp(ENDPOINT + '?fn=adminSetEmployeePin&key=' + encodeURIComponent(ADMIN_KEY) +
+            '&name=' + encodeURIComponent(name) +
+            '&dept=' + encodeURIComponent(getDeptFor(name)) +
+            '&clear=1' +
+            '&ts=' + Date.now()
+          );
+          if (!res || !res.ok) throw new Error((res && res.error) ? res.error : 'Eroare la ștergere.');
+          pinsByName[name] = {hasPin:false, active:true, updatedAt:res.updatedAt||''};
+          toast('PIN șters: ' + name);
+          closeAllMenus();
+          render();
+        }catch(e){
+          console.warn(e);
+          toast('Eroare: ' + (e && e.message ? e.message : e));
+        }finally{
+          btn.disabled = false;
+          btn.textContent = 'Șterge PIN';
+        }
+      });
+    });
+  }
+
+  function getDeptFor(name){
+    if (!eventsData || !Array.isArray(eventsData.employees)) return '';
+    const e = eventsData.employees.find(x=>x && x.name===name);
+    return e ? (e.dept||'') : '';
+  }
+
+  async function loadManagers(){
+    try{
+      const res = await jsonp(ENDPOINT + '?fn=adminManagersMap&key=' + encodeURIComponent(ADMIN_KEY) + '&ts=' + Date.now());
+      if (res && res.ok && Array.isArray(res.items)){
+        managersByName = {};
+        res.items.forEach(it=>{
+          if (it && it.employeeName){
+            managersByName[it.employeeName] = it;
+          }
+        });
+      }
+    }catch(e){
+      console.warn('adminManagersMap failed:', e);
+      managersByName = {};
+    }
+  }
+
+  async function loadPins(){
+    try{
+      const res = await jsonp(ENDPOINT + '?fn=adminEmployeePins&key=' + encodeURIComponent(ADMIN_KEY) + '&ts=' + Date.now());
+      if (res && res.ok && Array.isArray(res.items)){
+        pinsByName = {};
+        res.items.forEach(it=>{
+          if (it && it.name){
+            pinsByName[it.name] = {hasPin:!!it.hasPin, active:it.active!==false, updatedAt:it.updatedAt||''};
+          }
+        });
+      }
+    }catch(e){
+      console.warn('adminEmployeePins failed:', e);
+      pinsByName = {};
+    }
+  }
+
+  async function loadAdminEvents(){
+    const range = $('range').value;
+    const now = new Date();
+    let from = null, to = null;
+    if (range === 'today'){
+      from = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      to   = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    } else if (range === 'last7'){
+      to = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      from = new Date(to);
+      from.setDate(from.getDate()-6);
+    } else if (range === 'month'){
+      from = new Date(now.getFullYear(), now.getMonth(), 1);
+      to = new Date(now.getFullYear(), now.getMonth()+1, 0);
+    } else { // all
+      from = new Date(now.getFullYear(), 0, 1);
+      to = new Date(now.getFullYear(), 11, 31);
+    }
+
+    const url = ENDPOINT + '?fn=adminEvents' +
+      '&from=' + encodeURIComponent(ymd(from)) +
+      '&to='   + encodeURIComponent(ymd(to)) +
+      '&ts=' + Date.now();
+
+    const data = await jsonp(url);
+    if (!data || !data.ok) throw new Error((data && data.error) ? data.error : 'adminEvents error');
+    eventsData = data;
+  }
+
+  async function refresh(){
+    closeAllMenus();
+    $('body').innerHTML = `<tr><td class="empty" colspan="3">Se încarcă…</td></tr>`;
+    await loadManagers();
+    await loadPins();
+    await loadAdminEvents();
+    render();
+  }
+
+  function bindUi(){
+    ['q','dept','scope','range'].forEach(id=>{
+      $(id).addEventListener('input', ()=>render());
+      $(id).addEventListener('change', ()=>{ if (id==='range') refresh(); else render(); });
+    });
+
+    $('refreshBtn').addEventListener('click', ()=>refresh());
+
+    $('sortName').addEventListener('click', ()=>{
+      if (sortMode.key==='name') sortMode.dir *= -1; else { sortMode.key='name'; sortMode.dir=1; }
+      render();
+    });
+    $('sortPeriod').addEventListener('click', ()=>{
+      if (sortMode.key==='period') sortMode.dir *= -1; else { sortMode.key='period'; sortMode.dir=1; }
+      render();
+    });
+
+    document.addEventListener('click', ()=>closeAllMenus());
+    document.addEventListener('keydown', (e)=>{ if (e.key==='Escape') closeAllMenus(); });
+  }
+
+  async function init(){
+    ADMIN = ensureAdmin();
+    if (!ADMIN) return;
+    bindNav();
+
+    CFG = await loadConfig();
+    ENDPOINT = CFG && CFG.adminEventsEndpoint ? String(CFG.adminEventsEndpoint) : '';
+    if (!ENDPOINT){
+      $('body').innerHTML = `<tr><td class="empty" colspan="3">Lipsește <b>adminEventsEndpoint</b> în config.json.</td></tr>`;
+      return;
+    }
+
+    // admin key
+    ADMIN_KEY = '';
+    try{ ADMIN_KEY = String(localStorage.getItem(LS_ADMIN_KEY)||'').trim(); }catch{}
+    if (!ADMIN_KEY){
+      // fallback (same as existing project key)
+      ADMIN_KEY = ADMIN_KEY_FALLBACK;
+      try{ localStorage.setItem(LS_ADMIN_KEY, ADMIN_KEY); }catch{}
+    }
+
+    // scope default: for role admin show all, for manager show mine
+    if (String(ADMIN.role||'').toLowerCase() === 'admin') $('scope').value = 'all';
+    else $('scope').value = 'mine';
+
+    bindUi();
+    await refresh();
+  }
+
+  init().catch(e=>{
+    console.warn(e);
+    $('body').innerHTML = `<tr><td class="empty" colspan="3">Eroare: ${esc(e && e.message ? e.message : e)}</td></tr>`;
+  });
+
+})();
+</script>
+</body>
 </html>
