@@ -114,6 +114,7 @@ function applyNormSettingsFromConfig(cfg){
       }
     }
 
+    
     if (cfg.normSettings.departments){
       Object.keys(cfg.normSettings.departments).forEach(dep=>{
         const nd = cfg.normSettings.departments[dep] || {};
