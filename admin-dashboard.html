@@ -1417,7 +1417,18 @@ function adminEndpointBase(cfg){
       return {
         name: emp.name || emp.email,
         dept: emp.dept,
-        manager: (emp.isAdmin ? 'Admin' : (emp.manager || emp.managerEmail || '—')),
+        manager: (()=>{
+          const nm = (emp.name || emp.email || '').trim();
+          const nk = nm.toLowerCase();
+          const admins = (window.__PONTAJ_ADMINS_BY_NAME || null);
+          const isAdm = !!(admins && admins[nk]);
+          const mp = (window.__PONTAJ_MANAGERS_MAP || null);
+          const mgr = (!isAdm && mp) ? (mp[nk] || null) : null;
+          const mgrLabel = (mgr && (mgr.email || mgr.managerEmail || mgr.name || mgr.managerName))
+            ? (mgr.email || mgr.managerEmail || mgr.name || mgr.managerName)
+            : (emp.manager || emp.managerEmail || '—');
+          return isAdm ? 'Admin' : mgrLabel;
+        })(),
         initials,
         workPct,
         workLabel: fmtTimeHHMM(c.workMin),
@@ -1589,6 +1600,11 @@ function adminEndpointBase(cfg){
 
         ADMINS.byEmail = new Map(ADMINS.list.filter(a=>a.email).map(a=>[a.email.toLowerCase(), a]));
         ADMINS.byName = new Map(ADMINS.list.filter(a=>a.name).map(a=>[a.name.toLowerCase(), a]));
+        // export a simple lookup for outside-scope helpers (dashboard compute)
+        try{
+          window.__PONTAJ_ADMINS_BY_NAME = {};
+          for (const [k] of ADMINS.byName.entries()) window.__PONTAJ_ADMINS_BY_NAME[k] = 1;
+        }catch(_){ }
       }catch(err){
         console.warn('Nu pot încărca admin-auth.json:', err);
       }
@@ -1604,6 +1620,14 @@ function adminEndpointBase(cfg){
         if (!data || !data.ok || !data.map) return;
         const mp = data.map || {};
         MANAGERS.map = new Map(Object.keys(mp).map(k => [String(k).toLowerCase(), mp[k]]));
+        try{
+          const o = {};
+          for (const k of Object.keys(mp||{})) o[String(k).toLowerCase()] = mp[k];
+          window.__PONTAJ_MANAGERS_MAP = o;
+          // keep a local fallback cache too
+          localStorage.setItem('pontaj/managers/v1', JSON.stringify(o));
+            try{ window.__PONTAJ_MANAGERS_MAP = o; }catch(_){ }
+        }catch(_){ }
       }catch(err){
         // fallback local storage
         try{
@@ -1611,6 +1635,11 @@ function adminEndpointBase(cfg){
           if (s){
             const o = JSON.parse(s);
             MANAGERS.map = new Map(Object.keys(o).map(k => [k.toLowerCase(), o[k]]));
+            try{
+              const oo = {};
+              for (const k of Object.keys(o||{})) oo[String(k).toLowerCase()] = o[k];
+              window.__PONTAJ_MANAGERS_MAP = oo;
+            }catch(_){ }
           }
         }catch(_){}
       }
@@ -1650,6 +1679,7 @@ function adminEndpointBase(cfg){
             const o = {};
             for (const [k,v] of MANAGERS.map.entries()) o[k]=v;
             localStorage.setItem('pontaj/managers/v1', JSON.stringify(o));
+            try{ window.__PONTAJ_MANAGERS_MAP = o; }catch(_){ }
             return {ok:true};
           }
         }
@@ -1663,6 +1693,7 @@ function adminEndpointBase(cfg){
       const o = {};
       for (const [k,v] of MANAGERS.map.entries()) o[k]=v;
       localStorage.setItem('pontaj/managers/v1', JSON.stringify(o));
+            try{ window.__PONTAJ_MANAGERS_MAP = o; }catch(_){ }
       return {ok:true, local:true};
     }
 
