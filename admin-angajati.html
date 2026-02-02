@@ -9,856 +9,651 @@
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&amp;display=swap" rel="stylesheet"/>
 <link href="favicon.png" rel="icon"/>
 <meta content="#516A75" name="theme-color"/>
-<link href="admin-core.css" rel="stylesheet"/><link href="admin-embed.css" rel="stylesheet"/>
-<style>
-  /* ===== Employees page (3.webp style) ===== */
-  .emp-page{max-width:1180px;margin:0 auto;padding:18px 14px 28px}
-  .emp-card{background:rgba(255,255,255,.92);border:1px solid rgba(255,255,255,.55);box-shadow:0 20px 60px rgba(20,18,40,.10);border-radius:22px;overflow:hidden}
-  .emp-top{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:18px 18px 10px}
-  .emp-top h1{margin:0;font-size:22px;letter-spacing:.2px}
-  .emp-sub{margin:4px 0 0;font-size:12px;color:rgba(76,79,97,.75);font-weight:600}
-  .emp-filters{display:flex;flex-wrap:wrap;gap:10px;align-items:end;padding:0 18px 14px}
-  .emp-filters label{display:flex;flex-direction:column;gap:6px;font-size:11px;color:rgba(76,79,97,.75);font-weight:800}
-  .emp-filters input,.emp-filters select{height:38px;border-radius:12px;border:1px solid rgba(20,18,40,.12);padding:0 12px;background:rgba(255,255,255,.95);font-weight:700;color:#2b2f3a;outline:none}
-  .emp-filters input:focus,.emp-filters select:focus{border-color:rgba(113,93,240,.45);box-shadow:0 0 0 4px rgba(113,93,240,.10)}
-  .emp-filters .grow{flex:1;min-width:240px}
-  .chipline{display:flex;gap:8px;flex-wrap:wrap;margin-left:auto}
-  .pill{display:inline-flex;align-items:center;gap:8px;padding:9px 12px;border-radius:999px;background:rgba(113,93,240,.10);border:1px solid rgba(113,93,240,.18);color:#4b3fd9;font-weight:900;font-size:12px}
-  .pill.warn{backgr
+<link href="admin-core.css" rel="stylesheet"/><link href="admin-embed.css" rel="stylesheet"/><style>
+  /* ===== Angajați (design like 3.webp) ===== */
+  .aaHead{padding:22px 18px 14px}
+  .aaHeadTop{display:flex;align-items:flex-end;gap:14px;flex-wrap:wrap;justify-content:space-between}
+  .aaTitle{margin:0 0 6px;font-size:20px;font-weight:800;letter-spacing:.2px}
+  .aaSub{color:rgba(80, 90, 120, .85);font-weight:600;font-size:12px}
+  .aaControls{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  .aaSearch{display:flex;align-items:center;gap:8px;padding:10px 12px;border:1px solid rgba(70,80,120,.18);border-radius:12px;background:#fff;min-width:230px}
+  .aaSearchIcon{opacity:.55}
+  .aaSearch input{border:0;outline:0;background:transparent;font:inherit;width:100%}
+  .aaSelect{padding:10px 12px;border-radius:12px;border:1px solid rgba(70,80,120,.18);background:#fff;font:inherit}
+  .aaDates{display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:12px;border:1px solid rgba(70,80,120,.18);background:#fff}
+  .aaDate{border:0;outline:0;font:inherit;background:transparent}
+  .aaDash{opacity:.35;font-weight:800}
+  .aaWarn{margin-top:10px;padding:10px 12px;border-radius:12px;font-weight:700;font-size:12px;background:rgba(255,77,77,.10);color:#b1252c;border:1px solid rgba(255,77,77,.25)}
+  .aaWarn.ok{background:rgba(89,209,125,.14);color:#1d7a3a;border-color:rgba(89,209,125,.30)}
+  .aaWarn.bad{background:rgba(255,77,77,.10);color:#b1252c;border-color:rgba(255,77,77,.25)}
+
+  .aaCard{margin:0 18px 22px;border-radius:18px;background:#fff;border:1px solid rgba(70,80,120,.14);overflow:hidden}
+  .aaRow{display:grid;grid-template-columns: 1.25fr .75fr .55fr;gap:12px;align-items:center;padding:14px 16px}
+  .aaRowHead{background:rgba(240,242,255,.55);border-bottom:1px solid rgba(70,80,120,.14);font-weight:900;color:#2f3450}
+  .aaColActions{text-align:right}
+  .aaSort{background:transparent;border:0;font:inherit;font-weight:900;color:inherit;cursor:pointer;display:flex;align-items:center;gap:8px}
+  .aaSortIcon{opacity:.55;font-weight:900}
+  #list .aaRowBody{border-bottom:1px solid rgba(70,80,120,.12)}
+  #list .aaRowBody:last-child{border-bottom:0}
+  .aaEmp{display:flex;align-items:center;gap:12px;min-width:0}
+  .aaAvatar{width:38px;height:38px;border-radius:999px;background:#f0f2ff;border:2px solid #fff;box-shadow:0 8px 18px rgba(20,18,40,.10);display:flex;align-items:center;justify-content:center;font-weight:900;color:#38405c}
+  .aaAvatarImg{width:38px;height:38px;border-radius:999px;border:2px solid #fff;box-shadow:0 8px 18px rgba(20,18,40,.10);object-fit:cover}
+  .aaEmpMeta{min-width:0}
+  .aaEmpName{font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .aaEmpSub{font-size:12px;color:rgba(80,90,120,.78);font-weight:700;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .aaBadge{margin-left:auto;font-size:11px;font-weight:900;padding:6px 10px;border-radius:999px;border:1px solid rgba(70,80,120,.14);background:#fff}
+  .aaBadge.ok{color:#1d7a3a;background:rgba(89,209,125,.12);border-color:rgba(89,209,125,.35)}
+  .aaBadge.bad{color:#b1252c;background:rgba(255,77,77,.10);border-color:rgba(255,77,77,.30)}
+  .aaPeriod{font-weight:900;color:#2f3450}
+
+  .aaColActions{display:flex;gap:10px;justify-content:flex-end;align-items:center}
+  .aaBtnApprove{
+    display:inline-flex;align-items:center;gap:10px;
+    padding:12px 16px;border-radius:12px;border:1px solid rgba(89,209,125,.55);
+    background:linear-gradient(180deg, rgba(89,209,125,.92), rgba(89,209,125,.80));
+    color:#fff;font-weight:900;cursor:pointer;
+    box-shadow:0 10px 20px rgba(27,150,90,.18);
+  }
+  .aaCheck{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:999px;background:rgba(255,255,255,.20);font-weight:1000}
+  .aaBtnReject,.aaBtnGear{
+    width:44px;height:44px;border-radius:12px;border:1px solid rgba(70,80,120,.18);
+    background:#f7f8ff;color:#2f3450;font-weight:900;cursor:pointer;
+  }
+  .aaBtnReject:hover,.aaBtnGear:hover{filter:brightness(0.98)}
+  .aaBtnApprove:hover{filter:brightness(0.99)}
+  .aaRowBody:hover{background:rgba(240,242,255,.22)}
+
+  .aaEmpty{padding:26px 16px;text-align:center;color:rgba(80,90,120,.75);font-weight:800}
+  .aaLoading{display:flex;align-items:center;gap:12px;justify-content:center;padding:22px 16px;color:rgba(80,90,120,.75);font-weight:800}
+  .aaSpinner{width:18px;height:18px;border-radius:999px;border:3px solid rgba(80,90,120,.18);border-top-color:rgba(80,90,120,.55);animation:spin 1s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+
+  .aaMenu{
+    position:fixed;z-index:9999;
+    width:240px;padding:8px;border-radius:14px;
+    background:#fff;border:1px solid rgba(70,80,120,.16);
+    box-shadow:0 16px 40px rgba(20,18,40,.18);
+  }
+  .aaMenuItem{
+    width:100%;text-align:left;
+    border:0;background:transparent;
+    padding:10px 10px;border-radius:12px;
+    font-weight:900;cursor:pointer;
+  }
+  .aaMenuItem:hover{background:rgba(240,242,255,.6)}
+
+  .aaModalWrap{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(20,18,40,.25);z-index:10000;padding:18px}
+  .aaModal{width:min(560px, 100%);background:#fff;border-radius:18px;border:1px solid rgba(70,80,120,.16);box-shadow:0 18px 46px rgba(20,18,40,.20);overflow:hidden}
+  .aaModalHead{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;background:rgba(240,242,255,.6);border-bottom:1px solid rgba(70,80,120,.14)}
+  .aaModalTitle{font-weight:1000}
+  .aaIconBtn{width:36px;height:36px;border-radius:12px;border:1px solid rgba(70,80,120,.18);background:#fff;font-weight:1000;cursor:pointer}
+  .aaModalBody{padding:16px}
+  .aaField{margin-bottom:12px}
+  .aaField label{display:block;font-weight:900;margin:0 0 6px}
+  .aaInput{width:100%;padding:12px 12px;border-radius:12px;border:1px solid rgba(70,80,120,.18);font:inherit;outline:none}
+  .aaRead{padding:12px 12px;border-radius:12px;border:1px dashed rgba(70,80,120,.22);background:#fbfcff;font-weight:900}
+  .aaHelp{margin-top:6px;color:rgba(80,90,120,.78);font-weight:700;font-size:12px;line-height:1.35}
+  .aaModalFoot{display:flex;gap:10px;align-items:center;padding:14px 16px;border-top:1px solid rgba(70,80,120,.14);background:rgba(240,242,255,.35)}
+
+  @media (max-width: 860px){
+    .aaRow{grid-template-columns: 1fr;gap:10px}
+    .aaColActions{justify-content:flex-start}
+    .aaControls{width:100%}
+    .aaSearch{flex:1;min-width:200px}
+  }
+</style>
+</head>
+<body class="admin-embed view-employees" data-page-title="Index angajați • Admin">
+<div class="shell">
+<nav class="nav card">
+<a aria-label="Spre pontaj" class="brand" href="index.html">
+<img alt="Siglă SERVELECT" src="favicon.png"/>
+<div>
+<h1><span>SERVELECT</span><small>Pontaj &amp; Management Concedii</small></h1>
+</div>
+</a>
+<div class="nav-actions">
+<!-- Înapoi la pontaj -->
+<a class="btn" href="index.html" id="backToTimesheetLink">
+      ← Înapoi la pontaj
+    </a>
+<!-- Badge de context -->
+<div class="chip">Admin dashboard</div>
+<!-- Meniu hamburger (user + Deconectare) -->
+<div class="nav-menu-wrapper">
+<button aria-expanded="false" aria-label="Meniu admin" class="hamburger-btn" id="adminHamburgerBtn" type="button">
+<span class="hamburger-box">
+<span class="hamburger-inner"></span>
+</span>
+</button>
+<div class="nav-menu" id="adminHamburgerMenu">
+<div class="nav-menu-section">
+<div class="nav-menu-user-label">Utilizator logat</div>
+<div class="chip" id="adminLabel">Admin</div>
+</div>
+<div class="nav-menu-section nav-menu-actions">
+<button class="nav-menu-item nav-menu-item-danger" id="logoutBtn" type="button">
+<span>Deconectare</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Self-service: lăsat în DOM pentru script, dar ascuns prin CSS -->
+<a class="btn" href="self.html" id="selfServiceLink" rel="noopener" target="_blank">
+      🧾 Self-service – raportul meu
+    </a>
+</div>
+</nav>
 <main class="admin-layout">
-  <section class="emp-page">
-    <div class="emp-card">
-      <div class="emp-top">
+  <section class="admin-main">
+    <header class="aaHead">
+      <div class="aaHeadTop">
         <div>
-          <h1>Angajați</h1>
-          <div class="emp-sub" id="subLine">Se încarcă…</div>
+          <h1 class="aaTitle">Angajați</h1>
+          <div class="aaSub" id="subLine">Încărcare…</div>
         </div>
-        <div class="chipline">
-          <div class="pill" id="mePill">👤 —</div>
-          <div class="pill ok" id="scopePill" style="display:none">✅ Angajații mei</div>
-          <div class="pill warn" id="keyPill" style="display:none">🔑 Lipsă Admin Key</div>
-        </div>
-      </div>
 
-      <div class="emp-filters">
-        <label class="grow">
-          <span>Caută angajat</span>
-          <input id="q" placeholder="Scrie nume / departament / manager…"/>
-        </label>
+        <div class="aaControls">
+          <div class="aaSearch">
+            <span class="aaSearchIcon">🔎</span>
+            <input id="q" placeholder="Caută angajat" autocomplete="off"/>
+          </div>
 
-        <label>
-          <span>Vizibilitate</span>
-          <select id="scopeSel">
+          <select id="scope" class="aaSelect" title="Filtru angajați">
             <option value="mine">Angajații mei</option>
             <option value="all">Toți angajații</option>
           </select>
-        </label>
 
-        <label>
-          <span>Departament</span>
-          <select id="deptSel">
-            <option value="all">Toate</option>
-          </select>
-        </label>
+          <div class="aaDates">
+            <input id="from" type="date" class="aaDate" title="De la"/>
+            <span class="aaDash">—</span>
+            <input id="to" type="date" class="aaDate" title="Până la"/>
+          </div>
 
-        <label>
-          <span>Perioadă</span>
-          <select id="rangeSel">
-            <option value="week">Săptămâna curentă</option>
-            <option value="month">Luna curentă</option>
-            <option value="custom">Custom</option>
-          </select>
-        </label>
-
-        <label>
-          <span>De la</span>
-          <input id="from" type="date"/>
-        </label>
-
-        <label>
-          <span>Până la</span>
-          <input id="to" type="date"/>
-        </label>
+          <button class="btn primary" id="refreshBtn" type="button">Reîncarcă</button>
+        </div>
       </div>
 
-      <table class="emp-table" aria-label="Lista angajați">
-        <thead class="emp-head">
-          <tr>
-            <th style="width:44%;">ANGAJAT <span class="sort" data-sort="name" title="Sortează">↕</span></th>
-            <th style="width:26%;">PERIOADA <span class="sort" data-sort="period" title="Sortează">↕</span></th>
-            <th style="width:30%;">ACȚIUNI</th>
-          </tr>
-        </thead>
-        <tbody id="list"></tbody>
-      </table>
-    </div>
+      <div class="aaWarn" id="warnBox" style="display:none"></div>
+    </header>
+
+    <section class="aaCard">
+      <div class="aaRow aaRowHead">
+        <div class="aaColEmp">
+          <button class="aaSort" data-sort="name" type="button">
+            ANGAJAT <span class="aaSortIcon">↑↓</span>
+          </button>
+        </div>
+        <div class="aaColPeriod">
+          <button class="aaSort" data-sort="period" type="button">
+            PERIOADA <span class="aaSortIcon">↑↓</span>
+          </button>
+        </div>
+        <div class="aaColActions">ACȚIUNI</div>
+      </div>
+
+      <div id="list"></div>
+
+      <div class="aaEmpty" id="empty" style="display:none">
+        Nu există angajați pentru filtrul curent.
+      </div>
+
+      <div class="aaLoading" id="loading">
+        <div class="aaSpinner"></div>
+        <div>Se încarcă…</div>
+      </div>
+    </section>
   </section>
 </main>
 
-<!-- settings menu -->
-<div class="menu" id="rowMenu"></div>
+<div class="aaMenu" id="menu" style="display:none">
+  <button class="aaMenuItem" id="mSetPin" type="button">🔑 Setează PIN</button>
+  <button class="aaMenuItem" id="mClearPin" type="button">🧽 Șterge PIN</button>
+  <button class="aaMenuItem" id="mToggleActive" type="button">✅/⛔ Activează / Dezactivează</button>
+</div>
 
-<!-- modal pin -->
-<div class="overlay" id="pinOverlay" aria-hidden="true">
-  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="pinTitle">
-    <div class="modalHead">
-      <h3 id="pinTitle">Setează PIN</h3>
-      <button class="btnG btnIcon" id="pinClose" title="Închide">✕</button>
+<div class="aaModalWrap" id="pinModal" style="display:none">
+  <div class="aaModal">
+    <div class="aaModalHead">
+      <div class="aaModalTitle">Setează PIN</div>
+      <button class="aaIconBtn" id="pinClose" type="button">✕</button>
     </div>
-    <div class="modalBody">
-      <div class="muted" id="pinFor">—</div>
-      <div style="height:10px"></div>
-      <div class="modalRow">
-        <label>
-          <span class="muted">PIN (4–8 cifre)</span>
-          <input id="pin1" inputmode="numeric" autocomplete="new-password" placeholder="ex: 1234"/>
-        </label>
-        <label>
-          <span class="muted">Confirmare PIN</span>
-          <input id="pin2" inputmode="numeric" autocomplete="new-password" placeholder="repetă PIN"/>
-        </label>
+    <div class="aaModalBody">
+      <div class="aaField">
+        <label>Angajat</label>
+        <div class="aaRead" id="pinEmpName">—</div>
       </div>
-      <div style="display:flex;gap:10px;align-items:center;margin-top:10px;flex-wrap:wrap">
-        <button class="btnG btnGhost" id="pinGen">🎲 Generează</button>
-        <div class="muted">PIN-ul nu este afișat niciodată în listă după salvare.</div>
+      <div class="aaField">
+        <label>PIN (4–10 cifre)</label>
+        <input id="pinInput" class="aaInput" inputmode="numeric" autocomplete="off" placeholder="ex: 1234"/>
+        <div class="aaHelp">PIN-ul se salvează permanent în <b>EmployeeAuth</b> (hash). Angajatul îl folosește în <b>index.html</b>.</div>
+      </div>
+      <div class="aaField">
+        <label>Confirmă PIN</label>
+        <input id="pinInput2" class="aaInput" inputmode="numeric" autocomplete="off" placeholder="repetă PIN-ul"/>
       </div>
     </div>
-    <div class="modalFoot">
-      <button class="btnG btnGhost" id="pinClear">Șterge PIN</button>
-      <button class="btnG btnGreen" id="pinSave"><span class="ico">✓</span> Salvează</button>
+    <div class="aaModalFoot">
+      <button class="btn" id="pinGen" type="button">Generează</button>
+      <div style="flex:1"></div>
+      <button class="btn" id="pinCancel" type="button">Renunță</button>
+      <button class="btn primary" id="pinSave" type="button">Salvează</button>
     </div>
   </div>
 </div>
 
-<div class="toast" id="toast"></div>
-e" style="display:none">
-<div class="admin-filter-line" style="margin:0 0 10px;">
-<label>
-<span>Tip alertă</span>
-<select id="alertsTypeFilter">
-<option value="all">Toate</option>
-<option value="pause">Pauză</option>
-<option value="norm">Normă</option>
-<option value="extra">Extra</option>
-<option value="system">Sistem</option>
-</select>
-</label>
-<label>
-<span>Departament</span>
-<select id="alertsDeptFilter">
-<option value="all">Toate</option>
-</select>
-</label>
-<label style="flex:1;min-width:220px;">
-<span>Caută</span>
-<input id="alertsSearch" placeholder="Nume / mesaj..." type="text"/>
-</label>
+<div class="aaModalWrap" id="keyModal" style="display:none">
+  <div class="aaModal">
+    <div class="aaModalHead">
+      <div class="aaModalTitle">Cheie admin</div>
+    </div>
+    <div class="aaModalBody">
+      <div class="aaHelp">Nu am găsit <b>ADMIN_KEY</b> în browser. Introdu cheia ca să pot citi/scrie în sheet-uri.</div>
+      <input id="keyInput" class="aaInput" autocomplete="off" placeholder="ex: Servelect_2026!_AdminKey"/>
+      <div class="aaHelp">Se salvează în localStorage: <code>pontaj_adminKey</code>.</div>
+    </div>
+    <div class="aaModalFoot">
+      <div style="flex:1"></div>
+      <button class="btn primary" id="keySave" type="button">Salvează</button>
+    </div>
+  </div>
 </div>
-<section class="card admin-card" data-section="alerts">
-<h2>Alerte LIVE pe ziua curentă</h2>
-<div class="admin-small-text">
-              Monitorizare în timp real (client-side) pentru:
-              <ul style="margin:4px 0 0 16px;padding:0;font-size:11px;color:var(--muted);">
-<li>Pauză &gt; limită (implicit 40 min, din configurare) fără UNPAUSE – notificări din 15 în 15 minute.</li>
-<li>Normă depășită (8h / 8h30 sau valori din <code>normSettings</code>) fără FINISH – notificări din 30 în 30 de minute.</li>
-<li>EXTRA în curs &gt; 30 min – notificări din 15 în 15 minute.</li>
-</ul>
-</div>
-<div class="admin-list" id="liveAlertsActive"></div>
-</section>
-<section class="card admin-card" data-section="alerts">
-<h2>Istoric notificări în sesiunea curentă</h2>
-<div class="admin-small-text">
-              Fiecare depășire generează o notificare inițială, apoi încă una la fiecare interval (15 / 30 min) cât timp condiția rămâne activă.
-              Istoricul este local, doar pentru sesiunea curentă a paginii.
-            </div>
-<div class="table-wrap">
-<table class="admin-table">
-<thead>
-<tr>
-<th>Moment</th>
-<th>Angajat</th>
-<th>Departament</th>
-<th>Tip</th>
-<th>Mesaj</th>
-</tr>
-</thead>
-<tbody id="liveAlertsHistoryBody"></tbody>
-</table>
-</div>
-</section>
-<!-- NOU: Alerte istorice din sistem (toate zilele anterioare) -->
-<section class="card admin-card" data-section="alerts">
-<h2>Alerte istorice din sistem</h2>
-<div class="admin-small-text">
-              Alerte generate de Apps Script pentru toate zilele (inclusiv cele anterioare), pe baza datelor salvate în foaia de pontaj.
-            </div>
-<div class="table-wrap">
-<table class="admin-table">
-<thead>
-<tr>
-<th>Moment</th>
-<th>Angajat</th>
-<th>Departament</th>
-<th>Tip</th>
-<th>Mesaj</th>
-</tr>
-</thead>
-<tbody id="systemAlertsHistoryBody"></tbody>
-</table>
-</div>
-</section>
-</section>
-</section>
-<aside class="admin-side">
-<!-- A2: Top angajați (pliabil) -->
-<section class="card admin-card collapsible" data-section="live">
-<h2 class="admin-card-title">
-            Top angajați
-            <span class="collapse-icon">▼</span>
-</h2>
-<div class="admin-card-body">
-<div class="admin-small-text">
-              Clasament all time:
-              <button class="top-toggle active" id="topModeHours" type="button">Ore normă</button>
-<button class="top-toggle" id="topModeAnomalies" type="button">Anomalii</button>
-</div>
-<div class="admin-list" id="topEmployees"></div>
-</div>
-</section>
-<!-- A5: Live board (pliabil) -->
-<section class="card admin-card collapsible" data-section="live">
-<h2 class="admin-card-title">
-            Live pontaj
-            <span class="collapse-icon">▼</span>
-</h2>
-<div class="admin-card-body">
-<div class="admin-small-text" id="liveBoardHint">
-<div class="admin-small-text" id="liveBoardSummary" style="margin:6px 0 8px;"></div>
-<span id="liveBoardHintText">
-                Starea curentă a pontajului pentru ziua de azi (START / PAUSE / EXTRA / FINISH).
-              </span>
-</div>
-<div style="margin:6px 0 8px;display:flex;gap:6px;flex-wrap:wrap;">
-<button class="top-toggle active" id="liveBoardTodayBtn" type="button">Azi</button>
-<button class="top-toggle" id="liveBoardPastBtn" type="button">Zile anterioare</button>
-</div>
-<div style="margin:10px 0 6px;display:flex;align-items:center;justify-content:space-between;gap:8px;">
-<div class="admin-small-text" style="margin:0;font-weight:700;">Angajați (status)</div>
-<!-- (opțional) poți pune aici un badge count dacă vrei -->
-</div>
-<div class="admin-list" id="liveBoard"></div>
-<div style="margin:10px 0 6px;display:flex;align-items:center;justify-content:space-between;gap:8px;">
-<div class="admin-small-text" style="margin:0;font-weight:700;">Inactivi azi</div>
-<span class="badge badge-info" id="liveInactiveCount" style="display:none"></span>
-</div>
-<div class="admin-list" id="liveBoardInactive"></div>
-</div>
-</section>
-<!-- A5.5. Admin presence (cine e online) -->
-<section class="card" id="adminPresenceCard">
-<div class="card-head">
-<h3>Admini activi</h3>
-<div class="muted" id="adminPresenceHint">—</div>
-</div>
-<div class="card-body">
-<div class="pres-list" id="adminPresenceList"></div>
-</div>
-</section>
-<!-- A6: Alerte sistem (pliabil) -->
-<section class="card admin-card collapsible" data-section="live">
-<h2 class="admin-card-title">
-            Alerte sistem
-            <span class="collapse-icon">▼</span>
-</h2>
-<div class="admin-card-body">
-<div class="admin-small-text">
-              Ultimele notificări generate de sistem (pontaj uitat, anomalii etc.), venite din Apps Script.
-            </div>
-<div class="admin-list" id="alertsList"></div>
-</div>
-</section>
-<!-- Notițe (pliabil) -->
-<section class="card admin-card collapsible" data-section="live">
-<h2 class="admin-card-title">
-            Notițe
-            <span class="collapse-icon">▼</span>
-</h2>
-<div class="admin-card-body">
-<p class="admin-small-text">
-              Pagina citește datele prin Apps Script (<code>adminEventsEndpoint</code> din <code>config.json</code>).
-              Foaia de pontaj rămâne privată; serverul întoarce un JSON cu evenimente, concedii și meta (alerte, versiune),
-              iar aici calculăm statistici, ore pe zi, overtime și rapoarte PDF/CSV.
-            </p>
-</div>
-</section>
-</aside>
-</main>
-</div>
-<script>(function(){try{const t=document.body.getAttribute('data-page-title')||'Admin';document.title=t;}catch(e){}})();</script>
+
+<script>
+(function(){try{const t=document.body.getAttribute('data-page-title')||'Admin — Angajați';document.title=t;}catch(e){}})();
+</script>
+
 <script>
 (() => {
-  // ===== util =====
-  const $ = (s, r=document) => r.querySelector(s);
-  const $$ = (s, r=document) => Array.from(r.querySelectorAll(s));
-  const esc = (x) => String(x ?? "").replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-  const sleep = (ms)=>new Promise(r=>setTimeout(r,ms));
+  const $ = (s, r=document)=>r.querySelector(s);
+  const $$ = (s, r=document)=>Array.from(r.querySelectorAll(s));
+  const esc = (s)=>String(s??"").replace(/[&<>"']/g, m=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;" }[m]));
+  const pad2 = (n)=>String(n).padStart(2,"0");
+  const fmtDate = (d)=>`${pad2(d.getDate())}.${pad2(d.getMonth()+1)}.${d.getFullYear()}`;
+  const fmtPeriod = (from, to)=>`${fmtDate(from)} – ${fmtDate(to)}`;
+  const initials = (name)=>{
+    const parts = String(name||"").trim().split(/\s+/).filter(Boolean);
+    const a = parts[0]?.[0]||"";
+    const b = parts[1]?.[0]||"";
+    return (a+b).toUpperCase() || "•";
+  };
 
   function toast(msg, ok=true){
-    const el = $("#toast");
-    el.textContent = msg;
-    el.style.background = ok ? "#222" : "#b11c1c";
-    el.classList.add("show");
-    clearTimeout(el._t);
-    el._t = setTimeout(()=>el.classList.remove("show"), 2800);
+    const box = $("#warnBox");
+    box.style.display = "";
+    box.className = "aaWarn" + (ok ? " ok" : " bad");
+    box.textContent = msg;
+    clearTimeout(toast._t);
+    toast._t = setTimeout(()=>{ box.style.display="none"; }, 3200);
+  }
+  function showWarn(msg){
+    const box = $("#warnBox");
+    box.style.display = "";
+    box.className = "aaWarn bad";
+    box.textContent = msg;
   }
 
-  function ymdd(d){
-    const y=d.getFullYear();
-    const m=String(d.getMonth()+1).padStart(2,"0");
-    const da=String(d.getDate()).padStart(2,"0");
-    return `${y}-${m}-${da}`;
-  }
-  function fmtRo(d){
-    const dd=String(d.getDate()).padStart(2,"0");
-    const mm=String(d.getMonth()+1).padStart(2,"0");
-    const yy=d.getFullYear();
-    return `${dd}.${mm}.${yy}`;
-  }
-
-  // ===== admin session =====
-  const LS_ADMIN = "pontaj/admin/v1";
-  const LS_ADMIN_FALLBACK = "pontaj_admin_session";
-  function getAdminSession(){
-    const raw = localStorage.getItem(LS_ADMIN) || localStorage.getItem(LS_ADMIN_FALLBACK) || "";
-    if (!raw) return null;
-    try { return JSON.parse(raw); } catch(e){ return null; }
-  }
-
-  function getAdminKey(){
-    return (
-      localStorage.getItem("pontaj_adminKey") ||
-      localStorage.getItem("pontaj/adminKey") ||
-      localStorage.getItem("ADMIN_KEY") ||
-      localStorage.getItem("adminKey") ||
-      ""
-    ).trim();
-  }
-
-  async function fetchJson(url){
-    const r = await fetch(url, {cache:"no-store"});
-    if (!r.ok) throw new Error(`HTTP ${r.status}`);
-    return await r.json();
-  }
-
+  const CFG = {};
   async function loadConfig(){
     const tries = ["config.json","./config.json","../config.json","/config.json"];
     for (const p of tries){
-      try { return await fetchJson(p); } catch(e){}
+      try{
+        const r = await fetch(p+"?v="+Date.now(), {cache:"no-store"});
+        if (!r.ok) continue;
+        const j = await r.json();
+        Object.assign(CFG, j);
+        return;
+      }catch(e){}
     }
-    throw new Error("Nu pot încărca config.json");
+    throw new Error("Nu pot încărca config.json (verifică path-ul / GitHub Pages).");
   }
 
-  async function loadAdminAuth(cfg){
-    const url = cfg.adminAuthUrl || "admin-auth.json";
-    try { return await fetchJson(url); } catch(e){}
-    // fallback local
-    const tries = ["admin-auth.json","./admin-auth.json","../admin-auth.json","/admin-auth.json"];
-    for (const p of tries){
-      try { return await fetchJson(p); } catch(e){}
+  function getAdminName(){
+    const keys = ["pontaj/admin/v1","pontaj_admin_session","pontaj_admin","admin_session"];
+    for (const k of keys){
+      try{
+        const raw = localStorage.getItem(k);
+        if (!raw) continue;
+        const obj = JSON.parse(raw);
+        return obj.label || obj.name || obj.user || obj.username || "";
+      }catch(e){}
     }
-    throw new Error("Nu pot încărca admin-auth.json");
+    return "";
+  }
+  function getAdminKey(){
+    return localStorage.getItem("pontaj_adminKey")
+      || localStorage.getItem("pontaj/adminKey")
+      || localStorage.getItem("ADMIN_KEY")
+      || "";
+  }
+  function ensureAdminKey(){
+    const key = getAdminKey();
+    if (key) return Promise.resolve(key);
+    $("#keyModal").style.display = "flex";
+    return new Promise((resolve)=>{
+      $("#keySave").onclick = ()=>{
+        const v = String($("#keyInput").value||"").trim();
+        if (!v) return;
+        localStorage.setItem("pontaj_adminKey", v);
+        $("#keyModal").style.display = "none";
+        resolve(v);
+      };
+    });
   }
 
-  // ===== JSONP =====
   function jsonp(endpoint, params){
     return new Promise((resolve, reject)=>{
       const cb = "cb_" + Math.random().toString(16).slice(2);
-      const q = new URLSearchParams({...params, callback: cb});
-      const src = endpoint + (endpoint.includes("?") ? "&" : "?") + q.toString();
-
+      const qs = new URLSearchParams(Object.assign({}, params, { callback: cb }));
+      const url = endpoint + (endpoint.includes("?") ? "&" : "?") + qs.toString();
       const s = document.createElement("script");
-      s.src = src;
-      s.async = true;
-
       let done = false;
+
       window[cb] = (data)=>{
         done = true;
         cleanup();
         resolve(data);
       };
       function cleanup(){
-        try { delete window[cb]; } catch(e){ window[cb]=undefined; }
+        try{ delete window[cb]; }catch(e){ window[cb] = undefined; }
         if (s && s.parentNode) s.parentNode.removeChild(s);
       }
-      s.onerror = ()=>{ if (done) return; cleanup(); reject(new Error("JSONP error")); };
+      s.onerror = ()=>{
+        if (done) return;
+        cleanup();
+        reject(new Error("JSONP error"));
+      };
+      s.src = url;
       document.head.appendChild(s);
-      setTimeout(()=>{ if (done) return; cleanup(); reject(new Error("JSONP timeout")); }, 15000);
     });
   }
 
-  // ===== state =====
   const STATE = {
-    cfg:null,
-    auth:null,
-    me:null,
-    isSuper:false,
-    key:"",
-    managersMap:{},
-    employeeAuth:[],
-    roster:[],
-    sort:"name",
-    sortDir:1
+    employees: [],
+    filtered: [],
+    managersMap: {},
+    sort: "name",
+    sortDir: 1,
+    adminName: "",
+    adminKey: "",
+    from: null,
+    to: null,
   };
 
-  // ===== nav (hamburger + logout) =====
-  function bindNav(){
-    const btn = $("#adminHamburgerBtn");
-    const menu = $("#adminHamburgerMenu");
-    btn?.addEventListener("click", ()=>{
-      const open = btn.getAttribute("aria-expanded")==="true";
-      btn.setAttribute("aria-expanded", open ? "false":"true");
-      menu?.classList.toggle("open", !open);
+  async function apiManagersMap(){
+    try{
+      const r = await jsonp(CFG.adminEventsEndpoint, { fn:"adminManagersMap", key: STATE.adminKey });
+      if (r && r.ok) return r.map || {};
+    }catch(e){}
+    return {};
+  }
+  async function apiEmployees(){
+    const r = await jsonp(CFG.adminEventsEndpoint, { fn:"adminEmployees", key: STATE.adminKey });
+    if (!r || !r.ok) throw new Error(r?.message || "adminEmployees failed");
+    const list = r.employees || r.list || [];
+    return list.map(x=>({
+      employeeKey: x.employeeKey || x.key || x.usernameHash || "",
+      name: x.name || x.employeeName || x.label || "",
+      dept: x.dept || x.department || "",
+      active: (x.active === false || String(x.active).toLowerCase()==="false") ? false : true
+    })).filter(x=>x.name);
+  }
+
+  async function apiSetPin(emp, pin){
+    const r = await jsonp(CFG.adminEventsEndpoint, {
+      fn:"adminEmployeeSetPin",
+      key: STATE.adminKey,
+      employeeKey: emp.employeeKey,
+      employeeName: emp.name,
+      pin: pin
     });
-    document.addEventListener("click", (e)=>{
-      if (!menu || !btn) return;
-      if (menu.contains(e.target) || btn.contains(e.target)) return;
-      btn.setAttribute("aria-expanded","false");
-      menu.classList.remove("open");
+    if (!r || !r.ok) throw new Error(r?.message || "Set PIN failed");
+    return r;
+  }
+  async function apiClearPin(emp){
+    const r = await jsonp(CFG.adminEventsEndpoint, {
+      fn:"adminEmployeeClearPin",
+      key: STATE.adminKey,
+      employeeKey: emp.employeeKey,
+      employeeName: emp.name
     });
-
-    $("#logoutBtn")?.addEventListener("click", ()=>{
-      localStorage.removeItem(LS_ADMIN);
-      localStorage.removeItem(LS_ADMIN_FALLBACK);
-      toast("Deconectat.");
-      setTimeout(()=>location.href="index.html", 450);
+    if (!r || !r.ok) throw new Error(r?.message || "Clear PIN failed");
+    return r;
+  }
+  async function apiSetActive(emp, active){
+    const r = await jsonp(CFG.adminEventsEndpoint, {
+      fn:"adminEmployeeSetActive",
+      key: STATE.adminKey,
+      employeeKey: emp.employeeKey,
+      employeeName: emp.name,
+      active: active ? "1" : "0"
     });
+    if (!r || !r.ok) throw new Error(r?.message || "Set active failed");
+    return r;
   }
 
-  // ===== manager filter =====
-  function myLabel(){
-    return (STATE.me && (STATE.me.label || STATE.me.name)) ? String(STATE.me.label || STATE.me.name) : "";
-  }
-  function isMine(emp){
-    const ml = myLabel().toLowerCase();
-    if (!ml) return false;
-    const m = emp.managerName ? String(emp.managerName).toLowerCase() : "";
-    return m && m === ml;
-  }
+  function apply(){
+    const q = String($("#q").value||"").trim().toLowerCase();
+    const scope = $("#scope").value;
+    let arr = STATE.employees.slice();
 
-  function buildDeptOptions(list){
-    const sel = $("#deptSel");
-    const set = new Set();
-    list.forEach(x=>{ if (x.dept) set.add(String(x.dept)); });
-    const arr = Array.from(set).sort((a,b)=>a.localeCompare(b));
-    sel.innerHTML = `<option value="all">Toate</option>` + arr.map(d=>`<option value="${esc(d)}">${esc(d)}</option>`).join("");
-  }
-
-  function computePeriodLabel(){
-    const from = $("#from").value;
-    const to = $("#to").value;
-    if (!from || !to) return "—";
-    const a = new Date(from+"T00:00:00");
-    const b = new Date(to+"T00:00:00");
-    return `${fmtRo(a)} - ${fmtRo(b)}`;
-  }
-
-  function applyRangePreset(){
-    const now = new Date();
-    const r = $("#rangeSel").value;
-    if (r === "week"){
-      const d = new Date(now);
-      const day = (d.getDay() + 6) % 7; // monday=0
-      d.setDate(d.getDate() - day);
-      const start = d;
-      const end = new Date(d);
-      end.setDate(end.getDate()+6);
-      $("#from").value = ymdd(start);
-      $("#to").value = ymdd(end);
-      $("#from").disabled = true;
-      $("#to").disabled = true;
-    } else if (r === "month"){
-      const start = new Date(now.getFullYear(), now.getMonth(), 1);
-      const end = new Date(now.getFullYear(), now.getMonth()+1, 0);
-      $("#from").value = ymdd(start);
-      $("#to").value = ymdd(end);
-      $("#from").disabled = true;
-      $("#to").disabled = true;
-    } else {
-      $("#from").disabled = false;
-      $("#to").disabled = false;
-      if (!$("#from").value) $("#from").value = ymdd(new Date(now.getFullYear(), now.getMonth(), 1));
-      if (!$("#to").value) $("#to").value = ymdd(new Date(now.getFullYear(), now.getMonth()+1, 0));
-    }
-  }
-
-  // ===== load data =====
-  async function loadManagersMap(){
-    const ep = STATE.cfg.adminEventsEndpoint;
-    if (!ep) throw new Error("Lipsește adminEventsEndpoint în config.json");
-    const key = STATE.key;
-    const r = await jsonp(ep, { fn:"adminManagersMap", key });
-    if (!r || !r.ok) throw new Error(r?.message || "adminManagersMap failed");
-    STATE.managersMap = r.map || {};
-  }
-
-  async function loadEmployeeAuth(){
-    const ep = STATE.cfg.adminEventsEndpoint;
-    const key = STATE.key;
-    const r = await jsonp(ep, { fn:"adminEmployeeAuthList", key });
-    if (!r || !r.ok) throw new Error(r?.message || "adminEmployeeAuthList failed");
-    STATE.employeeAuth = r.items || [];
-  }
-
-  function mergeRoster(){
-    const cfgList = Array.isArray(STATE.cfg.employees) ? STATE.cfg.employees : [];
-    const map = new Map();
-    for (const name of cfgList){
-      const n = String(name||"").trim();
-      if (!n) continue;
-      map.set(n.toLowerCase(), { name:n, dept:"", active:true, hasPin:false });
-    }
-    for (const it of STATE.employeeAuth){
-      const n = String(it.name||"").trim();
-      if (!n) continue;
-      const key = n.toLowerCase();
-      map.set(key, { 
-        name:n,
-        dept: String(it.dept||""),
-        active: it.active !== false,
-        hasPin: !!it.hasPin,
-        updatedAt: String(it.updatedAt||"")
+    if (scope === "mine" && STATE.adminName){
+      const map = STATE.managersMap || {};
+      arr = arr.filter(e=>{
+        const m = map[e.employeeKey];
+        const mgr = (m && (m.managerName || m.managerEmail)) ? String(m.managerName || m.managerEmail) : "";
+        return mgr && mgr.toLowerCase() === STATE.adminName.toLowerCase();
       });
     }
-    // attach manager
-    const out = Array.from(map.values()).map(e=>{
-      const mm = STATE.managersMap[e.name.toLowerCase()] || null;
-      // managersMap key may be employeeKey; fallback by name as key:
-      // We'll also search by matching stored employeeName field
-      let mgrName = "";
-      if (mm && mm.managerName) mgrName = String(mm.managerName||"");
-      else {
-        // brute find by employeeName
-        const found = Object.values(STATE.managersMap).find(x => String(x.employeeName||"").toLowerCase() === e.name.toLowerCase());
-        if (found) mgrName = String(found.managerName||"");
-      }
-      return { ...e, managerName: mgrName };
-    });
-    STATE.roster = out;
-    buildDeptOptions(out);
+
+    if (q){
+      arr = arr.filter(e=> e.name.toLowerCase().includes(q) || String(e.dept||"").toLowerCase().includes(q));
+    }
+
+    const periodText = fmtPeriod(STATE.from, STATE.to);
+    arr = arr.map(e=>({ ...e, periodText }));
+
+    const key = STATE.sort;
+    const dir = STATE.sortDir;
+    arr.sort((a,b)=> (key==="name" ? a.name.localeCompare(b.name, "ro") : a.periodText.localeCompare(b.periodText)) * dir);
+
+    STATE.filtered = arr;
+    render();
   }
 
-  // ===== render =====
   function render(){
-    const q = ($("#q").value || "").trim().toLowerCase();
-    const dept = $("#deptSel").value;
-    const scope = $("#scopeSel").value;
-    const periodLabel = computePeriodLabel();
+    const list = $("#list");
+    const empty = $("#empty");
+    const loading = $("#loading");
+    loading.style.display = "none";
 
-    let list = STATE.roster.slice();
-
-    // scope rules
-    if (!STATE.isSuper) {
-      $("#scopeSel").value = "mine";
-      $("#scopeSel").disabled = true;
-      $("#scopePill").style.display = "";
-    } else {
-      $("#scopeSel").disabled = false;
-      $("#scopePill").style.display = (scope === "mine") ? "" : "none";
-    }
-    if (scope === "mine") list = list.filter(isMine);
-
-    if (dept !== "all") list = list.filter(x => String(x.dept||"") === dept);
-
-    if (q) {
-      list = list.filter(x=>{
-        const hay = `${x.name} ${x.dept||""} ${x.managerName||""}`.toLowerCase();
-        return hay.includes(q);
-      });
-    }
-
-    // sort
-    if (STATE.sort === "name"){
-      list.sort((a,b)=>a.name.localeCompare(b.name) * STATE.sortDir);
-    }
-
-    const tbody = $("#list");
-    if (!list.length){
-      tbody.innerHTML = `<tr class="emp-row"><td colspan="3" style="padding:22px 18px;color:rgba(76,79,97,.75);font-weight:900">Nu există angajați în filtrul curent.</td></tr>`;
+    if (!STATE.filtered.length){
+      list.innerHTML = "";
+      empty.style.display = "";
+      $("#subLine").textContent = "0 angajați.";
       return;
     }
+    empty.style.display = "none";
 
-    tbody.innerHTML = list.map(emp=>{
-      const avatarUrl = (STATE.cfg.employeeAvatars && STATE.cfg.employeeAvatars[emp.name]) ? String(STATE.cfg.employeeAvatars[emp.name]) : "";
-      const initials = emp.name.split(/\s+/).slice(0,2).map(s=>s[0]||"").join("").toUpperCase();
-      const pinBadge = emp.hasPin
-        ? `<span class="badge pin">🔒 PIN setat</span>`
-        : `<span class="badge nopin">⚠ PIN lipsă</span>`;
-      const mineBadge = isMine(emp) ? `<span class="badge mine">👤 al meu</span>` : ``;
-      const mgr = emp.managerName ? `<div class="emp-dept">Manager: <b>${esc(emp.managerName)}</b></div>` : ``;
+    $("#subLine").textContent = `${STATE.filtered.length} angajați • ${fmtPeriod(STATE.from, STATE.to)}${STATE.adminName ? " • " + STATE.adminName : ""}`;
 
-      const period = `<div class="period">${esc(periodLabel)}</div><div class="muted">${esc(emp.updatedAt ? ("update " + emp.updatedAt) : "")}</div>`;
-      const openLabel = "Deschide";
-      const openBtn = `<button class="btnG btnGreen" data-act="open" data-name="${esc(emp.name)}">
-          <span class="ico">✓</span> ${openLabel}
-        </button>`;
-      const rejectBtn = `<button class="btnG btnGhost" data-act="fixday" data-name="${esc(emp.name)}">🛠 FixDay</button>`;
-      const gearBtn = `<button class="btnG btnIcon" data-act="menu" data-name="${esc(emp.name)}" title="Setări">⚙</button>`;
-
-      return `<tr class="emp-row">
-        <td>
-          <div class="emp-cell">
-            <div class="avatar">${avatarUrl ? `<img src="${esc(avatarUrl)}" alt="">` : esc(initials)}</div>
-            <div class="emp-meta">
-              <div class="emp-name">${esc(emp.name)}</div>
-              <div class="emp-dept">${esc(emp.dept || "—")}</div>
-              ${mgr}
-              <div class="emp-badges">${pinBadge}${mineBadge}</div>
+    list.innerHTML = STATE.filtered.map(emp=>{
+      const avatarUrl = (CFG.employeeAvatars && CFG.employeeAvatars[emp.name]) ? String(CFG.employeeAvatars[emp.name]) : "";
+      const avatarHtml = avatarUrl
+        ? `<img class="aaAvatarImg" src="${esc(avatarUrl)}" alt="">`
+        : `<div class="aaAvatar">${esc(initials(emp.name))}</div>`;
+      const badge = emp.active ? `<span class="aaBadge ok">Activ</span>` : `<span class="aaBadge bad">Inactiv</span>`;
+      return `<div class="aaRow aaRowBody" data-key="${esc(emp.employeeKey)}">
+        <div class="aaColEmp">
+          <div class="aaEmp">
+            ${avatarHtml}
+            <div class="aaEmpMeta">
+              <div class="aaEmpName">${esc(emp.name)}</div>
+              <div class="aaEmpSub">${esc(emp.dept||"")}</div>
             </div>
+            ${badge}
           </div>
-        </td>
-        <td>${period}</td>
-        <td>
-          <div class="acts">${openBtn}${rejectBtn}${gearBtn}</div>
-        </td>
-      </tr>`;
+        </div>
+        <div class="aaColPeriod">
+          <div class="aaPeriod">${esc(emp.periodText)}</div>
+        </div>
+        <div class="aaColActions">
+          <button class="aaBtnApprove" data-act="approve" type="button">
+            <span class="aaCheck">✓</span> Aprobă
+          </button>
+          <button class="aaBtnReject" data-act="reject" type="button" title="Respinge">✕</button>
+          <button class="aaBtnGear" data-act="gear" type="button" title="Setări">⚙</button>
+        </div>
+      </div>`;
     }).join("");
 
-    // bind actions
-    $$("[data-act]", tbody).forEach(btn=>{
-      btn.addEventListener("click", (e)=>onRowAction(e));
+    $$(".aaRowBody", list).forEach(row=>{
+      const key = row.getAttribute("data-key");
+      const emp = STATE.filtered.find(x=>x.employeeKey===key);
+      row.querySelector("[data-act='approve']").onclick = ()=>toast("Aprobări: TODO (spune-mi ce aprobi aici).", true);
+      row.querySelector("[data-act='reject']").onclick  = ()=>toast("Respingeri: TODO.", false);
+      row.querySelector("[data-act='gear']").onclick    = (ev)=>openMenu(ev.currentTarget, emp);
     });
-
-    $("#subLine").textContent = `${list.length} angajați afișați • Perioadă: ${periodLabel}`;
   }
 
-  // ===== actions =====
-  const menu = $("#rowMenu");
-  let menuFor = null;
-
+  let MENU_EMP = null;
+  function openMenu(btn, emp){
+    MENU_EMP = emp;
+    const m = $("#menu");
+    const r = btn.getBoundingClientRect();
+    m.style.display = "block";
+    m.style.left = Math.min(window.innerWidth - 260, r.right - 240) + "px";
+    m.style.top  = (r.bottom + 8) + "px";
+  }
   function closeMenu(){
-    menu.classList.remove("open");
-    menu.style.left = "-9999px";
-    menu.style.top = "-9999px";
-    menuFor = null;
+    $("#menu").style.display = "none";
+    MENU_EMP = null;
   }
 
-  function openMenu(anchor, empName){
-    menuFor = empName;
-    menu.innerHTML = `
-      <button data-m="pin">🔑 Setează PIN</button>
-      <button data-m="clearpin">🧽 Șterge PIN</button>
-      <button data-m="toggle">${getEmp(empName)?.active ? "⛔ Dezactivează" : "✅ Activează"}</button>
-    `;
-    const r = anchor.getBoundingClientRect();
-    const x = Math.min(window.innerWidth - 240, Math.max(12, r.right - 230));
-    const y = Math.min(window.innerHeight - 140, Math.max(12, r.bottom + 8));
-    menu.style.left = x + "px";
-    menu.style.top = y + "px";
-    menu.classList.add("open");
-
-    $$("button", menu).forEach(b=>{
-      b.addEventListener("click", async ()=>{
-        const k = b.getAttribute("data-m");
-        closeMenu();
-        if (k === "pin") return openPinModal(empName);
-        if (k === "clearpin") return savePin(empName, "");
-        if (k === "toggle") return toggleActive(empName);
-      });
-    });
+  function openPinModal(emp){
+    $("#pinEmpName").textContent = emp.name;
+    $("#pinInput").value = "";
+    $("#pinInput2").value = "";
+    $("#pinModal").style.display = "flex";
+    $("#pinInput").focus();
   }
+  function closePinModal(){ $("#pinModal").style.display = "none"; }
+  function randPin(){ return String(Math.floor(1000 + Math.random()*9000)); }
 
-  document.addEventListener("click", (e)=>{
-    if (menu.classList.contains("open")){
-      if (menu.contains(e.target)) return;
-      closeMenu();
-    }
-  });
-
-  function getEmp(name){
-    const n = String(name||"").toLowerCase();
-    return STATE.roster.find(x=>x.name.toLowerCase()===n) || null;
-  }
-
-  async function onRowAction(e){
-    const btn = e.currentTarget;
-    const act = btn.getAttribute("data-act");
-    const name = btn.getAttribute("data-name");
-    if (!name) return;
-
-    if (act === "menu") return openMenu(btn, name);
-
-    if (act === "fixday"){
-      // open fix-day.html if exists
-      const url = `fix-day.html#${encodeURIComponent(name)}`;
-      window.open(url, "_blank", "noopener");
-      return;
-    }
-
-    if (act === "open"){
-      // open self-service for employee if available
-      const base = STATE.cfg.selfServiceBaseUrl || (STATE.cfg.selfService && STATE.cfg.selfService.baseUrl) || "";
-      const from = $("#from").value;
-      const to = $("#to").value;
-      if (base){
-        const u = base + (base.includes("?") ? "&" : "?") + new URLSearchParams({ employee:name, from, to }).toString();
-        window.open(u, "_blank", "noopener");
-      } else {
-        toast("selfServiceBaseUrl lipsește în config.json", false);
-      }
-      return;
-    }
-  }
-
-  // ===== PIN modal =====
-  const ov = $("#pinOverlay");
-  let pinEmp = null;
-
-  function openPinModal(name){
-    pinEmp = name;
-    $("#pinFor").innerHTML = `Angajat: <b>${esc(name)}</b>`;
-    $("#pin1").value = "";
-    $("#pin2").value = "";
-    ov.classList.add("open");
-    ov.setAttribute("aria-hidden","false");
-    setTimeout(()=>$("#pin1").focus(), 10);
-  }
-  function closePinModal(){
-    ov.classList.remove("open");
-    ov.setAttribute("aria-hidden","true");
-    pinEmp = null;
-  }
-  $("#pinClose").addEventListener("click", closePinModal);
-  ov.addEventListener("click", (e)=>{ if (e.target === ov) closePinModal(); });
-
-  $("#pinGen").addEventListener("click", ()=>{
-    const pin = String(Math.floor(1000 + Math.random()*9000));
-    $("#pin1").value = pin;
-    $("#pin2").value = pin;
-  });
-
-  $("#pinSave").addEventListener("click", async ()=>{
-    if (!pinEmp) return;
-    const a = ($("#pin1").value||"").trim();
-    const b = ($("#pin2").value||"").trim();
-    if (!/^\d{4,8}$/.test(a)) return toast("PIN invalid (4–8 cifre).", false);
-    if (a !== b) return toast("PIN-urile nu coincid.", false);
-    await savePin(pinEmp, a);
-    closePinModal();
-  });
-
-  $("#pinClear").addEventListener("click", async ()=>{
-    if (!pinEmp) return;
-    await savePin(pinEmp, "");
-    closePinModal();
-  });
-
-  async function savePin(name, pin){
-    try{
-      const ep = STATE.cfg.adminEventsEndpoint;
-      const r = await jsonp(ep, { fn:"adminSetEmployeePin", key: STATE.key, name, dept:(getEmp(name)?.dept||""), pin });
-      if (!r || !r.ok) throw new Error(r?.message || "Eroare setare PIN");
-      toast(pin ? "PIN salvat." : "PIN șters.");
-      // refresh auth list
-      await loadEmployeeAuth();
-      mergeRoster();
-      render();
-    }catch(err){
-      toast(err.message || String(err), false);
-    }
-  }
-
-  async function toggleActive(name){
-    try{
-      const emp = getEmp(name);
-      if (!emp) return;
-      const ep = STATE.cfg.adminEventsEndpoint;
-      const active = !emp.active;
-      const r = await jsonp(ep, { fn:"adminSetEmployeePin", key: STATE.key, name, dept:(emp.dept||""), active: active ? "TRUE":"FALSE" });
-      if (!r || !r.ok) throw new Error(r?.message || "Eroare activare/dezactivare");
-      toast(active ? "Angajat activat." : "Angajat dezactivat.");
-      await loadEmployeeAuth();
-      mergeRoster();
-      render();
-    }catch(err){
-      toast(err.message || String(err), false);
-    }
-  }
-
-  // ===== init =====
-  async function init(){
-    bindNav();
-
-    const sess = getAdminSession();
-    if (!sess){
-      toast("Nu ești logat ca admin.", false);
-      $("#subLine").textContent = "Nu ești logat ca admin.";
-      return;
-    }
-
-    STATE.cfg = await loadConfig();
-    STATE.auth = await loadAdminAuth(STATE.cfg);
-
-    // identify me by label in session or default to first admin
-    const admins = Array.isArray(STATE.auth.admins) ? STATE.auth.admins : [];
-    const label = String(sess.label || sess.name || "").trim();
-    const me = admins.find(a=>String(a.label||"")===label) || (admins.length ? admins[0] : {label});
-    STATE.me = me;
-
-    // super admin: first admin or explicit label
-    STATE.isSuper = (admins.length && me.label === admins[0].label) || String(me.label||"").toLowerCase().includes("servelect admin");
-
-    $("#adminLabel").textContent = me.label || "Admin";
-    $("#mePill").textContent = `👤 ${me.label || "Admin"}`;
-
-    STATE.key = getAdminKey();
-    if (!STATE.key){
-      $("#keyPill").style.display = "";
-      toast("Lipsește Admin Key (localStorage).", false);
-      $("#subLine").textContent = "Lipsește Admin Key. Deschide dashboard-ul admin și setează cheia, apoi revino.";
-      return;
-    }
-
-    // hide "Toți angajații" for non-super
-    if (!STATE.isSuper){
-      $("#scopeSel").innerHTML = `<option value="mine">Angajații mei</option>`;
-    }
-
-    applyRangePreset();
-
-    await loadManagersMap();
-    await loadEmployeeAuth();
-    mergeRoster();
-
-    $("#subLine").textContent = "Listă încărcată.";
-    render();
-
-    // binds
-    $("#q").addEventListener("input", ()=>render());
-    $("#deptSel").addEventListener("change", ()=>render());
-    $("#scopeSel").addEventListener("change", ()=>render());
-    $("#rangeSel").addEventListener("change", ()=>{ applyRangePreset(); render(); });
-    $("#from").addEventListener("change", ()=>render());
-    $("#to").addEventListener("change", ()=>render());
-
-    // sort handlers
-    $$(".sort").forEach(s=>{
-      s.addEventListener("click", ()=>{
-        const key = s.getAttribute("data-sort");
+  function bind(){
+    $("#refreshBtn").addEventListener("click", ()=>refresh());
+    $("#q").addEventListener("input", ()=>apply());
+    $("#scope").addEventListener("change", ()=>apply());
+    $$(".aaSort").forEach(btn=>{
+      btn.addEventListener("click", ()=>{
+        const key = btn.getAttribute("data-sort");
         if (STATE.sort === key) STATE.sortDir *= -1;
         else { STATE.sort = key; STATE.sortDir = 1; }
-        render();
+        apply();
       });
     });
+
+    $("#mSetPin").onclick = ()=>{ if (!MENU_EMP) return; const e = MENU_EMP; closeMenu(); openPinModal(e); };
+    $("#mClearPin").onclick = async ()=>{
+      if (!MENU_EMP) return;
+      const emp = MENU_EMP; closeMenu();
+      if (!confirm("Ștergi PIN-ul pentru " + emp.name + "?")) return;
+      try{ await apiClearPin(emp); toast("PIN șters pentru " + emp.name, true); }catch(e){ showWarn(e.message || String(e)); }
+    };
+    $("#mToggleActive").onclick = async ()=>{
+      if (!MENU_EMP) return;
+      const emp = MENU_EMP; closeMenu();
+      const next = !emp.active;
+      try{
+        await apiSetActive(emp, next);
+        emp.active = next;
+        toast((next ? "Activat: " : "Dezactivat: ") + emp.name, true);
+        apply();
+      }catch(e){ showWarn(e.message || String(e)); }
+    };
+
+    document.addEventListener("click", (ev)=>{
+      const m = $("#menu");
+      if (m.style.display==="none") return;
+      if (m.contains(ev.target)) return;
+      if (String(ev.target?.getAttribute?.("data-act")||"") === "gear") return;
+      closeMenu();
+    });
+
+    $("#pinClose").onclick = closePinModal;
+    $("#pinCancel").onclick = closePinModal;
+    $("#pinGen").onclick = ()=>{
+      const p = randPin();
+      $("#pinInput").value = p;
+      $("#pinInput2").value = p;
+    };
+    $("#pinSave").onclick = async ()=>{
+      const name = $("#pinEmpName").textContent;
+      const target = STATE.employees.find(x=>x.name===name) || STATE.filtered.find(x=>x.name===name);
+      if (!target) return showWarn("Nu găsesc angajatul pentru PIN.");
+      const p1 = String($("#pinInput").value||"").trim();
+      const p2 = String($("#pinInput2").value||"").trim();
+      if (!/^\d{4,10}$/.test(p1)) return showWarn("PIN invalid (4–10 cifre).");
+      if (p1 !== p2) return showWarn("PIN-urile nu coincid.");
+      try{
+        await apiSetPin(target, p1);
+        closePinModal();
+        toast("PIN salvat pentru " + target.name, true);
+      }catch(e){ showWarn(e.message || String(e)); }
+    };
   }
 
-  init().catch(err=>{
-    console.error(err);
-    toast(err.message || String(err), false);
-    $("#subLine").textContent = err.message || String(err);
-  });
+  async function refresh(){
+    $("#loading").style.display = "";
+    $("#empty").style.display = "none";
+    $("#list").innerHTML = "";
+    $("#subLine").textContent = "Încărcare…";
+
+    try{
+      STATE.adminKey = await ensureAdminKey();
+      STATE.adminName = getAdminName();
+
+      const [emps, mmap] = await Promise.all([apiEmployees(), apiManagersMap()]);
+      STATE.employees = emps;
+      STATE.managersMap = mmap;
+
+      if (!STATE.adminName){
+        showWarn("Nu pot determina numele tău de admin din sesiune. Filtrul «Angajații mei» poate returna 0.");
+      }
+      apply();
+    }catch(e){
+      console.error(e);
+      showWarn(e.message || String(e));
+      $("#loading").style.display = "none";
+    }
+  }
+
+  async function init(){
+    const now = new Date();
+    const from = new Date(now.getFullYear(), now.getMonth(), 1);
+    const to = new Date(now.getFullYear(), now.getMonth()+1, 0);
+    STATE.from = from; STATE.to = to;
+    $("#from").value = `${from.getFullYear()}-${pad2(from.getMonth()+1)}-${pad2(from.getDate())}`;
+    $("#to").value   = `${to.getFullYear()}-${pad2(to.getMonth()+1)}-${pad2(to.getDate())}`;
+    $("#from").addEventListener("change", ()=>{
+      const d = new Date($("#from").value + "T00:00:00");
+      if (!isNaN(d)) STATE.from = d;
+      apply();
+    });
+    $("#to").addEventListener("change", ()=>{
+      const d = new Date($("#to").value + "T00:00:00");
+      if (!isNaN(d)) STATE.to = d;
+      apply();
+    });
+
+    bind();
+    await loadConfig();
+    await refresh();
+  }
+
+  init();
 })();
 </script>
-
-</body>
+</div>
+<script>(function(){try{const t=document.body.getAttribute('data-page-title')||'Admin';document.title=t;}catch(e){}})();</script><script src="admin-core.js"></script></body>
 </html>
