@@ -889,6 +889,23 @@
   const TZ = 'Europe/Bucharest';
   const LS_ORDER_KEY = 'pv_admin_dashboard_card_order_v1';
 
+  // ======= Shared Admins + Managers (global in this IIFE) =======
+  const ADMINS = { list: [], byEmail: new Map(), byName: new Map() };
+  // Managers map: employeeKeyLower -> {employeeKey, employeeName, managerEmail, managerName, updatedAt, updatedBy}
+  const MANAGERS = { map: new Map() };
+
+  function _isAdminName(name){
+    const n = String(name||'').trim().toLowerCase();
+    if (!n) return false;
+    return ADMINS.byName.has(n);
+  }
+
+  function _getManagerFor(nameOrKey){
+    const k = String(nameOrKey||'').trim().toLowerCase();
+    return MANAGERS.map.get(k) || null;
+  }
+
+
   const CARD_DEFS = [
     // Look like Papervee
     {id:'workToday', label:'Timp total lucrat astăzi', accent:'gray', format:'time'},
@@ -1550,8 +1567,8 @@ function adminEndpointBase(cfg){
     }
 
 // ===== Mini User Panel PRO (mov) =====
-    const ADMINS = { list: [], byEmail: new Map(), byName: new Map() };
-    const MANAGERS = { map: new Map() }; // empNameLower -> {email,name}
+    // (ADMINS is defined at IIFE scope)
+    // (MANAGERS is defined at IIFE scope)
 
     const UP = {
       name:'', dept:'', email:'', chat:'', date:'', note:'',
