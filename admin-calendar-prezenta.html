@@ -407,7 +407,7 @@
   </div>
 
 <script>
-(() => {
+window.addEventListener('DOMContentLoaded', () => {
   // ====== Admin guard (same idea as fix-day.html) ======
   const LS_ADMIN = "pontaj/admin/v1";
   const LS_ADMIN_FALLBACK = "pontaj_admin_session";
@@ -1127,7 +1127,7 @@
       </div>`;
     }
   })();
-})();
+});
 </script>
 
 <div class="leaveOverlay" id="leaveOverlay">
