@@ -1476,23 +1476,18 @@
       });
     });
 
-    $("#btnUserPanel").addEventListener("click", openDrawer);
-    $("#drawerClose").addEventListener("click", closeDrawer);
-    $("#drawerWrap").addEventListener("click", (ev)=>{ if (ev.target === $("#drawerWrap")) closeDrawer(); });
+    $("#btnUserPanel")?.addEventListener("click", openDrawer);
+    $("#drawerClose")?.addEventListener("click", closeDrawer);
+    $("#drawerWrap")?.addEventListener("click", (ev)=>{ if (ev.target === $("#drawerWrap")) closeDrawer(); });
 
-    $("#drawerIndex").addEventListener("click", ()=>window.open("index.html","_blank"));
-    $("#drawerReload").addEventListener("click", ()=>window.location.reload());
-    $("#drawerLogout").addEventListener("click", logout);
+    $("#drawerIndex")?.addEventListener("click", ()=>window.open("index.html","_blank"));
+    $("#drawerReload")?.addEventListener("click", ()=>window.location.reload());
+    $("#drawerLogout")?.addEventListener("click", logout);
 
-    $("#btnOpenIndex").addEventListener("click", ()=>window.open("index.html","_blank"));
-    $("#btnRefreshAll").addEventListener("click", ()=>window.location.reload());
-    $("#btnLogout").addEventListener("click", logout);
-
-    $("#reqRefresh").addEventListener("click", ()=>{ $("#reqList").textContent = "—"; });
-    $("#reqNew").addEventListener("click", ()=>{ alert("TODO: creează cerere. Spune-mi endpoint-ul de leave și îl conectez."); });
-  
-
-    // menu collapse (ca în admin)
+    $("#btnOpenIndex")?.addEventListener("click", ()=>window.open("index.html","_blank"));
+    $("#btnRefreshAll")?.addEventListener("click", ()=>window.location.reload());
+    $("#btnLogout")?.addEventListener("click", logout);
+// menu collapse (ca în admin)
     const shell = document.querySelector('.shell');
     const btn = document.getElementById('menuCollapse');
     if (btn && shell){
