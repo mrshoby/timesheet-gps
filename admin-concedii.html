@@ -14,154 +14,243 @@
       --accent:#6d5efc;
       --shadow:0 10px 30px rgba(20,18,40,.08);
       --r:18px;
+
+      --c-pending:#fff3d6;
+      --c-approved:#e3f7e8;
+      --c-rejected:#ffe0e0;
+      --c-neutral:#f6f7fb;
+
+      --purple:#2f245c;
+      --purple2:#3a2d71;
+      --purpleInk:#f5f4ff;
+      --purpleMuted: rgba(245,244,255,.72);
+      --purpleLine: rgba(255,255,255,.12);
     }
     *{box-sizing:border-box}
-    body{margin:0;background:linear-gradient(180deg,#f4f5ff,#ffffff);font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto}
+    body{margin:0;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial;background:var(--bg);color:var(--ink)}
     .wrap{max-width:1600px;margin:18px auto;padding:0 14px}
-    .top{
-      display:flex;align-items:center;justify-content:space-between;gap:12px;
-      background:rgba(255,255,255,.86);border:1px solid rgba(105,112,160,.16);border-radius:22px;
-      box-shadow:var(--shadow);padding:12px 14px
+    .panel{background:var(--card);border:1px solid var(--line);border-radius:22px;box-shadow:var(--shadow);overflow:hidden}
+    .head{padding:14px 16px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+    .title{display:flex;flex-direction:column;gap:2px}
+    .title h1{margin:0;font-size:18px}
+    .title .sub{font-size:12px;color:var(--muted)}
+    .controls{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+    .pill{display:flex;align-items:center;gap:8px;background:var(--c-neutral);border:1px solid var(--line);border-radius:14px;padding:8px 10px}
+    .pill input,.pill select{border:0;background:transparent;outline:none;font:inherit;color:var(--ink)}
+    .btn{border:1px solid var(--line);background:var(--card);border-radius:12px;padding:10px 12px;cursor:pointer;font-weight:600}
+    .btn.primary{background:rgba(109,94,252,.12);border-color:rgba(109,94,252,.25);color:var(--accent)}
+    .btn:active{transform:translateY(1px)}
+    .toggle{display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--line);border-radius:14px;background:var(--c-neutral);user-select:none}
+    .toggle input{width:16px;height:16px}
+
+    .grid{display:grid;grid-template-columns: 1fr 360px;gap:14px;padding:14px}
+    @media(max-width:1100px){ .grid{grid-template-columns:1fr} }
+
+    .tableWrap{background:var(--card);border:1px solid var(--line);border-radius:18px;overflow:hidden}
+    .tableScroll{overflow:auto}
+    table{border-collapse:separate;border-spacing:0;width:100%;min-width:980px}
+    thead th{position:sticky;top:0;z-index:5;background:#fbfbff;border-bottom:1px solid var(--line);font-size:12px;color:var(--muted);text-align:center;padding:10px 6px}
+    thead th:first-child{left:0;z-index:7;text-align:left;padding-left:14px;min-width:260px}
+    tbody td, tbody th{border-bottom:1px solid var(--line);border-right:1px solid var(--line);height:64px;vertical-align:middle;text-align:center;font-size:13px;color:var(--ink);background:#fff}
+    tbody tr:last-child td, tbody tr:last-child th{border-bottom:0}
+    tbody td:last-child, thead th:last-child{border-right:0}
+    tbody th{position:sticky;left:0;z-index:6;background:#fff;text-align:left;padding:10px 12px;min-width:260px;border-right:1px solid var(--line)}
+    .who{display:flex;align-items:center;gap:10px}
+    .av{width:34px;height:34px;border-radius:999px;background:#e9ecff;display:grid;place-items:center;font-weight:800;color:#3a2d71;flex:0 0 auto}
+    .name{display:flex;flex-direction:column;line-height:1.1}
+    .name .n{font-weight:700}
+    .name .d{font-size:12px;color:var(--muted)}
+
+    .cell{position:relative;cursor:pointer}
+    .cell:hover{background:#fafaff}
+    .tag{display:inline-flex;align-items:center;justify-content:center;min-width:44px;padding:6px 10px;border-radius:12px;font-weight:800}
+    .tag.co{background:rgba(109,94,252,.10);color:var(--accent)}
+    .tag.inv{background:rgba(47,36,92,.08);color:var(--purple)}
+    .mini{display:block;margin-top:4px;font-size:11px;color:var(--muted);font-weight:600}
+
+    .pending{background:var(--c-pending)}
+    .approved{background:var(--c-approved)}
+    .rejected{background:var(--c-rejected)}
+    .bang{
+      position:absolute;top:6px;right:6px;width:18px;height:18px;border-radius:999px;
+      background:#ffb020;color:#1f2330;font-weight:900;font-size:12px;display:grid;place-items:center;
+      border:2px solid #fff;
     }
-    .title{font-weight:1000}
-    .sub{color:rgba(40,48,80,.65);font-weight:800;font-size:12px;margin-top:4px}
-    .controls{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
-    .pill{padding:10px 12px;border-radius:14px;border:1px solid rgba(105,112,160,.18);background:#fff;font-weight:1000;cursor:pointer}
-    .pill.primary{background:linear-gradient(180deg, rgba(109,94,252,.95), rgba(109,94,252,.78));color:#fff;border-color:rgba(109,94,252,.35)}
-    select,input{padding:10px 12px;border-radius:14px;border:1px solid rgba(105,112,160,.22);font-weight:900}
-    .grid{display:grid;grid-template-columns:1fr 360px;gap:14px;margin-top:14px}
-    .panel{
-      background:rgba(255,255,255,.86);border:1px solid rgba(105,112,160,.16);border-radius:22px;box-shadow:var(--shadow);
+
+    .side{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:12px}
+    .side h3{margin:0 0 10px 0;font-size:14px}
+    .side .muted{color:var(--muted);font-size:12px}
+    .list{display:flex;flex-direction:column;gap:8px;margin-top:10px}
+    .item{border:1px solid var(--line);border-radius:14px;padding:10px;background:#fff;display:flex;justify-content:space-between;gap:10px}
+    .item strong{display:block}
+    .item .meta{font-size:12px;color:var(--muted)}
+    .item .actions{display:flex;gap:8px;align-items:center}
+    .badge{padding:4px 8px;border-radius:999px;font-size:12px;font-weight:800;background:#f3f4ff;color:var(--accent);border:1px solid rgba(109,94,252,.25)}
+    .err{margin-top:10px;padding:10px;border-radius:12px;background:#fff0f0;border:1px solid #ffd2d2;color:#9b1c1c;font-weight:700}
+
+    /* Approval modal (purple) */
+    .ov{position:fixed;inset:0;background:rgba(0,0,0,.28);display:none;align-items:center;justify-content:center;padding:18px;z-index:9999}
+    .ov.open{display:flex}
+    .modal{
+      width:min(520px, 96vw);
+      background:linear-gradient(180deg,var(--purple2),var(--purple));
+      color:var(--purpleInk);
+      border-radius:16px;
+      box-shadow:0 20px 60px rgba(0,0,0,.35);
       overflow:hidden;
     }
-    .panelHead{padding:12px 14px;border-bottom:1px solid rgba(105,112,160,.14);display:flex;align-items:center;justify-content:space-between;gap:10px}
-    .panelHead h2{margin:0;font-size:14px;font-weight:1000}
-    .note{color:rgba(40,48,80,.65);font-weight:800;font-size:12px}
-    .tableWrap{overflow:auto}
-    table{border-collapse:separate;border-spacing:0;min-width:1200px;width:100%}
-    th,td{padding:0;border-bottom:1px solid rgba(105,112,160,.10)}
-    th{position:sticky;top:0;background:rgba(245,246,255,.96);backdrop-filter: blur(10px);font-size:11px;font-weight:1000;color:rgba(40,48,80,.60);text-align:center}
-    th.stickyL{left:0;z-index:4;text-align:left}
-    td.stickyL{left:0;position:sticky;background:rgba(255,255,255,.96);z-index:3}
-    .empCell{display:flex;align-items:center;gap:10px;padding:10px 12px}
-    .empAva{width:34px;height:34px;border-radius:999px;background:#eef1ff;display:flex;align-items:center;justify-content:center;font-weight:1000}
-    .empName{font-weight:1000}
-    .empDept{font-weight:800;color:rgba(40,48,80,.55);font-size:12px}
-    .cell{height:48px;display:flex;align-items:center;justify-content:center;font-weight:1000;border-radius:14px;margin:6px;position:relative;border:1px solid rgba(105,112,160,.12);background:rgba(240,242,255,.40);cursor:pointer}
-    .cell.approved{background:rgba(44,204,113,.14);border-color:rgba(44,204,113,.26);color:#0f7a3a}
-    .cell.pending{background:rgba(255,185,0,.12);border-color:rgba(255,185,0,.24);color:#7a4d00}
-    .cell.rejected{background:rgba(255,72,72,.10);border-color:rgba(255,72,72,.20);color:#9a1c1c;opacity:.75}
-    .bang{
-      position:absolute;top:7px;right:7px;width:18px;height:18px;border-radius:999px;
-      background:linear-gradient(180deg, rgba(255,185,0,.95), rgba(255,150,0,.80));
-      color:#fff;font-size:12px;display:flex;align-items:center;justify-content:center;
-      box-shadow:0 10px 18px rgba(255,150,0,.22);
+    .modal .body{padding:18px}
+    .k{color:var(--purpleMuted);font-size:12px;margin-top:10px}
+    .v{font-weight:800;font-size:16px;margin-top:2px}
+    .row{display:flex;gap:12px;align-items:center;margin-top:14px}
+    .avatars{display:flex;gap:8px;margin-top:8px}
+    .avatars .av{background:rgba(255,255,255,.16);color:var(--purpleInk);border:1px solid var(--purpleLine)}
+    .modal textarea{
+      width:100%;margin-top:12px;min-height:80px;resize:vertical;
+      border-radius:12px;border:1px solid var(--purpleLine);
+      background:rgba(255,255,255,.10);color:var(--purpleInk);
+      padding:10px;font:inherit;outline:none
     }
-    .sideList{padding:12px 14px}
-    .reqCard{border:1px solid rgba(105,112,160,.14);background:rgba(240,242,255,.45);border-radius:18px;padding:12px;margin-top:12px}
-    .reqTop{display:flex;align-items:center;justify-content:space-between;gap:10px}
-    .tag{font-weight:1000;font-size:11px;padding:6px 10px;border-radius:999px;background:#fff;border:1px solid rgba(105,112,160,.18)}
-    .reqMeta{margin-top:8px;font-weight:800;font-size:12px;color:rgba(40,48,80,.72);line-height:1.35}
-    .reqReason{margin-top:8px;font-weight:800;font-size:12px;color:rgba(40,48,80,.62)}
-    .reqActions{margin-top:12px;display:flex;gap:10px}
-    .btnA{flex:1;padding:10px 12px;border-radius:14px;border:1px solid rgba(255,255,255,.22);font-weight:1000;cursor:pointer}
-    .btnApprove{background:linear-gradient(180deg, rgba(44,204,113,.95), rgba(44,204,113,.78));color:#fff;border-color:rgba(44,204,113,.35)}
-    .btnReject{background:linear-gradient(180deg, rgba(255,72,72,.95), rgba(255,72,72,.78));color:#fff;border-color:rgba(255,72,72,.35)}
-    .noteBox{width:100%;padding:10px 12px;border-radius:14px;border:1px solid rgba(105,112,160,.22);font-weight:800;outline:none}
-    .overlay{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(20,18,40,.35);z-index:99999;padding:18px}
-    .overlay.show{display:flex}
-    .modal{width:min(760px, 96vw);border-radius:22px;overflow:hidden;border:1px solid rgba(255,255,255,.18);box-shadow:0 24px 70px rgba(20,18,40,.25);background:#fff}
-    .mHead{padding:16px 16px 12px;background:linear-gradient(180deg, rgba(109,94,252,.98), rgba(109,94,252,.70));color:#fff;display:flex;justify-content:space-between;gap:12px}
-    .mTitle{font-weight:1000;font-size:14px}
-    .mSub{opacity:.88;font-weight:800;font-size:12px;margin-top:4px}
-    .xBtn{width:38px;height:38px;border-radius:14px;border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.12);color:#fff;cursor:pointer;font-weight:1000}
-    .mBody{padding:14px 16px}
-    .mFoot{padding:12px 16px;border-top:1px solid rgba(105,112,160,.16);display:flex;justify-content:flex-end;gap:10px}
-    @media(max-width:1100px){ .grid{grid-template-columns:1fr} }
+    .modal .foot{
+      display:flex;gap:10px;padding:14px;border-top:1px solid var(--purpleLine);
+      background:rgba(0,0,0,.08)
+    }
+    .bbtn{
+      flex:1;display:flex;align-items:center;justify-content:center;gap:8px;
+      border-radius:12px;padding:12px 10px;font-weight:900;cursor:pointer;border:1px solid transparent
+    }
+    .bbtn.secondary{background:rgba(255,255,255,.12);border-color:var(--purpleLine);color:var(--purpleInk)}
+    .bbtn.approve{background:#6bc676;color:#0b2b12}
+    .bbtn.reject{background:rgba(255,255,255,.12);border:1px solid var(--purpleLine);color:var(--purpleInk)}
+    .bbtn.icon{flex:0 0 54px}
+    .toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:#1f2330;color:#fff;padding:10px 12px;border-radius:12px;font-weight:700;box-shadow:var(--shadow);display:none;z-index:99999}
+    .toast.show{display:block}
   </style>
 </head>
 <body>
-  <div class="wrap">
-    <div class="top">
-      <div>
-        <div class="title">Concedii & învoiri</div>
-        <div class="sub" id="sub">Aprobări pentru angajații repartizați</div>
+<div class="wrap">
+  <div class="panel">
+    <div class="head">
+      <div class="title">
+        <h1>Concedii &amp; învoiri</h1>
+        <div class="sub" id="sub">Aprobări</div>
       </div>
       <div class="controls">
-        <button class="pill" id="prevBtn">‹</button>
-        <select id="monthSel"></select>
-        <button class="pill" id="nextBtn">›</button>
-        <input id="q" placeholder="Caută angajat…" />
-        <button class="pill" id="refreshBtn">Refresh</button>
+        <button class="btn" id="prev">‹</button>
+        <div class="pill">
+          <select id="monthSel"></select>
+        </div>
+        <button class="btn" id="next">›</button>
+        <div class="pill">
+          <span style="opacity:.7">🔎</span>
+          <input id="q" placeholder="Caută angajat..." />
+        </div>
+        <label class="toggle" title="Filtrează doar cererile repartizate ție">
+          <input type="checkbox" id="onlyMine" checked />
+          <span>Doar ale mele</span>
+        </label>
+        <button class="btn primary" id="refresh">Refresh</button>
       </div>
     </div>
 
     <div class="grid">
-      <div class="panel">
-        <div class="panelHead">
-          <h2>Calendar cereri</h2>
-          <div class="note">Click pe o zi cu <b>!</b> pentru aprobare / respingere.</div>
-        </div>
-        <div class="tableWrap">
-          <table>
+      <div class="tableWrap">
+        <div class="tableScroll">
+          <table id="cal">
             <thead id="thead"></thead>
             <tbody id="tbody"></tbody>
           </table>
         </div>
       </div>
 
-      <div class="panel">
-        <div class="panelHead">
-          <h2>În așteptare</h2>
-          <div class="note" id="pendingCount">—</div>
-        </div>
-        <div class="sideList">
-          <textarea id="noteGlobal" class="noteBox" placeholder="Notă (opțional) — se aplică la approve/reject"></textarea>
-          <div id="pendingList"></div>
-          <div class="note" id="pendingEmpty" style="margin-top:12px;display:none">Nu există cereri pending în luna selectată.</div>
-        </div>
+      <div class="side">
+        <h3>În așteptare <span class="badge" id="pendingCount">0</span></h3>
+        <div class="muted">Click pe o zi cu cerere pentru aprobare / respingere.</div>
+        <div id="err" class="err" style="display:none"></div>
+        <div class="list" id="pendingList"></List>
+        <div class="muted" id="emptyMsg" style="margin-top:10px;display:none">Nu există cereri pending în luna selectată.</div>
       </div>
     </div>
   </div>
+</div>
 
-  <div class="overlay" id="overlay">
-    <div class="modal">
-      <div class="mHead">
-        <div>
-          <div class="mTitle" id="mTitle">Aprobări</div>
-          <div class="mSub" id="mSub">—</div>
-        </div>
-        <button class="xBtn" id="mClose">✕</button>
-      </div>
-      <div class="mBody">
-        <textarea id="mNote" class="noteBox" placeholder="Notă (opțional) — ex: nu se aprobă din cauza …"></textarea>
-        <div id="mList"></div>
-        <div class="note" id="mEmpty" style="margin-top:12px;display:none">Nu există cereri pending pentru ziua selectată.</div>
-      </div>
-      <div class="mFoot">
-        <button class="pill" id="mRefresh">Reîncarcă</button>
-      </div>
+<!-- Approval modal -->
+<div class="ov" id="ov">
+  <div class="modal" role="dialog" aria-modal="true">
+    <div class="body">
+      <div class="k">Perioadă</div>
+      <div class="v" id="mPeriod">—</div>
+
+      <div class="k">Număr</div>
+      <div class="v" id="mCount">—</div>
+
+      <div class="k">Motiv</div>
+      <div class="v" id="mReason">—</div>
+
+      <div class="k">Ziua selectată</div>
+      <div class="v" id="mDay">—</div>
+
+      <div class="k">În aceeași zi cu</div>
+      <div class="avatars" id="sameDayAv"></div>
+
+      <div class="k">În aceeași perioadă cu</div>
+      <div class="avatars" id="samePeriodAv"></div>
+
+      <textarea id="mNote" placeholder="Notă (opțional) — se aplică la approve/reject"></textarea>
+    </div>
+    <div class="foot">
+      <button class="bbtn secondary icon" id="mDl" title="Export (placeholder)">⤓</button>
+      <button class="bbtn reject" id="mReject">✕ Respinge</button>
+      <button class="bbtn approve" id="mApprove">✓ Aprobă</button>
     </div>
   </div>
+</div>
+
+<div class="toast" id="toast">—</div>
 
 <script>
 (() => {
-  // ===== Admin session =====
+  // ===== Config loading (same smart loader used elsewhere) =====
+  const CFG_PATHS = ["./config.json","../config.json","/config.json"];
+  let CFG = null;
+
+  function $(sel){ return document.querySelector(sel); }
+  function toast(msg){
+    const t = $("#toast");
+    t.textContent = msg;
+    t.classList.add("show");
+    setTimeout(()=>t.classList.remove("show"), 2200);
+  }
+
+  async function loadCFG(){
+    for (const p of CFG_PATHS){
+      try{
+        const r = await fetch(p, { cache:"no-store" });
+        if (!r.ok) continue;
+        CFG = await r.json();
+        return;
+      }catch(e){}
+    }
+    CFG = {};
+  }
+  function ep(){ return CFG?.leaveEndpoint || CFG?.adminEventsEndpoint || CFG?.stateEndpoint || ""; }
+
+  // ===== Admin session (from admin shell) =====
   const LS_ADMIN = "pontaj/admin/v1";
-  const LS_ADMIN_FALLBACK = "pontaj_admin_session";
   const LS_ADMIN_KEY = "pontaj_adminKey";
 
   function requireAdmin(){
-    const raw = localStorage.getItem(LS_ADMIN) || localStorage.getItem(LS_ADMIN_FALLBACK);
-    if (!raw) throw new Error("Neautentificat ca admin. Loghează-te în Admin înainte.");
     try{
-      const s = JSON.parse(raw);
-      if (!s || !s.user) throw new Error("Sesiune admin invalidă.");
-      return s;
+      const raw = localStorage.getItem(LS_ADMIN) || "";
+      if (!raw) throw new Error("Nu ești logat ca admin.");
+      const obj = JSON.parse(raw);
+      if (!obj || !obj.ok) throw new Error("Sesiune admin invalidă.");
+      return obj;
     }catch(e){
-      throw new Error("Sesiune admin invalidă.");
+      throw new Error("Nu ești logat ca admin.");
     }
   }
+
   function getAdminKey(){
     let k = "";
     try{ k = (localStorage.getItem(LS_ADMIN_KEY) || "").trim(); }catch(e){}
@@ -183,346 +272,345 @@
       document.body.appendChild(s);
     });
   }
-  function escapeHtml(s){ return String(s||"").replace(/[&<>"']/g, c=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c])); }
-  function initials(name){
-    const p = String(name||"").trim().split(/\s+/).filter(Boolean);
-    const a = p[0]?.[0]||""; const b = p[1]?.[0]||"";
-    return (a+b).toUpperCase() || "•";
-  }
-  function getWeekdayShort(dk){
-    const d = new Date(dk+"T00:00:00");
-    const w = ["Du","Lu","Ma","Mi","Jo","Vi","Sâ"];
-    return w[d.getDay()];
-  }
-  function addMonths(ym, delta){
-    const [y,m] = ym.split("-").map(n=>parseInt(n,10));
-    const d = new Date(y, m-1+delta, 1);
-    return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0");
-  }
 
-  // ===== config =====
-  let CFG = null;
-  async function loadConfig(){
-    const tries = ["config.json","./config.json","../config.json","/config.json"];
-    for (const p of tries){
-      try{
-        const r = await fetch(p+"?v="+Date.now(), {cache:"no-store"});
-        if (!r.ok) continue;
-        CFG = await r.json();
-        return;
-      }catch(e){}
-    }
-    throw new Error("Nu pot încărca config.json.");
-  }
-  function ep(){ return CFG?.leaveEndpoint || CFG?.adminEventsEndpoint || CFG?.stateEndpoint || ""; }
-
-  // ===== leaves =====
+  // ===== State =====
+  let LEAVES = [];
+  let INDEX = new Map(); // name -> list
+  let DAYINDEX = new Map(); // yyyy-mm-dd -> list
   let YM = "";
-  let LIST = [];
-  let BY_NAME_DAY = new Map(); // name||day -> list
+  let ACTIVE = null; // active leave object
+  let ACTIVE_DAY = "";
 
-  function dkRange(sd, ed){
-    const out=[];
-    const a = new Date(sd+"T00:00:00");
-    const b = new Date(ed+"T00:00:00");
-    for (let i=0;i<62;i++){
-      out.push(a.toISOString().slice(0,10));
-      if (a>=b) break;
-      a.setDate(a.getDate()+1);
-    }
-    return out;
+  function norm(s){ return String(s||"").trim().toLowerCase(); }
+  function deacc(s){ return (s||"").normalize("NFD").replace(/[\u0300-\u036f]/g, ""); }
+  function initials(name){
+    const parts = String(name||"").trim().split(/\s+/).filter(Boolean);
+    const a = parts[0]?.[0] || "?";
+    const b = parts.length>1 ? parts[parts.length-1][0] : "";
+    return (a+b).toUpperCase();
   }
+  function daysInMonth(ym){
+    const [y,m] = ym.split("-").map(Number);
+    return new Date(y, m, 0).getDate();
+  }
+  function dowShort(d){
+    const arr=["Du","Lu","Ma","Mi","Jo","Vi","Sâ"];
+    return arr[d.getDay()];
+  }
+  function iso(d){
+    const y = d.getFullYear();
+    const m = String(d.getMonth()+1).padStart(2,"0");
+    const da= String(d.getDate()).padStart(2,"0");
+    return y+"-"+m+"-"+da;
+  }
+  function parseIsoDate(s){
+    const m = String(s||"").match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if(!m) return null;
+    const d = new Date(Number(m[1]), Number(m[2])-1, Number(m[3]));
+    d.setHours(0,0,0,0);
+    return d;
+  }
+  function overlaps(aStart,aEnd,bStart,bEnd){
+    return !(aEnd < bStart || aStart > bEnd);
+  }
+  function inRange(day, start, end){
+    return day >= start && day <= end;
+  }
+
   function indexLeaves(list){
-    LIST = Array.isArray(list)? list : [];
-    BY_NAME_DAY = new Map();
-    LIST.forEach(it=>{
-      const name = String(it.employeeName||"").trim();
-      const sd = String(it.startDate||"");
-      const ed = String(it.endDate||sd);
-      if (!name || !sd) return;
-      dkRange(sd, ed).forEach(dk=>{
-        const key = name+"||"+dk;
-        if (!BY_NAME_DAY.has(key)) BY_NAME_DAY.set(key, []);
-        BY_NAME_DAY.get(key).push(it);
-      });
-    });
-  }
-  function pendingFor(name, dk){
-    const key = name+"||"+dk;
-    return (BY_NAME_DAY.get(key) || []).filter(x=>String(x.status||"").toLowerCase()==="pending");
-  }
-  function approvedFor(name, dk){
-    const key = name+"||"+dk;
-    return (BY_NAME_DAY.get(key) || []).filter(x=>String(x.status||"").toLowerCase()==="approved");
-  }
-  function fmtReq(it){
-    const kind = String(it.kind||"").toLowerCase();
-    if (kind==="invoire") return `Învoire • ${it.startDate} • ${it.startTime||"?"}–${it.endTime||"?"}`;
-    return `Concediu ${it.code||""} • ${it.startDate} – ${it.endDate}`;
+    LEAVES = Array.isArray(list) ? list.slice() : [];
+    INDEX = new Map();
+    DAYINDEX = new Map();
+    for (const l of LEAVES){
+      const name = String(l.employeeName||"").trim();
+      if(!name) continue;
+      if(!INDEX.has(name)) INDEX.set(name, []);
+      INDEX.get(name).push(l);
+
+      const sd = String(l.startDate||"");
+      const ed = String(l.endDate||"");
+      const sdd = parseIsoDate(sd);
+      const edd = parseIsoDate(ed);
+      if(!sdd || !edd) continue;
+      for(let d=new Date(sdd); d<=edd; d.setDate(d.getDate()+1)){
+        const day = iso(d);
+        if(!DAYINDEX.has(day)) DAYINDEX.set(day, []);
+        DAYINDEX.get(day).push(l);
+      }
+    }
+    // sort leaves per employee by startDate
+    for (const [k,arr] of INDEX.entries()){
+      arr.sort((a,b)=>String(a.startDate||"").localeCompare(String(b.startDate||"")));
+    }
   }
 
-  async function loadLeavesMonth(ym){
+  function bestForCell(list){
+    if(!list || !list.length) return null;
+    const pending = list.find(x=>norm(x.status)==="pending");
+    return pending || list[0];
+  }
+
+  function render(ym){
+    const q = norm($("#q").value);
+    const onlyMine = $("#onlyMine").checked;
+    const days = daysInMonth(ym);
+    const thead = $("#thead");
+    const tbody = $("#tbody");
+
+    // build roster from leaves (names)
+    let names = Array.from(INDEX.keys());
+    if(q) names = names.filter(n=>deacc(n.toLowerCase()).includes(deacc(q)));
+    names.sort((a,b)=>a.localeCompare(b,"ro"));
+
+    // header
+    let h = "<tr>";
+    h += "<th>ANGAJAT</th>";
+    for(let i=1;i<=days;i++){
+      const d = new Date(ym+"-"+String(i).padStart(2,"0")+"T00:00:00");
+      h += `<th><div style="font-weight:800;color:#1f2330">${String(i).padStart(2,"0")}</div><div>${dowShort(d)}</div></th>`;
+    }
+    h += "</tr>";
+    thead.innerHTML = h;
+
+    // body rows
+    let html = "";
+    for (const name of names){
+      html += "<tr>";
+      html += `<th><div class="who"><div class="av">${initials(name)}</div><div class="name"><span class="n">${name}</span><span class="d">—</span></div></div></th>`;
+      for(let i=1;i<=days;i++){
+        const day = ym+"-"+String(i).padStart(2,"0");
+        const all = (INDEX.get(name)||[]).filter(l=>inRange(day, String(l.startDate||""), String(l.endDate||"")));
+        if(!all.length){
+          html += `<td class="cell" data-day="${day}" data-name="${encodeURIComponent(name)}"></td>`;
+          continue;
+        }
+        const pick = bestForCell(all);
+        const st = norm(pick.status);
+        const cls = st==="pending" ? "pending" : (st==="approved" ? "approved" : (st==="rejected" ? "rejected" : ""));
+        const isInv = norm(pick.kind)==="invoire";
+        const tagCls = isInv ? "tag inv" : "tag co";
+        const tagTxt = isInv ? "INV" : (pick.code||"—");
+        const mini = isInv ? (`<span class="mini">${pick.startTime||""}-${pick.endTime||""}</span>`) : "";
+        const bang = st==="pending" ? `<div class="bang">!</div>` : "";
+        const ids = all.map(x=>x.id).filter(Boolean).join(",");
+        html += `<td class="cell ${cls}" data-day="${day}" data-name="${encodeURIComponent(name)}" data-ids="${ids}">
+                  ${bang}
+                  <span class="${tagCls}">${tagTxt}</span>
+                  ${mini}
+                 </td>`;
+      }
+      html += "</tr>";
+    }
+    tbody.innerHTML = html;
+
+    // pending list right
+    const pending = LEAVES.filter(l=>norm(l.status)==="pending");
+    $("#pendingCount").textContent = String(pending.length);
+    const pl = $("#pendingList");
+    const emptyMsg = $("#emptyMsg");
+    pl.innerHTML = "";
+    if(!pending.length){
+      emptyMsg.style.display = "block";
+    }else{
+      emptyMsg.style.display = "none";
+      pending.slice(0,30).forEach(l=>{
+        const txt = (norm(l.kind)==="invoire") ? `Învoire ${l.startDate} ${l.startTime||""}-${l.endTime||""}` : `${l.code||"—"} ${l.startDate}–${l.endDate}`;
+        const div = document.createElement("div");
+        div.className = "item";
+        div.innerHTML = `<div>
+            <strong>${l.employeeName||"—"}</strong>
+            <div class="meta">${txt}</div>
+          </div>
+          <div class="actions"><span class="badge">pending</span></div>`;
+        div.addEventListener("click", ()=>{
+          const day = l.startDate || ym+"-01";
+          openModal(l, day);
+        });
+        pl.appendChild(div);
+      });
+    }
+  }
+
+  function setError(msg){
+    const e = $("#err");
+    if(!msg){ e.style.display="none"; e.textContent=""; return; }
+    e.style.display="block";
+    e.textContent = msg;
+  }
+
+  async function loadMonth(ym){
+    setError("");
     const endpoint = ep();
-    if (!endpoint) throw new Error("Lipsește endpoint în config.json.");
-    const admin = requireAdmin();
+    if(!endpoint){ setError("Lipsește endpoint în config.json (leaveEndpoint/adminEventsEndpoint)."); return; }
+
+    let admin;
+    try{ admin = requireAdmin(); }catch(err){ setError(err.message||String(err)); return; }
+
     const key = getAdminKey();
-    if (!key) throw new Error("Lipsește ADMIN_KEY.");
+    if(!key){ setError("Lipsește ADMIN_KEY."); return; }
+
     const adminName = admin.user?.name || admin.user?.fullName || admin.user?.label || admin.user?.username || "";
     const adminEmail = admin.user?.email || "";
+
+    const onlyMine = $("#onlyMine").checked;
     const url = endpoint + "?fn=adminLeavesMonth"
       + "&ym=" + encodeURIComponent(ym)
       + "&key=" + encodeURIComponent(key)
       + "&adminName=" + encodeURIComponent(adminName)
       + "&adminEmail=" + encodeURIComponent(adminEmail)
+      + "&mine=" + (onlyMine ? "1" : "0")
       + "&ts=" + Date.now();
-    const res = await jsonp(url);
-    if (!res || !res.ok) throw new Error(res?.error || "Nu pot încărca cererile.");
-    indexLeaves(res.list || []);
-    document.getElementById("sub").textContent = adminEmail ? ("Aprobări pentru " + adminEmail) : "Aprobări";
+
+    try{
+      const res = await jsonp(url);
+      if(!res || !res.ok) throw new Error(res?.error || "Nu pot încărca cererile.");
+      indexLeaves(res.list||[]);
+      $("#sub").textContent = onlyMine ? "Aprobări — doar ale mele" : "Aprobări — toate";
+      render(ym);
+    }catch(err){
+      setError(String(err?.message||err||"Eroare"));
+      indexLeaves([]);
+      render(ym);
+    }
   }
 
-  async function decideLeave(id, decision, note){
+  // ===== Modal =====
+  function openModal(leave, day){
+    ACTIVE = leave;
+    ACTIVE_DAY = day;
+    $("#mDay").textContent = day;
+    const isInv = norm(leave.kind)==="invoire";
+    $("#mPeriod").textContent = isInv ? `${leave.startDate} (${leave.startTime||""}-${leave.endTime||""})` : `${leave.startDate} - ${leave.endDate}`;
+    $("#mCount").textContent = isInv ? "Învoire" : (calcDays(leave.startDate, leave.endDate) + " zile");
+    $("#mReason").textContent = (leave.reason && String(leave.reason).trim()) ? leave.reason : "—";
+    $("#mNote").value = "";
+
+    // same day avatars
+    $("#sameDayAv").innerHTML = "";
+    const sameDay = (DAYINDEX.get(day)||[]).filter(x=>x.id!==leave.id && norm(x.status)==="pending");
+    sameDay.slice(0,6).forEach(x=>{
+      const d = document.createElement("div");
+      d.className="av";
+      d.textContent = initials(x.employeeName);
+      d.title = x.employeeName;
+      $("#sameDayAv").appendChild(d);
+    });
+    if(!sameDay.length) $("#sameDayAv").innerHTML = '<span class="k" style="margin-top:0">—</span>';
+
+    // same period avatars
+    $("#samePeriodAv").innerHTML = "";
+    const sd = parseIsoDate(leave.startDate), ed = parseIsoDate(leave.endDate);
+    const samePer = LEAVES.filter(x=>{
+      if(x.id===leave.id) return false;
+      if(norm(x.status)!=="pending") return false;
+      const a = parseIsoDate(x.startDate), b = parseIsoDate(x.endDate);
+      if(!a||!b||!sd||!ed) return false;
+      return overlaps(sd,ed,a,b);
+    });
+    samePer.slice(0,6).forEach(x=>{
+      const d = document.createElement("div");
+      d.className="av";
+      d.textContent = initials(x.employeeName);
+      d.title = x.employeeName;
+      $("#samePeriodAv").appendChild(d);
+    });
+    if(!samePer.length) $("#samePeriodAv").innerHTML = '<span class="k" style="margin-top:0">—</span>';
+
+    $("#ov").classList.add("open");
+  }
+  function closeModal(){ $("#ov").classList.remove("open"); ACTIVE=null; ACTIVE_DAY=""; }
+  $("#ov").addEventListener("click", (e)=>{ if(e.target.id==="ov") closeModal(); });
+
+  function calcDays(s,e){
+    const sd = parseIsoDate(s), ed = parseIsoDate(e);
+    if(!sd||!ed) return 0;
+    return Math.round((ed - sd)/86400000) + 1;
+  }
+
+  async function decide(decision){
+    if(!ACTIVE) return;
     const endpoint = ep();
-    const admin = requireAdmin();
     const key = getAdminKey();
-    const decidedBy = admin.user?.name || admin.user?.fullName || "";
+    const admin = requireAdmin();
+    const adminName = admin.user?.name || admin.user?.fullName || admin.user?.label || admin.user?.username || "";
     const url = endpoint + "?fn=adminLeaveDecide"
-      + "&id=" + encodeURIComponent(id)
+      + "&id=" + encodeURIComponent(ACTIVE.id)
       + "&decision=" + encodeURIComponent(decision)
-      + "&note=" + encodeURIComponent(note||"")
-      + "&decidedBy=" + encodeURIComponent(decidedBy)
+      + "&note=" + encodeURIComponent($("#mNote").value||"")
+      + "&decidedBy=" + encodeURIComponent(adminName)
       + "&key=" + encodeURIComponent(key)
       + "&ts=" + Date.now();
-    const res = await jsonp(url);
-    if (!res || !res.ok) throw new Error(res?.error || "Nu pot salva decizia.");
-    return res;
-  }
-
-  // ===== UI =====
-  function buildMonthOptions(curYm){
-    const sel = document.getElementById("monthSel");
-    sel.innerHTML = "";
-    const [cy, cm] = curYm.split("-").map(x=>parseInt(x,10));
-    const base = new Date(cy, cm-1, 1);
-    for (let i=-12; i<=1; i++){
-      const d = new Date(base.getFullYear(), base.getMonth()+i, 1);
-      const ym = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
-      const opt = document.createElement("option");
-      opt.value = ym;
-      opt.textContent = d.toLocaleString("ro-RO", {month:"long", year:"numeric"});
-      if (ym === curYm) opt.selected = true;
-      sel.appendChild(opt);
-    }
-  }
-
-  function employeesInMonth(){
-    const names = new Set();
-    LIST.forEach(it=>{ if (String(it.status||"").toLowerCase()==="pending") names.add(String(it.employeeName||"").trim()); });
-    // if no pending, show all who have any
-    if (!names.size) LIST.forEach(it=>names.add(String(it.employeeName||"").trim()));
-    return Array.from(names).filter(Boolean).sort((a,b)=>a.localeCompare(b));
-  }
-
-  function render(){
-    const [y,m] = YM.split("-").map(n=>parseInt(n,10));
-    const first = new Date(y, m-1, 1);
-    const next = new Date(y, m, 1);
-    const daysInMonth = Math.round((next-first)/86400000);
-
-    const namesAll = employeesInMonth();
-    const q = (document.getElementById("q").value||"").trim().toLowerCase();
-    const names = q ? namesAll.filter(n=>n.toLowerCase().includes(q)) : namesAll;
-
-    const thead = document.getElementById("thead");
-    thead.innerHTML = `<tr>
-      <th class="stickyL" style="min-width:260px;text-align:left;padding:10px 12px">Angajat</th>
-      ${Array.from({length:daysInMonth}, (_,i)=>{
-        const dk = `${YM}-${String(i+1).padStart(2,'0')}`;
-        const wd = getWeekdayShort(dk);
-        return `<th title="${dk}">${String(i+1).padStart(2,'0')}<br><span style="font-weight:900">${wd}</span></th>`;
-      }).join("")}
-    </tr>`;
-
-    const tbody = document.getElementById("tbody");
-    tbody.innerHTML = names.map(name=>{
-      const cells = Array.from({length:daysInMonth}, (_,i)=>{
-        const dk = `${YM}-${String(i+1).padStart(2,'0')}`;
-        const pend = pendingFor(name, dk);
-        const appr = approvedFor(name, dk);
-        let cls=""; let text=""; let bang="";
-        if (appr.length){
-          cls="approved"; text = escapeHtml(String(appr[0].code||"LEAVE"));
-        } else if (pend.length){
-          cls="pending"; text = escapeHtml(String(pend[0].code||"P")); bang = `<div class="bang">!</div>`;
-        } else {
-          cls=""; text=""; 
-        }
-        const title = pend.length ? ("Pending: " + fmtReq(pend[0])) : (appr.length ? ("Aprobat: " + fmtReq(appr[0])) : "");
-        return `<td><div class="cell ${cls}" data-name="${escapeHtml(name)}" data-day="${dk}" title="${escapeHtml(title)}">${bang}${text}</div></td>`;
-      }).join("");
-      return `<tr>
-        <td class="stickyL">
-          <div class="empCell">
-            <div class="empAva">${escapeHtml(initials(name))}</div>
-            <div>
-              <div class="empName">${escapeHtml(name)}</div>
-              <div class="empDept">—</div>
-            </div>
-          </div>
-        </td>
-        ${cells}
-      </tr>`;
-    }).join("");
-
-    // bind cell clicks
-    tbody.querySelectorAll(".cell").forEach(el=>{
-      el.addEventListener("click", ()=>{
-        const name = el.getAttribute("data-name");
-        const day = el.getAttribute("data-day");
-        const pend = pendingFor(name, day);
-        if (pend.length) openModal(name, day);
-      });
-    });
-
-    renderPendingList();
-  }
-
-  function renderPendingList(){
-    const list = LIST.filter(x=>String(x.status||"").toLowerCase()==="pending");
-    const wrap = document.getElementById("pendingList");
-    const empty = document.getElementById("pendingEmpty");
-    document.getElementById("pendingCount").textContent = list.length ? (list.length + " cereri pending") : "—";
-    wrap.innerHTML = "";
-    if (!list.length){
-      empty.style.display = "";
-      return;
-    }
-    empty.style.display = "none";
-
-    list.slice(0,80).forEach(it=>{
-      const card = document.createElement("div");
-      card.className = "reqCard";
-      const tag = (String(it.kind||"").toLowerCase()==="invoire") ? "ÎNVOIRE" : (String(it.code||"") || "CONCEDIU");
-      card.innerHTML = `
-        <div class="reqTop">
-          <div style="font-weight:1000">${escapeHtml(it.employeeName||"")}</div>
-          <span class="tag">${escapeHtml(tag)}</span>
-        </div>
-        <div class="reqMeta">${escapeHtml(fmtReq(it))}</div>
-        ${it.reason ? `<div class="reqReason"><b>Motiv:</b> ${escapeHtml(it.reason)}</div>` : ``}
-        <div class="reqActions">
-          <button class="btnA btnReject" data-act="rejected" data-id="${escapeHtml(it.id)}">Respinge</button>
-          <button class="btnA btnApprove" data-act="approved" data-id="${escapeHtml(it.id)}">Aprobă</button>
-        </div>
-      `;
-      wrap.appendChild(card);
-    });
-
-    wrap.querySelectorAll("button[data-act]").forEach(btn=>{
-      btn.addEventListener("click", async ()=>{
-        const id = btn.getAttribute("data-id");
-        const decision = btn.getAttribute("data-act");
-        const note = document.getElementById("noteGlobal").value || "";
-        try{
-          btn.disabled = true;
-          await decideLeave(id, decision, note);
-          await loadLeavesMonth(YM);
-          render();
-        }catch(err){
-          alert(err.message || String(err));
-        }finally{
-          btn.disabled = false;
-        }
-      });
-    });
-  }
-
-  function openModal(name, day){
-    const list = pendingFor(name, day);
-    document.getElementById("mTitle").textContent = "Aprobări cereri";
-    document.getElementById("mSub").textContent = `${name} • ${day}`;
-    document.getElementById("mNote").value = "";
-    const box = document.getElementById("mList");
-    const empty = document.getElementById("mEmpty");
-    box.innerHTML = "";
-    if (!list.length){
-      empty.style.display = "";
-    } else {
-      empty.style.display = "none";
-      list.forEach(it=>{
-        const card = document.createElement("div");
-        card.className = "reqCard";
-        const tag = (String(it.kind||"").toLowerCase()==="invoire") ? "ÎNVOIRE" : (String(it.code||"") || "CONCEDIU");
-        card.innerHTML = `
-          <div class="reqTop">
-            <div style="font-weight:1000">${escapeHtml(fmtReq(it))}</div>
-            <span class="tag">${escapeHtml(tag)}</span>
-          </div>
-          ${it.reason ? `<div class="reqReason"><b>Motiv:</b> ${escapeHtml(it.reason)}</div>` : ``}
-          <div class="reqActions">
-            <button class="btnA btnReject" data-act="rejected" data-id="${escapeHtml(it.id)}">Respinge</button>
-            <button class="btnA btnApprove" data-act="approved" data-id="${escapeHtml(it.id)}">Aprobă</button>
-          </div>
-        `;
-        box.appendChild(card);
-      });
-
-      box.querySelectorAll("button[data-act]").forEach(btn=>{
-        btn.addEventListener("click", async ()=>{
-          const id = btn.getAttribute("data-id");
-          const decision = btn.getAttribute("data-act");
-          const note = document.getElementById("mNote").value || "";
-          try{
-            btn.disabled = true;
-            await decideLeave(id, decision, note);
-            await loadLeavesMonth(YM);
-            render();
-            openModal(name, day);
-          }catch(err){
-            alert(err.message || String(err));
-          }finally{
-            btn.disabled = false;
-          }
-        });
-      });
-    }
-    document.getElementById("overlay").classList.add("show");
-  }
-  function closeModal(){ document.getElementById("overlay").classList.remove("show"); }
-
-  async function refresh(){
-    buildMonthOptions(YM);
-    await loadLeavesMonth(YM);
-    render();
-  }
-
-  // ===== Bind =====
-  document.getElementById("q").addEventListener("input", ()=>render());
-  document.getElementById("prevBtn").addEventListener("click", ()=>{ YM = addMonths(YM, -1); refresh().catch(e=>alert(e.message||String(e))); });
-  document.getElementById("nextBtn").addEventListener("click", ()=>{ YM = addMonths(YM, +1); refresh().catch(e=>alert(e.message||String(e))); });
-  document.getElementById("monthSel").addEventListener("change", (e)=>{ YM = e.target.value; refresh().catch(e=>alert(e.message||String(e))); });
-  document.getElementById("refreshBtn").addEventListener("click", ()=>refresh().catch(e=>alert(e.message||String(e))));
-
-  document.getElementById("mClose").addEventListener("click", closeModal);
-  document.getElementById("mRefresh").addEventListener("click", ()=>refresh().catch(e=>alert(e.message||String(e))));
-  document.getElementById("overlay").addEventListener("click", (e)=>{ if (e.target.id==="overlay") closeModal(); });
-
-  // ===== boot =====
-  (async ()=>{
     try{
-      requireAdmin();
-      await loadConfig();
-      const now = new Date();
-      YM = now.getFullYear()+"-"+String(now.getMonth()+1).padStart(2,"0");
-      await refresh();
+      const res = await jsonp(url);
+      if(!res || !res.ok) throw new Error(res?.error || "Nu pot salva decizia.");
+      toast(decision==="approved" ? "Aprobat ✅" : "Respins ✕");
+      closeModal();
+      await loadMonth(YM);
     }catch(err){
-      document.body.innerHTML = `<div style="padding:22px;font-family:ui-sans-serif,system-ui">
-        <h2 style="margin:0 0 10px">Concedii</h2>
-        <div style="color:#b00020;font-weight:800">Eroare: ${escapeHtml(err.message || String(err))}</div>
-      </div>`;
-      console.error(err);
+      toast("Eroare: " + (err?.message||String(err)));
     }
-  })();
+  }
+
+  $("#mApprove").addEventListener("click", ()=>decide("approved"));
+  $("#mReject").addEventListener("click", ()=>decide("rejected"));
+  $("#mDl").addEventListener("click", ()=>toast("Export — în curând"));
+
+  // cell click
+  document.addEventListener("click", (e)=>{
+    const td = e.target.closest("td.cell");
+    if(!td) return;
+    const ids = String(td.getAttribute("data-ids")||"").split(",").filter(Boolean);
+    if(!ids.length) return;
+    const day = td.getAttribute("data-day")||"";
+    const name = decodeURIComponent(td.getAttribute("data-name")||"");
+    const list = (INDEX.get(name)||[]).filter(x=>ids.includes(String(x.id)));
+    const pick = bestForCell(list);
+    if(pick) openModal(pick, day);
+  });
+
+  function fillMonths(){
+    const sel = $("#monthSel");
+    sel.innerHTML = "";
+    const now = new Date();
+    const months = [];
+    for(let i=-6;i<=6;i++){
+      const d = new Date(now.getFullYear(), now.getMonth()+i, 1);
+      const ym = d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0");
+      months.push({ ym, label: d.toLocaleDateString("ro-RO",{month:"long",year:"numeric"}) });
+    }
+    months.forEach(m=>{
+      const o = document.createElement("option");
+      o.value=m.ym; o.textContent=m.label;
+      sel.appendChild(o);
+    });
+  }
+
+  function shiftMonth(delta){
+    const [y,m] = YM.split("-").map(Number);
+    const d = new Date(y, m-1+delta, 1);
+    YM = d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0");
+    $("#monthSel").value = YM;
+    loadMonth(YM);
+  }
+
+  async function init(){
+    await loadCFG();
+    fillMonths();
+    const now = new Date();
+    YM = now.getFullYear()+"-"+String(now.getMonth()+1).padStart(2,"0");
+    $("#monthSel").value = YM;
+
+    $("#refresh").addEventListener("click", ()=>loadMonth($("#monthSel").value));
+    $("#monthSel").addEventListener("change", ()=>{ YM=$("#monthSel").value; loadMonth(YM); });
+    $("#q").addEventListener("input", ()=>render(YM));
+    $("#onlyMine").addEventListener("change", ()=>loadMonth(YM));
+    $("#prev").addEventListener("click", ()=>shiftMonth(-1));
+    $("#next").addEventListener("click", ()=>shiftMonth(1));
+
+    await loadMonth(YM);
+  }
+
+  document.addEventListener("DOMContentLoaded", init);
 })();
 </script>
 </body>
