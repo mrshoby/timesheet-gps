@@ -239,17 +239,31 @@
   const LS_ADMIN = "pontaj/admin/v1";
   const LS_ADMIN_KEY = "pontaj_adminKey";
 
-  function requireAdmin(){
-    try{
-      const raw = localStorage.getItem(LS_ADMIN) || "";
-      if (!raw) throw new Error("Nu ești logat ca admin.");
-      const obj = JSON.parse(raw);
-      if (!obj || !obj.ok) throw new Error("Sesiune admin invalidă.");
-      return obj;
-    }catch(e){
-      throw new Error("Nu ești logat ca admin.");
+  function getAdminSession(){
+      const raw = (localStorage.getItem(LS_ADMIN) || "").trim();
+      if (!raw) return null;
+  
+      // raw can be JSON or a plain string (email/name)
+      let obj = null;
+      try{ obj = JSON.parse(raw); }catch(_){ obj = null; }
+  
+      if (obj && typeof obj === 'object'){
+        // many builds store {email,name,user,label,ts,...} – do NOT require obj.ok
+        const adminName = (obj.label || obj.name || obj.user || obj.email || obj.id || "").toString().trim();
+        const adminEmail = (obj.email || obj.userEmail || obj.mail || "").toString().trim();
+        if (!adminName && !adminEmail) return null;
+        return { raw: obj, name: adminName || adminEmail, email: adminEmail || adminName };
+      }
+  
+      // fallback: treat raw as identifier
+      return { raw: { value: raw }, name: raw, email: raw };
     }
-  }
+  
+    function requireAdmin(){
+      const s = getAdminSession();
+      if (!s) throw new Error("Nu ești logat ca admin.");
+      return s;
+    }
 
   function getAdminKey(){
     let k = "";
@@ -443,14 +457,14 @@
     const endpoint = ep();
     if(!endpoint){ setError("Lipsește endpoint în config.json (leaveEndpoint/adminEventsEndpoint)."); return; }
 
-    let admin;
-    try{ admin = requireAdmin(); }catch(err){ setError(err.message||String(err)); return; }
+    let admin = null;
+    try{ admin = requireAdmin(); }catch(err){ admin = null; }
 
     const key = getAdminKey();
     if(!key){ setError("Lipsește ADMIN_KEY."); return; }
 
-    const adminName = admin.user?.name || admin.user?.fullName || admin.user?.label || admin.user?.username || "";
-    const adminEmail = admin.user?.email || "";
+    const adminName = (admin && (admin.name||admin.email)) || '';
+    const adminEmail = (admin && admin.email) || '';
 
     const onlyMine = $("#onlyMine").checked;
     const url = endpoint + "?fn=adminLeavesMonth"
@@ -531,8 +545,8 @@
     if(!ACTIVE) return;
     const endpoint = ep();
     const key = getAdminKey();
-    const admin = requireAdmin();
-    const adminName = admin.user?.name || admin.user?.fullName || admin.user?.label || admin.user?.username || "";
+    const admin = getAdminSession();
+    const adminName = (admin && (admin.name||admin.email)) || ''
     const url = endpoint + "?fn=adminLeaveDecide"
       + "&id=" + encodeURIComponent(ACTIVE.id)
       + "&decision=" + encodeURIComponent(decision)
