@@ -714,6 +714,7 @@ window.addEventListener('DOMContentLoaded', () => {
       + "&key=" + encodeURIComponent(key)
       + "&adminName=" + encodeURIComponent(adminName)
       + "&adminEmail=" + encodeURIComponent(adminEmail)
+      + "&mine=1"
       + "&ts=" + Date.now();
     const res = await jsonp(url);
     if (!res || !res.ok) throw new Error(res?.error || "Nu pot încărca cererile de concediu.");
