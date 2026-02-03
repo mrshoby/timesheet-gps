@@ -66,7 +66,8 @@
       white-space:nowrap;
     }
     thead th.stickyL{ left:0; z-index:7; text-align:left; box-shadow: 10px 0 20px rgba(20,18,40,.04); }
-    thead th.stickyL2{ left:44px; z-index:7; text-align:left; box-shadow: 10px 0 20px rgba(20,18,40,.04); }
+    thead th.stickyL2{ left:56px; z-index:7; text-align:left; box-shadow: 10px 0 20px rgba(20,18,40,.04); }
+    thead th.stickyL3{ left:320px; z-index:7; text-align:left; box-shadow: 10px 0 20px rgba(20,18,40,.04); }
     thead th.stickyR{ right:0; z-index:7; text-align:center; box-shadow: -10px 0 20px rgba(20,18,40,.04); }
 
     tbody td{
@@ -77,12 +78,17 @@
     tbody td.stickyL{
       position:sticky; left:0; z-index:3; text-align:left; background:#fff;
       box-shadow: 10px 0 20px rgba(20,18,40,.04);
-      width:44px; min-width:44px;
+      width:56px; min-width:56px;
     }
     tbody td.stickyL2{
       position:sticky; left:56px; z-index:3; text-align:left; background:#fff;
       box-shadow: 10px 0 20px rgba(20,18,40,.04);
       width:264px; min-width:264px;
+    }
+    tbody td.stickyL3{
+      position:sticky; left:320px; z-index:3; text-align:left; background:#fff;
+      box-shadow: 10px 0 20px rgba(20,18,40,.04);
+      width:160px; min-width:160px;
     }
     tbody td.stickyR{
       position:sticky; right:0; z-index:3; background:#fff;
@@ -98,80 +104,6 @@
     .empName{font-weight:850}
     .empDept{font-size:12px;color:var(--muted);margin-top:2px}
 
-    /* ===== Presence cell like screenshot ===== */
-    .thIdx,.tdIdx{ text-align:center; color:var(--muted); font-weight:900; }
-    .thEmp{ text-align:left; padding-left:14px; }
-    .sortHint{ font-weight:950; color:rgba(111,120,144,.9); margin-left:8px; }
-    .thDay{ min-width:64px; }
-    .wd{ font-weight:800; color:rgba(111,120,144,.9); }
-
-    .tdEmp{ padding:10px 12px; }
-    .empCell{display:flex;align-items:center;gap:10px}
-    .empAvatar{
-      width:34px;height:34px;border-radius:999px;
-      background:#f0f2ff;
-      border:1px solid var(--line);
-      display:flex;align-items:center;justify-content:center;
-      font-weight:950; color:#3b3f55;
-    }
-
-    .empPhoto{
-      width:34px;height:34px;border-radius:999px;
-      border:2px solid #fff;
-      box-shadow:0 6px 14px rgba(20,18,40,.10);
-      object-fit:cover;
-      background:#f0f2ff;
-    }
-    .empMeta{min-width:0}
-    .empName{font-weight:950; line-height:1.1}
-    .empDept{font-size:12px;color:var(--muted);margin-top:2px}
-
-    .dayCell{padding:0; border-left:1px solid var(--line); background:#fff;}
-    .weekCut{border-left:3px solid #d9dced !important;}
-    .dayBox{
-      position:relative;
-      height:72px;
-      display:flex;
-      flex-direction:column;
-      justify-content:space-between;
-      align-items:center;
-      padding:8px 6px 8px;
-      background:#fbfcff;
-      border:1px solid var(--line);
-      border-radius:0;
-      cursor:pointer;
-      user-select:none;
-    }
-    .dayBox:hover{filter:brightness(0.99)}
-    .dayBox::before,.dayBox::after{
-      content:"";
-      position:absolute; left:0; right:0;
-      height:4px;
-      background:var(--st, transparent);
-    }
-    .dayBox::before{top:0}
-    .dayBox::after{bottom:0}
-
-    .dayBox .t{font-size:11px; font-weight:850; color:var(--muted); line-height:1.05}
-    .dayBox .dur{font-size:13px; font-weight:950; color:#1f2330; line-height:1.05}
-    .dayBox .muted{opacity:.35}
-    .dayBox .code{font-size:12px; font-weight:950; color:#1f2330; margin-top:22px; letter-spacing:.4px}
-
-    .dayBox.weekend{background:#f5f6fb}
-
-    /* status color bars */
-    .st-inactive{--st:#c8cfdf}
-    .st-under{--st:#ff4d4d}
-    .st-complete{--st:#59d17d}
-    .st-over{--st:#49a9ff}
-    .st-leave{--st:#35c8ff}
-    .st-progress{--st:#6d5efc}
-    .st-pause{--st:#ff4db8}
-
-    /* cleaner grid look */
-    tbody td{padding:0}
-    tbody tr td.stickyL, tbody tr td.stickyL2{padding:10px 10px}
-
     .dayCell{border-left:1px solid var(--line)}
     .cell{
       border-radius:12px;
@@ -181,7 +113,7 @@
       cursor:pointer;
       user-select:none;
     }
-    
+    .cell:hover{transform:translateY(-1px)}
     .inactive{background:var(--c-inactive); color:rgba(31,35,48,.55)}
     .under{background:var(--c-under)}
     .complete{background:var(--c-complete)}
@@ -205,7 +137,7 @@
       cursor:pointer;
       font-size:18px;
     }
-    .iconBtn:hover{filter:brightness(0.98)}
+    .iconBtn:hover{transform:translateY(-1px)}
     .iconBtn:active{transform:translateY(0)}
 
     .iconBtn.sm{width:34px;height:34px;border-radius:12px;font-size:16px}
@@ -314,6 +246,61 @@
     .fbtn.primary{background:#6dde80; border-color:#6dde80; color:#102516}
     .fbtn.danger{background:rgba(255,255,255,.10)}
     .hint{color:var(--purpleMuted);font-size:12px}
+  
+    /* ===== Leave approvals overlay ===== */
+    .cell{ position:relative; }
+    .leaveBang{
+      position:absolute; top:8px; right:8px;
+      width:18px;height:18px;border-radius:999px;
+      background:linear-gradient(180deg, rgba(255,185,0,.95), rgba(255,150,0,.80));
+      color:#fff;font-weight:1000;font-size:12px;display:flex;align-items:center;justify-content:center;
+      box-shadow:0 10px 18px rgba(255,150,0,.22);
+    }
+    .leaveOverlay{
+      position:fixed; inset:0; display:none; align-items:center; justify-content:center;
+      background:rgba(20,18,40,.35); z-index:99999; padding:18px;
+    }
+    .leaveOverlay.show{display:flex;}
+    .leaveModal{
+      width:min(760px, 96vw);
+      border-radius:22px;
+      overflow:hidden;
+      box-shadow:0 24px 70px rgba(20,18,40,.25);
+      border:1px solid rgba(255,255,255,.18);
+      background:#fff;
+    }
+    .lmHead{
+      padding:16px 16px 12px;
+      background:linear-gradient(180deg, rgba(109,94,252,.98), rgba(109,94,252,.70));
+      color:#fff;
+      display:flex; align-items:flex-start; justify-content:space-between; gap:12px;
+    }
+    .lmTitle{font-weight:1000;font-size:14px;margin:0}
+    .lmSub{opacity:.88;font-weight:800;font-size:12px;margin-top:4px}
+    .lmBtns{display:flex;align-items:center;gap:10px}
+    .lmIconBtn{
+      width:38px;height:38px;border-radius:14px;border:1px solid rgba(255,255,255,.25);
+      background:rgba(255,255,255,.12); color:#fff; cursor:pointer; font-weight:1000;
+    }
+    .lmBody{padding:14px 16px}
+    .lrCard{
+      border:1px solid rgba(105,112,160,.16);
+      background:rgba(240,242,255,.45);
+      border-radius:18px;
+      padding:12px 12px;
+      margin-top:12px;
+    }
+    .lrTop{display:flex;align-items:center;justify-content:space-between;gap:10px}
+    .lrTag{font-weight:1000;font-size:11px;padding:6px 10px;border-radius:999px;background:#fff;border:1px solid rgba(105,112,160,.18)}
+    .lrMeta{margin-top:8px;color:rgba(40,48,80,.74);font-weight:800;font-size:12px;line-height:1.35}
+    .lrReason{margin-top:8px;color:rgba(40,48,80,.65);font-weight:800;font-size:12px}
+    .lrActions{margin-top:12px;display:flex;gap:10px;flex-wrap:wrap}
+    .btnA{flex:1;padding:10px 12px;border-radius:14px;border:1px solid rgba(255,255,255,.22);font-weight:1000;cursor:pointer}
+    .btnApprove{background:linear-gradient(180deg, rgba(44,204,113,.95), rgba(44,204,113,.78));color:#fff;border-color:rgba(44,204,113,.35)}
+    .btnReject{background:linear-gradient(180deg, rgba(255,72,72,.95), rgba(255,72,72,.78));color:#fff;border-color:rgba(255,72,72,.35)}
+    .lmNote{width:100%;padding:10px 12px;border-radius:14px;border:1px solid rgba(105,112,160,.22);font-weight:800;outline:none}
+    .lmFoot{padding:12px 16px;border-top:1px solid rgba(105,112,160,.16);display:flex;justify-content:flex-end;gap:10px;background:#fff}
+    
   </style>
 </head>
 <body>
@@ -326,8 +313,6 @@
         </div>
         <div class="controls">
           <div class="search">🔎 <input id="q" placeholder="Caută angajat"/></div>
-          <button class="iconBtn sm" id="expPdf" title="Export PDF">📄</button>
-          <button class="iconBtn sm" id="expXls" title="Export Excel">🧾</button>
           <button class="btn" id="prevBtn">← Luna anterioară</button>
           <select class="select" id="monthSel"></select>
           <button class="btn" id="nextBtn">Luna următoare →</button>
@@ -342,29 +327,12 @@
         </table>
       </div>
 
-      
       <div class="legend">
-        <div style="width:100%;padding:2px 0 6px;color:#574bb8;font-weight:850">
-          Condiția de prezență nu conține timp activ (pontaje neîncheiate)
-        </div>
-
-        <div style="width:100%;display:flex;gap:14px;flex-wrap:wrap;align-items:center">
-          <div><b>CO</b> - Concediu de odihnă</div>
-          <div><b>BO</b> - Concediu medical</div>
-          <div><b>CCC</b> - Concediu pentru creșterea copilului</div>
-          <div><b>CFP</b> - Concediu fără plată</div>
-          <div><b>EV</b> - Eveniment</div>
-        </div>
-
-        <div style="width:100%;display:flex;gap:14px;flex-wrap:wrap;align-items:center;margin-top:6px">
-          <div class="lg"><span class="dot" style="background:var(--st-progress)"></span> În progres</div>
-          <div class="lg"><span class="dot" style="background:var(--st-under)"></span> Sub normă</div>
-          <div class="lg"><span class="dot" style="background:var(--st-complete)"></span> Complet</div>
-          <div class="lg"><span class="dot" style="background:var(--st-over)"></span> Peste normă</div>
-          <div class="lg"><span class="dot" style="background:var(--st-inactive)"></span> Inactiv/absent</div>
-          <div class="lg"><span class="dot" style="background:var(--st-leave)"></span> Concediu</div>
-          <div class="lg"><span class="dot" style="background:var(--st-pause)"></span> În pauză</div>
-        </div>
+        <div class="lg"><span class="dot" style="background:var(--c-inactive)"></span> Inactiv/absent</div>
+        <div class="lg"><span class="dot" style="background:var(--c-under)"></span> Sub normă</div>
+        <div class="lg"><span class="dot" style="background:var(--c-complete)"></span> Complet</div>
+        <div class="lg"><span class="dot" style="background:var(--c-over)"></span> Peste normă (OT/Extra)</div>
+        <div class="lg"><span class="dot" style="background:var(--c-leave)"></span> Concediu (CO/CM/etc)</div>
       </div>
     </div>
   </div>
@@ -455,6 +423,21 @@
     }
   }
 
+  // ====== Admin key ======
+  const LS_ADMIN_KEY = "pontaj_adminKey";
+  function getAdminKey(){
+    let k = "";
+    try{ k = (localStorage.getItem(LS_ADMIN_KEY) || "").trim(); }catch(e){}
+    if (!k){
+      k = prompt("Cheie admin (ADMIN_KEY) pentru aprobări:", "") || "";
+      k = k.trim();
+      if (k){
+        try{ localStorage.setItem(LS_ADMIN_KEY, k); }catch(e){}
+      }
+    }
+    return k;
+  }
+
   // ====== JSONP helper ======
   function jsonp(url){
     return new Promise((resolve,reject)=>{
@@ -510,6 +493,9 @@
   // mini panel state
   const ACTIONS = ["START","FINISH","PAUSE","UNPAUSE","EXTRA START","EXTRA FINISH","VOID"];
   let MP = { name:"", day:"", rows:[] };
+  let LEAVES_LIST = [];
+  let LEAVES_BY_NAME_DAY = new Map(); // key: name||day -> array
+
 
   // ====== Data loading ======
   async function loadConfig(){
@@ -592,46 +578,10 @@
 
   function computeDaySummary(events, normMin){
     // events are within a single day for one employee
-    const leaveCodes = ["CO","CM","BO","CCC","CFP","EV"];
     const rows = events
-      .map(e=>({ t: new Date(e.ts), action:String(e.action||"").toUpperCase(), notes:e.notes||"" }))
+      .map(e=>({ t: new Date(e.ts), action:e.action, notes:e.notes||"" }))
       .filter(x=>!isNaN(x.t))
       .sort((a,b)=>a.t-b.t);
-
-    // detect leave (either action is leave code or notes contains 'LEAVE:CO')
-    let leaveCode = "";
-    for (const r of rows){
-      if (leaveCodes.includes(r.action)) { leaveCode = r.action; break; }
-      const m = String(r.notes||"").match(/\b(CO|CM|BO|CCC|CFP|EV)\b/i);
-      if (r.action === "LEAVE" && m) { leaveCode = m[1].toUpperCase(); break; }
-    }
-    if (leaveCode){
-      return {
-        workMin: 0,
-        pauseMin: 0,
-        status: "leave",
-        startHm: "",
-        endHm: "",
-        label: leaveCode,
-        sub: "",
-        running: false,
-        paused: false,
-        leaveCode
-      };
-    }
-
-    // pick first START and last FINISH for display
-    const starts = rows.filter(r=>r.action==="START" || r.action==="EXTRA START");
-    const finishes = rows.filter(r=>r.action==="FINISH" || r.action==="EXTRA FINISH");
-    const firstStart = starts.length ? starts[0].t : null;
-    const lastFinish = finishes.length ? finishes[finishes.length-1].t : null;
-
-    function hhmm(d){
-      if (!d) return "";
-      const h = String(d.getHours()).padStart(2,"0");
-      const m = String(d.getMinutes()).padStart(2,"0");
-      return `${h}:${m}`;
-    }
 
     let running = false;
     let paused = false;
@@ -648,6 +598,7 @@
       } else if (r.action === "PAUSE" && running && !paused){
         paused = true;
         lastPause = r.t;
+        // add worked from lastStart to pause
         if (lastStart) workMin += Math.max(0, (r.t - lastStart) / 60000);
       } else if (r.action === "UNPAUSE" && running && paused){
         paused = false;
@@ -656,6 +607,7 @@
         lastPause = null;
       } else if (r.action === "FINISH" && running){
         if (paused){
+          // if finish while paused -> close pause
           if (lastPause) pauseMin += Math.max(0, (r.t - lastPause)/60000);
         } else if (lastStart){
           workMin += Math.max(0, (r.t - lastStart)/60000);
@@ -668,23 +620,21 @@
     workMin = Math.round(workMin);
     pauseMin = Math.round(pauseMin);
 
-    const overtimeMin = Number(CFG?.normSettings?.overtimeMin ?? 30); // > norm + 30m => 'peste normă'
     let status = "inactive";
-
-    if (running){
-      status = paused ? "pause" : "progress";
-    } else if (workMin > 0){
+    let label = "—";
+    let sub = "";
+    if (workMin > 0){
+      label = hm(workMin);
       if (workMin < normMin) status = "under";
-      else if (workMin >= normMin + overtimeMin) status = "over";
       else status = "complete";
-    } else {
-      status = "inactive";
+      sub = pauseMin ? `pauză ${pauseMin}m` : "";
     }
-
-    const label = workMin > 0 ? hm(workMin) : "";
-    const sub = pauseMin ? `pauză ${pauseMin}m` : "";
-
-    return { workMin, pauseMin, status, startHm: hhmm(firstStart), endHm: hhmm(lastFinish), label, sub, running, paused, leaveCode:"" };
+    // if unfinished but started -> in progress -> treat as under with label?
+    if (running){
+      status = "over"; // highlight as in-progress (blue)
+      sub = paused ? "în pauză" : "în lucru";
+    }
+    return { workMin, pauseMin, status, label, sub, running, paused };
   }
 
   function computeMonthMatrix(ym){
@@ -721,7 +671,151 @@
     return { y, m, daysInMonth, matrix };
   }
 
-  // ====== Render ======
+  
+  function _dkRange_(startDate, endDate){
+    const out = [];
+    const a = new Date(startDate+"T00:00:00");
+    const b = new Date(endDate+"T00:00:00");
+    for (let i=0;i<62;i++){
+      const dk = a.toISOString().slice(0,10);
+      out.push(dk);
+      if (a >= b) break;
+      a.setDate(a.getDate()+1);
+    }
+    return out;
+  }
+
+  function indexLeaves(list){
+    LEAVES_LIST = Array.isArray(list) ? list : [];
+    LEAVES_BY_NAME_DAY = new Map();
+    LEAVES_LIST.forEach(it=>{
+      const name = String(it.employeeName||"").trim();
+      const sd = String(it.startDate||"");
+      const ed = String(it.endDate||sd);
+      if (!name || !sd) return;
+      _dkRange_(sd, ed).forEach(dk=>{
+        const key = name + "||" + dk;
+        if (!LEAVES_BY_NAME_DAY.has(key)) LEAVES_BY_NAME_DAY.set(key, []);
+        LEAVES_BY_NAME_DAY.get(key).push(it);
+      });
+    });
+  }
+
+  async function loadLeavesForMonth(ym){
+    const endpoint = ep();
+    if (!endpoint) throw new Error("Lipsește endpoint în config.json.");
+    const admin = requireAdmin();
+    const key = getAdminKey();
+    if (!key) throw new Error("Lipsește ADMIN_KEY.");
+    const adminName = (admin.user && (admin.user.name || admin.user.fullName)) ? String(admin.user.name || admin.user.fullName) : "";
+    const adminEmail = (admin.user && admin.user.email) ? String(admin.user.email) : "";
+    const url = endpoint + "?fn=adminLeavesMonth"
+      + "&ym=" + encodeURIComponent(ym)
+      + "&key=" + encodeURIComponent(key)
+      + "&adminName=" + encodeURIComponent(adminName)
+      + "&adminEmail=" + encodeURIComponent(adminEmail)
+      + "&ts=" + Date.now();
+    const res = await jsonp(url);
+    if (!res || !res.ok) throw new Error(res?.error || "Nu pot încărca cererile de concediu.");
+    indexLeaves(res.list || []);
+  }
+
+  function pendingFor(name, day){
+    const key = name + "||" + day;
+    return (LEAVES_BY_NAME_DAY.get(key) || []).filter(x=>String(x.status||"").toLowerCase()==="pending");
+  }
+
+  function fmtReq(it){
+    const kind = String(it.kind||"").toLowerCase();
+    if (kind === "invoire"){
+      return `Învoire • ${it.startDate} • ${it.startTime||"?"}–${it.endTime||"?"}`;
+    }
+    return `Concediu ${it.code||""} • ${it.startDate} – ${it.endDate}`;
+  }
+
+  async function decideLeave(id, decision, note){
+    const endpoint = ep();
+    const admin = requireAdmin();
+    const key = getAdminKey();
+    const adminName = (admin.user && (admin.user.name || admin.user.fullName)) ? String(admin.user.name || admin.user.fullName) : "";
+    const url = endpoint + "?fn=adminLeaveDecide"
+      + "&id=" + encodeURIComponent(id)
+      + "&decision=" + encodeURIComponent(decision)
+      + "&note=" + encodeURIComponent(note||"")
+      + "&decidedBy=" + encodeURIComponent(adminName)
+      + "&key=" + encodeURIComponent(key)
+      + "&ts=" + Date.now();
+    const res = await jsonp(url);
+    if (!res || !res.ok) throw new Error(res?.error || "Nu pot salva decizia.");
+    return res;
+  }
+
+  function openLeaveModal(name, day){
+    const list = pendingFor(name, day);
+    const overlay = document.getElementById("leaveOverlay");
+    const title = document.getElementById("lmTitle");
+    const sub = document.getElementById("lmSub");
+    const box = document.getElementById("lmList");
+    const empty = document.getElementById("lmEmpty");
+    document.getElementById("lmNote").value = "";
+
+    title.textContent = "Aprobări cereri";
+    sub.textContent = `${name} • ${day}`;
+
+    box.innerHTML = "";
+    if (!list.length){
+      empty.style.display = "";
+    } else {
+      empty.style.display = "none";
+      list.forEach(it=>{
+        const card = document.createElement("div");
+        card.className = "lrCard";
+        const tag = (String(it.kind||"").toLowerCase()==="invoire") ? "ÎNVOIRE" : (String(it.code||"") || "CONCEDIU");
+        const meta = fmtReq(it);
+        const reason = it.reason ? String(it.reason) : "";
+        card.innerHTML = `
+          <div class="lrTop">
+            <div style="font-weight:1000">${escapeHtml(meta)}</div>
+            <span class="lrTag">${escapeHtml(tag)}</span>
+          </div>
+          ${reason ? `<div class="lrReason"><b>Motiv:</b> ${escapeHtml(reason)}</div>` : ``}
+          <div class="lrActions">
+            <button class="btnA btnReject" data-act="reject" data-id="${escapeHtml(it.id)}">Respinge</button>
+            <button class="btnA btnApprove" data-act="approve" data-id="${escapeHtml(it.id)}">Aprobă</button>
+          </div>
+        `;
+        box.appendChild(card);
+      });
+
+      box.querySelectorAll("button[data-act]").forEach(btn=>{
+        btn.addEventListener("click", async ()=>{
+          const id = btn.getAttribute("data-id");
+          const act = btn.getAttribute("data-act");
+          const note = document.getElementById("lmNote").value || "";
+          try{
+            btn.disabled = true;
+            await decideLeave(id, act==="approve" ? "approved" : "rejected", note);
+            await loadLeavesForMonth(YM);
+            render();
+            openLeaveModal(name, day);
+          }catch(err){
+            alert(err.message || String(err));
+          }finally{
+            btn.disabled = false;
+          }
+        });
+      });
+    }
+
+    overlay.classList.add("show");
+  }
+
+  function closeLeaveModal(){
+    document.getElementById("leaveOverlay").classList.remove("show");
+  }
+
+
+// ====== Render ======
   function buildMonthOptions(curYm){
     const sel = document.getElementById("monthSel");
     sel.innerHTML = "";
@@ -742,80 +836,88 @@
     const {daysInMonth, matrix} = computeMonthMatrix(YM);
     const thead = document.getElementById("thead");
     thead.innerHTML = `<tr>
-      <th class="stickyL thIdx">#</th>
-      <th class="stickyL2 thEmp">
-        ANGAJAT <span class="sortHint">↑↓</span>
-      </th>
+      <th class="stickyL" style="min-width:56px">#</th>
+      <th class="stickyL2" style="min-width:264px">Angajat</th>
+      <th class="stickyL3" style="min-width:160px">Departament</th>
       ${Array.from({length:daysInMonth}, (_,i)=>{
         const dk = `${YM}-${String(i+1).padStart(2,'0')}`;
         const wd = getWeekdayShort(dk);
-        const dow = new Date(dk+"T00:00:00").getDay();
-        const cut = (dow===1) ? " weekCut" : "";
-        return `<th class="thDay${cut}" title="${dk}">${String(i+1).padStart(2,'0')}<br><span class="wd">${wd}</span></th>`;
+        return `<th title="${dk}">${String(i+1).padStart(2,'0')}<br><span style="font-weight:700">${wd}</span></th>`;
       }).join("")}
-    </tr>`;
+</tr>`;
 
     const tbody = document.getElementById("tbody");
     tbody.innerHTML = matrix.map((row, idx) => {
       const cells = row.days.map(d => {
-        const dateObj = new Date(d.dk + "T00:00:00");
-        const dow = dateObj.getDay(); // 0 Sun..6 Sat
-        const weekend = (dow === 0 || dow === 6) ? " weekend" : "";
-        const weekCut = (dow === 1) ? " weekCut" : "";
-        const title = `${row.name} • ${d.dk}\nStart: ${d.startHm||"—"}\nFinish: ${d.endHm||"—"}\nLucrat: ${d.label||"—"}\n${d.sub||""}`;
-        const top = d.startHm ? `<div class="t">${escapeHtml(d.startHm)}</div>` : `<div class="t muted">—</div>`;
-        const mid = d.endHm ? `<div class="t">${escapeHtml(d.endHm)}</div>` : `<div class="t muted"> </div>`;
-        const bottom = d.label ? `<div class="dur">${escapeHtml(d.label)}</div>` : `<div class="dur muted"> </div>`;
+        const pend = pendingFor(row.name, d.dk);
+        const bang = pend.length ? `<div class="leaveBang" title="Cerere în așteptare">!</div>` : ``;
 
-        let inner = `${top}${mid}${bottom}`;
-        if (d.leaveCode){
-          inner = `<div class="code">${escapeHtml(d.leaveCode)}</div>`;
+        // overlay approved leave (if no explicit leave status from events)
+        let st = d.status;
+        let label = d.label || "—";
+        let sub = d.sub ? `<small>${d.sub}</small>` : "";
+        const key = row.name + "||" + d.dk;
+        const all = (LEAVES_BY_NAME_DAY.get(key) || []);
+        const appr = all.filter(x=>String(x.status||"").toLowerCase()==="approved");
+        if (appr.length){
+          st = "leave";
+          label = String(appr[0].code||"LEAVE");
+          sub = "";
         }
 
-        return `<td class="dayCell${weekCut}">
-          <div class="dayBox st-${d.status}${weekend}" data-name="${escapeHtml(row.name)}" data-day="${d.dk}" title="${escapeHtml(title)}">
-            ${inner}
+        const title = `${row.name} • ${d.dk}\nLucrat: ${hm(d.workMin)}\nPauză: ${d.pauseMin}m\n${d.sub||""}`;
+
+        return `<td class="dayCell">
+          <div class="cell ${st}" data-name="${escapeHtml(row.name)}" data-day="${d.dk}" title="${escapeHtml(title)}">
+            ${bang}${label}${sub}
           </div>
         </td>`;
       }).join("");
 
-      const deptLine = row.dept && row.dept !== "—" ? `<div class="empDept">${escapeHtml(row.dept)}</div>` : ``;
-
-      const avatarUrl = (CFG && CFG.employeeAvatars && CFG.employeeAvatars[row.name]) ? String(CFG.employeeAvatars[row.name]) : "";
-      const avatarHtml = avatarUrl
-        ? `<img class="empPhoto" src="${escapeHtml(avatarUrl)}" alt="">`
-        : `<div class="empAvatar">${escapeHtml(initials(row.name))}</div>`;
-
       return `<tr>
-        <td class="stickyL tdIdx">${idx+1}</td>
-        <td class="stickyL2 tdEmp">
+        <td class="stickyL">${idx+1}</td>
+        <td class="stickyL2">
           <div class="empCell">
-            ${avatarHtml}<div class="empMeta">
+            <div class="empBubble">${escapeHtml(initials(row.name))}</div>
+            <div>
               <div class="empName">${escapeHtml(row.name)}</div>
-              ${deptLine}
+              <div class="empDept">${escapeHtml(row.dept || "—")}</div>
             </div>
-            <button class="iconBtn sm openPanel" data-openpanel="1" data-name="${escapeHtml(row.name)}" title="User Panel">👤</button>
           </div>
+            <div style="margin-left:auto;display:flex;align-items:center;gap:8px">
+              <button class="iconBtn sm" data-openpanel="1" data-name="${escapeHtml(row.name)}" title="User Panel">👤</button>
+            </div>
         </td>
+        <td class="stickyL3">${escapeHtml(row.dept || "—")}</td>
         ${cells}
-      </tr>`;
+</tr>`;
     }).join("");
 
-    // bind day click
-    tbody.querySelectorAll(".dayBox").forEach(el=>{
+    // bind cell click
+    tbody.querySelectorAll(".cell").forEach(el=>{
       el.addEventListener("click", ()=>{
         const name = el.getAttribute("data-name");
         const day = el.getAttribute("data-day");
-        openMiniPanel(name, day).catch(err=>alert(err.message || String(err)));
+        const pend = pendingFor(name, day);
+        if (pend.length){
+          openLeaveModal(name, day);
+        } else {
+          openMiniPanel(name, day).catch(err=>alert(err.message || String(err)));
+        }
       });
     });
     // bind panel button
     tbody.querySelectorAll("[data-openpanel='1']").forEach(btn=>{
-      btn.addEventListener("click", (ev)=>{
-        ev.stopPropagation();
+      btn.addEventListener("click", ()=>{
         const name = btn.getAttribute("data-name");
+        // default: open with today in current month
         const day = `${YM}-${String(new Date().getDate()).padStart(2,'0')}`;
-        openMiniPanel(name, day).catch(err=>alert(err.message || String(err)));
+        const pend = pendingFor(name, day);
+        if (pend.length){
+          openLeaveModal(name, day);
+        } else {
+          openMiniPanel(name, day).catch(err=>alert(err.message || String(err)));
+        }
       });
     });
   }
@@ -941,6 +1043,7 @@
 
     // reload events (and also refresh table)
     await loadAdminEventsForMonth(YM);
+    await loadLeavesForMonth(YM);
     render();
     closeMini();
   }
@@ -970,15 +1073,16 @@
   async function refresh(){
     buildMonthOptions(YM);
     await loadAdminEventsForMonth(YM);
+    await loadLeavesForMonth(YM);
     render();
   }
 
-  
-  // export (stub - implement later)
-  document.getElementById("expPdf").addEventListener("click", ()=>alert("Export PDF: TODO"));
-  document.getElementById("expXls").addEventListener("click", ()=>alert("Export Excel: TODO"));
+  // leave modal buttons
+  document.getElementById("lmClose").addEventListener("click", closeLeaveModal);
+  document.getElementById("lmRefresh").addEventListener("click", ()=>{ refresh().catch(err=>alert(err.message||String(err))); });
+  document.getElementById("leaveOverlay").addEventListener("click", (e)=>{ if (e.target.id === "leaveOverlay") closeLeaveModal(); });
 
-// ====== Bind UI ======
+  // ====== Bind UI ======
   document.getElementById("q").addEventListener("input", (e)=>{
     FILTER_Q = e.target.value.trim().toLowerCase();
     render();
@@ -1025,5 +1129,28 @@
   })();
 })();
 </script>
+
+<div class="leaveOverlay" id="leaveOverlay">
+  <div class="leaveModal" role="dialog" aria-modal="true">
+    <div class="lmHead">
+      <div>
+        <div class="lmTitle" id="lmTitle">Aprobări</div>
+        <div class="lmSub" id="lmSub">—</div>
+      </div>
+      <div class="lmBtns">
+        <button class="lmIconBtn" id="lmClose" title="Închide">✕</button>
+      </div>
+    </div>
+    <div class="lmBody">
+      <textarea id="lmNote" class="lmNote" placeholder="Notă (opțional) — ex: nu se aprobă din cauza …"></textarea>
+      <div id="lmList"></div>
+      <div id="lmEmpty" style="margin-top:12px;color:rgba(40,48,80,.65);font-weight:900;display:none">Nu există cereri în așteptare pentru ziua selectată.</div>
+    </div>
+    <div class="lmFoot">
+      <button class="btnPill" id="lmRefresh" type="button">Reîncarcă</button>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
