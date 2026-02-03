@@ -818,6 +818,9 @@
         <button class="btn" id="btnCalendar" type="button" title="Calendar prezență">
           📅 Calendar
         </button>
+        <button class="btn" id="btnLeaves" type="button" title="Concedii / Învoiri">
+          🏖️ Concedii
+        </button>
         <button class="btn" id="btnAdminPanel" type="button" title="Admin Panel">
           👤 Admin Panel
         </button>
@@ -1527,6 +1530,8 @@ function adminEndpointBase(cfg){
     qs('#btnRefresh').addEventListener('click', () => { refresh(); });
 
     qs('#btnCalendar').addEventListener('click', () => { shellNavigate('calendar', 'admin-calendar-prezenta.html'); });
+
+    qs('#btnLeaves').addEventListener('click', () => { shellNavigate('leaves', 'admin-concedii.html'); });
     qs('#btnAdminPanel').addEventListener('click', () => { shellNavigate('adminpanel', 'admin-panel.html'); });
 
     const searchTop = qs('#searchEmployee');
