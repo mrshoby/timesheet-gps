@@ -3,9 +3,9 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>Dashboard — Calendar prezență</title>
+  <title>Employee dashboard</title>
   <style>
-    :root{
+:root{
       --bg:#f5f6ff;
       --card:#ffffff;
       --ink:#1f2330;
@@ -93,10 +93,150 @@
       thead th.thEmp{min-width:210px}
       .dayBox{height:58px;border-radius:12px}
     }
-  </style>
+
+/* ===== Shell (menu ca în admin dashboard) ===== */
+  body{background:linear-gradient(180deg,#eef0ff 0%, #f6f7ff 55%, #f3f4ff 100%);}
+  .shell{max-width:1520px;margin:16px auto;padding:0 14px;display:grid;grid-template-columns:260px 1fr;gap:14px}
+  .side{
+    background:linear-gradient(180deg,#2c2556 0%, #241f45 100%);
+    border-radius:22px;
+    box-shadow:0 18px 50px rgba(20,18,40,.18);
+    border:1px solid rgba(255,255,255,.10);
+    overflow:hidden;
+    position:sticky; top:14px; height:calc(100vh - 28px);
+    display:flex; flex-direction:column;
+  }
+  .sideHead{padding:16px 16px 10px;border-bottom:1px solid rgba(255,255,255,.10)}
+  .brand{display:flex;align-items:center;gap:10px}
+  .brandDot{width:36px;height:36px;border-radius:14px;background:rgba(255,255,255,.14);display:flex;align-items:center;justify-content:center;font-weight:1000}
+  .brandTitle{color:#fff;font-weight:1000;letter-spacing:.2px}
+  .brandSub{color:rgba(255,255,255,.65);font-weight:700;font-size:12px;margin-top:2px}
+  .nav{padding:10px 10px;display:flex;flex-direction:column;gap:8px}
+  .navBtn{
+    display:flex;align-items:center;gap:10px;
+    padding:12px 12px;border-radius:14px;
+    border:1px solid rgba(255,255,255,.10);
+    background:rgba(255,255,255,.06);
+    color:rgba(255,255,255,.88);
+    font-weight:900; cursor:pointer;
+  }
+  .navBtn:hover{background:rgba(255,255,255,.10)}
+  .navBtn.active{
+    background:linear-gradient(180deg, rgba(109,94,252,.95), rgba(109,94,252,.75));
+    border-color:rgba(255,255,255,.18);
+    color:#fff;
+    box-shadow:0 16px 34px rgba(109,94,252,.22);
+  }
+  .navIcon{width:28px;height:28px;border-radius:12px;background:rgba(255,255,255,.10);display:flex;align-items:center;justify-content:center}
+  .sideFoot{margin-top:auto;padding:12px 14px;border-top:1px solid rgba(255,255,255,.10);color:rgba(255,255,255,.65);font-weight:700;font-size:12px}
+  .main{
+    background:rgba(255,255,255,.85);
+    border:1px solid rgba(105,112,160,.18);
+    border-radius:22px;
+    box-shadow:0 18px 50px rgba(20,18,40,.10);
+    overflow:hidden;
+  }
+  .topbar{
+    padding:14px 16px;
+    display:flex;align-items:center;justify-content:space-between;gap:14px;
+    background:linear-gradient(180deg, rgba(240,242,255,.80), rgba(255,255,255,.70));
+    border-bottom:1px solid rgba(105,112,160,.16);
+  }
+  .tbLeft h1{margin:0;font-size:18px;font-weight:1000}
+  .tbLeft .crumb{margin-top:4px;color:rgba(40,48,80,.70);font-weight:800;font-size:12px}
+  .tbRight{display:flex;align-items:center;gap:12px}
+  .profileMini{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:16px;border:1px solid rgba(105,112,160,.18);background:#fff}
+  .pAvatar{width:34px;height:34px;border-radius:999px;background:#eef1ff;border:2px solid #fff;box-shadow:0 8px 18px rgba(20,18,40,.10);display:flex;align-items:center;justify-content:center;font-weight:1000;color:#38405c;object-fit:cover}
+  .pMeta{line-height:1.15}
+  .pName{font-weight:1000;font-size:13px}
+  .pMgr{font-weight:800;font-size:11px;color:rgba(40,48,80,.65)}
+  .btnPill{padding:10px 12px;border-radius:14px;border:1px solid rgba(105,112,160,.18);background:#fff;font-weight:1000;cursor:pointer}
+  .btnPill.primary{background:linear-gradient(180deg, rgba(109,94,252,.95), rgba(109,94,252,.78));color:#fff;border-color:rgba(109,94,252,.35)}
+  .content{padding:14px}
+  .view{display:none}
+  .view.active{display:block}
+
+  /* User panel drawer */
+  .drawerWrap{position:fixed;inset:0;display:none;justify-content:flex-end;background:rgba(20,18,40,.30);z-index:9999}
+  .drawerWrap.show{display:flex}
+  .drawer{
+    width:min(420px, 92vw); height:100%;
+    background:#fff;border-left:1px solid rgba(105,112,160,.18);
+    box-shadow:-18px 0 46px rgba(20,18,40,.20);
+    padding:16px;
+  }
+  .drawerHead{display:flex;align-items:center;justify-content:space-between;gap:12px}
+  .iconBtn{width:40px;height:40px;border-radius:14px;border:1px solid rgba(105,112,160,.18);background:#fff;font-weight:1000;cursor:pointer}
+  .drawerCard{margin-top:14px;padding:14px;border-radius:18px;border:1px solid rgba(105,112,160,.16);background:rgba(240,242,255,.45)}
+  .row2{display:flex;align-items:center;gap:12px}
+  .bigAvatar{width:54px;height:54px;border-radius:999px;object-fit:cover;background:#eef1ff;border:2px solid #fff;box-shadow:0 10px 22px rgba(20,18,40,.12);display:flex;align-items:center;justify-content:center;font-weight:1000}
+  .kv{margin-top:10px;display:grid;grid-template-columns:110px 1fr;gap:8px 10px;font-weight:800;font-size:12px;color:rgba(40,48,80,.82)}
+  .k{color:rgba(40,48,80,.55);font-weight:900}
+  .drawerActions{margin-top:14px;display:flex;gap:10px;flex-wrap:wrap}
+  .drawerActions .btnPill{flex:1}
+  @media (max-width: 980px){
+    .shell{grid-template-columns:1fr}
+    .side{position:relative;height:auto}
+  }
+</style>
 </head>
+
 <body>
-  <div class="wrap">
+  <div class="shell">
+    <aside class="side">
+      <div class="sideHead">
+        <div class="brand">
+          <div class="brandDot">🕒</div>
+          <div>
+            <div class="brandTitle">Pontaj</div>
+            <div class="brandSub">Employee dashboard</div>
+          </div>
+        </div>
+      </div>
+
+      <nav class="nav">
+        <button class="navBtn active" data-view="calendar" type="button">
+          <span class="navIcon">📅</span> Calendar prezență
+        </button>
+        <button class="navBtn" data-view="requests" type="button">
+          <span class="navIcon">📝</span> Cereri
+        </button>
+        <button class="navBtn" data-view="docs" type="button">
+          <span class="navIcon">📄</span> Documente
+        </button>
+        <button class="navBtn" data-view="settings" type="button">
+          <span class="navIcon">⚙</span> Setări
+        </button>
+      </nav>
+
+      <div class="sideFoot">
+        <div><b>Tip:</b> dacă nu ești logat, intră în index.html și apasă „Deschide dashboard”.</div>
+      </div>
+    </aside>
+
+    <section class="main">
+      <header class="topbar">
+        <div class="tbLeft">
+          <h1 id="pageTitle">Calendar prezență</h1>
+          <div class="crumb" id="pageCrumb">Dashboard / Calendar</div>
+        </div>
+
+        <div class="tbRight">
+          <div class="profileMini" title="Utilizator">
+            <img id="topAvatarImg" class="pAvatar" alt="" style="display:none"/>
+            <div id="topAvatar" class="pAvatar">•</div>
+            <div class="pMeta">
+              <div class="pName" id="topName">—</div>
+              <div class="pMgr" id="topMgr">Manager: —</div>
+            </div>
+          </div>
+          <button class="btnPill primary" id="btnUserPanel" type="button">User panel</button>
+        </div>
+      </header>
+
+      <div class="content">
+        <div class="view active" id="view-calendar">
+          <div class="wrap">
     <div class="panel">
       <div class="panelHead">
         <div>
@@ -484,5 +624,243 @@
     await loadMonth(YM);
   })();
 </script>
+        </div>
+
+        <div class="view" id="view-requests">
+          <div class="panel">
+            <div class="panelHead">
+              <div>
+                <h2>Cereri</h2>
+                <div class="note">Aici vei vedea cererile tale (concedii / evenimente). (UI pregătit)</div>
+              </div>
+              <div class="controls">
+                <button class="btnPill" id="reqRefresh" type="button">Reîncarcă</button>
+                <button class="btnPill primary" id="reqNew" type="button">Creează cerere</button>
+              </div>
+            </div>
+            <div style="padding:14px 16px">
+              <div class="note">Momentan nu sunt conectate endpoint-urile de cereri. Spune-mi ce structură folosești (Leave sheet / fn=leave) și îl leg imediat.</div>
+              <div id="reqList" class="note" style="margin-top:12px">—</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="view" id="view-docs">
+          <div class="panel">
+            <div class="panelHead">
+              <div>
+                <h2>Documente</h2>
+                <div class="note">Documente puse de companie / formulare / proceduri. (UI pregătit)</div>
+              </div>
+            </div>
+            <div style="padding:14px 16px">
+              <div class="note">Aici putem afișa link-uri din config.json (ex: docsLinks) sau dintr-un sheet separat.</div>
+              <div id="docsList" style="margin-top:12px"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="view" id="view-settings">
+          <div class="panel">
+            <div class="panelHead">
+              <div>
+                <h2>Setări</h2>
+                <div class="note">Sesiune și preferințe.</div>
+              </div>
+            </div>
+            <div style="padding:14px 16px">
+              <div class="note"><b>Nume:</b> <span id="setName">—</span></div>
+              <div class="note" style="margin-top:6px"><b>Departament:</b> <span id="setDept">—</span></div>
+              <div class="note" style="margin-top:6px"><b>Manager:</b> <span id="setMgr">—</span></div>
+
+              <div style="margin-top:14px;display:flex;gap:10px;flex-wrap:wrap">
+                <button class="btnPill" id="btnOpenIndex" type="button">Deschide index.html</button>
+                <button class="btnPill" id="btnRefreshAll" type="button">Reîncarcă date</button>
+                <button class="btnPill primary" id="btnLogout" type="button">Logout</button>
+              </div>
+
+              <div class="note" style="margin-top:12px">
+                Dacă vrei, pot adăuga aici: schimbare temă, schimbare PIN (doar dacă permiți), notificări, etc.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- User panel drawer -->
+  <div class="drawerWrap" id="drawerWrap">
+    <div class="drawer">
+      <div class="drawerHead">
+        <div style="font-weight:1000;font-size:14px">User panel</div>
+        <button class="iconBtn" id="drawerClose" type="button">✕</button>
+      </div>
+
+      <div class="drawerCard">
+        <div class="row2">
+          <img id="drawerAvatarImg" class="bigAvatar" alt="" style="display:none"/>
+          <div id="drawerAvatar" class="bigAvatar">•</div>
+          <div>
+            <div style="font-weight:1000" id="drawerName">—</div>
+            <div class="note" id="drawerSub">—</div>
+          </div>
+        </div>
+
+        <div class="kv">
+          <div class="k">Departament</div><div id="drawerDept">—</div>
+          <div class="k">Manager</div><div id="drawerMgr">—</div>
+          <div class="k">Sesiune</div><div id="drawerSess">—</div>
+        </div>
+
+        <div class="drawerActions">
+          <button class="btnPill" id="drawerIndex" type="button">Index</button>
+          <button class="btnPill" id="drawerReload" type="button">Reload</button>
+          <button class="btnPill primary" id="drawerLogout" type="button">Logout</button>
+        </div>
+      </div>
+
+      <div class="note" style="margin-top:12px">
+        Dacă vrei, pot adăuga aici: istoricul de azi, pauze, overtime, alertări.
+      </div>
+    </div>
+  </div>
+
+<script>
+/* ===== Employee dashboard menu + profile ===== */
+(function(){
+  const $ = (s, r=document)=>r.querySelector(s);
+  const $$ = (s, r=document)=>Array.from(r.querySelectorAll(s));
+
+  function initials(name){
+    const parts = String(name||"").trim().split(/\s+/).filter(Boolean);
+    const a = parts[0]?.[0]||"";
+    const b = parts[1]?.[0]||"";
+    return (a+b).toUpperCase() || "•";
+  }
+
+  function setPage(view){
+    const map = {
+      calendar: { title:"Calendar prezență", crumb:"Dashboard / Calendar" },
+      requests: { title:"Cereri", crumb:"Dashboard / Cereri" },
+      docs: { title:"Documente", crumb:"Dashboard / Documente" },
+      settings: { title:"Setări", crumb:"Dashboard / Setări" },
+    };
+    const meta = map[view] || map.calendar;
+    $("#pageTitle").textContent = meta.title;
+    $("#pageCrumb").textContent = meta.crumb;
+
+    $$(".view").forEach(v=>v.classList.remove("active"));
+    const el = $("#view-"+view);
+    if (el) el.classList.add("active");
+
+    $$(".navBtn").forEach(b=>b.classList.toggle("active", b.getAttribute("data-view")===view));
+  }
+
+  async function loadProfile(){
+    try{
+      const s = (typeof getEmpSession === "function") ? getEmpSession() : null;
+      const endpoint = (typeof ep === "function") ? ep() : "";
+      if (!s || !s.token || !endpoint) return;
+
+      const url = endpoint + "?fn=meProfile&token=" + encodeURIComponent(s.token) + "&ts=" + Date.now();
+      const res = await jsonp(url);
+      if (!res || !res.ok) return;
+
+      const name = res.name || s.name || "—";
+      const dept = res.dept || "";
+      const mgr = res.managerName || res.managerEmail || "";
+
+      let avatarUrl = "";
+      try{
+        if (window.CFG && window.CFG.employeeAvatars && window.CFG.employeeAvatars[name]) avatarUrl = String(window.CFG.employeeAvatars[name]);
+      }catch(e){}
+
+      $("#topName").textContent = name;
+      $("#topMgr").textContent = "Manager: " + (mgr || "—");
+
+      if (avatarUrl){
+        $("#topAvatarImg").src = avatarUrl;
+        $("#topAvatarImg").style.display = "";
+        $("#topAvatar").style.display = "none";
+      } else {
+        $("#topAvatar").textContent = initials(name);
+        $("#topAvatar").style.display = "";
+        $("#topAvatarImg").style.display = "none";
+      }
+
+      $("#setName").textContent = name;
+      $("#setDept").textContent = dept || "—";
+      $("#setMgr").textContent = mgr || "—";
+
+      $("#drawerName").textContent = name;
+      $("#drawerDept").textContent = dept || "—";
+      $("#drawerMgr").textContent = mgr || "—";
+      $("#drawerSub").textContent = dept ? ("Departament: " + dept) : "—";
+      $("#drawerSess").textContent = "Activă";
+
+      if (avatarUrl){
+        $("#drawerAvatarImg").src = avatarUrl;
+        $("#drawerAvatarImg").style.display = "";
+        $("#drawerAvatar").style.display = "none";
+      } else {
+        $("#drawerAvatar").textContent = initials(name);
+        $("#drawerAvatar").style.display = "";
+        $("#drawerAvatarImg").style.display = "none";
+      }
+    }catch(e){
+      console.warn("meProfile failed", e);
+    }
+  }
+
+  function openDrawer(){ $("#drawerWrap").classList.add("show"); }
+  function closeDrawer(){ $("#drawerWrap").classList.remove("show"); }
+  function logout(){
+    try{
+      localStorage.removeItem("pontaj_me_token");
+      localStorage.removeItem("pontaj_me_name");
+    }catch(e){}
+    window.location.href = "index.html";
+  }
+
+  function bind(){
+    $$(".navBtn").forEach(btn=>{
+      btn.addEventListener("click", ()=>{
+        const v = btn.getAttribute("data-view");
+        setPage(v);
+      });
+    });
+
+    $("#btnUserPanel").addEventListener("click", openDrawer);
+    $("#drawerClose").addEventListener("click", closeDrawer);
+    $("#drawerWrap").addEventListener("click", (ev)=>{ if (ev.target === $("#drawerWrap")) closeDrawer(); });
+
+    $("#drawerIndex").addEventListener("click", ()=>window.open("index.html","_blank"));
+    $("#drawerReload").addEventListener("click", ()=>window.location.reload());
+    $("#drawerLogout").addEventListener("click", logout);
+
+    $("#btnOpenIndex").addEventListener("click", ()=>window.open("index.html","_blank"));
+    $("#btnRefreshAll").addEventListener("click", ()=>window.location.reload());
+    $("#btnLogout").addEventListener("click", logout);
+
+    $("#reqRefresh").addEventListener("click", ()=>{ $("#reqList").textContent = "—"; });
+    $("#reqNew").addEventListener("click", ()=>{ alert("TODO: creează cerere. Spune-mi endpoint-ul de leave și îl conectez."); });
+  }
+
+  window.addEventListener("load", ()=>{
+    bind();
+    setPage("calendar");
+    let tries = 0;
+    const t = setInterval(async ()=>{
+      tries++;
+      await loadProfile();
+      const ok = $("#topName").textContent && $("#topName").textContent !== "—";
+      if (ok || tries >= 8) clearInterval(t);
+    }, 350);
+  });
+})();
+</script>
+
 </body>
+
 </html>
