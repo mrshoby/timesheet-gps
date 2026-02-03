@@ -502,7 +502,7 @@ window.addEventListener('DOMContentLoaded', () => {
     const r = await fetch("config.json", {cache:"no-store"});
     CFG = await r.json();
   }
-  function ep(){ return CFG?.adminEventsEndpoint || CFG?.stateEndpoint || ""; }
+  function ep(){ return CFG?.leaveEndpoint || CFG?.adminEventsEndpoint || CFG?.stateEndpoint || ""; }
 
   async function loadDepartmentsCsv(){
     // prefer remote departmentsCsv
@@ -707,7 +707,7 @@ window.addEventListener('DOMContentLoaded', () => {
     const admin = requireAdmin();
     const key = getAdminKey();
     if (!key) throw new Error("Lipsește ADMIN_KEY.");
-    const adminName = (admin.user && (admin.user.name || admin.user.fullName)) ? String(admin.user.name || admin.user.fullName) : "";
+    const adminName = (admin.user && (admin.user.name||admin.user.fullName||admin.user.label||admin.user.username)) ? String(admin.user.name || admin.user.fullName || admin.user.label || admin.user.username) : "";
     const adminEmail = (admin.user && admin.user.email) ? String(admin.user.email) : "";
     const url = endpoint + "?fn=adminLeavesMonth"
       + "&ym=" + encodeURIComponent(ym)
