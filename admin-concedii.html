@@ -1,0 +1,529 @@
+<!doctype html>
+<html lang="ro">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Admin — Concedii</title>
+  <style>
+    :root{
+      --bg:#f5f6ff;
+      --card:#ffffff;
+      --ink:#1f2330;
+      --muted:#6f7890;
+      --line:#e7e9f6;
+      --accent:#6d5efc;
+      --shadow:0 10px 30px rgba(20,18,40,.08);
+      --r:18px;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;background:linear-gradient(180deg,#f4f5ff,#ffffff);font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto}
+    .wrap{max-width:1600px;margin:18px auto;padding:0 14px}
+    .top{
+      display:flex;align-items:center;justify-content:space-between;gap:12px;
+      background:rgba(255,255,255,.86);border:1px solid rgba(105,112,160,.16);border-radius:22px;
+      box-shadow:var(--shadow);padding:12px 14px
+    }
+    .title{font-weight:1000}
+    .sub{color:rgba(40,48,80,.65);font-weight:800;font-size:12px;margin-top:4px}
+    .controls{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+    .pill{padding:10px 12px;border-radius:14px;border:1px solid rgba(105,112,160,.18);background:#fff;font-weight:1000;cursor:pointer}
+    .pill.primary{background:linear-gradient(180deg, rgba(109,94,252,.95), rgba(109,94,252,.78));color:#fff;border-color:rgba(109,94,252,.35)}
+    select,input{padding:10px 12px;border-radius:14px;border:1px solid rgba(105,112,160,.22);font-weight:900}
+    .grid{display:grid;grid-template-columns:1fr 360px;gap:14px;margin-top:14px}
+    .panel{
+      background:rgba(255,255,255,.86);border:1px solid rgba(105,112,160,.16);border-radius:22px;box-shadow:var(--shadow);
+      overflow:hidden;
+    }
+    .panelHead{padding:12px 14px;border-bottom:1px solid rgba(105,112,160,.14);display:flex;align-items:center;justify-content:space-between;gap:10px}
+    .panelHead h2{margin:0;font-size:14px;font-weight:1000}
+    .note{color:rgba(40,48,80,.65);font-weight:800;font-size:12px}
+    .tableWrap{overflow:auto}
+    table{border-collapse:separate;border-spacing:0;min-width:1200px;width:100%}
+    th,td{padding:0;border-bottom:1px solid rgba(105,112,160,.10)}
+    th{position:sticky;top:0;background:rgba(245,246,255,.96);backdrop-filter: blur(10px);font-size:11px;font-weight:1000;color:rgba(40,48,80,.60);text-align:center}
+    th.stickyL{left:0;z-index:4;text-align:left}
+    td.stickyL{left:0;position:sticky;background:rgba(255,255,255,.96);z-index:3}
+    .empCell{display:flex;align-items:center;gap:10px;padding:10px 12px}
+    .empAva{width:34px;height:34px;border-radius:999px;background:#eef1ff;display:flex;align-items:center;justify-content:center;font-weight:1000}
+    .empName{font-weight:1000}
+    .empDept{font-weight:800;color:rgba(40,48,80,.55);font-size:12px}
+    .cell{height:48px;display:flex;align-items:center;justify-content:center;font-weight:1000;border-radius:14px;margin:6px;position:relative;border:1px solid rgba(105,112,160,.12);background:rgba(240,242,255,.40);cursor:pointer}
+    .cell.approved{background:rgba(44,204,113,.14);border-color:rgba(44,204,113,.26);color:#0f7a3a}
+    .cell.pending{background:rgba(255,185,0,.12);border-color:rgba(255,185,0,.24);color:#7a4d00}
+    .cell.rejected{background:rgba(255,72,72,.10);border-color:rgba(255,72,72,.20);color:#9a1c1c;opacity:.75}
+    .bang{
+      position:absolute;top:7px;right:7px;width:18px;height:18px;border-radius:999px;
+      background:linear-gradient(180deg, rgba(255,185,0,.95), rgba(255,150,0,.80));
+      color:#fff;font-size:12px;display:flex;align-items:center;justify-content:center;
+      box-shadow:0 10px 18px rgba(255,150,0,.22);
+    }
+    .sideList{padding:12px 14px}
+    .reqCard{border:1px solid rgba(105,112,160,.14);background:rgba(240,242,255,.45);border-radius:18px;padding:12px;margin-top:12px}
+    .reqTop{display:flex;align-items:center;justify-content:space-between;gap:10px}
+    .tag{font-weight:1000;font-size:11px;padding:6px 10px;border-radius:999px;background:#fff;border:1px solid rgba(105,112,160,.18)}
+    .reqMeta{margin-top:8px;font-weight:800;font-size:12px;color:rgba(40,48,80,.72);line-height:1.35}
+    .reqReason{margin-top:8px;font-weight:800;font-size:12px;color:rgba(40,48,80,.62)}
+    .reqActions{margin-top:12px;display:flex;gap:10px}
+    .btnA{flex:1;padding:10px 12px;border-radius:14px;border:1px solid rgba(255,255,255,.22);font-weight:1000;cursor:pointer}
+    .btnApprove{background:linear-gradient(180deg, rgba(44,204,113,.95), rgba(44,204,113,.78));color:#fff;border-color:rgba(44,204,113,.35)}
+    .btnReject{background:linear-gradient(180deg, rgba(255,72,72,.95), rgba(255,72,72,.78));color:#fff;border-color:rgba(255,72,72,.35)}
+    .noteBox{width:100%;padding:10px 12px;border-radius:14px;border:1px solid rgba(105,112,160,.22);font-weight:800;outline:none}
+    .overlay{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(20,18,40,.35);z-index:99999;padding:18px}
+    .overlay.show{display:flex}
+    .modal{width:min(760px, 96vw);border-radius:22px;overflow:hidden;border:1px solid rgba(255,255,255,.18);box-shadow:0 24px 70px rgba(20,18,40,.25);background:#fff}
+    .mHead{padding:16px 16px 12px;background:linear-gradient(180deg, rgba(109,94,252,.98), rgba(109,94,252,.70));color:#fff;display:flex;justify-content:space-between;gap:12px}
+    .mTitle{font-weight:1000;font-size:14px}
+    .mSub{opacity:.88;font-weight:800;font-size:12px;margin-top:4px}
+    .xBtn{width:38px;height:38px;border-radius:14px;border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.12);color:#fff;cursor:pointer;font-weight:1000}
+    .mBody{padding:14px 16px}
+    .mFoot{padding:12px 16px;border-top:1px solid rgba(105,112,160,.16);display:flex;justify-content:flex-end;gap:10px}
+    @media(max-width:1100px){ .grid{grid-template-columns:1fr} }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="top">
+      <div>
+        <div class="title">Concedii & învoiri</div>
+        <div class="sub" id="sub">Aprobări pentru angajații repartizați</div>
+      </div>
+      <div class="controls">
+        <button class="pill" id="prevBtn">‹</button>
+        <select id="monthSel"></select>
+        <button class="pill" id="nextBtn">›</button>
+        <input id="q" placeholder="Caută angajat…" />
+        <button class="pill" id="refreshBtn">Refresh</button>
+      </div>
+    </div>
+
+    <div class="grid">
+      <div class="panel">
+        <div class="panelHead">
+          <h2>Calendar cereri</h2>
+          <div class="note">Click pe o zi cu <b>!</b> pentru aprobare / respingere.</div>
+        </div>
+        <div class="tableWrap">
+          <table>
+            <thead id="thead"></thead>
+            <tbody id="tbody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panelHead">
+          <h2>În așteptare</h2>
+          <div class="note" id="pendingCount">—</div>
+        </div>
+        <div class="sideList">
+          <textarea id="noteGlobal" class="noteBox" placeholder="Notă (opțional) — se aplică la approve/reject"></textarea>
+          <div id="pendingList"></div>
+          <div class="note" id="pendingEmpty" style="margin-top:12px;display:none">Nu există cereri pending în luna selectată.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="overlay" id="overlay">
+    <div class="modal">
+      <div class="mHead">
+        <div>
+          <div class="mTitle" id="mTitle">Aprobări</div>
+          <div class="mSub" id="mSub">—</div>
+        </div>
+        <button class="xBtn" id="mClose">✕</button>
+      </div>
+      <div class="mBody">
+        <textarea id="mNote" class="noteBox" placeholder="Notă (opțional) — ex: nu se aprobă din cauza …"></textarea>
+        <div id="mList"></div>
+        <div class="note" id="mEmpty" style="margin-top:12px;display:none">Nu există cereri pending pentru ziua selectată.</div>
+      </div>
+      <div class="mFoot">
+        <button class="pill" id="mRefresh">Reîncarcă</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+(() => {
+  // ===== Admin session =====
+  const LS_ADMIN = "pontaj/admin/v1";
+  const LS_ADMIN_FALLBACK = "pontaj_admin_session";
+  const LS_ADMIN_KEY = "pontaj_adminKey";
+
+  function requireAdmin(){
+    const raw = localStorage.getItem(LS_ADMIN) || localStorage.getItem(LS_ADMIN_FALLBACK);
+    if (!raw) throw new Error("Neautentificat ca admin. Loghează-te în Admin înainte.");
+    try{
+      const s = JSON.parse(raw);
+      if (!s || !s.user) throw new Error("Sesiune admin invalidă.");
+      return s;
+    }catch(e){
+      throw new Error("Sesiune admin invalidă.");
+    }
+  }
+  function getAdminKey(){
+    let k = "";
+    try{ k = (localStorage.getItem(LS_ADMIN_KEY) || "").trim(); }catch(e){}
+    if (!k){
+      k = (prompt("Cheie admin (ADMIN_KEY) pentru aprobări:", "") || "").trim();
+      if (k){ try{ localStorage.setItem(LS_ADMIN_KEY, k); }catch(e){} }
+    }
+    return k;
+  }
+
+  // ===== JSONP =====
+  function jsonp(url){
+    return new Promise((resolve,reject)=>{
+      const cb = "cb_"+Math.random().toString(16).slice(2);
+      window[cb] = (data)=>{ try{ delete window[cb]; }catch(e){} s.remove(); resolve(data); };
+      const s = document.createElement("script");
+      s.src = url + (url.includes("?")?"&":"?") + "callback=" + cb;
+      s.onerror = ()=>{ try{ delete window[cb]; }catch(e){} s.remove(); reject(new Error("JSONP error")); };
+      document.body.appendChild(s);
+    });
+  }
+  function escapeHtml(s){ return String(s||"").replace(/[&<>"']/g, c=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c])); }
+  function initials(name){
+    const p = String(name||"").trim().split(/\s+/).filter(Boolean);
+    const a = p[0]?.[0]||""; const b = p[1]?.[0]||"";
+    return (a+b).toUpperCase() || "•";
+  }
+  function getWeekdayShort(dk){
+    const d = new Date(dk+"T00:00:00");
+    const w = ["Du","Lu","Ma","Mi","Jo","Vi","Sâ"];
+    return w[d.getDay()];
+  }
+  function addMonths(ym, delta){
+    const [y,m] = ym.split("-").map(n=>parseInt(n,10));
+    const d = new Date(y, m-1+delta, 1);
+    return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0");
+  }
+
+  // ===== config =====
+  let CFG = null;
+  async function loadConfig(){
+    const tries = ["config.json","./config.json","../config.json","/config.json"];
+    for (const p of tries){
+      try{
+        const r = await fetch(p+"?v="+Date.now(), {cache:"no-store"});
+        if (!r.ok) continue;
+        CFG = await r.json();
+        return;
+      }catch(e){}
+    }
+    throw new Error("Nu pot încărca config.json.");
+  }
+  function ep(){ return CFG?.adminEventsEndpoint || CFG?.stateEndpoint || ""; }
+
+  // ===== leaves =====
+  let YM = "";
+  let LIST = [];
+  let BY_NAME_DAY = new Map(); // name||day -> list
+
+  function dkRange(sd, ed){
+    const out=[];
+    const a = new Date(sd+"T00:00:00");
+    const b = new Date(ed+"T00:00:00");
+    for (let i=0;i<62;i++){
+      out.push(a.toISOString().slice(0,10));
+      if (a>=b) break;
+      a.setDate(a.getDate()+1);
+    }
+    return out;
+  }
+  function indexLeaves(list){
+    LIST = Array.isArray(list)? list : [];
+    BY_NAME_DAY = new Map();
+    LIST.forEach(it=>{
+      const name = String(it.employeeName||"").trim();
+      const sd = String(it.startDate||"");
+      const ed = String(it.endDate||sd);
+      if (!name || !sd) return;
+      dkRange(sd, ed).forEach(dk=>{
+        const key = name+"||"+dk;
+        if (!BY_NAME_DAY.has(key)) BY_NAME_DAY.set(key, []);
+        BY_NAME_DAY.get(key).push(it);
+      });
+    });
+  }
+  function pendingFor(name, dk){
+    const key = name+"||"+dk;
+    return (BY_NAME_DAY.get(key) || []).filter(x=>String(x.status||"").toLowerCase()==="pending");
+  }
+  function approvedFor(name, dk){
+    const key = name+"||"+dk;
+    return (BY_NAME_DAY.get(key) || []).filter(x=>String(x.status||"").toLowerCase()==="approved");
+  }
+  function fmtReq(it){
+    const kind = String(it.kind||"").toLowerCase();
+    if (kind==="invoire") return `Învoire • ${it.startDate} • ${it.startTime||"?"}–${it.endTime||"?"}`;
+    return `Concediu ${it.code||""} • ${it.startDate} – ${it.endDate}`;
+  }
+
+  async function loadLeavesMonth(ym){
+    const endpoint = ep();
+    if (!endpoint) throw new Error("Lipsește endpoint în config.json.");
+    const admin = requireAdmin();
+    const key = getAdminKey();
+    if (!key) throw new Error("Lipsește ADMIN_KEY.");
+    const adminName = admin.user?.name || admin.user?.fullName || "";
+    const adminEmail = admin.user?.email || "";
+    const url = endpoint + "?fn=adminLeavesMonth"
+      + "&ym=" + encodeURIComponent(ym)
+      + "&key=" + encodeURIComponent(key)
+      + "&adminName=" + encodeURIComponent(adminName)
+      + "&adminEmail=" + encodeURIComponent(adminEmail)
+      + "&ts=" + Date.now();
+    const res = await jsonp(url);
+    if (!res || !res.ok) throw new Error(res?.error || "Nu pot încărca cererile.");
+    indexLeaves(res.list || []);
+    document.getElementById("sub").textContent = adminEmail ? ("Aprobări pentru " + adminEmail) : "Aprobări";
+  }
+
+  async function decideLeave(id, decision, note){
+    const endpoint = ep();
+    const admin = requireAdmin();
+    const key = getAdminKey();
+    const decidedBy = admin.user?.name || admin.user?.fullName || "";
+    const url = endpoint + "?fn=adminLeaveDecide"
+      + "&id=" + encodeURIComponent(id)
+      + "&decision=" + encodeURIComponent(decision)
+      + "&note=" + encodeURIComponent(note||"")
+      + "&decidedBy=" + encodeURIComponent(decidedBy)
+      + "&key=" + encodeURIComponent(key)
+      + "&ts=" + Date.now();
+    const res = await jsonp(url);
+    if (!res || !res.ok) throw new Error(res?.error || "Nu pot salva decizia.");
+    return res;
+  }
+
+  // ===== UI =====
+  function buildMonthOptions(curYm){
+    const sel = document.getElementById("monthSel");
+    sel.innerHTML = "";
+    const [cy, cm] = curYm.split("-").map(x=>parseInt(x,10));
+    const base = new Date(cy, cm-1, 1);
+    for (let i=-12; i<=1; i++){
+      const d = new Date(base.getFullYear(), base.getMonth()+i, 1);
+      const ym = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+      const opt = document.createElement("option");
+      opt.value = ym;
+      opt.textContent = d.toLocaleString("ro-RO", {month:"long", year:"numeric"});
+      if (ym === curYm) opt.selected = true;
+      sel.appendChild(opt);
+    }
+  }
+
+  function employeesInMonth(){
+    const names = new Set();
+    LIST.forEach(it=>{ if (String(it.status||"").toLowerCase()==="pending") names.add(String(it.employeeName||"").trim()); });
+    // if no pending, show all who have any
+    if (!names.size) LIST.forEach(it=>names.add(String(it.employeeName||"").trim()));
+    return Array.from(names).filter(Boolean).sort((a,b)=>a.localeCompare(b));
+  }
+
+  function render(){
+    const [y,m] = YM.split("-").map(n=>parseInt(n,10));
+    const first = new Date(y, m-1, 1);
+    const next = new Date(y, m, 1);
+    const daysInMonth = Math.round((next-first)/86400000);
+
+    const namesAll = employeesInMonth();
+    const q = (document.getElementById("q").value||"").trim().toLowerCase();
+    const names = q ? namesAll.filter(n=>n.toLowerCase().includes(q)) : namesAll;
+
+    const thead = document.getElementById("thead");
+    thead.innerHTML = `<tr>
+      <th class="stickyL" style="min-width:260px;text-align:left;padding:10px 12px">Angajat</th>
+      ${Array.from({length:daysInMonth}, (_,i)=>{
+        const dk = `${YM}-${String(i+1).padStart(2,'0')}`;
+        const wd = getWeekdayShort(dk);
+        return `<th title="${dk}">${String(i+1).padStart(2,'0')}<br><span style="font-weight:900">${wd}</span></th>`;
+      }).join("")}
+    </tr>`;
+
+    const tbody = document.getElementById("tbody");
+    tbody.innerHTML = names.map(name=>{
+      const cells = Array.from({length:daysInMonth}, (_,i)=>{
+        const dk = `${YM}-${String(i+1).padStart(2,'0')}`;
+        const pend = pendingFor(name, dk);
+        const appr = approvedFor(name, dk);
+        let cls=""; let text=""; let bang="";
+        if (appr.length){
+          cls="approved"; text = escapeHtml(String(appr[0].code||"LEAVE"));
+        } else if (pend.length){
+          cls="pending"; text = escapeHtml(String(pend[0].code||"P")); bang = `<div class="bang">!</div>`;
+        } else {
+          cls=""; text=""; 
+        }
+        const title = pend.length ? ("Pending: " + fmtReq(pend[0])) : (appr.length ? ("Aprobat: " + fmtReq(appr[0])) : "");
+        return `<td><div class="cell ${cls}" data-name="${escapeHtml(name)}" data-day="${dk}" title="${escapeHtml(title)}">${bang}${text}</div></td>`;
+      }).join("");
+      return `<tr>
+        <td class="stickyL">
+          <div class="empCell">
+            <div class="empAva">${escapeHtml(initials(name))}</div>
+            <div>
+              <div class="empName">${escapeHtml(name)}</div>
+              <div class="empDept">—</div>
+            </div>
+          </div>
+        </td>
+        ${cells}
+      </tr>`;
+    }).join("");
+
+    // bind cell clicks
+    tbody.querySelectorAll(".cell").forEach(el=>{
+      el.addEventListener("click", ()=>{
+        const name = el.getAttribute("data-name");
+        const day = el.getAttribute("data-day");
+        const pend = pendingFor(name, day);
+        if (pend.length) openModal(name, day);
+      });
+    });
+
+    renderPendingList();
+  }
+
+  function renderPendingList(){
+    const list = LIST.filter(x=>String(x.status||"").toLowerCase()==="pending");
+    const wrap = document.getElementById("pendingList");
+    const empty = document.getElementById("pendingEmpty");
+    document.getElementById("pendingCount").textContent = list.length ? (list.length + " cereri pending") : "—";
+    wrap.innerHTML = "";
+    if (!list.length){
+      empty.style.display = "";
+      return;
+    }
+    empty.style.display = "none";
+
+    list.slice(0,80).forEach(it=>{
+      const card = document.createElement("div");
+      card.className = "reqCard";
+      const tag = (String(it.kind||"").toLowerCase()==="invoire") ? "ÎNVOIRE" : (String(it.code||"") || "CONCEDIU");
+      card.innerHTML = `
+        <div class="reqTop">
+          <div style="font-weight:1000">${escapeHtml(it.employeeName||"")}</div>
+          <span class="tag">${escapeHtml(tag)}</span>
+        </div>
+        <div class="reqMeta">${escapeHtml(fmtReq(it))}</div>
+        ${it.reason ? `<div class="reqReason"><b>Motiv:</b> ${escapeHtml(it.reason)}</div>` : ``}
+        <div class="reqActions">
+          <button class="btnA btnReject" data-act="rejected" data-id="${escapeHtml(it.id)}">Respinge</button>
+          <button class="btnA btnApprove" data-act="approved" data-id="${escapeHtml(it.id)}">Aprobă</button>
+        </div>
+      `;
+      wrap.appendChild(card);
+    });
+
+    wrap.querySelectorAll("button[data-act]").forEach(btn=>{
+      btn.addEventListener("click", async ()=>{
+        const id = btn.getAttribute("data-id");
+        const decision = btn.getAttribute("data-act");
+        const note = document.getElementById("noteGlobal").value || "";
+        try{
+          btn.disabled = true;
+          await decideLeave(id, decision, note);
+          await loadLeavesMonth(YM);
+          render();
+        }catch(err){
+          alert(err.message || String(err));
+        }finally{
+          btn.disabled = false;
+        }
+      });
+    });
+  }
+
+  function openModal(name, day){
+    const list = pendingFor(name, day);
+    document.getElementById("mTitle").textContent = "Aprobări cereri";
+    document.getElementById("mSub").textContent = `${name} • ${day}`;
+    document.getElementById("mNote").value = "";
+    const box = document.getElementById("mList");
+    const empty = document.getElementById("mEmpty");
+    box.innerHTML = "";
+    if (!list.length){
+      empty.style.display = "";
+    } else {
+      empty.style.display = "none";
+      list.forEach(it=>{
+        const card = document.createElement("div");
+        card.className = "reqCard";
+        const tag = (String(it.kind||"").toLowerCase()==="invoire") ? "ÎNVOIRE" : (String(it.code||"") || "CONCEDIU");
+        card.innerHTML = `
+          <div class="reqTop">
+            <div style="font-weight:1000">${escapeHtml(fmtReq(it))}</div>
+            <span class="tag">${escapeHtml(tag)}</span>
+          </div>
+          ${it.reason ? `<div class="reqReason"><b>Motiv:</b> ${escapeHtml(it.reason)}</div>` : ``}
+          <div class="reqActions">
+            <button class="btnA btnReject" data-act="rejected" data-id="${escapeHtml(it.id)}">Respinge</button>
+            <button class="btnA btnApprove" data-act="approved" data-id="${escapeHtml(it.id)}">Aprobă</button>
+          </div>
+        `;
+        box.appendChild(card);
+      });
+
+      box.querySelectorAll("button[data-act]").forEach(btn=>{
+        btn.addEventListener("click", async ()=>{
+          const id = btn.getAttribute("data-id");
+          const decision = btn.getAttribute("data-act");
+          const note = document.getElementById("mNote").value || "";
+          try{
+            btn.disabled = true;
+            await decideLeave(id, decision, note);
+            await loadLeavesMonth(YM);
+            render();
+            openModal(name, day);
+          }catch(err){
+            alert(err.message || String(err));
+          }finally{
+            btn.disabled = false;
+          }
+        });
+      });
+    }
+    document.getElementById("overlay").classList.add("show");
+  }
+  function closeModal(){ document.getElementById("overlay").classList.remove("show"); }
+
+  async function refresh(){
+    buildMonthOptions(YM);
+    await loadLeavesMonth(YM);
+    render();
+  }
+
+  // ===== Bind =====
+  document.getElementById("q").addEventListener("input", ()=>render());
+  document.getElementById("prevBtn").addEventListener("click", ()=>{ YM = addMonths(YM, -1); refresh().catch(e=>alert(e.message||String(e))); });
+  document.getElementById("nextBtn").addEventListener("click", ()=>{ YM = addMonths(YM, +1); refresh().catch(e=>alert(e.message||String(e))); });
+  document.getElementById("monthSel").addEventListener("change", (e)=>{ YM = e.target.value; refresh().catch(e=>alert(e.message||String(e))); });
+  document.getElementById("refreshBtn").addEventListener("click", ()=>refresh().catch(e=>alert(e.message||String(e))));
+
+  document.getElementById("mClose").addEventListener("click", closeModal);
+  document.getElementById("mRefresh").addEventListener("click", ()=>refresh().catch(e=>alert(e.message||String(e))));
+  document.getElementById("overlay").addEventListener("click", (e)=>{ if (e.target.id==="overlay") closeModal(); });
+
+  // ===== boot =====
+  (async ()=>{
+    try{
+      requireAdmin();
+      await loadConfig();
+      const now = new Date();
+      YM = now.getFullYear()+"-"+String(now.getMonth()+1).padStart(2,"0");
+      await refresh();
+    }catch(err){
+      document.body.innerHTML = `<div style="padding:22px;font-family:ui-sans-serif,system-ui">
+        <h2 style="margin:0 0 10px">Concedii</h2>
+        <div style="color:#b00020;font-weight:800">Eroare: ${escapeHtml(err.message || String(err))}</div>
+      </div>`;
+      console.error(err);
+    }
+  })();
+})();
+</script>
+</body>
+</html>
