@@ -1077,7 +1077,7 @@
         $("#lvMsg").textContent = "Eroare: " + (res?.error || "Nu pot trimite.");
         return;
       }
-      $("#lvMsg").textContent = "Cerere concediu trimisă ✅";
+      $("#lvMsg").textContent = "Cerere concediu trimisă ✅" + ((res.managerName||res.managerEmail) ? (" către " + (res.managerName||res.managerEmail)) : "");
       refreshRequests($("#reqMonth").value);
       // refresh presence for current month too
       loadMonth($("#monthSel").value);
@@ -1098,7 +1098,7 @@
         $("#invMsg").textContent = "Eroare: " + (res?.error || "Nu pot trimite.");
         return;
       }
-      $("#invMsg").textContent = "Cerere învoire trimisă ✅";
+      $("#invMsg").textContent = "Cerere învoire trimisă ✅" + ((res.managerName||res.managerEmail) ? (" către " + (res.managerName||res.managerEmail)) : "");
       refreshRequests($("#reqMonth").value);
       loadMonth($("#monthSel").value);
     });
