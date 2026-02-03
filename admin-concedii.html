@@ -214,7 +214,7 @@
     }
     throw new Error("Nu pot încărca config.json.");
   }
-  function ep(){ return CFG?.adminEventsEndpoint || CFG?.stateEndpoint || ""; }
+  function ep(){ return CFG?.leaveEndpoint || CFG?.adminEventsEndpoint || CFG?.stateEndpoint || ""; }
 
   // ===== leaves =====
   let YM = "";
@@ -267,7 +267,7 @@
     const admin = requireAdmin();
     const key = getAdminKey();
     if (!key) throw new Error("Lipsește ADMIN_KEY.");
-    const adminName = admin.user?.name || admin.user?.fullName || "";
+    const adminName = admin.user?.name || admin.user?.fullName || admin.user?.label || admin.user?.username || "";
     const adminEmail = admin.user?.email || "";
     const url = endpoint + "?fn=adminLeavesMonth"
       + "&ym=" + encodeURIComponent(ym)
