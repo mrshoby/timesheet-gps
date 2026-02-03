@@ -167,7 +167,7 @@
         <h3>În așteptare <span class="badge" id="pendingCount">0</span></h3>
         <div class="muted">Click pe o zi cu cerere pentru aprobare / respingere.</div>
         <div id="err" class="err" style="display:none"></div>
-        <div class="list" id="pendingList"></List>
+        <div class="list" id="pendingList"></div>
         <div class="muted" id="emptyMsg" style="margin-top:10px;display:none">Nu există cereri pending în luna selectată.</div>
       </div>
     </div>
@@ -419,14 +419,12 @@
 
     // pending list right
     const pending = LEAVES.filter(l=>norm(l.status)==="pending");
-    $("#pendingCount").textContent = String(pending.length);
+    const pc = $("#pendingCount"); if (pc) pc.textContent = String(pending.length);
     const pl = $("#pendingList");
     const emptyMsg = $("#emptyMsg");
-    pl.innerHTML = "";
-    if(!pending.length){
-      emptyMsg.style.display = "block";
-    }else{
-      emptyMsg.style.display = "none";
+    if (pl) pl.innerHTML = "";
+    if (emptyMsg) emptyMsg.style.display = pending.length ? "none" : "block";
+    if (pl && pending.length){
       pending.slice(0,30).forEach(l=>{
         const txt = (norm(l.kind)==="invoire") ? `Învoire ${l.startDate} ${l.startTime||""}-${l.endTime||""}` : `${l.code||"—"} ${l.startDate}–${l.endDate}`;
         const div = document.createElement("div");
