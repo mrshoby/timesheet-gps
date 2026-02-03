@@ -573,7 +573,7 @@
     }
     throw new Error("Nu pot încărca config.json.");
   }
-  function ep(){ return CFG?.stateEndpoint || CFG?.adminEventsEndpoint || ""; }
+  function ep(){ return CFG?.leaveEndpoint || CFG?.stateEndpoint || CFG?.adminEventsEndpoint || ""; }
 
   function getEmpSession(){
     try{
@@ -904,10 +904,11 @@
     const endpoint = ep();
     if (!s || !endpoint) return { ok:false, error:"Sesiune lipsă." };
     const url = endpoint + "?fn=meLeaves&ym=" + encodeURIComponent(ym) + "&token=" + encodeURIComponent(s.token) + "&ts=" + Date.now();
-    return await jsonp(url);
+    try{ return await jsonp(url); }catch(err){ return { ok:false, error:(err?.message||String(err)||'JSONP error') }; }
   }
 
   async function leaveCreate(kind, payload){
+  try{
     const s = getEmpSession();
     const endpoint = ep();
     if (!s || !endpoint) return { ok:false, error:"Sesiune lipsă." };
@@ -919,14 +920,18 @@
     q.set("ts", String(Date.now()));
     const url = endpoint + "?" + q.toString();
     return await jsonp(url);
+  }catch(err){
+    return { ok:false, error: (err?.message || String(err) || "Eroare necunoscută") };
   }
+}
+
 
   async function meNotifications(){
     const s = getEmpSession();
     const endpoint = ep();
     if (!s || !endpoint) return { ok:false, error:"Sesiune lipsă." };
     const url = endpoint + "?fn=meNotifications&token=" + encodeURIComponent(s.token) + "&ts=" + Date.now();
-    return await jsonp(url);
+    try{ return await jsonp(url); }catch(err){ return { ok:false, error:(err?.message||String(err)||'JSONP error') }; }
   }
 
   async function meNotificationsAck(ids){
