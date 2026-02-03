@@ -339,6 +339,49 @@
     .shell{grid-template-columns:1fr}
     .side{position:relative;height:auto}
   }
+
+/* ===== Leave requests + notifications ===== */
+.reqGrid{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:12px 14px}
+.reqCard{border:1px solid rgba(105,112,160,.16);background:#fff;border-radius:18px;box-shadow:0 10px 24px rgba(20,18,40,.06);padding:14px}
+.reqCard h3{margin:0 0 8px;font-size:13px;font-weight:1000}
+.reqRow{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+.reqRow.one{grid-template-columns:1fr}
+.reqRow label{display:block;font-size:11px;font-weight:900;color:rgba(40,48,80,.72);margin-bottom:6px}
+.reqRow input, .reqRow select, .reqRow textarea{
+  width:100%;padding:10px 10px;border-radius:14px;border:1px solid rgba(105,112,160,.22);
+  outline:none;font-weight:800;background:#fff
+}
+.reqRow textarea{min-height:86px;resize:vertical}
+.reqActions{display:flex;gap:10px;margin-top:12px}
+.reqActions .btnPill{flex:1}
+.reqWide{grid-column:1 / -1}
+.reqTable{width:100%;border-collapse:separate;border-spacing:0 8px}
+.reqTable th{font-size:11px;color:rgba(40,48,80,.55);font-weight:1000;text-align:left;padding:0 10px}
+.reqTable td{padding:10px 10px;background:rgba(240,242,255,.50);border:1px solid rgba(105,112,160,.14)}
+.reqTable tr td:first-child{border-radius:14px 0 0 14px}
+.reqTable tr td:last-child{border-radius:0 14px 14px 0}
+.badge{display:inline-flex;align-items:center;justify-content:center;min-width:22px;height:22px;padding:0 8px;border-radius:999px;font-weight:1000;font-size:11px}
+.badge.pending{background:rgba(255,185,0,.18);color:#7a4d00;border:1px solid rgba(255,185,0,.35)}
+.badge.approved{background:rgba(44,204,113,.16);color:#0f7a3a;border:1px solid rgba(44,204,113,.35)}
+.badge.rejected{background:rgba(255,72,72,.14);color:#9a1c1c;border:1px solid rgba(255,72,72,.30)}
+.dayBox{position:relative}
+.excl{
+  position:absolute;top:8px;right:8px;
+  width:18px;height:18px;border-radius:999px;
+  background:linear-gradient(180deg, rgba(255,185,0,.95), rgba(255,150,0,.80));
+  color:#fff;font-weight:1000;font-size:12px;display:flex;align-items:center;justify-content:center;
+  box-shadow:0 10px 18px rgba(255,150,0,.22);
+}
+.notifBadgeMini{
+  margin-left:8px;
+  background:linear-gradient(180deg, rgba(109,94,252,.95), rgba(109,94,252,.75));
+  color:#fff;border:1px solid rgba(109,94,252,.35);
+}
+.notifItem{padding:10px 10px;border-radius:14px;border:1px solid rgba(105,112,160,.16);background:#fff;margin-top:10px}
+.notifTitle{font-weight:1000;font-size:12px}
+.notifMsg{margin-top:6px;color:rgba(40,48,80,.70);font-weight:800;font-size:12px;line-height:1.35}
+.notifMeta{margin-top:8px;color:rgba(40,48,80,.45);font-weight:900;font-size:11px}
+
 </style>
 </head>
 
@@ -411,7 +454,7 @@
               <div class="pMgr" id="topMgr">Manager: —</div>
             </div>
           </div>
-          <button class="btnPill primary" id="btnUserPanel" type="button">User panel</button>
+          <button class="btnPill primary" id="btnUserPanel" type="button">User panel <span id="notifTopBadge" class="badge notifBadgeMini" style="display:none">0</span></button>
         </div>
       </header>
 
@@ -687,8 +730,10 @@
         inner = `${top}${mid}${bottom}`;
       }
 
+      const excl = (d.pendingCount && !d.leaveCode) ? `<div class="excl" title="Cerere în așteptare">!</div>` : (d.pendingCount ? `<div class="excl" title="Cerere în așteptare">!</div>` : ``);
       return `<td class="dayCell${weekCut}">
-        <div class="dayBox st-${d.status}${weekend}" title="${escapeHtml(d.dk)}">
+        <div class="dayBox st-${d.status}${weekend}" data-day="${escapeHtml(d.dk)}" title="${escapeHtml(d.dk)}">
+          ${excl}
           ${inner}
         </div>
       </td>`;
@@ -707,6 +752,17 @@
       ${cells}
     </tr>`;
   }
+
+    // bind click on days with pending leaves -> jump to Cereri
+    tbody.querySelectorAll('.dayBox').forEach(box=>{
+      box.addEventListener('click', ()=>{
+        const dk = box.getAttribute('data-day');
+        const pend = (__PENDING_BY_DAY__.get(dk) || []);
+        if (pend.length){
+          try{ window.__jumpToRequests__ && window.__jumpToRequests__(dk); }catch(e){}
+        }
+      });
+    });
 
   function showCenterMessage(html){
     $("#thead").innerHTML = "";
@@ -744,6 +800,9 @@
     const dept = res.dept || "";
     const events = Array.isArray(res.events) ? res.events : [];
 
+    const leaves = Array.isArray(res.leaves) ? res.leaves : [];
+    indexLeavesForMonth(leaves);
+
     // Build per-day summaries
     const [y, m] = ym.split("-").map(n=>parseInt(n,10));
     const first = new Date(y, m-1, 1);
@@ -765,13 +824,309 @@
       const dk = `${ym}-${String(i).padStart(2,'0')}`;
       const evs = byDay.get(dk) || [];
       const s = computeDaySummary(evs, normMin);
+      // overlay leave requests
+      const pend = __PENDING_BY_DAY__.get(dk) || [];
+      const appr = __APPROVED_BY_DAY__.get(dk) || [];
+      if (!s.leaveCode && appr.length){
+        s.status = 'leave';
+        s.leaveCode = String(appr[0].code||'LEAVE');
+        s.label = s.leaveCode;
+      }
+      s.pendingCount = pend.length;
+      s.pendingLeaves = pend;
+      s.dayLeaves = (__LEAVES_BY_DAY__.get(dk) || []);
       days.push({ dk, ...s });
     }
 
     renderCalendar({ ym, name, dept, days, daysInMonth });
   }
 
-  // ========= Init =========
+  
+  // ========= Leave Requests + Notifications =========
+  function addDays(dateStr, n){
+    const d = new Date(dateStr+"T00:00:00");
+    d.setDate(d.getDate()+n);
+    return d.toISOString().slice(0,10);
+  }
+  function daysBetweenInclusive(a,b){
+    const out = [];
+    let cur = a;
+    for (let i=0;i<62;i++){
+      out.push(cur);
+      if (cur===b) break;
+      cur = addDays(cur,1);
+    }
+    return out;
+  }
+  function fmtPeriod(item){
+    if (String(item.kind||"").toLowerCase()==="invoire"){
+      return `${item.startDate} • ${item.startTime || "?"}–${item.endTime || "?"}`;
+    }
+    return `${item.startDate} – ${item.endDate} • ${item.code||""}`;
+  }
+  function statusBadge(st){
+    const s = String(st||"").toLowerCase();
+    if (s==="approved") return `<span class="badge approved">Aprobat</span>`;
+    if (s==="rejected") return `<span class="badge rejected">Respins</span>`;
+    return `<span class="badge pending">În așteptare</span>`;
+  }
+
+  let __LEAVES_BY_DAY__ = new Map(); // dk -> list
+  let __PENDING_BY_DAY__ = new Map(); // dk -> pending list
+  let __APPROVED_BY_DAY__ = new Map(); // dk -> approved list
+
+  function indexLeavesForMonth(leaves){
+    __LEAVES_BY_DAY__ = new Map();
+    __PENDING_BY_DAY__ = new Map();
+    __APPROVED_BY_DAY__ = new Map();
+    (leaves||[]).forEach(it=>{
+      const sd = String(it.startDate||"");
+      const ed = String(it.endDate||sd);
+      if (!sd) return;
+      const days = daysBetweenInclusive(sd, ed);
+      days.forEach(dk=>{
+        if (!__LEAVES_BY_DAY__.has(dk)) __LEAVES_BY_DAY__.set(dk, []);
+        __LEAVES_BY_DAY__.get(dk).push(it);
+        const st = String(it.status||"").toLowerCase();
+        if (st==="pending"){
+          if (!__PENDING_BY_DAY__.has(dk)) __PENDING_BY_DAY__.set(dk, []);
+          __PENDING_BY_DAY__.get(dk).push(it);
+        } else if (st==="approved"){
+          if (!__APPROVED_BY_DAY__.has(dk)) __APPROVED_BY_DAY__.set(dk, []);
+          __APPROVED_BY_DAY__.get(dk).push(it);
+        }
+      });
+    });
+  }
+
+  async function meLeaves(ym){
+    const s = getEmpSession();
+    const endpoint = ep();
+    if (!s || !endpoint) return { ok:false, error:"Sesiune lipsă." };
+    const url = endpoint + "?fn=meLeaves&ym=" + encodeURIComponent(ym) + "&token=" + encodeURIComponent(s.token) + "&ts=" + Date.now();
+    return await jsonp(url);
+  }
+
+  async function leaveCreate(kind, payload){
+    const s = getEmpSession();
+    const endpoint = ep();
+    if (!s || !endpoint) return { ok:false, error:"Sesiune lipsă." };
+    const q = new URLSearchParams();
+    q.set("fn","leaveCreate");
+    q.set("kind", kind);
+    q.set("token", s.token);
+    Object.entries(payload||{}).forEach(([k,v])=>{ if (v!==undefined && v!==null) q.set(k, String(v)); });
+    q.set("ts", String(Date.now()));
+    const url = endpoint + "?" + q.toString();
+    return await jsonp(url);
+  }
+
+  async function meNotifications(){
+    const s = getEmpSession();
+    const endpoint = ep();
+    if (!s || !endpoint) return { ok:false, error:"Sesiune lipsă." };
+    const url = endpoint + "?fn=meNotifications&token=" + encodeURIComponent(s.token) + "&ts=" + Date.now();
+    return await jsonp(url);
+  }
+
+  async function meNotificationsAck(ids){
+    const s = getEmpSession();
+    const endpoint = ep();
+    if (!s || !endpoint) return { ok:false, error:"Sesiune lipsă." };
+    const url = endpoint + "?fn=meNotificationsAck&token=" + encodeURIComponent(s.token)
+      + "&ids=" + encodeURIComponent((ids||[]).join(","))
+      + "&ts=" + Date.now();
+    return await jsonp(url);
+  }
+
+  function fillReqMonths(curYm){
+    const sel = $("#reqMonth");
+    if (!sel) return;
+    sel.innerHTML = "";
+    const [cy, cm] = curYm.split("-").map(x=>parseInt(x,10));
+    const base = new Date(cy, cm-1, 1);
+    for (let i=-6; i<=1; i++){
+      const d = new Date(base.getFullYear(), base.getMonth()+i, 1);
+      const ym = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+      const opt = document.createElement("option");
+      opt.value = ym;
+      opt.textContent = d.toLocaleString("ro-RO", {month:"long", year:"numeric"});
+      if (ym === curYm) opt.selected = true;
+      sel.appendChild(opt);
+    }
+  }
+
+  function renderReqTable(list){
+    const tb = $("#reqTbody");
+    if (!tb) return;
+    const stFilter = ($("#reqStatus")?.value || "").toLowerCase();
+    const rows = (list||[]).filter(it=>{
+      if (!stFilter) return true;
+      return String(it.status||"").toLowerCase() === stFilter;
+    });
+
+    if (!rows.length){
+      tb.innerHTML = `<tr><td colspan="4" class="note" style="border-radius:14px">Nu există cereri în luna selectată.</td></tr>`;
+      return;
+    }
+
+    tb.innerHTML = rows.map(it=>{
+      const kind = String(it.kind||"").toLowerCase()==="invoire" ? "Învoire" : `Concediu ${escapeHtml(it.code||"")}`;
+      const period = escapeHtml(fmtPeriod(it));
+      const manager = escapeHtml(it.managerName || it.managerEmail || "—");
+      return `<tr>
+        <td>${kind}</td>
+        <td>${period}</td>
+        <td>${statusBadge(it.status)}</td>
+        <td>${manager}</td>
+      </tr>`;
+    }).join("");
+  }
+
+  async function refreshRequests(ym){
+    const res = await meLeaves(ym);
+    if (!res || !res.ok){
+      $("#reqTbody").innerHTML = `<tr><td colspan="4" class="note" style="border-radius:14px">Eroare: ${escapeHtml(res?.error||"Nu pot încărca cererile.")}</td></tr>`;
+      return;
+    }
+    renderReqTable(res.list||[]);
+  }
+
+  function renderNotifications(list){
+    const wrap = $("#notifList");
+    const empty = $("#notifEmpty");
+    if (!wrap) return;
+    const items = Array.isArray(list)? list : [];
+    const unread = items.filter(x=>!x.readAt).length;
+
+    const badge = $("#notifTopBadge");
+    if (badge){
+      badge.textContent = String(unread);
+      badge.style.display = unread ? "" : "none";
+    }
+
+    wrap.innerHTML = "";
+    if (!items.length){
+      if (empty) empty.style.display = "";
+      return;
+    }
+    if (empty) empty.style.display = "none";
+
+    items.slice(0,40).forEach(it=>{
+      const t = escapeHtml(it.title||"Notificare");
+      const msg = escapeHtml(it.message||"");
+      const dt = it.createdAt ? new Date(it.createdAt).toLocaleString("ro-RO") : "";
+      const read = it.readAt ? "opacity:.65" : "";
+      const pill = it.readAt ? `<span class="badge" style="background:#eef1ff;border:1px solid rgba(105,112,160,.16);color:rgba(40,48,80,.65)">citit</span>`
+                             : `<span class="badge pending">nou</span>`;
+      const meta = escapeHtml(dt);
+      const el = document.createElement("div");
+      el.className = "notifItem";
+      el.style = read;
+      el.innerHTML = `<div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
+        <div class="notifTitle">${t}</div>${pill}
+      </div>
+      <div class="notifMsg">${msg}</div>
+      <div class="notifMeta">${meta}</div>`;
+      wrap.appendChild(el);
+    });
+  }
+
+  async function refreshNotifications(){
+    const res = await meNotifications();
+    if (!res || !res.ok){
+      console.warn("meNotifications failed", res?.error);
+      return;
+    }
+    renderNotifications(res.list||[]);
+  }
+
+  function bindRequestsUI(){
+    const now = new Date();
+    const YM = now.getFullYear()+"-"+String(now.getMonth()+1).padStart(2,"0");
+    fillReqMonths(YM);
+
+    $("#reqRefresh")?.addEventListener("click", ()=>{
+      const ym = $("#reqMonth")?.value || YM;
+      refreshRequests(ym);
+      refreshNotifications();
+    });
+
+    $("#reqMonth")?.addEventListener("change", ()=>{
+      refreshRequests($("#reqMonth").value);
+    });
+    $("#reqStatus")?.addEventListener("change", ()=>{
+      refreshRequests($("#reqMonth").value);
+    });
+
+    $("#btnLeaveSend")?.addEventListener("click", async ()=>{
+      $("#lvMsg").textContent = "Se trimite…";
+      const payload = {
+        code: $("#lvCode").value,
+        startDate: $("#lvStart").value,
+        endDate: $("#lvEnd").value,
+        reason: $("#lvReason").value
+      };
+      const res = await leaveCreate("concediu", payload);
+      if (!res || !res.ok){
+        $("#lvMsg").textContent = "Eroare: " + (res?.error || "Nu pot trimite.");
+        return;
+      }
+      $("#lvMsg").textContent = "Cerere concediu trimisă ✅";
+      refreshRequests($("#reqMonth").value);
+      // refresh presence for current month too
+      loadMonth($("#monthSel").value);
+    });
+
+    $("#btnInvSend")?.addEventListener("click", async ()=>{
+      $("#invMsg").textContent = "Se trimite…";
+      const payload = {
+        date: $("#invDate").value,
+        startDate: $("#invDate").value,
+        startTime: $("#invStart").value,
+        endTime: $("#invEnd").value,
+        reason: $("#invReason").value,
+        code: "INV"
+      };
+      const res = await leaveCreate("invoire", payload);
+      if (!res || !res.ok){
+        $("#invMsg").textContent = "Eroare: " + (res?.error || "Nu pot trimite.");
+        return;
+      }
+      $("#invMsg").textContent = "Cerere învoire trimisă ✅";
+      refreshRequests($("#reqMonth").value);
+      loadMonth($("#monthSel").value);
+    });
+
+    $("#btnNotifMarkAll")?.addEventListener("click", async ()=>{
+      const res = await meNotifications();
+      if (!res || !res.ok) return;
+      const ids = (res.list||[]).filter(x=>!x.readAt).map(x=>x.id).filter(Boolean);
+      if (!ids.length) return;
+      await meNotificationsAck(ids);
+      refreshNotifications();
+    });
+
+    // default populate date inputs with today
+    const today = new Date().toISOString().slice(0,10);
+    if ($("#lvStart") && !$("#lvStart").value) $("#lvStart").value = today;
+    if ($("#lvEnd") && !$("#lvEnd").value) $("#lvEnd").value = today;
+    if ($("#invDate") && !$("#invDate").value) $("#invDate").value = today;
+    if ($("#invStart") && !$("#invStart").value) $("#invStart").value = "10:00";
+    if ($("#invEnd") && !$("#invEnd").value) $("#invEnd").value = "12:00";
+  }
+
+  // Hook for menu changes (defined in the other script)
+  window.__onViewChange__ = async (view)=>{
+    if (view === "requests"){
+      const ym = $("#reqMonth")?.value || $("#monthSel")?.value || "";
+      if (ym) await refreshRequests(ym);
+      await refreshNotifications();
+    }
+  };
+
+
+// ========= Init =========
   (async () => {
     const now = new Date();
     let YM = now.getFullYear() + "-" + String(now.getMonth()+1).padStart(2,"0");
@@ -807,26 +1162,124 @@
 </script>
         </div>
 
-        <div class="view" id="view-requests">
-          <div class="panel">
-            <div class="panelHead">
-              <div>
-                <h2>Cereri</h2>
-                <div class="note">Aici vei vedea cererile tale (concedii / evenimente). (UI pregătit)</div>
-              </div>
-              <div class="controls">
-                <button class="btnPill" id="reqRefresh" type="button">Reîncarcă</button>
-                <button class="btnPill primary" id="reqNew" type="button">Creează cerere</button>
-              </div>
-            </div>
-            <div style="padding:14px 16px">
-              <div class="note">Momentan nu sunt conectate endpoint-urile de cereri. Spune-mi ce structură folosești (Leave sheet / fn=leave) și îl leg imediat.</div>
-              <div id="reqList" class="note" style="margin-top:12px">—</div>
+        
+<div class="view" 
+<div class="view" id="view-requests">
+  <div class="panel">
+    <div class="panelHead">
+      <div>
+        <h2>Cereri</h2>
+        <div class="note">Trimite cereri de concediu / învoire. Vei primi notificare aici după aprobare sau respingere.</div>
+      </div>
+      <div class="controls">
+        <button class="btnPill" id="reqRefresh" type="button">Reîncarcă</button>
+      </div>
+    </div>
+
+    <div class="reqGrid">
+      <div class="reqCard">
+        <h3>Trimite cerere concediu</h3>
+        <div class="reqRow">
+          <div>
+            <label>De la</label>
+            <input id="lvStart" type="date"/>
+          </div>
+          <div>
+            <label>Până la</label>
+            <input id="lvEnd" type="date"/>
+          </div>
+        </div>
+        <div class="reqRow">
+          <div>
+            <label>Tip concediu</label>
+            <select id="lvCode">
+              <option value="">Alege…</option>
+              <option value="CO">CO (odihnă)</option>
+              <option value="CM">CM (medical)</option>
+              <option value="BO">BO</option>
+              <option value="CCC">CCC</option>
+              <option value="CFP">CFP</option>
+              <option value="EV">EV (eveniment)</option>
+            </select>
+          </div>
+          <div>
+            <label>Motiv (opțional)</label>
+            <input id="lvReason" type="text" placeholder="Ex: concediu planificat"/>
+          </div>
+        </div>
+        <div class="reqActions">
+          <button class="btnPill primary" id="btnLeaveSend" type="button">Trimite concediu</button>
+        </div>
+        <div class="note" id="lvMsg" style="margin-top:10px">—</div>
+      </div>
+
+      <div class="reqCard">
+        <h3>Trimite cerere învoire</h3>
+        <div class="reqRow">
+          <div>
+            <label>Data</label>
+            <input id="invDate" type="date"/>
+          </div>
+          <div>
+            <label>Interval orar</label>
+            <div style="display:flex;gap:10px">
+              <input id="invStart" type="time" step="300" style="flex:1"/>
+              <input id="invEnd" type="time" step="300" style="flex:1"/>
             </div>
           </div>
         </div>
+        <div class="reqRow one">
+          <div>
+            <label>Motiv (opțional)</label>
+            <input id="invReason" type="text" placeholder="Ex: problemă personală"/>
+          </div>
+        </div>
+        <div class="reqActions">
+          <button class="btnPill primary" id="btnInvSend" type="button">Trimite învoire</button>
+        </div>
+        <div class="note" id="invMsg" style="margin-top:10px">—</div>
+      </div>
 
-        <div class="view" id="view-docs">
+      <div class="reqCard reqWide">
+        <h3>Cererile mele</h3>
+        <div class="reqRow">
+          <div>
+            <label>Luna</label>
+            <select id="reqMonth"></select>
+          </div>
+          <div>
+            <label>Status</label>
+            <select id="reqStatus">
+              <option value="">Toate</option>
+              <option value="pending">În așteptare</option>
+              <option value="approved">Aprobate</option>
+              <option value="rejected">Respinse</option>
+            </select>
+          </div>
+        </div>
+
+        <div style="margin-top:10px;overflow:auto">
+          <table class="reqTable">
+            <thead>
+              <tr>
+                <th>Tip</th>
+                <th>Perioadă / ore</th>
+                <th>Status</th>
+                <th>Manager</th>
+              </tr>
+            </thead>
+            <tbody id="reqTbody">
+              <tr><td colspan="4" class="note" style="border-radius:14px">Se încarcă…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<div class="view" id="view-docs">
           <div class="panel">
             <div class="panelHead">
               <div>
@@ -899,6 +1352,16 @@
           <button class="btnPill" id="drawerReload" type="button">Reload</button>
           <button class="btnPill primary" id="drawerLogout" type="button">Logout</button>
         </div>
+      </div>
+
+      
+      <div class="drawerCard" id="notifCard">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
+          <div style="font-weight:1000">Notificări</div>
+          <button class="btnPill" id="btnNotifMarkAll" type="button" style="padding:8px 10px;border-radius:12px">Marchează citite</button>
+        </div>
+        <div id="notifList" style="margin-top:10px"></div>
+        <div class="note" id="notifEmpty" style="margin-top:10px;display:none">Nu ai notificări.</div>
       </div>
 
       <div class="note" style="margin-top:12px">
@@ -1009,6 +1472,7 @@
       btn.addEventListener("click", ()=>{
         const v = btn.getAttribute("data-view");
         setPage(v);
+        try{ window.__onViewChange__ && window.__onViewChange__(v); }catch(e){}
       });
     });
 
@@ -1048,6 +1512,7 @@
 
   window.addEventListener("load", ()=>{
     bind();
+    try{ if (typeof bindRequestsUI === 'function') bindRequestsUI(); }catch(e){}
     setPage("calendar");
     let tries = 0;
     const t = setInterval(async ()=>{
@@ -1058,6 +1523,10 @@
     }, 350);
   });
 })();
+
+
+  // allow calendar click to jump into Cereri
+  window.__jumpToRequests__ = (dk)=>{ setPage('requests'); try{ if(document.getElementById('reqMonth')){ const ym = String(dk||'').slice(0,7); document.getElementById('reqMonth').value = ym; } }catch(e){}; try{ window.__onViewChange__ && window.__onViewChange__('requests'); }catch(e){} };
 </script>
 
 </body>
