@@ -3,10 +3,10 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>Admin — Concedii</title>
+  <title>Admin — Concedii (v15)</title>
   <style>
     :root{
-      --bg: transparent;
+      --bg:#f5f6ff;
       --card:#ffffff;
       --ink:#1f2330;
       --muted:#6f7890;
@@ -20,23 +20,6 @@
       --c-rejected:#ffe0e0;
       --c-neutral:#f6f7fb;
 
-      /* Legend dots (approx, matches screenshot palette) */
-      --dot-inprog:#6d5efc;
-      --dot-subnorm:#ff6b6b;
-      --dot-complet:#64c377;
-      --dot-peste:#b65efc;
-      --dot-inactiv:#a5a9b5;
-      --dot-concediu:#33cfff;
-      --dot-pauza:#ff4fd8;
-
-      /* Leave type colors */
-      --t-co:#6d5efc;
-      --t-bo:#33cfff;
-      --t-ccc:#b65efc;
-      --t-cfp:#ff6b6b;
-      --t-ev:#ffb020;
-      --t-inv:#2f245c;
-
       --purple:#2f245c;
       --purple2:#3a2d71;
       --purpleInk:#f5f4ff;
@@ -44,10 +27,8 @@
       --purpleLine: rgba(255,255,255,.12);
     }
     *{box-sizing:border-box}
-    html,body{height:100%}
     body{margin:0;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial;background:var(--bg);color:var(--ink)}
-
-    .wrap{width:100%;padding:0}
+    .wrap{max-width:1600px;margin:18px auto;padding:0 14px}
     .panel{background:var(--card);border:1px solid var(--line);border-radius:22px;box-shadow:var(--shadow);overflow:hidden}
     .head{padding:14px 16px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
     .title{display:flex;flex-direction:column;gap:2px}
@@ -56,274 +37,62 @@
     .controls{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
     .pill{display:flex;align-items:center;gap:8px;background:var(--c-neutral);border:1px solid var(--line);border-radius:14px;padding:8px 10px}
     .pill input,.pill select{border:0;background:transparent;outline:none;font:inherit;color:var(--ink)}
-    .btn{border:1px solid var(--line);background:var(--card);border-radius:12px;padding:10px 12px;cursor:pointer;font-weight:700}
+    .btn{border:1px solid var(--line);background:var(--card);border-radius:12px;padding:10px 12px;cursor:pointer;font-weight:600}
     .btn.primary{background:rgba(109,94,252,.12);border-color:rgba(109,94,252,.25);color:var(--accent)}
     .btn:active{transform:translateY(1px)}
     .toggle{display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--line);border-radius:14px;background:var(--c-neutral);user-select:none}
     .toggle input{width:16px;height:16px}
 
-    /* Tabs (like screenshot 6.png) */
-    .tabsBar{
-      background:rgba(109,94,252,.06);
-      border-bottom:1px solid var(--line);
-      padding:14px 18px 12px 18px;
-      display:flex;gap:22px;align-items:flex-end;flex-wrap:wrap;
-    }
-    .tabBtn{
-      border:0;background:transparent;cursor:pointer;
-      font:inherit;font-weight:900;
-      color:rgba(27,27,40,.55);
-      padding:8px 2px;
-      position:relative;
-      font-size:18px;
-    }
-    .tabBtn.active{color:var(--accent)}
-    .tabBtn.active:after{
-      content:"";
-      position:absolute;left:0;right:0;bottom:-2px;height:3px;border-radius:3px;
-      background:var(--accent);
-    }
+    .grid{display:grid;grid-template-columns: 1fr 360px;gap:14px;padding:14px}
+    @media(max-width:1100px){ .grid{grid-template-columns:1fr} }
 
-    .page{display:none;padding:16px}
-    .page.active{display:block}
+    .tableWrap{background:var(--card);border:1px solid var(--line);border-radius:18px;overflow:hidden}
+    .tableScroll{overflow:auto}
+    table{border-collapse:separate;border-spacing:0;width:100%;min-width:980px}
+    thead th{position:sticky;top:0;z-index:5;background:#fbfbff;border-bottom:1px solid var(--line);font-size:12px;color:var(--muted);text-align:center;padding:10px 6px}
+    thead th:first-child{left:0;z-index:7;text-align:left;padding-left:14px;min-width:260px}
+    tbody td, tbody th{border-bottom:1px solid var(--line);border-right:1px solid var(--line);height:64px;vertical-align:middle;text-align:center;font-size:13px;color:var(--ink);background:#fff}
+    tbody tr:last-child td, tbody tr:last-child th{border-bottom:0}
+    tbody td:last-child, thead th:last-child{border-right:0}
+    tbody th{position:sticky;left:0;z-index:6;background:#fff;text-align:left;padding:10px 12px;min-width:260px;border-right:1px solid var(--line)}
+    .who{display:flex;align-items:center;gap:10px}
+    .av{width:34px;height:34px;border-radius:999px;background:#e9ecff;display:grid;place-items:center;font-weight:800;color:#3a2d71;flex:0 0 auto}
+    .name{display:flex;flex-direction:column;line-height:1.1}
+    .name .n{font-weight:700}
+    .name .d{font-size:12px;color:var(--muted)}
 
-    /* Concedii & invoiri layout: left employees + big calendar */
-    .split{
-      display:grid;
-      grid-template-columns: 320px 1fr;
-      gap:14px;
-      align-items:start;
-      min-height: calc(100vh - 160px);
-    }
-    @media(max-width:1100px){
-      .split{grid-template-columns: 1fr}
-    }
+    .cell{position:relative;cursor:pointer}
+    .cell:hover{background:#fafaff}
+    .tag{display:inline-flex;align-items:center;justify-content:center;min-width:44px;padding:6px 10px;border-radius:12px;font-weight:800}
+    .tag.co{background:rgba(109,94,252,.10);color:var(--accent)}
+    .tag.inv{background:rgba(47,36,92,.08);color:var(--purple)}
+    .mini{display:block;margin-top:4px;font-size:11px;color:var(--muted);font-weight:600}
 
-    .card{
-      background:var(--card);
-      border:1px solid var(--line);
-      border-radius:18px;
-      box-shadow:var(--shadow);
-      overflow:hidden;
-    }
-    .cardHead{
-      padding:12px 14px;
-      border-bottom:1px solid var(--line);
-      display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;
-    }
-    .cardHead h3{margin:0;font-size:14px}
-    .muted{color:var(--muted);font-size:12px}
-
-    .empSearch{
-      padding:12px 14px;
-      border-bottom:1px solid var(--line);
-    }
-    .searchBox{
-      display:flex;align-items:center;gap:8px;
-      background:#fff;border:1px solid var(--line);
-      border-radius:12px;padding:10px 12px;
-    }
-    .searchBox input{
-      border:0;outline:none;background:transparent;
-      font:inherit;width:100%;
-    }
-    .empList{
-      padding:10px;
-      overflow:auto;
-      max-height: 580px; /* synced via JS after render */
-    }
-    .empItem{
-      border:1px solid var(--line);
-      border-radius:14px;
-      padding:10px;
-      display:flex;gap:10px;align-items:center;
-      background:#fff;
-      cursor:pointer;
-      margin-bottom:8px;
-    }
-    .empItem:hover{background:#fafaff}
-    .empItem.active{
-      border-color:rgba(109,94,252,.35);
-      box-shadow:0 8px 18px rgba(109,94,252,.12);
-    }
-    .av{width:38px;height:38px;border-radius:999px;background:#e9ecff;display:grid;place-items:center;font-weight:900;color:#3a2d71;flex:0 0 auto}
-    .empMeta{display:flex;flex-direction:column;gap:2px;min-width:0}
-    .empMeta .n{font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-    .empMeta .d{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-    .chip{
-      margin-left:auto;
-      display:inline-flex;align-items:center;justify-content:center;
-      min-width:26px;height:22px;padding:0 8px;border-radius:999px;
-      font-size:12px;font-weight:900;
-      border:1px solid rgba(109,94,252,.25);
-      background:#f3f4ff;color:var(--accent);
-      flex:0 0 auto;
-    }
-    .chip.warn{border-color:rgba(255,176,32,.35);background:rgba(255,176,32,.14);color:#8b4f00}
-
-    /* Big calendar (presence-table look) */
-    .calWrap{padding:14px}
-    .calTable{
-      border:1px solid var(--line);
-      border-radius:16px;
-      overflow:hidden;
-      background:#fff;
-    }
-    .calGrid{
-      --days: 31;
-      display:grid;
-      grid-template-columns: 280px repeat(var(--days), minmax(0, 1fr));
-    }
-    .hCell{
-      background:#fbfbff;
-      border-bottom:1px solid var(--line);
-      font-size:12px;color:var(--muted);
-      text-align:center;
-      padding:10px 4px;
-      font-weight:900;
-    }
-    .hLeft{
-      text-align:left;
-      padding-left:14px;
-    }
-    .hCell .dow{display:block;font-size:10px;color:rgba(111,120,144,.9);margin-top:2px;font-weight:900}
-    .leftCell{
-      border-right:1px solid var(--line);
-      border-bottom:1px solid var(--line);
-      padding:12px 14px;
-      display:flex;align-items:center;gap:10px;
-      background:#fff;
-    }
-    .leftCell .name{display:flex;flex-direction:column;gap:2px;line-height:1.1}
-    .leftCell .name .n{font-weight:900}
-    .leftCell .name .d{font-size:12px;color:var(--muted)}
-    .dayCell{
-      border-right:1px solid var(--line);
-      border-bottom:1px solid var(--line);
-      height:74px;
-      background:#fff;
-      position:relative;
-      cursor:pointer;
-      min-width:0;
-    }
-    .dayCell:last-child{border-right:0}
-    .dayCell:hover{background:#fafaff}
-
-    .box{
-      position:absolute; inset:0;
-      display:flex;flex-direction:column;align-items:center;justify-content:center;
-      gap:3px;
-      padding:6px 4px;
-    }
-    .code{font-weight:1000;font-size:13px;letter-spacing:.4px;line-height:1}
-    .time{font-weight:900;font-size:10px;color:rgba(27,27,40,.72);line-height:1}
-    .more{font-weight:900;font-size:10px;color:rgba(27,27,40,.55);line-height:1;margin-top:1px}
-
+    .pending{background:var(--c-pending)}
+    .approved{background:var(--c-approved)}
+    .rejected{background:var(--c-rejected)}
     .bang{
       position:absolute;top:6px;right:6px;width:18px;height:18px;border-radius:999px;
-      background:#ffb020;color:#1f2330;font-weight:1000;font-size:12px;display:grid;place-items:center;
+      background:#ffb020;color:#1f2330;font-weight:900;font-size:12px;display:grid;place-items:center;
       border:2px solid #fff;
-      z-index:5;
     }
 
-    /* type stylings */
-    .t-co{--t:var(--t-co)}
-    .t-bo{--t:var(--t-bo)}
-    .t-ccc{--t:var(--t-ccc)}
-    .t-cfp{--t:var(--t-cfp)}
-    .t-ev{--t:var(--t-ev)}
-    .t-inv{--t:var(--t-inv)}
-    .typeBox{
-      border-top:4px solid var(--t, rgba(0,0,0,.12));
-      border-bottom:3px solid rgba(31,35,48,.10);
-      background:linear-gradient(180deg, rgba(255,255,255,1) 0%, rgba(250,250,255,1) 100%);
-    }
-    .typeBox.soft{
-      background:rgba(51,207,255,.06);
-    }
-
-    /* status overlay tints */
-    .st-pending{background:rgba(255,176,32,.10)}
-    .st-approved{background:rgba(100,195,119,.10)}
-    .st-rejected{background:rgba(255,107,107,.10)}
-
-    .legend{
-      margin-top:12px;
-      padding:12px 10px 2px 10px;
-      color:var(--muted);
-      font-size:13px;
-    }
-    .legend .line1{color:var(--accent);font-weight:900;margin-bottom:10px}
-    .legend .codes{display:flex;gap:18px;flex-wrap:wrap;margin-bottom:10px}
-    .legend .codes b{color:var(--ink)}
-    .legend .dots{display:flex;gap:16px;flex-wrap:wrap;align-items:center}
-    .dot{width:10px;height:10px;border-radius:999px;display:inline-block;margin-right:6px}
-    .d-inprog{background:var(--dot-inprog)}
-    .d-subnorm{background:var(--dot-subnorm)}
-    .d-complet{background:var(--dot-complet)}
-    .d-peste{background:var(--dot-peste)}
-    .d-inactiv{background:var(--dot-inactiv)}
-    .d-concediu{background:var(--dot-concediu)}
-    .d-pauza{background:var(--dot-pauza)}
-
-    /* Tables for Pending + Quick approvals */
-    .tableCard{padding:14px}
-    .tbl{
-      width:100%;
-      border-collapse:separate;border-spacing:0;
-      border:1px solid var(--line);
-      border-radius:16px;overflow:hidden;
-      background:#fff;
-    }
-    .tbl th,.tbl td{
-      border-bottom:1px solid var(--line);
-      padding:16px 12px;
-      font-size:14px;
-      vertical-align:middle;
-    }
-    .tbl th{
-      background:#fbfbff;
-      font-size:15px;
-      color:#2f245c;
-      letter-spacing:.4px;
-      text-transform:uppercase;
-      font-weight:1000;
-    }
-    .tbl tr:last-child td{border-bottom:0}
-    .tbl .whoCell{display:flex;align-items:center;gap:12px;font-weight:900}
-    .statusTxt{font-weight:1000}
-    .s-approved{color:#64c377}
-    .s-rejected{color:#ff6b6b}
-    .s-pending{color:var(--accent)}
-
-    .actRow{display:flex;gap:10px;justify-content:flex-end}
-    .actBtn{
-      display:inline-flex;align-items:center;justify-content:center;gap:8px;
-      border-radius:12px;
-      padding:12px 16px;
-      font-weight:1000;
-      border:1px solid var(--line);
-      cursor:pointer;
-      background:#fff;
-      min-width:140px;
-    }
-    .actBtn.approve{background:#6bc676;color:#0b2b12;border-color:rgba(107,198,118,.35)}
-    .actBtn.reject{background:rgba(109,94,252,.10);color:var(--ink);border-color:rgba(109,94,252,.25)}
-    .actBtn:active{transform:translateY(1px)}
-
-    .empty{
-      padding:18px;border:1px dashed rgba(109,94,252,.35);
-      border-radius:16px;background:rgba(109,94,252,.06);
-      color:var(--muted);font-weight:800;
-    }
-
-    .err{margin-top:10px;padding:10px;border-radius:12px;background:#fff0f0;border:1px solid #ffd2d2;color:#9b1c1c;font-weight:800}
-    .toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:#1f2330;color:#fff;padding:10px 12px;border-radius:12px;font-weight:900;box-shadow:var(--shadow);display:none;z-index:99999}
-    .toast.show{display:block}
+    .side{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:12px}
+    .side h3{margin:0 0 10px 0;font-size:14px}
+    .side .muted{color:var(--muted);font-size:12px}
+    .list{display:flex;flex-direction:column;gap:8px;margin-top:10px}
+    .item{border:1px solid var(--line);border-radius:14px;padding:10px;background:#fff;display:flex;justify-content:space-between;gap:10px}
+    .item strong{display:block}
+    .item .meta{font-size:12px;color:var(--muted)}
+    .item .actions{display:flex;gap:8px;align-items:center}
+    .badge{padding:4px 8px;border-radius:999px;font-size:12px;font-weight:800;background:#f3f4ff;color:var(--accent);border:1px solid rgba(109,94,252,.25)}
+    .err{margin-top:10px;padding:10px;border-radius:12px;background:#fff0f0;border:1px solid #ffd2d2;color:#9b1c1c;font-weight:700}
 
     /* Approval modal (purple) */
     .ov{position:fixed;inset:0;background:rgba(0,0,0,.28);display:none;align-items:center;justify-content:center;padding:18px;z-index:9999}
     .ov.show{display:flex}
+
+    .ov.open{display:flex}
     .modal{
       width:min(520px, 96vw);
       background:linear-gradient(180deg,var(--purple2),var(--purple));
@@ -334,9 +103,10 @@
     }
     .modal .body{padding:18px}
     .k{color:var(--purpleMuted);font-size:12px;margin-top:10px}
-    .v{font-weight:1000;font-size:16px;margin-top:2px}
-    .avatars{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
-    .av2{width:40px;height:40px;border-radius:999px;background:rgba(255,255,255,.16);color:var(--purpleInk);border:1px solid var(--purpleLine);display:grid;place-items:center;font-weight:1000}
+    .v{font-weight:800;font-size:16px;margin-top:2px}
+    .row{display:flex;gap:12px;align-items:center;margin-top:14px}
+    .avatars{display:flex;gap:8px;margin-top:8px}
+    .avatars .av{background:rgba(255,255,255,.16);color:var(--purpleInk);border:1px solid var(--purpleLine)}
     .modal textarea{
       width:100%;margin-top:12px;min-height:80px;resize:vertical;
       border-radius:12px;border:1px solid var(--purpleLine);
@@ -349,181 +119,364 @@
     }
     .bbtn{
       flex:1;display:flex;align-items:center;justify-content:center;gap:8px;
-      border-radius:12px;padding:12px 10px;font-weight:1000;cursor:pointer;border:1px solid transparent
+      border-radius:12px;padding:12px 10px;font-weight:900;cursor:pointer;border:1px solid transparent
     }
     .bbtn.secondary{background:rgba(255,255,255,.12);border-color:var(--purpleLine);color:var(--purpleInk)}
     .bbtn.approve{background:#6bc676;color:#0b2b12}
     .bbtn.reject{background:rgba(255,255,255,.12);border:1px solid var(--purpleLine);color:var(--purpleInk)}
     .bbtn.icon{flex:0 0 54px}
-  </style>
+    .toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:#1f2330;color:#fff;padding:10px 12px;border-radius:12px;font-weight:700;box-shadow:var(--shadow);display:none;z-index:99999}
+    .toast.show{display:block}
+  
+
+    .dow{font-size:10px; color:var(--muted); margin-top:2px; font-weight:800}
+    .lvcell{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px; height:100%; min-height:64px}
+    .lvcell .c{font-weight:900; letter-spacing:.3px}
+    .lvcell .t{font-size:11px; color:rgba(27,27,40,.7); font-weight:800}
+    .lvcell .mini{font-size:10px; opacity:.75}
+    .lvcell .bang{position:absolute;top:6px;right:6px}
+    .av2{width:40px;height:40px;border-radius:999px;background:#e9ecff;display:grid;place-items:center;font-weight:900;color:#3a2d71;border:2px solid rgba(255,255,255,.7)}
+
+
+    /* ===== Redesign (v15) — calendar ca în 2.png + liste ca în 3.png/4.png ===== */
+    .presenceFrame{
+      background:rgba(109,94,252,.18);
+      border-radius:28px;
+      padding:18px;
+      margin-top:14px;
+      box-shadow:var(--shadow);
+    }
+    .presenceTop{
+      display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:12px
+    }
+    .presenceSearch{
+      display:flex;align-items:center;gap:10px;
+      background:#fff;border:1px solid var(--line);border-radius:14px;
+      padding:10px 12px;min-width:320px;
+    }
+    .presenceSearch .ico{opacity:.6}
+    .presenceSearch input{border:0;outline:0;background:transparent;width:100%;font-size:14px}
+    .presenceIcons{display:flex;gap:10px}
+    .iconBtn{
+      width:40px;height:40px;border-radius:12px;border:1px solid var(--line);
+      background:#fff;cursor:pointer;font-size:16px;display:grid;place-items:center
+    }
+    .iconBtn:hover{background:#fbfbff}
+
+    .presenceFrame .tableScroll{max-height:520px;}
+    .presenceFrame .tableScroll{overflow:auto;}
+
+
+    /* calendar: două coloane sticky (# + angajat) */
+    table{min-width:1100px}
+    thead th{font-weight:800;text-transform:uppercase;letter-spacing:.04em}
+    thead th .dow{margin-top:2px;font-weight:700;text-transform:none;letter-spacing:0}
+    .sort{font-weight:900;color:var(--accent);opacity:.9;margin-left:6px}
+
+    thead th.idxH{
+      position:sticky;left:0;z-index:9;text-align:center;min-width:52px;width:52px;
+      background:#fbfbff;border-right:1px solid var(--line)
+    }
+    thead th.empH{
+      position:sticky;left:52px;z-index:8;text-align:left;padding-left:14px;min-width:280px;
+      background:#fbfbff;border-right:1px solid var(--line)
+    }
+
+    tbody th.idxC{
+      position:sticky;left:0;z-index:8;text-align:center;min-width:52px;width:52px;
+      color:#9aa3b8;background:#fff;font-weight:700;border-right:1px solid var(--line)
+    }
+    tbody th.empC{
+      position:sticky;left:52px;z-index:7;background:#fff;text-align:left;min-width:280px;
+      border-right:1px solid var(--line)
+    }
+
+    /* weekend shading */
+    th.weekend, td.weekend{background:#f7f7fb}
+
+    /* leave cell look: ca tag-urile din calendar prezență */
+    td.day{padding:0}
+    .lvcell{
+      position:relative;cursor:pointer;height:64px;width:100%;
+      display:flex;flex-direction:column;align-items:center;justify-content:center;
+      gap:4px;
+    }
+    .lvcell:hover{background:#fafaff}
+    .lvTag{
+      width:86%;border-radius:4px 4px 8px 8px;
+      padding:6px 6px 5px;display:flex;flex-direction:column;align-items:center;
+      background:#fbfbff;border:1px solid var(--line);
+      border-top:4px solid rgba(109,94,252,.55);
+      font-weight:900;color:#2f245c;letter-spacing:.02em;
+      line-height:1.05;
+    }
+    .lvTag .code{font-size:13px}
+    .lvTag .t{font-size:11px;color:var(--muted);font-weight:800;margin-top:2px}
+    .lvMore{font-size:11px;color:var(--muted);font-weight:800}
+    .bang{top:8px;right:8px}
+
+    /* Stiva de liste (sub calendar) */
+    .stack{display:flex;flex-direction:column;gap:18px;margin-top:18px}
+    .stackCard{
+      background:#fff;border:1px solid var(--line);border-radius:22px;
+      padding:18px;box-shadow:var(--shadow)
+    }
+    .stackHead{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin-bottom:14px}
+    .stackTitle .h{font-size:18px;font-weight:900;color:#1f2330}
+    .stackTitle .s{font-size:13px;color:var(--muted);margin-top:2px}
+
+    .tblWrap{border:1px solid var(--line);border-radius:18px;overflow:hidden;background:#fff}
+    .simpleTbl{width:100%;border-collapse:separate;border-spacing:0;min-width:0}
+    .simpleTbl thead th{
+      position:static;background:#fff;border-bottom:1px solid var(--line);
+      font-size:18px;color:#2f245c;text-align:left;padding:18px 16px;
+      text-transform:uppercase;letter-spacing:.04em
+    }
+    .simpleTbl tbody td{
+      border-bottom:1px solid var(--line);padding:18px 16px;font-size:16px;color:#1f2330
+    }
+    .simpleTbl tbody tr:last-child td{border-bottom:0}
+
+    .empCell{display:flex;align-items:center;gap:14px}
+    .avatar{
+      width:40px;height:40px;border-radius:999px;overflow:hidden;
+      display:grid;place-items:center;background:#e9ecff;color:#3a2d71;font-weight:900
+    }
+    .empName{font-weight:800;color:#2f245c}
+    .mut{font-size:13px;color:var(--muted);margin-top:2px}
+    .statusTxt{font-weight:900}
+    .st-approved{color:#55b86a}
+    .st-rejected{color:#d4533a}
+    .st-pending{color:#6d5efc}
+
+    .empty{padding:18px;color:var(--muted);font-weight:700;display:none}
+
+    /* Actions table buttons (exact feel ca 4.png) */
+    .actions{display:flex;gap:12px;justify-content:flex-end}
+    .btnA{
+      height:44px;border-radius:12px;border:1px solid transparent;cursor:pointer;
+      font-weight:900;font-size:16px;padding:0 18px;display:inline-flex;align-items:center;gap:10px
+    }
+    .btnApprove{background:#6fc477;color:#fff}
+    .btnApprove:hover{filter:brightness(.98)}
+    .btnReject{
+      width:54px;justify-content:center;background:#ecebfb;border-color:#dddaf7;color:#2f245c
+    }
+    .btnReject:hover{background:#e6e4fb}
+
+    /* responsive */
+    @media (max-width: 1100px){
+      .presenceSearch{min-width:200px}
+      .simpleTbl thead th{font-size:16px}
+      .simpleTbl tbody td{font-size:15px}
+    }
+
+
+
+
+/* ===== Subtabs (ca în 6.png) ===== */
+.subtabs{
+  display:flex; align-items:flex-end; gap:26px;
+  padding: 10px 18px 0;
+  border-bottom: 1px solid rgba(105,112,160,.18);
+  background: transparent;
+}
+.subtab{
+  appearance:none; border:0; background:transparent;
+  padding: 12px 2px 14px;
+  font-weight: 1000;
+  color: rgba(40,48,80,.55);
+  cursor:pointer;
+  position:relative;
+  font-size: 18px;
+}
+.subtab::after{
+  content:"";
+  position:absolute; left:0; right:0; bottom:-1px;
+  height:3px; border-radius:999px;
+  background: transparent;
+}
+.subtab.active{
+  color: rgba(60,48,160,.92);
+}
+.subtab.active::after{
+  background: rgba(60,48,160,.92);
+}
+.tabPanel{ display:none; }
+.tabPanel.active{ display:block; }
+</style>
 </head>
 <body>
-  <div class="wrap">
-    <div class="panel">
-      <div class="head">
-        <div class="title">
-          <h1>Concedii &amp; învoiri</h1>
-          <div class="sub" id="sub">Aprobări</div>
+<div class="wrap">
+  <div class="tabPanel" id="tab-pending" role="tabpanel"><div class="tabPanel" id="tab-quick" role="tabpanel"><div class="panel">
+    <div class="head">
+      <div class="title">
+        <h1>Concedii &amp; învoiri</h1>
+        <div class="sub" id="sub">Aprobări</div>
+
+<!-- Sub-tabs -->
+<div class="subtabs" role="tablist" aria-label="Submeniuri concedii">
+  <button class="subtab active" data-tab="tab-concedii" role="tab" aria-selected="true">Concedii &amp; învoiri</button>
+  <button class="subtab" data-tab="tab-pending" role="tab" aria-selected="false">În așteptare</button>
+  <button class="subtab" data-tab="tab-quick" role="tab" aria-selected="false">Aprobări rapide</button>
+</div>
+
+
+      </div>
+      <div class="controls">
+        <button class="btn" id="prev">‹</button>
+        <div class="pill">
+          <select id="monthSel"></select>
         </div>
-        <div class="controls">
-          <button class="btn" id="prev">‹</button>
-          <div class="pill"><select id="monthSel"></select></div>
-          <button class="btn" id="next">›</button>
-          <label class="toggle" title="Filtrează doar cererile repartizate ție">
-            <input type="checkbox" id="onlyMine" checked />
-            <span>Doar ale mele</span>
-          </label>
-          <button class="btn primary" id="refresh">Refresh</button>
+        <button class="btn" id="next">›</button>
+
+        <div class="pill search">
+          <span class="ico">🔎</span>
+          <input id="q" placeholder="Caută angajat" />
+        </div>
+
+        <label class="toggle" title="Filtrează doar cererile repartizate ție">
+          <input type="checkbox" id="onlyMine" checked />
+          <span>Doar ale mele</span>
+        </label>
+
+        <button class="btn primary" id="refresh">Refresh</button>
+      </div>
+    </div>
+
+    <!-- Calendar (stil identic cu Calendar prezență) -->
+    <div class="presenceFrame">
+      <div class="presenceTop">
+        <div class="presenceSearch">
+          <span class="ico">🔎</span>
+          <input id="q2" placeholder="Caută angajat" aria-label="Caută angajat (calendar)"/>
+        </div>
+        <div class="presenceIcons">
+          <button class="iconBtn" id="dl" title="Download (placeholder)">⤓</button>
+          <button class="iconBtn" id="xl" title="Excel (placeholder)">⧉</button>
         </div>
       </div>
 
-      <div class="tabsBar">
-        <button class="tabBtn active" data-tab="cal">Concedii &amp; învoiri</button>
-        <button class="tabBtn" data-tab="pending">În așteptare</button>
-        <button class="tabBtn" data-tab="fast">Aprobări rapide</button>
+      <div class="tableWrap">
+        <div class="tableScroll" id="calScroll">
+          <table id="cal" aria-label="Calendar concedii">
+            <thead id="thead"></thead>
+            <tbody id="tbody"></tbody>
+          </table>
+        </div>
       </div>
 
-      <!-- TAB 1: Calendar -->
-      <div class="page active" id="tab-cal">
-        <div id="err" class="err" style="display:none"></div>
-        <div class="split">
-          <div class="card" id="empCard">
-            <div class="empSearch">
-              <div class="searchBox">
-                <span style="opacity:.65">🔎</span>
-                <input id="empQ" placeholder="Caută angajat" />
-              </div>
-            </div>
-            <div class="empList" id="empList"></div>
-          </div>
+      <div id="err" class="err" style="display:none"></div>
+      <div class="muted" id="dbg" style="margin-top:10px"></div>
+    </div>
 
-          <div class="card" id="calCard">
-            <div class="cardHead">
-              <div>
-                <h3 id="calTitle">Calendar cereri</h3>
-                <div class="muted" id="dbg">—</div>
-              </div>
-              <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
-                <div class="pill" title="Caută în cereri (nume sau cod)"><span style="opacity:.7">🔎</span><input id="q" placeholder="Caută..." /></div>
-              </div>
-            </div>
-
-            <div class="calWrap">
-              <div class="calTable">
-                <div class="calGrid" id="calGrid" style="--days:31"></div>
-              </div>
-
-              <div class="legend">
-                <div class="line1">Condiția de prezență nu conține timp activ (pontaje neîncheiate)</div>
-                <div class="codes">
-                  <span><b>CO</b> - Concediu de odihnă</span>
-                  <span><b>BO</b> - Concediu medical</span>
-                  <span><b>CCC</b> - Concediu pentru creșterea copilului</span>
-                  <span><b>CFP</b> - Concediu fără plată</span>
-                  <span><b>EV</b> - Eveniment</span>
-                  <span><b>ÎNV</b> - Învoire</span>
-                </div>
-                <div class="dots">
-                  <span><span class="dot d-inprog"></span>În progres</span>
-                  <span><span class="dot d-subnorm"></span>Sub norma</span>
-                  <span><span class="dot d-complet"></span>Complet</span>
-                  <span><span class="dot d-peste"></span>Peste norma</span>
-                  <span><span class="dot d-inactiv"></span>Inactiv/absent</span>
-                  <span><span class="dot d-concediu"></span>Concediu</span>
-                  <span><span class="dot d-pauza"></span>În pauză</span>
-                </div>
-              </div>
-            </div>
+    <!-- LISTE (sub calendar) -->
+    <div class="stack">
+      <!-- În așteptare / istoric -->
+      <div class="stackCard">
+        <div class="stackHead">
+          <div class="stackTitle">
+            <div class="h">În așteptare <span class="badge" id="pendingCount">0</span></div>
+            <div class="s">Cererile din luna selectată (pending / aprobate / respinse).</div>
           </div>
         </div>
-      </div>
 
-      <!-- TAB 2: Pending -->
-      <div class="page" id="tab-pending">
-        <div id="err2" class="err" style="display:none"></div>
-        <div class="tableCard">
-          <table class="tbl" id="pendingTbl">
+        <div class="tblWrap">
+          <table class="simpleTbl" id="reqTable" aria-label="Lista cereri">
             <thead>
               <tr>
-                <th style="width:34%">ANGAJAT</th>
-                <th style="width:26%">TIP DE CONCEDIU</th>
-                <th style="width:22%">TIP ÎNVOIRE</th>
-                <th style="width:18%">STATUS</th>
+                <th>ANGAJAT <span class="sort">↑↓</span></th>
+                <th>TIP DE CONCEDIU <span class="sort">↑↓</span></th>
+                <th>TIP ÎNVOIRE <span class="sort">↑↓</span></th>
+                <th>STATUS <span class="sort">↑↓</span></th>
               </tr>
             </thead>
-            <tbody id="pendingTbody"></tbody>
+            <tbody id="reqBody"></tbody>
           </table>
-          <div id="pendingEmpty" class="empty" style="display:none;margin-top:12px">Nu există cereri în luna selectată.</div>
+          <div class="empty" id="reqEmpty" style="display:none">Nu există cereri în luna selectată.</div>
         </div>
       </div>
 
-      <!-- TAB 3: Quick approvals -->
-      <div class="page" id="tab-fast">
-        <div id="err3" class="err" style="display:none"></div>
-        <div class="tableCard">
-          <table class="tbl">
+      <!-- Aprobări rapide -->
+      <div class="stackCard">
+        <div class="stackHead">
+          <div class="stackTitle">
+            <div class="h">Aprobări rapide</div>
+            <div class="s">Aprobă / respinge direct din listă (doar cereri pending).</div>
+          </div>
+        </div>
+
+        <div class="tblWrap">
+          <table class="simpleTbl actionsTbl" id="actTable" aria-label="Aprobări rapide">
             <thead>
               <tr>
-                <th style="width:40%">ANGAJAT</th>
-                <th style="width:30%">PERIOADĂ</th>
-                <th style="width:30%;text-align:right">ACȚIUNI</th>
+                <th>ANGAJAT <span class="sort">↑↓</span></th>
+                <th>PERIOADĂ <span class="sort">↑↓</span></th>
+                <th>ACȚIUNI</th>
               </tr>
             </thead>
-            <tbody id="fastTbody"></tbody>
+            <tbody id="actBody"></tbody>
           </table>
-          <div id="fastEmpty" class="empty" style="display:none;margin-top:12px">Nu există cereri pending în luna selectată.</div>
+          <div class="empty" id="actEmpty" style="display:none">Nu există cereri pending în luna selectată.</div>
         </div>
       </div>
     </div>
-  </div>
+  </div></div></div>
+</div>
 
-  <!-- Approval modal -->
-  <div class="ov" id="ov">
-    <div class="modal" role="dialog" aria-modal="true">
-      <div class="body">
-        <div class="k">Perioadă</div>
-        <div class="v" id="mPeriod">—</div>
+<!-- Approval modal -->
+<div class="ov" id="ov">
+  <div class="modal" role="dialog" aria-modal="true">
+    <div class="body">
+      <div class="k">Perioadă</div>
+      <div class="v" id="mPeriod">—</div>
 
-        <div class="k">Număr zile / ore</div>
-        <div class="v" id="mCount">—</div>
+      <div class="k">Număr</div>
+      <div class="v" id="mCount">—</div>
 
-        <div class="k">Motiv</div>
-        <div class="v" id="mReason">—</div>
+      <div class="k">Motiv</div>
+      <div class="v" id="mReason">—</div>
 
-        <div class="k">Ziua selectată</div>
-        <div class="v" id="mDay">—</div>
+      <div class="k">Ziua selectată</div>
+      <div class="v" id="mDay">—</div>
 
-        <div class="k">În aceeași zi cu</div>
-        <div class="avatars" id="sameDayAv"></div>
+      <div class="k">În aceeași zi cu</div>
+      <div class="avatars" id="sameDayAv"></div>
 
-        <div class="k">În aceeași perioadă cu</div>
-        <div class="avatars" id="samePeriodAv"></div>
+      <div class="k">În aceeași perioadă cu</div>
+      <div class="avatars" id="samePeriodAv"></div>
 
-        <textarea id="mNote" placeholder="Notă (opțional) — se aplică la approve/reject"></textarea>
-      </div>
-      <div class="foot">
-        <button class="bbtn secondary icon" id="mDl" title="Export (placeholder)">⤓</button>
-        <button class="bbtn reject" id="mReject">✕ Respinge</button>
-        <button class="bbtn approve" id="mApprove">✓ Aprobă</button>
-      </div>
+      <textarea id="mNote" placeholder="Notă (opțional) — se aplică la approve/reject"></textarea>
+    </div>
+    <div class="foot">
+      <button class="bbtn secondary icon" id="mDl" title="Export (placeholder)">⤓</button>
+      <button class="bbtn reject" id="mReject">✕ Respinge</button>
+      <button class="bbtn approve" id="mApprove">✓ Aprobă</button>
     </div>
   </div>
+</div>
 
-  <div class="toast" id="toast">—</div>
+<div class="toast" id="toast">—</div>
 
 <script>
 (() => {
-  // ===== Config loading =====
+  // ===== Config loading (same smart loader used elsewhere) =====
   const CFG_PATHS = ["./config.json","../config.json","/config.json"];
   let CFG = null;
 
   const LS_ADMIN = "pontaj/admin/v1";
   const LS_ADMIN_KEY = "pontaj_adminKey";
-  const LS_SELECTED_EMP = "pontaj/concedii/selectedEmp";
 
   function $(sel){ return document.querySelector(sel); }
-  function $all(sel){ return Array.from(document.querySelectorAll(sel)); }
 
+  function esc(s){
+    return String(s==null?"":s)
+      .replace(/&/g,"&amp;")
+      .replace(/</g,"&lt;")
+      .replace(/>/g,"&gt;")
+      .replace(/"/g,"&quot;")
+      .replace(/'/g,"&#39;");
+  }
   function toast(msg){
     const t = $("#toast");
     if (!t) return;
@@ -531,10 +484,8 @@
     t.classList.add("show");
     setTimeout(()=>t.classList.remove("show"), 2200);
   }
-
-  function setError(msg, which=1){
-    const id = which===1 ? "#err" : (which===2 ? "#err2" : "#err3");
-    const e = $(id);
+  function setError(msg){
+    const e = $("#err");
     if (!e) return;
     if(!msg){ e.style.display="none"; e.textContent=""; return; }
     e.style.display="block";
@@ -601,21 +552,25 @@
   function norm(s){ return String(s||"").trim().toLowerCase(); }
   function deacc(s){ return (s||"").normalize("NFD").replace(/[\u0300-\u036f]/g, ""); }
   function keyName(s){ return deacc(norm(s)).replace(/\s+/g," ").trim(); }
-  function tokens(s){ return keyName(s).split(/[^a-z0-9]+/).filter(Boolean); }
 
+  function tokens(s){
+    return keyName(s).split(/[^a-z0-9]+/).filter(Boolean);
+  }
   function samePerson(a,b){
     const A = keyName(a), B = keyName(b);
     if (!A || !B) return false;
     if (A === B) return true;
     if (A.includes(B) || B.includes(A)) return true;
+    // token match (useful for emails)
     const ta = tokens(A), tb = tokens(B);
     const small = ta.length<=tb.length ? ta : tb;
     const big = ta.length<=tb.length ? tb : ta;
+    // require at least 1 token match, or all tokens from smaller contained
     let hits = 0;
     for (const t of small){
       if (big.includes(t)) hits++;
     }
-    return hits >= Math.min(2, small.length);
+    return hits >= Math.min(2, small.length); // usually "alin ceclan" => 2 hits
   }
 
   function initials(name){
@@ -628,17 +583,21 @@
   function pad2(n){ return String(n).padStart(2,"0"); }
   function fmtTime(v){
     if (v === null || v === undefined || v === "") return "";
+    // String like "09:30" or "9:30"
     if (typeof v === "string"){
       const m = v.match(/(\d{1,2}):(\d{2})/);
       if (m) return pad2(m[1]) + ":" + m[2];
+      // ISO datetime or Date string
       const d = new Date(v);
       if (!isNaN(d.getTime())) return pad2(d.getHours()) + ":" + pad2(d.getMinutes());
       return v;
     }
+    // Date object (Google Sheets time often comes as 1899-12-30...)
     if (v instanceof Date){
       if (!isNaN(v.getTime())) return pad2(v.getHours()) + ":" + pad2(v.getMinutes());
       return "";
     }
+    // Number: Google Sheets serial date/time or fraction of day
     if (typeof v === "number" && isFinite(v)){
       let frac = v % 1;
       if (frac < 0) frac += 1;
@@ -654,6 +613,7 @@
     return "";
   }
 
+
   function daysInMonth(ym){
     const [y,m] = ym.split("-").map(Number);
     return new Date(y, m, 0).getDate();
@@ -661,6 +621,12 @@
   function dowShort(d){
     const arr=["Du","Lu","Ma","Mi","Jo","Vi","Sâ"];
     return arr[d.getDay()];
+  }
+  function iso(d){
+    const y = d.getFullYear();
+    const m = String(d.getMonth()+1).padStart(2,"0");
+    const da= String(d.getDate()).padStart(2,"0");
+    return y+"-"+m+"-"+da;
   }
   function parseIsoDate(s){
     const m = String(s||"").match(/^(\d{4})-(\d{2})-(\d{2})$/);
@@ -671,46 +637,10 @@
     return d && a && b && d.getTime() >= a.getTime() && d.getTime() <= b.getTime();
   }
 
-  function statusKey(s){
-    const v = norm(s);
-    if (v === "approved") return "approved";
-    if (v === "rejected") return "rejected";
-    return "pending";
-  }
-
-  function typeKey(l){
-    const k = norm(l.kind);
-    if (k === "invoire") return "inv";
-    const c = String(l.code||"").toUpperCase().trim();
-    if (c === "CO") return "co";
-    if (c === "BO") return "bo";
-    if (c === "CCC") return "ccc";
-    if (c === "CFP") return "cfp";
-    if (c === "EV") return "ev";
-    return "co";
-  }
-
-  function prettyLeaveType(l){
-    const k = norm(l.kind);
-    if (k === "invoire") return "Învoire";
-    const c = String(l.code||"").toUpperCase().trim();
-    const map = { CO:"Concediu de odihnă", BO:"Concediu medical", CCC:"Concediu creștere copil", CFP:"Concediu fără plată", EV:"Eveniment" };
-    return map[c] || (c || "Concediu");
-  }
-
-  function prettyStatus(s){
-    const k = statusKey(s);
-    if (k==="approved") return {text:"Solicitare aprobată", cls:"s-approved"};
-    if (k==="rejected") return {text:"Solicitare respinsă", cls:"s-rejected"};
-    return {text:"Solicitare în așteptare", cls:"s-pending"};
-  }
-
   // ===== data =====
   let LEAVES_ALL = [];
   let LEAVES_VIEW = [];
-  let MANAGERS = null; // { empKey: {managerName, managerEmail} }
-  let SELECTED_EMP = null; // empKey
-  let CUR_YM = "";
+  let MANAGERS = null; // { keyName(emp): {managerName, managerEmail} }
 
   async function loadManagersMap(endpoint, key){
     if (MANAGERS) return MANAGERS;
@@ -728,32 +658,29 @@
 
   function enrichLeave(l){
     const emp = String(l.employeeName||"").trim();
-    const empKey = keyName(emp) + "|" + keyName(l.department||l.dept||"");
-    const m = (MANAGERS && MANAGERS[keyName(emp)]) ? MANAGERS[keyName(emp)] : null;
+    const k = keyName(emp);
+    const m = (MANAGERS && MANAGERS[k]) ? MANAGERS[k] : null;
     const mgrName = String(l.managerName||"").trim() || (m ? String(m.managerName||"").trim() : "");
     const mgrEmail = String(l.managerEmail||"").trim() || (m ? String(m.managerEmail||"").trim() : "");
     return {
       ...l,
-      employeeName: emp,
-      dept: String(l.department||l.dept||"").trim(),
-      _empKey: empKey,
+      _empKey: k,
       _mgrName: mgrName,
-      _mgrEmail: mgrEmail,
-      _status: statusKey(l.status),
-      _type: typeKey(l),
+      _mgrEmail: mgrEmail
     };
   }
 
   function filterMine(list, admin){
     const onlyMine = $("#onlyMine")?.checked;
     if (!onlyMine) return list;
-    if (!admin) return list;
+    if (!admin) return list; // can't filter
     const adminId = admin.label || admin.email || "";
     if (!adminId) return list;
 
     return list.filter(l=>{
       const a = l._mgrName || "";
       const b = l._mgrEmail || "";
+      // if request has no manager assigned, hide it in "mine"
       if (!a && !b) return false;
       return samePerson(a, adminId) || samePerson(b, adminId) || samePerson(a, admin.email||"") || samePerson(b, admin.email||"");
     });
@@ -766,8 +693,7 @@
     return list.filter(l=>{
       const n = deacc(norm(l.employeeName||""));
       const c = deacc(norm(l.code||""));
-      const k = deacc(norm(l.kind||""));
-      return n.includes(qq) || c.includes(qq) || k.includes(qq);
+      return n.includes(qq) || c.includes(qq);
     });
   }
 
@@ -779,327 +705,324 @@
     LEAVES_VIEW = list;
   }
 
-  function buildEmployees(){
-    const q = norm($("#empQ")?.value || "");
-    const qq = deacc(q);
+  // ===== UI render =====
+  function render(ym, admin){
+    const thead = $("#thead");
+    const tbody = $("#tbody");
+    if (!thead || !tbody) return;
 
-    const map = new Map();
-    for (const l of LEAVES_VIEW){
-      const k = l._empKey;
-      if (!k) continue;
-      if (!map.has(k)){
-        map.set(k, { key:k, name:l.employeeName||"—", dept:l.dept||"", mgr:l._mgrName||l._mgrEmail||"", pending:0, total:0 });
-      }
-      const e = map.get(k);
-      e.total++;
-      if (l._status === "pending") e.pending++;
-      // keep mgr if exists
-      if (!e.mgr && (l._mgrName||l._mgrEmail)) e.mgr = (l._mgrName||l._mgrEmail);
-    }
-    let arr = Array.from(map.values())
-      .sort((a,b)=> keyName(a.name).localeCompare(keyName(b.name)));
-    if (qq){
-      arr = arr.filter(e=>{
-        const n = deacc(norm(e.name));
-        const d = deacc(norm(e.dept));
-        return n.includes(qq) || d.includes(qq);
-      });
-    }
-    return arr;
-  }
-
-  // ===== render: employees list + calendar =====
-  function renderEmployees(){
-    const list = $("#empList");
-    if (!list) return;
-    const emps = buildEmployees();
-
-    // choose selected
-    if (!SELECTED_EMP){
-      try{ SELECTED_EMP = (localStorage.getItem(LS_SELECTED_EMP)||"").trim() || ""; }catch(e){}
-    }
-    if (!SELECTED_EMP || !emps.some(e=>e.key===SELECTED_EMP)){
-      SELECTED_EMP = emps[0]?.key || null;
-      if (SELECTED_EMP){ try{ localStorage.setItem(LS_SELECTED_EMP, SELECTED_EMP); }catch(e){} }
-    }
-
-    list.innerHTML = "";
-    if (!emps.length){
-      list.innerHTML = `<div class="empty" style="margin:10px">Nu există cereri pentru luna selectată.</div>`;
-      return;
-    }
-
-    for (const e of emps){
-      const div = document.createElement("div");
-      div.className = "empItem" + (e.key===SELECTED_EMP ? " active" : "");
-      const chipClass = e.pending ? "chip warn" : "chip";
-      div.innerHTML = `
-        <div class="av">${initials(e.name)}</div>
-        <div class="empMeta">
-          <div class="n">${escapeHtml(e.name)}</div>
-          <div class="d">${escapeHtml(e.dept || "—")}${e.mgr ? " • Manager: " + escapeHtml(e.mgr) : ""}</div>
-        </div>
-        <div class="${chipClass}" title="${e.pending ? "Pending" : "Total"}">${e.pending ? e.pending : e.total}</div>
-      `;
-      div.addEventListener("click", ()=>{
-        SELECTED_EMP = e.key;
-        try{ localStorage.setItem(LS_SELECTED_EMP, SELECTED_EMP); }catch(_){}
-        renderEmployees();
-        renderCalendar(CUR_YM, getAdminSession());
-      });
-      list.appendChild(div);
-    }
-  }
-
-  function renderCalendar(ym, admin){
-    const grid = $("#calGrid");
-    if (!grid) return;
-
+    // header
     const dim = daysInMonth(ym);
-    grid.style.setProperty("--days", String(dim));
-
-    // find selected employee meta
-    const emps = buildEmployees();
-    const emp = emps.find(x=>x.key===SELECTED_EMP) || emps[0];
-    if (!emp){
-      grid.innerHTML = "";
-      return;
-    }
-
-    // build day map for selected employee
-    const selectedLeaves = LEAVES_VIEW.filter(l=>l._empKey === emp.key);
-    const dayMap = new Map(); // dayNumber => entries
-    for (const l of selectedLeaves){
-      const sd = parseIsoDate(l.startDate);
-      const ed = parseIsoDate(l.endDate || l.startDate);
-      if (!sd || !ed) continue;
-      for (let d=1; d<=dim; d++){
-        const day = new Date(Number(ym.slice(0,4)), Number(ym.slice(5,7))-1, d, 12,0,0,0);
-        if (between(day, sd, ed)){
-          if (!dayMap.has(d)) dayMap.set(d, []);
-          dayMap.get(d).push(l);
-        }
-      }
-    }
-
-    // header row + one employee row
-    let html = "";
-    html += `<div class="hCell hLeft">ANGAJAT</div>`;
+    let h = `<tr>
+      <th class="idxH">#</th>
+      <th class="empH">ANGAJAT <span class="sort">↑↓</span></th>`;
     for (let d=1; d<=dim; d++){
       const dt = new Date(Number(ym.slice(0,4)), Number(ym.slice(5,7))-1, d, 12,0,0,0);
-      html += `<div class="hCell">${String(d).padStart(2,"0")}<span class="dow">${dowShort(dt)}</span></div>`;
+      const wk = isWeekend(dt) ? " weekend" : "";
+      h += `<th class="${wk.trim()}">${String(d).padStart(2,"0")}<div class="dow">${dowShort(dt)}</div></th>`;
     }
+    h += `</tr>`;
+    thead.innerHTML = h;
 
-    // left cell with employee
-    const mgrTxt = emp.mgr ? `Manager: ${emp.mgr}` : "Manager: —";
-    html += `<div class="leftCell">
-      <div class="av">${initials(emp.name)}</div>
-      <div class="name">
-        <div class="n">${escapeHtml(emp.name)}</div>
-        <div class="d">${escapeHtml(mgrTxt)}</div>
-      </div>
-    </div>`;
+    // group leaves by employee
+    const byEmp = new Map();
+    for (const l of LEAVES_VIEW){
+      const emp = String(l.employeeName||"").trim() || "—";
+      if (!byEmp.has(emp)) byEmp.set(emp, []);
+      byEmp.get(emp).push(l);
+    }
+    const emps = Array.from(byEmp.keys()).sort((a,b)=>keyName(a).localeCompare(keyName(b)));
 
-    for (let d=1; d<=dim; d++){
-      const arr = (dayMap.get(d) || []).slice().sort((a,b)=>{
-        // pending first, then concediu before invoire
-        const s = (a._status===b._status) ? 0 : (a._status==="pending" ? -1 : 1);
-        if (s) return s;
-        return (a._type==="inv") - (b._type==="inv");
-      });
-
-      if (!arr.length){
-        html += `<div class="dayCell" data-day="${String(d).padStart(2,"0")}"></div>`;
-        continue;
+    // rows
+    let html = "";
+    let rowIdx = 1;
+    for (const emp of emps){
+      const list = byEmp.get(emp) || [];
+      // map day -> leaves
+      const cellMap = new Map(); // d => [leaves]
+      for (const l of list){
+        const sd = parseIsoDate(l.startDate);
+        const ed = parseIsoDate(l.endDate || l.startDate);
+        if (!sd || !ed) continue;
+        for (let d=1; d<=dim; d++){
+          const day = new Date(Number(ym.slice(0,4)), Number(ym.slice(5,7))-1, d, 12,0,0,0);
+          if (between(day, sd, ed)){
+            if (!cellMap.has(d)) cellMap.set(d, []);
+            cellMap.get(d).push(l);
+          }
+        }
       }
 
-      const first = arr[0];
-      const pending = arr.some(x=>x._status==="pending");
-      const st = pending ? "pending" : (arr.some(x=>x._status==="rejected") ? "rejected" : "approved");
-      const t = first._type;
+      const mgr = list[0]?._mgrName || list[0]?._mgrEmail || "";
+      const mgrTxt = mgr ? `Manager: ${mgr}` : `Manager: —`;
 
-      const code = (t==="inv") ? "ÎNV" : (String(first.code||"").toUpperCase().trim() || "—");
-      const time = (t==="inv") ? `${fmtTime(first.startTime)}-${fmtTime(first.endTime)}` : "";
-      const more = arr.length>1 ? `+${arr.length-1}` : "";
-      const payload = encodeURIComponent(JSON.stringify(arr));
+      html += `<tr>
+        <th class="idxC">${rowIdx++}</th>
+        <th class="empC">
+          <div class="who">
+            <div class="av">${initials(emp)}</div>
+            <div class="name">
+              <div class="n">${esc(emp)}</div>
+              <div class="d">${esc(mgrTxt)}</div>
+            </div>
+          </div>
+        </th>`;
 
-      html += `<div class="dayCell" data-day="${String(d).padStart(2,"0")}">
-        ${pending ? `<div class="bang">!</div>` : ``}
-        <div class="box typeBox t-${t} st-${st}" data-arr="${payload}">
-          <div class="code">${escapeHtml(code)}</div>
-          ${time ? `<div class="time">${escapeHtml(time)}</div>` : ``}
-          ${more ? `<div class="more">${escapeHtml(more)}</div>` : ``}
-        </div>
-      </div>`;
+      for (let d=1; d<=dim; d++){
+        const dt = new Date(Number(ym.slice(0,4)), Number(ym.slice(5,7))-1, d, 12,0,0,0);
+        const wk = isWeekend(dt) ? " weekend" : "";
+        const arr = cellMap.get(d) || [];
+        if (!arr.length){
+          html += `<td class="day${wk}"></td>`;
+          continue;
+        }
+        const first = arr[0];
+        const isInv = norm(first.kind)==="invoire";
+        const code = isInv ? "ÎNV" : (first.code || "—");
+        const pending = arr.some(x=>norm(x.status)==="pending");
+        const more = arr.length>1 ? `<div class="lvMore">+${arr.length-1}</div>` : "";
+        const bang = pending ? `<div class="bang">!</div>` : "";
+        const time = isInv ? `<div class="t">${fmtTime(first.startTime)}–${fmtTime(first.endTime)}</div>` : "";
+        const dataPayload = encodeURIComponent(JSON.stringify(arr));
+        html += `<td class="day${wk}">
+          <div class="lvcell" data-day="${String(d).padStart(2,"0")}" data-arr="${dataPayload}">
+            ${bang}
+            <div class="lvTag">
+              <div class="code">${esc(code)}</div>
+              ${time}
+            </div>
+            ${more}
+          </div>
+        </td>`;
+      }
+      html += `</tr>`;
     }
+    tbody.innerHTML = html;
 
-    grid.innerHTML = html;
-
-    // event delegation for cell click
-    grid.onclick = (ev)=>{
-      const box = ev.target && ev.target.closest ? ev.target.closest(".box") : null;
-      if (!box) return;
-      const dayCell = box.closest(".dayCell");
-      const day = ym + "-" + (dayCell?.getAttribute("data-day") || "01");
-      let arr = [];
-      try{ arr = JSON.parse(decodeURIComponent(box.getAttribute("data-arr") || "[]")); }catch(e){ arr = []; }
-      openModal(arr, day);
+    // click (delegare robustă) — deschide modalul de aprobare
+    tbody.onclick = (ev)=>{
+      const el = ev.target && ev.target.closest ? ev.target.closest(".lvcell") : null;
+      if (!el) return;
+      try{
+        const day = ym + "-" + el.getAttribute("data-day");
+        const arr = JSON.parse(decodeURIComponent(el.getAttribute("data-arr")||"[]"));
+        openModal(arr, day, admin);
+      }catch(e){ console.warn("openModal failed", e); }
     };
 
-    // title & debug
-    const title = $("#calTitle");
-    if (title) title.textContent = `Calendar cereri — ${emp.name}`;
+    // ===== Listele de jos =====
+    const pending = LEAVES_VIEW.filter(l=>norm(l.status)==="pending");
+    const pc = $("#pendingCount"); if (pc) pc.textContent = String(pending.length);
+
+    // table 1: status list (all)
+    const reqBody = $("#reqBody");
+    const reqEmpty = $("#reqEmpty");
+    if (reqBody) reqBody.innerHTML = "";
+    if (reqEmpty) reqEmpty.style.display = LEAVES_VIEW.length ? "none" : "block";
+
+    if (reqBody && LEAVES_VIEW.length){
+      const listAll = [...LEAVES_VIEW].sort((a,b)=>String(b.createdAt||"").localeCompare(String(a.createdAt||"")));
+      for (const l of listAll){
+        const empName = String(l.employeeName||"—").trim() || "—";
+        const isInv = norm(l.kind)==="invoire";
+        const leaveTxt = isInv ? "—" : (leaveLabel(l.code) || "—");
+        const invTxt = isInv ? invLabel(l) : "—";
+        const st = norm(l.status);
+        const stTxt = st==="approved" ? "Solicitare aprobată" : (st==="rejected" ? "Solicitare respinsă" : "Solicitare în așteptare");
+        const stCls = st==="approved" ? "st-approved" : (st==="rejected" ? "st-rejected" : "st-pending");
+        const arrPayload = encodeURIComponent(JSON.stringify([l]));
+        const tr = document.createElement("tr");
+        tr.setAttribute("data-arr", arrPayload);
+        tr.setAttribute("data-day", (l.startDate||""));
+        tr.innerHTML = `
+          <td>
+            <div class="empCell">
+              <div class="avatar">${initials(empName)}</div>
+              <div>
+                <div class="empName">${esc(empName)}</div>
+              </div>
+            </div>
+          </td>
+          <td>${esc(leaveTxt)}</td>
+          <td>${esc(invTxt)}</td>
+          <td><span class="statusTxt ${stCls}">${stTxt}</span></td>`;
+        tr.addEventListener("click", ()=>{
+          try{ openModal([l], l.startDate || (ym+"-01"), admin); }catch(_){}
+        });
+        reqBody.appendChild(tr);
+      }
+    }
+
+    // table 2: quick approvals (pending only)
+    const actBody = $("#actBody");
+    const actEmpty = $("#actEmpty");
+    if (actBody) actBody.innerHTML = "";
+    if (actEmpty) actEmpty.style.display = pending.length ? "none" : "block";
+
+    if (actBody && pending.length){
+      const listP = [...pending].sort((a,b)=>String(a.startDate||"").localeCompare(String(b.startDate||"")));
+      for (const l of listP){
+        const empName = String(l.employeeName||"—").trim() || "—";
+        const per = periodLabel(l);
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>
+            <div class="empCell">
+              <div class="avatar">${initials(empName)}</div>
+              <div>
+                <div class="empName">${esc(empName)}</div>
+                <div class="mut">${esc(per.meta)}</div>
+              </div>
+            </div>
+          </td>
+          <td style="font-weight:900;color:#2f245c">${esc(per.main)}</td>
+          <td>
+            <div class="actions">
+              <button class="btnA btnApprove" data-act="approve" data-id="${esc(l.id||"")}">✓ Aprobă</button>
+              <button class="btnA btnReject" data-act="reject" data-id="${esc(l.id||"")}">✕</button>
+            </div>
+          </td>`;
+        actBody.appendChild(tr);
+      }
+
+      actBody.onclick = async (ev)=>{
+        const b = ev.target && ev.target.closest ? ev.target.closest("button[data-act]") : null;
+        if (!b) return;
+        ev.preventDefault();
+        ev.stopPropagation();
+        const id = b.getAttribute("data-id");
+        const act = b.getAttribute("data-act");
+        const decision = act==="approve" ? "approved" : "rejected";
+        const l = pending.find(x=>String(x.id)===String(id));
+        if (!l) return;
+        await decideOne(l, decision);
+      };
+    }
+
+    // debug text
     const dbg = $("#dbg");
     if (dbg){
       const a = admin ? (admin.label || admin.email || "—") : "—";
-      const pendingCount = LEAVES_VIEW.filter(l=>l._status==="pending").length;
-      dbg.textContent = `Încărcate: ${LEAVES_ALL.length} • Afișate: ${LEAVES_VIEW.length} • Pending: ${pendingCount} • Admin: ${a}`;
-    }
-
-    // sync left list height to calendar card
-    syncEmpListHeight();
-  }
-
-  function syncEmpListHeight(){
-    const empList = $("#empList");
-    const calCard = $("#calCard");
-    const empCard = $("#empCard");
-    if (!empList || !calCard || !empCard) return;
-    if (window.matchMedia && window.matchMedia("(max-width:1100px)").matches){
-      empList.style.maxHeight = "320px";
-      return;
-    }
-    // approximate: keep list within calendar card height
-    const h = calCard.getBoundingClientRect().height;
-    empList.style.maxHeight = Math.max(240, Math.floor(h - 70)) + "px";
-  }
-
-  // ===== render: pending table + quick approvals =====
-  function renderPendingTable(){
-    const tb = $("#pendingTbody");
-    const empty = $("#pendingEmpty");
-    if (!tb) return;
-
-    const rows = LEAVES_VIEW.slice().sort((a,b)=>{
-      const o = (a._status===b._status) ? 0 : (a._status==="pending" ? -1 : 1);
-      if (o) return o;
-      return keyName(a.employeeName).localeCompare(keyName(b.employeeName));
-    });
-
-    tb.innerHTML = "";
-    if (!rows.length){
-      if (empty) empty.style.display = "block";
-      return;
-    }
-    if (empty) empty.style.display = "none";
-
-    for (const l of rows){
-      const tr = document.createElement("tr");
-      const invText = (l._type==="inv") ? `Învoire (${fmtTime(l.startTime)}–${fmtTime(l.endTime)})` : "—";
-      const leaveText = (l._type==="inv") ? "—" : prettyLeaveType(l);
-      const st = prettyStatus(l._status);
-
-      tr.innerHTML = `
-        <td>
-          <div class="whoCell">
-            <div class="av">${initials(l.employeeName)}</div>
-            <div>
-              <div style="font-weight:1000">${escapeHtml(l.employeeName)}</div>
-              <div class="muted" style="margin-top:2px">${escapeHtml(l.dept||"—")}</div>
-            </div>
-          </div>
-        </td>
-        <td>${escapeHtml(leaveText)}</td>
-        <td>${escapeHtml(invText)}</td>
-        <td><span class="statusTxt ${st.cls}">${escapeHtml(st.text)}</span></td>
-      `;
-      tr.addEventListener("click", ()=>{
-        const day = l.startDate || (CUR_YM + "-01");
-        openModal([l], day);
-      });
-      tb.appendChild(tr);
+      dbg.textContent = `Încărcate: ${LEAVES_ALL.length} • Afișate: ${LEAVES_VIEW.length} • Admin: ${a}`;
     }
   }
 
-  function renderQuickApprovals(){
-    const tb = $("#fastTbody");
-    const empty = $("#fastEmpty");
-    if (!tb) return;
+  function isWeekend(d){
+    const x = d.getDay();
+    return x===0 || x===6;
+  }
 
-    const pend = LEAVES_VIEW.filter(l=>l._status==="pending").sort((a,b)=>{
-      return keyName(a.employeeName).localeCompare(keyName(b.employeeName));
-    });
+  function leaveLabel(code){
+    const c = String(code||"").toUpperCase().trim();
+    const map = {
+      "CO":"Concediu de odihnă",
+      "BO":"Concediu medical",
+      "CCC":"Concediu pentru creșterea copilului",
+      "CFP":"Concediu fără plată",
+      "EV":"Eveniment"
+    };
+    return map[c] || (c ? c : "—");
+  }
 
-    tb.innerHTML = "";
-    if (!pend.length){
-      if (empty) empty.style.display = "block";
-      return;
+  function invLabel(l){
+    const d = l.startDate || "—";
+    const a = fmtTime(l.startTime);
+    const b = fmtTime(l.endTime);
+    // dacă nu avem ore valide, nu afișăm '1899' niciodată
+    if (a==="—" && b==="—") return "Învoire";
+    return `Învoire (${a}–${b})`;
+  }
+
+  function periodLabel(l){
+    const isInv = norm(l.kind)==="invoire";
+    if (isInv){
+      const d = fmtDateRO(l.startDate);
+      const a = fmtTime(l.startTime);
+      const b = fmtTime(l.endTime);
+      return { main: `${d}`, meta: `Învoire • ${a}–${b}` };
     }
-    if (empty) empty.style.display = "none";
+    const a = fmtDateRO(l.startDate);
+    const b = fmtDateRO(l.endDate || l.startDate);
+    const lbl = leaveLabel(l.code);
+    return { main: `${a} – ${b}`, meta: lbl };
+  }
 
-    for (const l of pend){
-      const tr = document.createElement("tr");
-      const period = (l._type==="inv")
-        ? `${l.startDate} • ${fmtTime(l.startTime)}–${fmtTime(l.endTime)}`
-        : `${l.startDate} - ${l.endDate || l.startDate}`;
-      tr.innerHTML = `
-        <td>
-          <div class="whoCell">
-            <div class="av">${initials(l.employeeName)}</div>
-            <div>
-              <div style="font-weight:1000">${escapeHtml(l.employeeName)}</div>
-              <div class="muted" style="margin-top:2px">${escapeHtml(l.dept||"—")}</div>
-            </div>
-          </div>
-        </td>
-        <td style="font-weight:1000">${escapeHtml(period)}</td>
-        <td style="text-align:right">
-          <div class="actRow">
-            <button class="actBtn approve">✓ Aprobă</button>
-            <button class="actBtn reject">✕ Respinge</button>
-          </div>
-        </td>
-      `;
-      const [bAp, bRej] = Array.from(tr.querySelectorAll("button"));
-      bAp.addEventListener("click", (e)=>{ e.stopPropagation(); decideOne(l, "approved"); });
-      bRej.addEventListener("click", (e)=>{ e.stopPropagation(); decideOne(l, "rejected"); });
-      tr.addEventListener("click", ()=> openModal([l], l.startDate || (CUR_YM+"-01")) );
-      tb.appendChild(tr);
+  function fmtDateRO(iso){
+    if (!iso) return "—";
+    const d = parseIsoDate(iso);
+    if (!d) return String(iso);
+    const dd = String(d.getDate()).padStart(2,"0");
+    const mm = String(d.getMonth()+1).padStart(2,"0");
+    const yy = d.getFullYear();
+    return `${dd}.${mm}.${yy}`;
+  }
+
+  async function decideOne(l, decision){
+    const endpoint = ep();
+    if (!endpoint){ setError("Lipsește endpoint în config.json."); return; }
+    const key = getAdminKey();
+    if (!key){ setError("Lipsește ADMIN_KEY."); return; }
+
+    const admin = getAdminSession();
+    const by = (admin && (admin.label || admin.email)) ? (admin.label || admin.email) : "admin";
+
+    const note = ""; // UI rapidă: fără notă
+
+    const url = endpoint + "?fn=adminLeaveDecide"
+      + "&id=" + encodeURIComponent(l.id)
+      + "&decision=" + encodeURIComponent(decision)
+      + "&note=" + encodeURIComponent(note)
+      + "&by=" + encodeURIComponent(by)
+      + "&key=" + encodeURIComponent(key)
+      + "&ts=" + Date.now();
+
+    try{
+      const res = await jsonp(url);
+      if (!res || !res.ok) throw new Error(res?.error || "Eroare la salvare.");
+      toast(decision === "approved" ? "Aprobat." : "Respins.");
+      await loadMonth(CUR_YM);
+    }catch(err){
+      setError(String(err && err.message ? err.message : err));
     }
   }
 
-  // ===== Modal logic =====
+
+
+  // ===== Modal (approval) =====
   let CURRENT = null; // {arr, day}
-  function openModal(arr, day){
+  function openModal(arr, day, admin){
     if (!arr || !arr.length) return;
     CURRENT = { arr, day };
+    const l = arr[0];
+
     const ov = $("#ov");
     if (!ov) return;
     ov.classList.add("show");
 
-    const l = arr[0];
+    // fill
     const mPeriod = $("#mPeriod"), mCount=$("#mCount"), mReason=$("#mReason"), mDay=$("#mDay");
     const mNote=$("#mNote");
     if (mNote) mNote.value = "";
 
-    if (l._type === "inv"){
+    const kind = norm(l.kind);
+    if (kind === "invoire"){
       if (mPeriod) mPeriod.textContent = `${l.startDate} • ${fmtTime(l.startTime)}–${fmtTime(l.endTime)}`;
       if (mCount) mCount.textContent = "Învoire (ore)";
     } else {
-      if (mPeriod) mPeriod.textContent = `${l.startDate} - ${l.endDate || l.startDate}`;
-      if (mCount) mCount.textContent = `${countDays(l.startDate, l.endDate || l.startDate)} zile`;
+      if (mPeriod) mPeriod.textContent = `${l.startDate} - ${l.endDate}`;
+      if (mCount) mCount.textContent = `${countDays(l.startDate, l.endDate)} zile`;
     }
     if (mReason) mReason.textContent = l.reason || "—";
     if (mDay) mDay.textContent = day || l.startDate || "—";
 
+    // same day / period avatars
     fillAvatars("#sameDayAv", listSameDay(arr, day));
     fillAvatars("#samePeriodAv", listSamePeriod(arr));
 
-    // disable actions if not pending
-    const isPending = arr.some(x=>x._status==="pending");
+    // buttons
     const mApprove = $("#mApprove"), mReject=$("#mReject");
-    if (mApprove) mApprove.disabled = !isPending;
-    if (mReject) mReject.disabled = !isPending;
+    if (mApprove) mApprove.disabled = false;
+    if (mReject) mReject.disabled = false;
   }
 
   function closeModal(){
@@ -1117,7 +1040,7 @@
       box.innerHTML = `<div class="muted">—</div>`;
       return;
     }
-    people.slice(0,8).forEach(p=>{
+    people.slice(0,6).forEach(p=>{
       const d = document.createElement("div");
       d.className = "av2";
       d.title = p;
@@ -1134,16 +1057,21 @@
   }
 
   function listSameDay(arr, day){
-    const sel = parseIsoDate(day);
-    if (!sel) return [];
+    // within current view, show others in same day
+    const d = day || "";
     const names = new Set();
     for (const l of LEAVES_VIEW){
+      if (!l.startDate) continue;
       const sd = parseIsoDate(l.startDate);
       const ed = parseIsoDate(l.endDate || l.startDate);
-      if (!sd || !ed) continue;
+      const sel = parseIsoDate(d);
+      if (!sd || !ed || !sel) continue;
       if (between(sel, sd, ed)) names.add(String(l.employeeName||"").trim());
     }
-    for (const x of arr){ names.delete(String(x.employeeName||"").trim()); }
+    // remove current employee
+    for (const x of arr){
+      names.delete(String(x.employeeName||"").trim());
+    }
     return Array.from(names);
   }
 
@@ -1157,6 +1085,7 @@
       const a = parseIsoDate(l.startDate);
       const b = parseIsoDate(l.endDate || l.startDate);
       if (!a || !b) continue;
+      // overlap
       if (b < sd || a > ed) continue;
       names.add(String(l.employeeName||"").trim());
     }
@@ -1166,20 +1095,17 @@
 
   async function decide(decision){
     if (!CURRENT || !CURRENT.arr || !CURRENT.arr.length) return;
-    // decide first pending request in array
-    const l = CURRENT.arr.find(x=>x._status==="pending") || CURRENT.arr[0];
-    await decideOne(l, decision, true);
-  }
-
-  async function decideOne(l, decision, fromModal=false){
     const endpoint = ep();
-    if (!endpoint){ setError("Lipsește endpoint în config.json.", 1); return; }
+    if (!endpoint){ setError("Lipsește endpoint în config.json."); return; }
     const key = getAdminKey();
-    if (!key){ setError("Lipsește ADMIN_KEY.", 1); return; }
+    if (!key){ setError("Lipsește ADMIN_KEY."); return; }
 
     const admin = getAdminSession();
     const by = (admin && (admin.label || admin.email)) ? (admin.label || admin.email) : "admin";
-    const note = (fromModal ? ($("#mNote")?.value || "").trim() : "");
+
+    // decide only first request for now (if multiple in same cell, admin can click each from pending list)
+    const l = CURRENT.arr[0];
+    const note = ($("#mNote")?.value || "").trim();
 
     const url = endpoint + "?fn=adminLeaveDecide"
       + "&id=" + encodeURIComponent(l.id)
@@ -1193,16 +1119,18 @@
       const res = await jsonp(url);
       if (!res || !res.ok) throw new Error(res?.error || "Eroare la salvare.");
       toast(decision === "approved" ? "Aprobat." : "Respins.");
-      if (fromModal) closeModal();
+      closeModal();
       await loadMonth(CUR_YM);
     }catch(err){
-      setError(String(err && err.message ? err.message : err), 1);
+      setError(String(err && err.message ? err.message : err));
     }
   }
 
-  // ===== Load month =====
+  // ===== load month =====
+  let CUR_YM = "";
+
   async function loadMonth(ym){
-    setError("",1); setError("",2); setError("",3);
+    setError("");
     const endpoint = ep();
     if(!endpoint){ setError("Lipsește leaveEndpoint/adminEventsEndpoint în config.json."); return; }
 
@@ -1230,24 +1158,12 @@
       ]);
 
       if (!data || !data.ok) throw new Error(data?.error || "Eroare la încărcare.");
-      LEAVES_ALL = Array.isArray(data.list) ? data.list : (Array.isArray(data.leaves) ? data.leaves : []);
+      LEAVES_ALL = Array.isArray(data.list) ? data.list : [];
       buildView(admin);
-
-      renderEmployees();
-      renderCalendar(ym, admin);
-      renderPendingTable();
-      renderQuickApprovals();
+      render(ym, admin);
     }catch(err){
       setError(String(err && err.message ? err.message : err));
     }
-  }
-
-  // ===== tabs =====
-  function setTab(name){
-    $all(".tabBtn").forEach(b=> b.classList.toggle("active", b.dataset.tab===name));
-    $all(".page").forEach(p=> p.classList.toggle("active", p.id === "tab-"+name));
-    // height sync on next frame
-    requestAnimationFrame(syncEmpListHeight);
   }
 
   // ===== init =====
@@ -1258,61 +1174,50 @@
     return `${y}-${m}`;
   }
 
-  function fillMonthSel(){
-    const sel = $("#monthSel");
-    if (!sel) return;
-    const now = new Date();
-    const list = [];
-    for (let i=-12;i<=12;i++){
-      const d = new Date(now.getFullYear(), now.getMonth()+i, 1);
-      const ym = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;
-      const label = d.toLocaleDateString("ro-RO", { month:"long", year:"numeric" });
-      list.push({ym,label});
-    }
-    sel.innerHTML = list.map(x=>`<option value="${x.ym}">${escapeHtml(x.label)}</option>`).join("");
-    sel.value = ymNow();
-  }
-
   function bind(){
-    fillMonthSel();
+    // sync search boxes (top + calendar)
+    const q1 = $("#q"), q2 = $("#q2");
+    if (q1 && q2){
+      const sync = (src, dst) => { dst.value = src.value; };
+      q1.addEventListener("input", ()=>{ sync(q1,q2); buildView(getAdminSession()); render(CUR_YM, getAdminSession()); }, {passive:true});
+      q2.addEventListener("input", ()=>{ sync(q2,q1); buildView(getAdminSession()); render(CUR_YM, getAdminSession()); }, {passive:true});
+    }
 
-    $("#monthSel")?.addEventListener("change", ()=>loadMonth($("#monthSel").value));
+    // month selector
+    const monthSel = $("#monthSel");
+    if (monthSel){
+      const now = ymNow();
+      monthSel.value = now;
+      monthSel.addEventListener("change", ()=>loadMonth(monthSel.value));
+    }
+
     $("#prev")?.addEventListener("click", ()=>{
       const m = ($("#monthSel")?.value || ymNow()).split("-").map(Number);
       const d = new Date(m[0], m[1]-2, 1);
       const ym = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;
-      $("#monthSel").value = ym;
+      if ($("#monthSel")) $("#monthSel").value = ym;
       loadMonth(ym);
     });
+
     $("#next")?.addEventListener("click", ()=>{
       const m = ($("#monthSel")?.value || ymNow()).split("-").map(Number);
       const d = new Date(m[0], m[1], 1);
       const ym = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;
-      $("#monthSel").value = ym;
+      if ($("#monthSel")) $("#monthSel").value = ym;
       loadMonth(ym);
     });
-    $("#refresh")?.addEventListener("click", ()=>loadMonth($("#monthSel")?.value || ymNow()));
-    $("#onlyMine")?.addEventListener("change", ()=>{
-      const admin = getAdminSession();
-      buildView(admin);
-      renderEmployees();
-      renderCalendar(CUR_YM, admin);
-      renderPendingTable();
-      renderQuickApprovals();
-    });
 
+    $("#refresh")?.addEventListener("click", ()=>loadMonth($("#monthSel")?.value || ymNow()));
     $("#q")?.addEventListener("input", ()=>{
       const admin = getAdminSession();
       buildView(admin);
-      renderEmployees();
-      renderCalendar(CUR_YM, admin);
-      renderPendingTable();
-      renderQuickApprovals();
+      render(CUR_YM || ($("#monthSel")?.value || ymNow()), admin);
     });
-    $("#empQ")?.addEventListener("input", ()=>renderEmployees());
-
-    // tabs click
-    $all(".tabBtn").forEach(b=> b.addEventListener("click", ()=>setTab(b.dataset.tab)));
+    $("#onlyMine")?.addEventListener("change", ()=>{
+      const admin = getAdminSession();
+      buildView(admin);
+      render(CUR_YM || ($("#monthSel")?.value || ymNow()), admin);
+    });
 
     // modal
     $("#ov")?.addEventListener("click", (e)=>{
@@ -1321,14 +1226,9 @@
     $("#mApprove")?.addEventListener("click", ()=>decide("approved"));
     $("#mReject")?.addEventListener("click", ()=>decide("rejected"));
     $("#mDl")?.addEventListener("click", ()=>toast("Export: în curând"));
-    document.addEventListener("keydown", (e)=>{ if (e.key==="Escape") closeModal(); });
-    window.addEventListener("resize", ()=>requestAnimationFrame(syncEmpListHeight));
-  }
-
-  function escapeHtml(s){
-    return String(s||"").replace(/[&<>"']/g, ch => ({
-      "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"
-    }[ch]));
+    document.addEventListener("keydown", (e)=>{
+      if (e.key === "Escape") closeModal();
+    });
   }
 
   async function init(){
@@ -1342,5 +1242,33 @@
   document.addEventListener("DOMContentLoaded", init);
 })();
 </script>
+
+<script>
+(function(){
+  const $$ = (s, r=document)=>Array.from(r.querySelectorAll(s));
+  function setTab(id){
+    $$(".subtab").forEach(b=>{
+      const on = b.dataset.tab === id;
+      b.classList.toggle("active", on);
+      b.setAttribute("aria-selected", on ? "true" : "false");
+    });
+    $$(".tabPanel").forEach(p=>p.classList.toggle("active", p.id === id));
+    try{ history.replaceState(null, "", "#"+id.replace("tab-","")); }catch(e){}
+  }
+  function init(){
+    const tabs = $$(".subtab");
+    if (!tabs.length) return;
+    let hash = (location.hash || "").replace("#","").trim();
+    let id = "tab-concedii";
+    if (hash === "pending") id = "tab-pending";
+    if (hash === "quick") id = "tab-quick";
+    if (hash === "concedii") id = "tab-concedii";
+    tabs.forEach(b=>b.addEventListener("click", ()=>setTab(b.dataset.tab)));
+    setTab(id);
+  }
+  window.addEventListener("DOMContentLoaded", init);
+})();
+</script>
+
 </body>
 </html>
