@@ -90,8 +90,6 @@
 
     /* Approval modal (purple) */
     .ov{position:fixed;inset:0;background:rgba(0,0,0,.28);display:none;align-items:center;justify-content:center;padding:18px;z-index:9999}
-.ov.show{display:flex}
-
     .ov.open{display:flex}
     .modal{
       width:min(520px, 96vw);
@@ -303,7 +301,40 @@
 
   // ===== helpers =====
   function norm(s){ return String(s||"").trim().toLowerCase(); }
-  function deacc(s){ return (s||"").normalize("NFD").replace(/[\u0300-\u036f]/g, ""); }
+  
+  function pad2(n){ return String(n).padStart(2,"0"); }
+  // normalize time values coming from Sheets (can be "Sat Dec 30 1899 09:30:56 ...", ISO, number, "09:30")
+  function timeHM(v){
+    if (v == null) return "";
+    // numbers: Sheets time fraction (0..1) or serial; keep fractional part
+    if (typeof v === "number"){
+      return excelTimeHM(v);
+    }
+    const s = String(v).trim();
+    if (!s) return "";
+    // common: "Sat Dec 30 1899 09:30:56 GMT+..."
+    let m = s.match(/(\d{1,2}):(\d{2})/);
+    if (m) return pad2(m[1]) + ":" + m[2];
+    // ISO or Date.parse-able
+    const d = new Date(s);
+    if (!isNaN(d)) return pad2(d.getHours()) + ":" + pad2(d.getMinutes());
+    // numeric string
+    if (/^\d+(\.\d+)?$/.test(s)){
+      const n = parseFloat(s);
+      if (!isNaN(n)) return excelTimeHM(n);
+    }
+    return s.slice(0,5);
+  }
+  function excelTimeHM(n){
+    if (n == null || isNaN(n)) return "";
+    const f = ((n % 1) + 1) % 1; // keep fractional part
+    let mins = Math.round(f * 24 * 60);
+    if (mins >= 24*60) mins = 0;
+    const hh = Math.floor(mins/60);
+    const mm = mins % 60;
+    return pad2(hh) + ":" + pad2(mm);
+  }
+function deacc(s){ return (s||"").normalize("NFD").replace(/[\u0300-\u036f]/g, ""); }
   function keyName(s){ return deacc(norm(s)).replace(/\s+/g," ").trim(); }
 
   function tokens(s){
@@ -370,7 +401,7 @@
         MANAGERS = data.map;
         return MANAGERS;
       }
-    }catch(e){console.warn("openModal click failed", e)}
+    }catch(_){}
     MANAGERS = {};
     return MANAGERS;
   }
@@ -492,7 +523,7 @@
         const pending = arr.some(x=>norm(x.status)==="pending");
         const more = arr.length>1 ? `<div class="mini">+${arr.length-1}</div>` : "";
         const bang = pending ? `<div class="bang">!</div>` : "";
-        const time = (norm(first.kind)==="invoire") ? `<div class="t">${(first.startTime||"").slice(0,5)}-${(first.endTime||"").slice(0,5)}</div>` : "";
+        const time = (norm(first.kind)==="invoire") ? `<div class="t">${timeHM(first.startTime)}-${timeHM(first.endTime)}</div>` : "";
         const dataPayload = encodeURIComponent(JSON.stringify(arr));
         html += `<td class="day">
           <div class="lvcell cell" data-ym="${ym}" data-day="${String(d).padStart(2,"0")}" data-arr="${dataPayload}">
@@ -514,7 +545,7 @@
           const day = ym + "-" + el.getAttribute("data-day");
           const arr = JSON.parse(decodeURIComponent(el.getAttribute("data-arr")||"[]"));
           openModal(arr, day, admin);
-        }catch(e){console.warn("openModal click failed", e)}
+        }catch(_){}
       });
     });
 
@@ -529,7 +560,7 @@
     if (pl && pending.length){
       pending.slice(0,50).forEach(l=>{
         const txt = (norm(l.kind)==="invoire")
-          ? `Învoire ${l.startDate} ${l.startTime||""}-${l.endTime||""}`
+          ? `Învoire ${l.startDate} ${timeHM(l.startTime)}–${timeHM(l.endTime)}`
           : `${l.code||"—"} ${l.startDate}–${l.endDate}`;
         const div = document.createElement("div");
         div.className = "item";
@@ -571,7 +602,7 @@
 
     const kind = norm(l.kind);
     if (kind === "invoire"){
-      if (mPeriod) mPeriod.textContent = `${l.startDate} (${l.startTime||""}-${l.endTime||""})`;
+      if (mPeriod) mPeriod.textContent = `${l.startDate} (${timeHM(l.startTime)}–${timeHM(l.endTime)})`;
       if (mCount) mCount.textContent = "Învoire (ore)";
     } else {
       if (mPeriod) mPeriod.textContent = `${l.startDate} - ${l.endDate}`;
