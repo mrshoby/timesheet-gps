@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>Admin — Concedii (v15)</title>
+  <title>Admin — Concedii (v16)</title>
   <style>
     :root{
       --bg:#f5f6ff;
@@ -137,139 +137,41 @@
     .lvcell .bang{position:absolute;top:6px;right:6px}
     .av2{width:40px;height:40px;border-radius:999px;background:#e9ecff;display:grid;place-items:center;font-weight:900;color:#3a2d71;border:2px solid rgba(255,255,255,.7)}
 
+    /* ===== Submenu tabs (ca în admin) ===== */
+    .subnav{display:flex;gap:26px;align-items:flex-end;padding:10px 16px;background:rgba(109,94,252,.10);border-bottom:1px solid var(--line)}
+    .subnav .tab{border:0;background:transparent;padding:12px 4px;font-weight:800;font-size:20px;color:rgba(31,35,48,.45);cursor:pointer;position:relative}
+    .subnav .tab::after{content:"";position:absolute;left:0;right:0;bottom:4px;height:3px;border-radius:3px;background:transparent}
+    .subnav .tab.active{color:var(--accent)}
+    .subnav .tab.active::after{background:var(--accent)}
+    .pane{display:none;padding:14px 16px}
+    .pane.active{display:block}
 
-    /* ===== Redesign (v15) — calendar ca în 2.png + liste ca în 3.png/4.png ===== */
-    .presenceFrame{
-      background:rgba(109,94,252,.18);
-      border-radius:28px;
-      padding:18px;
-      margin-top:14px;
-      box-shadow:var(--shadow);
-    }
-    .presenceTop{
-      display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:12px
-    }
-    .presenceSearch{
-      display:flex;align-items:center;gap:10px;
-      background:#fff;border:1px solid var(--line);border-radius:14px;
-      padding:10px 12px;min-width:320px;
-    }
-    .presenceSearch .ico{opacity:.6}
-    .presenceSearch input{border:0;outline:0;background:transparent;width:100%;font-size:14px}
-    .presenceIcons{display:flex;gap:10px}
-    .iconBtn{
-      width:40px;height:40px;border-radius:12px;border:1px solid var(--line);
-      background:#fff;cursor:pointer;font-size:16px;display:grid;place-items:center
-    }
-    .iconBtn:hover{background:#fbfbff}
+    /* Calendar container */
+    #pane-cal .tableWrap{border-radius:22px}
+    #pane-cal .tableScroll{max-height:420px;overflow:auto}
 
-    .presenceFrame .tableScroll{max-height:520px;}
-    .presenceFrame .tableScroll{overflow:auto;}
-
-
-    /* calendar: două coloane sticky (# + angajat) */
-    table{min-width:1100px}
-    thead th{font-weight:800;text-transform:uppercase;letter-spacing:.04em}
-    thead th .dow{margin-top:2px;font-weight:700;text-transform:none;letter-spacing:0}
-    .sort{font-weight:900;color:var(--accent);opacity:.9;margin-left:6px}
-
-    thead th.idxH{
-      position:sticky;left:0;z-index:9;text-align:center;min-width:52px;width:52px;
-      background:#fbfbff;border-right:1px solid var(--line)
-    }
-    thead th.empH{
-      position:sticky;left:52px;z-index:8;text-align:left;padding-left:14px;min-width:280px;
-      background:#fbfbff;border-right:1px solid var(--line)
-    }
-
-    tbody th.idxC{
-      position:sticky;left:0;z-index:8;text-align:center;min-width:52px;width:52px;
-      color:#9aa3b8;background:#fff;font-weight:700;border-right:1px solid var(--line)
-    }
-    tbody th.empC{
-      position:sticky;left:52px;z-index:7;background:#fff;text-align:left;min-width:280px;
-      border-right:1px solid var(--line)
-    }
-
-    /* weekend shading */
-    th.weekend, td.weekend{background:#f7f7fb}
-
-    /* leave cell look: ca tag-urile din calendar prezență */
-    td.day{padding:0}
-    .lvcell{
-      position:relative;cursor:pointer;height:64px;width:100%;
-      display:flex;flex-direction:column;align-items:center;justify-content:center;
-      gap:4px;
-    }
-    .lvcell:hover{background:#fafaff}
-    .lvTag{
-      width:86%;border-radius:4px 4px 8px 8px;
-      padding:6px 6px 5px;display:flex;flex-direction:column;align-items:center;
-      background:#fbfbff;border:1px solid var(--line);
-      border-top:4px solid rgba(109,94,252,.55);
-      font-weight:900;color:#2f245c;letter-spacing:.02em;
-      line-height:1.05;
-    }
-    .lvTag .code{font-size:13px}
-    .lvTag .t{font-size:11px;color:var(--muted);font-weight:800;margin-top:2px}
-    .lvMore{font-size:11px;color:var(--muted);font-weight:800}
-    .bang{top:8px;right:8px}
-
-    /* Stiva de liste (sub calendar) */
-    .stack{display:flex;flex-direction:column;gap:18px;margin-top:18px}
-    .stackCard{
-      background:#fff;border:1px solid var(--line);border-radius:22px;
-      padding:18px;box-shadow:var(--shadow)
-    }
-    .stackHead{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin-bottom:14px}
-    .stackTitle .h{font-size:18px;font-weight:900;color:#1f2330}
-    .stackTitle .s{font-size:13px;color:var(--muted);margin-top:2px}
-
-    .tblWrap{border:1px solid var(--line);border-radius:18px;overflow:hidden;background:#fff}
-    .simpleTbl{width:100%;border-collapse:separate;border-spacing:0;min-width:0}
-    .simpleTbl thead th{
-      position:static;background:#fff;border-bottom:1px solid var(--line);
-      font-size:18px;color:#2f245c;text-align:left;padding:18px 16px;
-      text-transform:uppercase;letter-spacing:.04em
-    }
-    .simpleTbl tbody td{
-      border-bottom:1px solid var(--line);padding:18px 16px;font-size:16px;color:#1f2330
-    }
-    .simpleTbl tbody tr:last-child td{border-bottom:0}
-
-    .empCell{display:flex;align-items:center;gap:14px}
-    .avatar{
-      width:40px;height:40px;border-radius:999px;overflow:hidden;
-      display:grid;place-items:center;background:#e9ecff;color:#3a2d71;font-weight:900
-    }
-    .empName{font-weight:800;color:#2f245c}
-    .mut{font-size:13px;color:var(--muted);margin-top:2px}
+    /* Pending + Quick tables */
+    .cardSection{background:var(--card);border:1px solid var(--line);border-radius:22px;box-shadow:var(--shadow);padding:16px}
+    .secHead{display:flex;flex-direction:column;gap:4px;margin-bottom:12px}
+    .secHead h3{margin:0;font-size:18px}
+    .tableScroll2{max-height:520px;overflow:auto;border:1px solid var(--line);border-radius:18px}
+    table.reqTable, table.quickTable{width:100%;min-width:0;border-collapse:separate;border-spacing:0;background:#fff}
+    .reqTable thead th,.quickTable thead th{position:sticky;top:0;z-index:2;background:#fff;border-bottom:1px solid var(--line);font-size:16px;letter-spacing:.06em;color:var(--accent);padding:16px}
+    .reqTable td,.quickTable td{padding:18px 16px;border-bottom:1px solid var(--line);font-size:16px}
+    .reqTable tbody tr:hover,.quickTable tbody tr:hover{background:#fafbff}
+    .sort{opacity:.45;font-weight:900;margin-left:6px}
+    .rowWho{display:flex;align-items:center;gap:14px}
+    .rowAv{width:44px;height:44px;border-radius:999px;background:rgba(109,94,252,.15);display:flex;align-items:center;justify-content:center;font-weight:900;color:var(--accent);flex:0 0 auto}
+    .rowMeta .rowName{font-weight:900}
+    .rowMeta .rowSub{font-size:12px;color:var(--muted)}
     .statusTxt{font-weight:900}
-    .st-approved{color:#55b86a}
-    .st-rejected{color:#d4533a}
-    .st-pending{color:#6d5efc}
-
-    .empty{padding:18px;color:var(--muted);font-weight:700;display:none}
-
-    /* Actions table buttons (exact feel ca 4.png) */
-    .actions{display:flex;gap:12px;justify-content:flex-end}
-    .btnA{
-      height:44px;border-radius:12px;border:1px solid transparent;cursor:pointer;
-      font-weight:900;font-size:16px;padding:0 18px;display:inline-flex;align-items:center;gap:10px
-    }
-    .btnApprove{background:#6fc477;color:#fff}
-    .btnApprove:hover{filter:brightness(.98)}
-    .btnReject{
-      width:54px;justify-content:center;background:#ecebfb;border-color:#dddaf7;color:#2f245c
-    }
-    .btnReject:hover{background:#e6e4fb}
-
-    /* responsive */
-    @media (max-width: 1100px){
-      .presenceSearch{min-width:200px}
-      .simpleTbl thead th{font-size:16px}
-      .simpleTbl tbody td{font-size:15px}
-    }
+    .statusTxt.pending{color:var(--accent)}
+    .statusTxt.approved{color:#4da866}
+    .statusTxt.rejected{color:#d16555}
+    .actionBtns{display:flex;gap:12px;justify-content:flex-end}
+    .aBtn{border:0;border-radius:12px;padding:12px 18px;font-weight:900;cursor:pointer}
+    .aBtn.approve{background:#79c18a;color:#fff}
+    .aBtn.reject{background:#eef0ff;color:#1f2330}
 
 </style>
 </head>
@@ -287,60 +189,46 @@
           <select id="monthSel"></select>
         </div>
         <button class="btn" id="next">›</button>
-
-        <div class="pill search">
-          <span class="ico">🔎</span>
-          <input id="q" placeholder="Caută angajat" />
+        <div class="pill">
+          <span style="opacity:.7">🔎</span>
+          <input id="q" placeholder="Caută angajat..." />
         </div>
-
         <label class="toggle" title="Filtrează doar cererile repartizate ție">
           <input type="checkbox" id="onlyMine" checked />
           <span>Doar ale mele</span>
         </label>
-
         <button class="btn primary" id="refresh">Refresh</button>
       </div>
     </div>
 
-    <!-- Calendar (stil identic cu Calendar prezență) -->
-    <div class="presenceFrame">
-      <div class="presenceTop">
-        <div class="presenceSearch">
-          <span class="ico">🔎</span>
-          <input id="q2" placeholder="Caută angajat" aria-label="Caută angajat (calendar)"/>
-        </div>
-        <div class="presenceIcons">
-          <button class="iconBtn" id="dl" title="Download (placeholder)">⤓</button>
-          <button class="iconBtn" id="xl" title="Excel (placeholder)">⧉</button>
-        </div>
-      </div>
+    
+    <div class="subnav" id="subnav">
+      <button class="tab active" data-tab="cal">Concedii &amp; învoiri</button>
+      <button class="tab" data-tab="pending">În așteptare</button>
+      <button class="tab" data-tab="quick">Aprobări rapide</button>
+    </div>
 
+    <div class="pane active" id="pane-cal">
       <div class="tableWrap">
-        <div class="tableScroll" id="calScroll">
-          <table id="cal" aria-label="Calendar concedii">
+        <div class="tableScroll">
+          <table id="cal">
             <thead id="thead"></thead>
             <tbody id="tbody"></tbody>
           </table>
         </div>
       </div>
-
-      <div id="err" class="err" style="display:none"></div>
       <div class="muted" id="dbg" style="margin-top:10px"></div>
+      <div id="err" class="err" style="display:none;margin-top:10px"></div>
     </div>
 
-    <!-- LISTE (sub calendar) -->
-    <div class="stack">
-      <!-- În așteptare / istoric -->
-      <div class="stackCard">
-        <div class="stackHead">
-          <div class="stackTitle">
-            <div class="h">În așteptare <span class="badge" id="pendingCount">0</span></div>
-            <div class="s">Cererile din luna selectată (pending / aprobate / respinse).</div>
-          </div>
+    <div class="pane" id="pane-pending">
+      <div class="cardSection">
+        <div class="secHead">
+          <h3>În așteptare <span class="badge" id="pendingCount">0</span></h3>
+          <div class="muted">Cererile din luna selectată (pending / aprobate / respinse).</div>
         </div>
-
-        <div class="tblWrap">
-          <table class="simpleTbl" id="reqTable" aria-label="Lista cereri">
+        <div class="tableScroll2">
+          <table class="reqTable" id="pendingTable">
             <thead>
               <tr>
                 <th>ANGAJAT <span class="sort">↑↓</span></th>
@@ -349,38 +237,34 @@
                 <th>STATUS <span class="sort">↑↓</span></th>
               </tr>
             </thead>
-            <tbody id="reqBody"></tbody>
+            <tbody id="pendingTbody"></tbody>
           </table>
-          <div class="empty" id="reqEmpty" style="display:none">Nu există cereri în luna selectată.</div>
         </div>
       </div>
+    </div>
 
-      <!-- Aprobări rapide -->
-      <div class="stackCard">
-        <div class="stackHead">
-          <div class="stackTitle">
-            <div class="h">Aprobări rapide</div>
-            <div class="s">Aprobă / respinge direct din listă (doar cereri pending).</div>
-          </div>
+    <div class="pane" id="pane-quick">
+      <div class="cardSection">
+        <div class="secHead">
+          <h3>Aprobări rapide</h3>
+          <div class="muted">Aprobă / respinge direct din tabel.</div>
         </div>
-
-        <div class="tblWrap">
-          <table class="simpleTbl actionsTbl" id="actTable" aria-label="Aprobări rapide">
+        <div class="tableScroll2">
+          <table class="quickTable" id="quickTable">
             <thead>
               <tr>
                 <th>ANGAJAT <span class="sort">↑↓</span></th>
                 <th>PERIOADĂ <span class="sort">↑↓</span></th>
-                <th>ACȚIUNI</th>
+                <th style="text-align:right">ACȚIUNI</th>
               </tr>
             </thead>
-            <tbody id="actBody"></tbody>
+            <tbody id="quickTbody"></tbody>
           </table>
-          <div class="empty" id="actEmpty" style="display:none">Nu există cereri pending în luna selectată.</div>
         </div>
       </div>
     </div>
-  </div>
-</div>
+
+
 
 <!-- Approval modal -->
 <div class="ov" id="ov">
@@ -426,15 +310,6 @@
   const LS_ADMIN_KEY = "pontaj_adminKey";
 
   function $(sel){ return document.querySelector(sel); }
-
-  function esc(s){
-    return String(s==null?"":s)
-      .replace(/&/g,"&amp;")
-      .replace(/</g,"&lt;")
-      .replace(/>/g,"&gt;")
-      .replace(/"/g,"&quot;")
-      .replace(/'/g,"&#39;");
-  }
   function toast(msg){
     const t = $("#toast");
     if (!t) return;
@@ -663,6 +538,20 @@
     LEAVES_VIEW = list;
   }
 
+
+  // ===== Submenu (tab) state =====
+  let ACTIVE_TAB = "cal";
+  function setTab(k){
+    ACTIVE_TAB = k || "cal";
+    document.querySelectorAll("#subnav .tab").forEach(b=>{
+      b.classList.toggle("active", b.getAttribute("data-tab")===ACTIVE_TAB);
+    });
+    $("#pane-cal")?.classList.toggle("active", ACTIVE_TAB==="cal");
+    $("#pane-pending")?.classList.toggle("active", ACTIVE_TAB==="pending");
+    $("#pane-quick")?.classList.toggle("active", ACTIVE_TAB==="quick");
+  }
+
+
   // ===== UI render =====
   function render(ym, admin){
     const thead = $("#thead");
@@ -671,13 +560,10 @@
 
     // header
     const dim = daysInMonth(ym);
-    let h = `<tr>
-      <th class="idxH">#</th>
-      <th class="empH">ANGAJAT <span class="sort">↑↓</span></th>`;
+    let h = `<tr><th class="stickyL">Angajat</th>`;
     for (let d=1; d<=dim; d++){
       const dt = new Date(Number(ym.slice(0,4)), Number(ym.slice(5,7))-1, d, 12,0,0,0);
-      const wk = isWeekend(dt) ? " weekend" : "";
-      h += `<th class="${wk.trim()}">${String(d).padStart(2,"0")}<div class="dow">${dowShort(dt)}</div></th>`;
+      h += `<th>${String(d).padStart(2,"0")}<div class="dow">${dowShort(dt)}</div></th>`;
     }
     h += `</tr>`;
     thead.innerHTML = h;
@@ -693,7 +579,6 @@
 
     // rows
     let html = "";
-    let rowIdx = 1;
     for (const emp of emps){
       const list = byEmp.get(emp) || [];
       // map day -> leaves
@@ -713,42 +598,35 @@
 
       const mgr = list[0]?._mgrName || list[0]?._mgrEmail || "";
       const mgrTxt = mgr ? `Manager: ${mgr}` : `Manager: —`;
-
-      html += `<tr>
-        <th class="idxC">${rowIdx++}</th>
-        <th class="empC">
-          <div class="who">
-            <div class="av">${initials(emp)}</div>
-            <div class="name">
-              <div class="n">${esc(emp)}</div>
-              <div class="d">${esc(mgrTxt)}</div>
-            </div>
+      html += `<tr><th class="stickyL">
+        <div class="who">
+          <div class="av">${initials(emp)}</div>
+          <div class="name">
+            <div class="n">${emp}</div>
+            <div class="d">${mgrTxt}</div>
           </div>
-        </th>`;
+        </div>
+      </th>`;
 
       for (let d=1; d<=dim; d++){
-        const dt = new Date(Number(ym.slice(0,4)), Number(ym.slice(5,7))-1, d, 12,0,0,0);
-        const wk = isWeekend(dt) ? " weekend" : "";
         const arr = cellMap.get(d) || [];
         if (!arr.length){
-          html += `<td class="day${wk}"></td>`;
+          html += `<td class="day"></td>`;
           continue;
         }
+        // show first request + badge for more
         const first = arr[0];
-        const isInv = norm(first.kind)==="invoire";
-        const code = isInv ? "ÎNV" : (first.code || "—");
+        const code = (norm(first.kind)==="invoire") ? "INV" : (first.code || "—");
         const pending = arr.some(x=>norm(x.status)==="pending");
-        const more = arr.length>1 ? `<div class="lvMore">+${arr.length-1}</div>` : "";
+        const more = arr.length>1 ? `<div class="mini">+${arr.length-1}</div>` : "";
         const bang = pending ? `<div class="bang">!</div>` : "";
-        const time = isInv ? `<div class="t">${fmtTime(first.startTime)}–${fmtTime(first.endTime)}</div>` : "";
+        const time = (norm(first.kind)==="invoire") ? `<div class="t">${fmtTime(first.startTime)}-${fmtTime(first.endTime)}</div>` : "";
         const dataPayload = encodeURIComponent(JSON.stringify(arr));
-        html += `<td class="day${wk}">
-          <div class="lvcell" data-day="${String(d).padStart(2,"0")}" data-arr="${dataPayload}">
+        html += `<td class="day">
+          <div class="lvcell cell" data-ym="${ym}" data-day="${String(d).padStart(2,"0")}" data-arr="${dataPayload}">
             ${bang}
-            <div class="lvTag">
-              <div class="code">${esc(code)}</div>
-              ${time}
-            </div>
+            <div class="c">${code}</div>
+            ${time}
             ${more}
           </div>
         </td>`;
@@ -757,107 +635,16 @@
     }
     tbody.innerHTML = html;
 
-    // click (delegare robustă) — deschide modalul de aprobare
-    tbody.onclick = (ev)=>{
-      const el = ev.target && ev.target.closest ? ev.target.closest(".lvcell") : null;
-      if (!el) return;
-      try{
-        const day = ym + "-" + el.getAttribute("data-day");
-        const arr = JSON.parse(decodeURIComponent(el.getAttribute("data-arr")||"[]"));
-        openModal(arr, day, admin);
-      }catch(e){ console.warn("openModal failed", e); }
-    };
+    // pending + tables
+    const all = LEAVES_VIEW.slice();
+    const pending = all.filter(l=>norm(l.status)==="pending");
 
-    // ===== Listele de jos =====
-    const pending = LEAVES_VIEW.filter(l=>norm(l.status)==="pending");
     const pc = $("#pendingCount"); if (pc) pc.textContent = String(pending.length);
 
-    // table 1: status list (all)
-    const reqBody = $("#reqBody");
-    const reqEmpty = $("#reqEmpty");
-    if (reqBody) reqBody.innerHTML = "";
-    if (reqEmpty) reqEmpty.style.display = LEAVES_VIEW.length ? "none" : "block";
+    renderPendingTable(all, admin);
+    renderQuickTable(pending, admin);
 
-    if (reqBody && LEAVES_VIEW.length){
-      const listAll = [...LEAVES_VIEW].sort((a,b)=>String(b.createdAt||"").localeCompare(String(a.createdAt||"")));
-      for (const l of listAll){
-        const empName = String(l.employeeName||"—").trim() || "—";
-        const isInv = norm(l.kind)==="invoire";
-        const leaveTxt = isInv ? "—" : (leaveLabel(l.code) || "—");
-        const invTxt = isInv ? invLabel(l) : "—";
-        const st = norm(l.status);
-        const stTxt = st==="approved" ? "Solicitare aprobată" : (st==="rejected" ? "Solicitare respinsă" : "Solicitare în așteptare");
-        const stCls = st==="approved" ? "st-approved" : (st==="rejected" ? "st-rejected" : "st-pending");
-        const arrPayload = encodeURIComponent(JSON.stringify([l]));
-        const tr = document.createElement("tr");
-        tr.setAttribute("data-arr", arrPayload);
-        tr.setAttribute("data-day", (l.startDate||""));
-        tr.innerHTML = `
-          <td>
-            <div class="empCell">
-              <div class="avatar">${initials(empName)}</div>
-              <div>
-                <div class="empName">${esc(empName)}</div>
-              </div>
-            </div>
-          </td>
-          <td>${esc(leaveTxt)}</td>
-          <td>${esc(invTxt)}</td>
-          <td><span class="statusTxt ${stCls}">${stTxt}</span></td>`;
-        tr.addEventListener("click", ()=>{
-          try{ openModal([l], l.startDate || (ym+"-01"), admin); }catch(_){}
-        });
-        reqBody.appendChild(tr);
-      }
-    }
-
-    // table 2: quick approvals (pending only)
-    const actBody = $("#actBody");
-    const actEmpty = $("#actEmpty");
-    if (actBody) actBody.innerHTML = "";
-    if (actEmpty) actEmpty.style.display = pending.length ? "none" : "block";
-
-    if (actBody && pending.length){
-      const listP = [...pending].sort((a,b)=>String(a.startDate||"").localeCompare(String(b.startDate||"")));
-      for (const l of listP){
-        const empName = String(l.employeeName||"—").trim() || "—";
-        const per = periodLabel(l);
-        const tr = document.createElement("tr");
-        tr.innerHTML = `
-          <td>
-            <div class="empCell">
-              <div class="avatar">${initials(empName)}</div>
-              <div>
-                <div class="empName">${esc(empName)}</div>
-                <div class="mut">${esc(per.meta)}</div>
-              </div>
-            </div>
-          </td>
-          <td style="font-weight:900;color:#2f245c">${esc(per.main)}</td>
-          <td>
-            <div class="actions">
-              <button class="btnA btnApprove" data-act="approve" data-id="${esc(l.id||"")}">✓ Aprobă</button>
-              <button class="btnA btnReject" data-act="reject" data-id="${esc(l.id||"")}">✕</button>
-            </div>
-          </td>`;
-        actBody.appendChild(tr);
-      }
-
-      actBody.onclick = async (ev)=>{
-        const b = ev.target && ev.target.closest ? ev.target.closest("button[data-act]") : null;
-        if (!b) return;
-        ev.preventDefault();
-        ev.stopPropagation();
-        const id = b.getAttribute("data-id");
-        const act = b.getAttribute("data-act");
-        const decision = act==="approve" ? "approved" : "rejected";
-        const l = pending.find(x=>String(x.id)===String(id));
-        if (!l) return;
-        await decideOne(l, decision);
-      };
-    }
-
-    // debug text
+// debug
     const dbg = $("#dbg");
     if (dbg){
       const a = admin ? (admin.label || admin.email || "—") : "—";
@@ -865,13 +652,9 @@
     }
   }
 
-  function isWeekend(d){
-    const x = d.getDay();
-    return x===0 || x===6;
-  }
-
-  function leaveLabel(code){
-    const c = String(code||"").toUpperCase().trim();
+  // ===== Tables (În așteptare / Aprobări rapide) =====
+  function codeName(code){
+    const c = String(code||"").trim().toUpperCase();
     const map = {
       "CO":"Concediu de odihnă",
       "BO":"Concediu medical",
@@ -881,55 +664,134 @@
     };
     return map[c] || (c ? c : "—");
   }
-
-  function invLabel(l){
-    const d = l.startDate || "—";
-    const a = fmtTime(l.startTime);
-    const b = fmtTime(l.endTime);
-    // dacă nu avem ore valide, nu afișăm '1899' niciodată
-    if (a==="—" && b==="—") return "Învoire";
-    return `Învoire (${a}–${b})`;
-  }
-
-  function periodLabel(l){
-    const isInv = norm(l.kind)==="invoire";
-    if (isInv){
-      const d = fmtDateRO(l.startDate);
-      const a = fmtTime(l.startTime);
-      const b = fmtTime(l.endTime);
-      return { main: `${d}`, meta: `Învoire • ${a}–${b}` };
-    }
-    const a = fmtDateRO(l.startDate);
-    const b = fmtDateRO(l.endDate || l.startDate);
-    const lbl = leaveLabel(l.code);
-    return { main: `${a} – ${b}`, meta: lbl };
-  }
-
-  function fmtDateRO(iso){
-    if (!iso) return "—";
+  function roDate(iso){
     const d = parseIsoDate(iso);
-    if (!d) return String(iso);
+    if (!d) return String(iso||"—");
     const dd = String(d.getDate()).padStart(2,"0");
     const mm = String(d.getMonth()+1).padStart(2,"0");
     const yy = d.getFullYear();
     return `${dd}.${mm}.${yy}`;
   }
+  function statusInfo(st){
+    const s = norm(st);
+    if (s==="approved") return { cls:"approved", txt:"Solicitare aprobată" };
+    if (s==="rejected") return { cls:"rejected", txt:"Solicitare respinsă" };
+    return { cls:"pending", txt:"Solicitare în așteptare" };
+  }
 
-  async function decideOne(l, decision){
+  function renderPendingTable(list, admin){
+    const tb = $("#pendingTbody");
+    if (!tb) return;
+    // sort: pending first, then approved, then rejected; newest first
+    const rank = (l)=>{
+      const s = norm(l.status);
+      if (s==="pending") return 0;
+      if (s==="approved") return 1;
+      return 2;
+    };
+    const sorted = list.slice().sort((a,b)=>{
+      const ra = rank(a), rb = rank(b);
+      if (ra!==rb) return ra-rb;
+      // createdAt desc (fallback by timestamp string)
+      return String(b.createdAt||b.ts||"").localeCompare(String(a.createdAt||a.ts||""));
+    });
+
+    tb.innerHTML = sorted.map(l=>{
+      const emp = String(l.employeeName||"—");
+      const mgr = (l._mgrName || l._mgrEmail) ? `Manager: ${l._mgrName||l._mgrEmail}` : "";
+      const leaveCol = (norm(l.kind)==="invoire") ? "—" : codeName(l.code);
+      const invCol = (norm(l.kind)==="invoire") ? `Învoire (${fmtTime(l.startTime)}–${fmtTime(l.endTime)})` : "—";
+      const st = statusInfo(l.status);
+      const payload = encodeURIComponent(JSON.stringify([l]));
+      const day = String(l.startDate || "").slice(0,10) || (CUR_YM + "-01");
+      return `
+        <tr class="pendRow" data-arr="${payload}" data-day="${day}">
+          <td>
+            <div class="rowWho">
+              <div class="rowAv">${initials(emp)}</div>
+              <div class="rowMeta">
+                <div class="rowName">${emp}</div>
+                <div class="rowSub">${mgr}</div>
+              </div>
+            </div>
+          </td>
+          <td>${leaveCol}</td>
+          <td>${invCol}</td>
+          <td class="statusTxt ${st.cls}">${st.txt}</td>
+        </tr>
+      `;
+    }).join("");
+
+    // click row -> modal
+    tb.querySelectorAll(".pendRow").forEach(tr=>{
+      tr.addEventListener("click", ()=>{
+        try{
+          const arr = JSON.parse(decodeURIComponent(tr.getAttribute("data-arr")||"[]"));
+          const day = tr.getAttribute("data-day") || (CUR_YM+"-01");
+          openModal(arr, day, admin);
+        }catch(e){ console.warn("openModal row failed", e); }
+      });
+    });
+  }
+
+  function renderQuickTable(pending, admin){
+    const tb = $("#quickTbody");
+    if (!tb) return;
+
+    // show only pending
+    const sorted = pending.slice().sort((a,b)=> String(a.employeeName||"").localeCompare(String(b.employeeName||"")));
+
+    tb.innerHTML = sorted.map(l=>{
+      const emp = String(l.employeeName||"—");
+      const isInv = norm(l.kind)==="invoire";
+      const period = isInv
+        ? `${roDate(l.startDate)} (${fmtTime(l.startTime)}–${fmtTime(l.endTime)})`
+        : `${roDate(l.startDate)} – ${roDate(l.endDate||l.startDate)}`;
+      return `
+        <tr>
+          <td>
+            <div class="rowWho">
+              <div class="rowAv">${initials(emp)}</div>
+              <div class="rowMeta">
+                <div class="rowName">${emp}</div>
+                <div class="rowSub">${isInv ? "Învoire" : codeName(l.code)}</div>
+              </div>
+            </div>
+          </td>
+          <td style="font-weight:800;color:#2b2f44">${period}</td>
+          <td>
+            <div class="actionBtns">
+              <button class="aBtn approve" data-id="${l.id}" data-decision="approved">✓ Aprobă</button>
+              <button class="aBtn reject" data-id="${l.id}" data-decision="rejected">✕</button>
+            </div>
+          </td>
+        </tr>
+      `;
+    }).join("");
+
+    tb.querySelectorAll(".aBtn").forEach(btn=>{
+      btn.addEventListener("click", async (e)=>{
+        e.stopPropagation();
+        const id = btn.getAttribute("data-id");
+        const decision = btn.getAttribute("data-decision");
+        await decideId(id, decision);
+      });
+    });
+  }
+
+  async function decideId(id, decision){
     const endpoint = ep();
-    if (!endpoint){ setError("Lipsește endpoint în config.json."); return; }
+    if(!endpoint){ setError("Lipsește endpoint în config.json."); return; }
     const key = getAdminKey();
-    if (!key){ setError("Lipsește ADMIN_KEY."); return; }
+    if(!key){ setError("Lipsește ADMIN_KEY."); return; }
 
     const admin = getAdminSession();
     const by = (admin && (admin.label || admin.email)) ? (admin.label || admin.email) : "admin";
 
-    const note = ""; // UI rapidă: fără notă
-
     const url = endpoint + "?fn=adminLeaveDecide"
-      + "&id=" + encodeURIComponent(l.id)
+      + "&id=" + encodeURIComponent(id)
       + "&decision=" + encodeURIComponent(decision)
-      + "&note=" + encodeURIComponent(note)
+      + "&note=" + encodeURIComponent("")
       + "&by=" + encodeURIComponent(by)
       + "&key=" + encodeURIComponent(key)
       + "&ts=" + Date.now();
@@ -939,6 +801,7 @@
       if (!res || !res.ok) throw new Error(res?.error || "Eroare la salvare.");
       toast(decision === "approved" ? "Aprobat." : "Respins.");
       await loadMonth(CUR_YM);
+      // după refresh, rămâi pe tab-ul curent
     }catch(err){
       setError(String(err && err.message ? err.message : err));
     }
@@ -1133,14 +996,6 @@
   }
 
   function bind(){
-    // sync search boxes (top + calendar)
-    const q1 = $("#q"), q2 = $("#q2");
-    if (q1 && q2){
-      const sync = (src, dst) => { dst.value = src.value; };
-      q1.addEventListener("input", ()=>{ sync(q1,q2); buildView(getAdminSession()); render(CUR_YM, getAdminSession()); }, {passive:true});
-      q2.addEventListener("input", ()=>{ sync(q2,q1); buildView(getAdminSession()); render(CUR_YM, getAdminSession()); }, {passive:true});
-    }
-
     // month selector
     const monthSel = $("#monthSel");
     if (monthSel){
@@ -1148,6 +1003,15 @@
       monthSel.value = now;
       monthSel.addEventListener("change", ()=>loadMonth(monthSel.value));
     }
+
+    // submenus (tabs)
+    document.querySelectorAll("#subnav .tab").forEach(btn=>{
+      btn.addEventListener("click", ()=>{
+        const k = btn.getAttribute("data-tab");
+        setTab(k);
+      });
+    });
+
 
     $("#prev")?.addEventListener("click", ()=>{
       const m = ($("#monthSel")?.value || ymNow()).split("-").map(Number);
@@ -1177,6 +1041,24 @@
       render(CUR_YM || ($("#monthSel")?.value || ymNow()), admin);
     });
 
+
+    // calendar cell click (delegare)
+    const tbody = $("#tbody");
+    if (tbody && !tbody.__bound){
+      tbody.__bound = true;
+      tbody.addEventListener("click", (ev)=>{
+        const el = ev.target && ev.target.closest ? ev.target.closest(".lvcell") : null;
+        if (!el) return;
+        try{
+          const admin = getAdminSession();
+          const ym = CUR_YM || ($("#monthSel")?.value || ymNow());
+          const day = ym + "-" + el.getAttribute("data-day");
+          const arr = JSON.parse(decodeURIComponent(el.getAttribute("data-arr")||"[]"));
+          openModal(arr, day, admin);
+        }catch(e){ console.warn("openModal failed", e); }
+      });
+    }
+
     // modal
     $("#ov")?.addEventListener("click", (e)=>{
       if (e.target && e.target.id === "ov") closeModal();
@@ -1192,6 +1074,7 @@
   async function init(){
     await loadCFG();
     bind();
+    setTab(ACTIVE_TAB);
     const ym = $("#monthSel")?.value || ymNow();
     CUR_YM = ym;
     await loadMonth(ym);
