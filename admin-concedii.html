@@ -90,6 +90,8 @@
 
     /* Approval modal (purple) */
     .ov{position:fixed;inset:0;background:rgba(0,0,0,.28);display:none;align-items:center;justify-content:center;padding:18px;z-index:9999}
+.ov.show{display:flex}
+
     .ov.open{display:flex}
     .modal{
       width:min(520px, 96vw);
@@ -368,7 +370,7 @@
         MANAGERS = data.map;
         return MANAGERS;
       }
-    }catch(_){}
+    }catch(e){console.warn("openModal click failed", e)}
     MANAGERS = {};
     return MANAGERS;
   }
@@ -512,7 +514,7 @@
           const day = ym + "-" + el.getAttribute("data-day");
           const arr = JSON.parse(decodeURIComponent(el.getAttribute("data-arr")||"[]"));
           openModal(arr, day, admin);
-        }catch(_){}
+        }catch(e){console.warn("openModal click failed", e)}
       });
     });
 
