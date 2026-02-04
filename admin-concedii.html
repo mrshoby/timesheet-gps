@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>Admin — Concedii (v10)</title>
+  <title>Admin — Concedii</title>
   <style>
     :root{
       --bg:#f5f6ff;
@@ -14,6 +14,12 @@
       --accent:#6d5efc;
       --shadow:0 10px 30px rgba(20,18,40,.08);
       --r:18px;
+
+      --c-inactive:#f1f3f9;
+      --c-under:#ffe9c7;
+      --c-complete:#dff7e4;
+      --c-over:#d9ecff;
+      --c-leave:#efe6ff;
 
       --c-pending:#fff3d6;
       --c-approved:#e3f7e8;
@@ -26,6 +32,7 @@
       --purpleMuted: rgba(245,244,255,.72);
       --purpleLine: rgba(255,255,255,.12);
     }
+
     *{box-sizing:border-box}
     body{margin:0;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial;background:var(--bg);color:var(--ink)}
     .wrap{max-width:1600px;margin:18px auto;padding:0 14px}
@@ -35,924 +42,775 @@
     .title h1{margin:0;font-size:18px}
     .title .sub{font-size:12px;color:var(--muted)}
     .controls{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-    .pill{display:flex;align-items:center;gap:8px;background:var(--c-neutral);border:1px solid var(--line);border-radius:14px;padding:8px 10px}
-    .pill input,.pill select{border:0;background:transparent;outline:none;font:inherit;color:var(--ink)}
-    .btn{border:1px solid var(--line);background:var(--card);border-radius:12px;padding:10px 12px;cursor:pointer;font-weight:600}
-    .btn.primary{background:rgba(109,94,252,.12);border-color:rgba(109,94,252,.25);color:var(--accent)}
-    .btn:active{transform:translateY(1px)}
-    .toggle{display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--line);border-radius:14px;background:var(--c-neutral);user-select:none}
+    .btn{border:1px solid var(--line);background:#fff;border-radius:14px;padding:9px 12px;cursor:pointer;font-weight:750}
+    .btn:hover{transform:translateY(-1px)}
+    .btn:active{transform:translateY(0)}
+    .btn.primary{background:rgba(109,94,252,.12);border-color:rgba(109,94,252,.25);color:#2b2472}
+    .pill{display:flex;align-items:center;gap:8px;border:1px solid var(--line);background:#fff;border-radius:14px;padding:8px 10px}
+    .pill input{border:0;outline:none;font-size:14px;width:220px}
+    select{border:0;outline:none;font-weight:800;background:transparent;font-size:14px}
+    .toggle{display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--line);border-radius:14px;background:#fff;font-weight:750;color:#2b2472}
     .toggle input{width:16px;height:16px}
 
-    .grid{display:grid;grid-template-columns: 1fr 360px;gap:14px;padding:14px}
-    @media(max-width:1100px){ .grid{grid-template-columns:1fr} }
+    /* === Calendar table (same look as Prezență) === */
+    .tableWrap{overflow:auto; max-height: calc(100vh - 220px); border-top:1px solid var(--line); background:#fff}
+    table{border-collapse:separate;border-spacing:0; width:max(1100px, 100%); font-size:13px}
+    thead th{
+      position:sticky; top:0; z-index:6;
+      background:#fff; border-bottom:1px solid var(--line);
+      padding:12px 10px; text-align:center; color:#3b3f55;
+      font-weight:900;
+    }
+    tbody td{
+      border-bottom:1px solid var(--line);
+      padding:10px 10px;
+      background:#fff;
+      vertical-align:middle;
+    }
+    tbody tr:hover td{background:#fbfbff}
+    th, td{white-space:nowrap}
 
-    .tableWrap{background:var(--card);border:1px solid var(--line);border-radius:18px;overflow:hidden}
-    .tableScroll{overflow:auto}
-    table{border-collapse:separate;border-spacing:0;width:100%;min-width:980px}
-    thead th{position:sticky;top:0;z-index:5;background:#fbfbff;border-bottom:1px solid var(--line);font-size:12px;color:var(--muted);text-align:center;padding:10px 6px}
-    thead th:first-child{left:0;z-index:7;text-align:left;padding-left:14px;min-width:260px}
-    tbody td, tbody th{border-bottom:1px solid var(--line);border-right:1px solid var(--line);height:64px;vertical-align:middle;text-align:center;font-size:13px;color:var(--ink);background:#fff}
-    tbody tr:last-child td, tbody tr:last-child th{border-bottom:0}
-    tbody td:last-child, thead th:last-child{border-right:0}
-    tbody th{position:sticky;left:0;z-index:6;background:#fff;text-align:left;padding:10px 12px;min-width:260px;border-right:1px solid var(--line)}
-    .who{display:flex;align-items:center;gap:10px}
-    .av{width:34px;height:34px;border-radius:999px;background:#e9ecff;display:grid;place-items:center;font-weight:800;color:#3a2d71;flex:0 0 auto}
-    .name{display:flex;flex-direction:column;line-height:1.1}
-    .name .n{font-weight:700}
-    .name .d{font-size:12px;color:var(--muted)}
+    thead th.stickyL, tbody td.stickyL{position:sticky; left:0; z-index:7; text-align:left; box-shadow: 10px 0 20px rgba(20,18,40,.04);}
+    thead th.stickyL2, tbody td.stickyL2{position:sticky; left:56px; z-index:7; text-align:left; box-shadow: 10px 0 20px rgba(20,18,40,.04);}
+    thead th.stickyL3, tbody td.stickyL3{position:sticky; left:320px; z-index:7; text-align:left; box-shadow: 10px 0 20px rgba(20,18,40,.04);}
 
-    .cell{position:relative;cursor:pointer}
-    .cell:hover{background:#fafaff}
-    .tag{display:inline-flex;align-items:center;justify-content:center;min-width:44px;padding:6px 10px;border-radius:12px;font-weight:800}
-    .tag.co{background:rgba(109,94,252,.10);color:var(--accent)}
-    .tag.inv{background:rgba(47,36,92,.08);color:var(--purple)}
-    .mini{display:block;margin-top:4px;font-size:11px;color:var(--muted);font-weight:600}
+    tbody td.stickyL, tbody td.stickyL2, tbody td.stickyL3{background:#fff}
+    thead th.stickyL, thead th.stickyL2, thead th.stickyL3{background:#fff}
 
-    .pending{background:var(--c-pending)}
-    .approved{background:var(--c-approved)}
-    .rejected{background:var(--c-rejected)}
+    .empCell{display:flex;align-items:center;gap:10px}
+    .empBubble{
+      width:28px;height:28px;border-radius:10px;background:var(--bg);
+      display:flex;align-items:center;justify-content:center;
+      font-weight:900;color:#3b3f55;border:1px solid var(--line)
+    }
+    .empName{font-weight:850}
+    .empDept{font-size:12px;color:var(--muted);margin-top:2px}
+
+    .dayCell{border-left:1px solid var(--line)}
+    .cell{
+      border-radius:12px;
+      padding:8px 8px;
+      border:1px solid rgba(0,0,0,0.03);
+      font-weight:900;
+      cursor:pointer;
+      user-select:none;
+      min-height:52px;
+      display:flex;
+      flex-direction:column;
+      justify-content:center;
+      align-items:center;
+      gap:2px;
+      position:relative;
+    }
+    .cell:hover{transform:translateY(-1px)}
+    .cell small{display:block; font-size:10px; font-weight:800; opacity:.85; margin-top:1px}
+
+    .inactive{background:transparent; border-color:transparent; cursor:default}
+    .leave{background:var(--c-leave)}
+    .inv{background:var(--c-under)}
+    .approvedTag{background:var(--c-approved)}
+    .rejectedTag{background:var(--c-rejected)}
+    .pendingTag{background:var(--c-pending)}
+
     .bang{
-      position:absolute;top:6px;right:6px;width:18px;height:18px;border-radius:999px;
-      background:#ffb020;color:#1f2330;font-weight:900;font-size:12px;display:grid;place-items:center;
-      border:2px solid #fff;
+      position:absolute; top:6px; left:6px;
+      width:18px;height:18px;border-radius:9px;
+      background:#ffcc67; color:#3b2d00;
+      display:flex;align-items:center;justify-content:center;
+      font-size:12px;font-weight:1000;
+      border:1px solid rgba(0,0,0,.06);
+    }
+    .more{
+      position:absolute; bottom:6px; left:6px;
+      font-size:10px; font-weight:1000; opacity:.75;
     }
 
-    .side{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:12px}
-    .side h3{margin:0 0 10px 0;font-size:14px}
-    .side .muted{color:var(--muted);font-size:12px}
-    .list{display:flex;flex-direction:column;gap:8px;margin-top:10px}
-    .item{border:1px solid var(--line);border-radius:14px;padding:10px;background:#fff;display:flex;justify-content:space-between;gap:10px}
-    .item strong{display:block}
-    .item .meta{font-size:12px;color:var(--muted)}
-    .item .actions{display:flex;gap:8px;align-items:center}
-    .badge{padding:4px 8px;border-radius:999px;font-size:12px;font-weight:800;background:#f3f4ff;color:var(--accent);border:1px solid rgba(109,94,252,.25)}
-    .err{margin-top:10px;padding:10px;border-radius:12px;background:#fff0f0;border:1px solid #ffd2d2;color:#9b1c1c;font-weight:700}
+    .legend{
+      display:flex; gap:10px; align-items:center; flex-wrap:wrap;
+      padding:12px 16px; border-top:1px solid var(--line); background:#fff;
+      color:var(--muted); font-size:12px;
+    }
+    .lg{display:flex;gap:8px;align-items:center}
+    .dot{width:10px;height:10px;border-radius:4px;border:1px solid rgba(0,0,0,.06)}
 
-    /* Approval modal (purple) */
-    .ov{position:fixed;inset:0;background:rgba(0,0,0,.28);display:none;align-items:center;justify-content:center;padding:18px;z-index:9999}
+    /* === Below sections === */
+    .below{padding:16px; display:flex; flex-direction:column; gap:14px; background:linear-gradient(180deg, rgba(245,246,255,.0), rgba(245,246,255,.55));}
+    .card{background:#fff;border:1px solid var(--line);border-radius:22px;box-shadow:var(--shadow);overflow:hidden}
+    .cardHead{padding:14px 16px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:12px}
+    .cardHead h3{margin:0;font-size:14px}
+    .badge{display:inline-flex;min-width:22px;height:22px;padding:0 8px;border-radius:999px;background:rgba(109,94,252,.12);border:1px solid rgba(109,94,252,.25);color:#2b2472;font-weight:900;align-items:center;justify-content:center;font-size:12px}
+    .muted{color:var(--muted);font-size:12px}
+    .tableMiniWrap{overflow:auto; max-height:340px}
+    .miniTable{width:100%; border-collapse:separate; border-spacing:0}
+    .miniTable th{position:sticky; top:0; background:#fff; border-bottom:1px solid var(--line); padding:12px 14px; text-align:left; font-size:12px; letter-spacing:.02em}
+    .miniTable td{border-bottom:1px solid var(--line); padding:14px 14px; vertical-align:middle}
+    .miniTable tr:hover td{background:#fbfbff}
+    .empRow{display:flex;align-items:center;gap:12px}
+    .av{width:36px;height:36px;border-radius:50%;background:#eee;border:1px solid rgba(0,0,0,.06);display:flex;align-items:center;justify-content:center;font-weight:1000;color:#3b3f55}
+    .status{font-weight:900}
+    .st-approved{color:#2f8a43}
+    .st-rejected{color:#d34848}
+    .st-pending{color:#7b6dfb}
+    .dash{opacity:.55}
+
+    .actions{display:flex;gap:10px;align-items:center}
+    .actBtn{border:1px solid var(--line);background:#f2f3fb;border-radius:14px;padding:10px 14px;font-weight:900;cursor:pointer;display:inline-flex;gap:10px;align-items:center}
+    .actBtn.approve{background:#7cc67a;border-color:#68b866;color:#fff}
+    .actBtn.reject{background:#f2f3fb}
+    .actBtn:hover{transform:translateY(-1px)}
+    .actBtn:active{transform:translateY(0)}
+    .rightBtns{display:flex;gap:10px;justify-content:flex-end}
+
+    /* === Modal (approval) === */
+    .ov{position:fixed;inset:0;background:rgba(18,16,32,.35);display:none;align-items:flex-end;justify-content:center;padding:18px;z-index:99}
     .ov.show{display:flex}
+    .modal{width:min(560px,100%);background:var(--purple);color:var(--purpleInk);border-radius:18px;box-shadow:0 18px 60px rgba(0,0,0,.35);overflow:hidden}
+    .modal .body{padding:16px 16px 10px;display:grid;grid-template-columns:1fr;gap:10px}
+    .k{font-size:12px;color:var(--purpleMuted)}
+    .v{font-size:16px;font-weight:900}
+    .avatars{display:flex;gap:8px;flex-wrap:wrap}
+    .ava{width:42px;height:42px;border-radius:50%;background:rgba(255,255,255,.12);border:1px solid var(--purpleLine)}
+    .ava span{display:flex;width:100%;height:100%;align-items:center;justify-content:center;font-weight:1000}
+    #mNote{margin-top:6px;width:100%;min-height:86px;resize:vertical;border:1px solid var(--purpleLine);background:rgba(255,255,255,.08);border-radius:12px;color:var(--purpleInk);padding:10px;outline:none}
+    .modal .foot{display:flex;gap:10px;padding:12px 12px 14px;background:rgba(0,0,0,.06)}
+    .bbtn{flex:1;border:1px solid var(--purpleLine);background:rgba(255,255,255,.08);border-radius:14px;padding:12px 14px;font-weight:1000;color:var(--purpleInk);cursor:pointer}
+    .bbtn.approve{background:#78c774;border-color:#78c774;color:#fff}
+    .bbtn.reject{background:rgba(255,255,255,.12)}
+    .bbtn.icon{flex:0 0 46px}
+    .bbtn:hover{transform:translateY(-1px)}
+    .bbtn:active{transform:translateY(0)}
 
-    .ov.open{display:flex}
-    .modal{
-      width:min(520px, 96vw);
-      background:linear-gradient(180deg,var(--purple2),var(--purple));
-      color:var(--purpleInk);
-      border-radius:16px;
-      box-shadow:0 20px 60px rgba(0,0,0,.35);
-      overflow:hidden;
-    }
-    .modal .body{padding:18px}
-    .k{color:var(--purpleMuted);font-size:12px;margin-top:10px}
-    .v{font-weight:800;font-size:16px;margin-top:2px}
-    .row{display:flex;gap:12px;align-items:center;margin-top:14px}
-    .avatars{display:flex;gap:8px;margin-top:8px}
-    .avatars .av{background:rgba(255,255,255,.16);color:var(--purpleInk);border:1px solid var(--purpleLine)}
-    .modal textarea{
-      width:100%;margin-top:12px;min-height:80px;resize:vertical;
-      border-radius:12px;border:1px solid var(--purpleLine);
-      background:rgba(255,255,255,.10);color:var(--purpleInk);
-      padding:10px;font:inherit;outline:none
-    }
-    .modal .foot{
-      display:flex;gap:10px;padding:14px;border-top:1px solid var(--purpleLine);
-      background:rgba(0,0,0,.08)
-    }
-    .bbtn{
-      flex:1;display:flex;align-items:center;justify-content:center;gap:8px;
-      border-radius:12px;padding:12px 10px;font-weight:900;cursor:pointer;border:1px solid transparent
-    }
-    .bbtn.secondary{background:rgba(255,255,255,.12);border-color:var(--purpleLine);color:var(--purpleInk)}
-    .bbtn.approve{background:#6bc676;color:#0b2b12}
-    .bbtn.reject{background:rgba(255,255,255,.12);border:1px solid var(--purpleLine);color:var(--purpleInk)}
-    .bbtn.icon{flex:0 0 54px}
-    .toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:#1f2330;color:#fff;padding:10px 12px;border-radius:12px;font-weight:700;box-shadow:var(--shadow);display:none;z-index:99999}
-    .toast.show{display:block}
-  
-
-    .dow{font-size:10px; color:var(--muted); margin-top:2px; font-weight:800}
-    .lvcell{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px; height:100%; min-height:64px}
-    .lvcell .c{font-weight:900; letter-spacing:.3px}
-    .lvcell .t{font-size:11px; color:rgba(27,27,40,.7); font-weight:800}
-    .lvcell .mini{font-size:10px; opacity:.75}
-    .lvcell .bang{position:absolute;top:6px;right:6px}
-    .av2{width:40px;height:40px;border-radius:999px;background:#e9ecff;display:grid;place-items:center;font-weight:900;color:#3a2d71;border:2px solid rgba(255,255,255,.7)}
-
-
-/* ===== v2: Calendar ca in prezență (2.png) ===== */
-.grid{grid-template-columns:1fr !important}
-.side{margin-top:14px}
-
-/* Tabel mare, ca în Calendar prezență */
-.tableWrap{border-radius:22px}
-.tableScroll{overflow:auto; max-height:560px}
-table#cal{min-width:1400px}
-
-/* header */
-thead th{
-  background:#ffffff !important;
-  font-size:12px;
-  color:#2c3050;
-  padding:14px 10px !important;
-  border-bottom:1px solid var(--line);
-}
-thead th .dow{display:block;margin-top:3px;font-size:11px;color:#7b83a6}
-thead th.empHead{min-width:320px;text-align:left !important}
-thead th.idxHead{min-width:54px;width:54px;text-align:center !important;color:#7b83a6}
-thead th.dayHead{min-width:64px;width:64px;text-align:center !important}
-thead th .sort{margin-left:10px;color:var(--accent);font-weight:900}
-
-/* body */
-tbody th.idxCell{
-  position:sticky; left:0; z-index:8;
-  width:54px; min-width:54px;
-  text-align:center;
-  font-weight:800; color:#9aa0ba;
-  background:#fff;
-  border-right:1px solid var(--line);
-}
-tbody th.empCell{
-  position:sticky; left:54px; z-index:7;
-  min-width:320px;
-  background:#fff;
-  border-right:1px solid var(--line);
-  padding:14px 14px !important;
-}
-tbody td.dayTd{
-  width:64px; min-width:64px;
-  height:92px;
-  padding:0 !important;
-  background:#fff;
-}
-tbody td.dayTd + td.dayTd{ }
-tbody td, tbody th{border-bottom:1px solid var(--line) !important}
-tbody td:last-child, thead th:last-child{border-right:0}
-
-/* employee cell look */
-.who{gap:12px}
-.av{
-  width:40px;height:40px;border-radius:999px;
-  background:#e9ecff;
-  font-weight:900;
-  color:#3a2d71;
-}
-.name .n{font-size:14px}
-.name .d{font-size:12px}
-
-/* day box like presence cells */
-.lvcell.dayBox{
-  width:100%; height:100%;
-  position:relative;
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  justify-content:center;
-  cursor:pointer;
-}
-.lvcell.dayBox:hover{background:#fafaff}
-.dayBox .bar{
-  position:absolute; left:0; right:0; top:0; height:4px;
-  background:transparent;
-}
-.dayBox.pending .bar{background:#f2b700}
-.dayBox.approved .bar{background:#38b26f}
-.dayBox.rejected .bar{background:#e25a5a}
-.dayBox .code{font-weight:900;font-size:13px;color:#2c3050;letter-spacing:.3px}
-.dayBox .time{margin-top:4px;font-size:10px;color:#6f7890;font-weight:700}
-.dayBox .more{position:absolute; left:8px; bottom:8px; font-size:11px; color:#6f7890}
-.dayBox .bang{
-  position:absolute; left:6px; top:6px;
-  width:18px;height:18px;border-radius:999px;
-  background:#f2b700;color:#2c3050;
-  display:grid;place-items:center;
-  font-weight:1000;font-size:12px;
-  box-shadow:0 4px 10px rgba(0,0,0,.08);
-}
-
-
-/* sticky headers for index+employee */
-thead th.idxHead{position:sticky;left:0;z-index:11;padding-left:0 !important;padding-right:0 !important}
-thead th.empHead{position:sticky;left:54px;z-index:10}
-</style>
+    .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:18px;background:#111; color:#fff;padding:10px 12px;border-radius:12px;opacity:0;pointer-events:none;transition:opacity .2s, transform .2s;z-index:120}
+    .toast.show{opacity:1;transform:translateX(-50%) translateY(-6px)}
+    .err{background:#ffe0e0;border:1px solid rgba(210,70,70,.25);color:#7e1f1f;padding:10px 12px;border-radius:14px;margin-top:10px;display:none}
+  </style>
 </head>
 <body>
-<div class="wrap">
-  <div class="panel">
-    <div class="head">
-      <div class="title">
-        <h1>Concedii &amp; învoiri</h1>
-        <div class="sub" id="sub">Aprobări</div>
-      </div>
-      <div class="controls">
-        <button class="btn" id="prev">‹</button>
-        <div class="pill">
-          <select id="monthSel"></select>
+  <div class="wrap">
+    <div class="panel">
+      <div class="head">
+        <div class="title">
+          <h1>Concedii &amp; învoiri</h1>
+          <div class="sub" id="sub">Aprobări</div>
         </div>
-        <button class="btn" id="next">›</button>
-        <div class="pill">
-          <span style="opacity:.7">🔎</span>
-          <input id="q" placeholder="Caută angajat..." />
+        <div class="controls">
+          <button class="btn" id="prev">‹</button>
+          <div class="pill">
+            <select id="monthSel"></select>
+          </div>
+          <button class="btn" id="next">›</button>
+          <div class="pill">
+            <span style="opacity:.7">🔎</span>
+            <input id="q" placeholder="Caută angajat..." />
+          </div>
+          <label class="toggle" title="Filtrează doar cererile repartizate ție">
+            <input type="checkbox" id="onlyMine" checked />
+            <span>Doar ale mele</span>
+          </label>
+          <button class="btn primary" id="refresh">Refresh</button>
         </div>
-        <label class="toggle" title="Filtrează doar cererile repartizate ție">
-          <input type="checkbox" id="onlyMine" checked />
-          <span>Doar ale mele</span>
-        </label>
-        <button class="btn primary" id="refresh">Refresh</button>
       </div>
-    </div>
 
-    <div class="grid">
       <div class="tableWrap">
-        <div class="tableScroll">
-          <table id="cal">
-            <thead id="thead"></thead>
-            <tbody id="tbody"></tbody>
-          </table>
+        <table id="cal">
+          <thead id="thead"></thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+
+      <div class="legend">
+        <div class="lg"><span class="dot" style="background:var(--c-leave)"></span> Concediu</div>
+        <div class="lg"><span class="dot" style="background:var(--c-under)"></span> Învoire</div>
+        <div class="lg"><span class="dot" style="background:var(--c-pending)"></span> Pending</div>
+        <div class="lg"><span class="dot" style="background:var(--c-approved)"></span> Aprobat</div>
+        <div class="lg"><span class="dot" style="background:var(--c-rejected)"></span> Respins</div>
+      </div>
+
+      <div class="below">
+        <div class="card">
+          <div class="cardHead">
+            <div style="display:flex;align-items:center;gap:10px">
+              <h3>În așteptare &amp; istoric</h3>
+              <span class="badge" id="pendingCount">0</span>
+            </div>
+            <div class="muted" id="dbg"></div>
+          </div>
+          <div style="padding:0 16px 12px">
+            <div id="err" class="err"></div>
+            <div class="muted" style="padding:10px 0 0">Angajat • Tip concediu • Tip învoire • Status</div>
+          </div>
+          <div class="tableMiniWrap">
+            <table class="miniTable" id="reqTable">
+              <thead>
+                <tr>
+                  <th style="min-width:260px">ANGAJAT</th>
+                  <th style="min-width:260px">TIP DE CONCEDIU</th>
+                  <th style="min-width:260px">TIP ÎNVOIRE</th>
+                  <th style="min-width:220px">STATUS</th>
+                </tr>
+              </thead>
+              <tbody id="reqTbody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="cardHead">
+            <h3>Aprobări rapide</h3>
+            <div class="muted">Aprobă/respinge direct din listă</div>
+          </div>
+          <div class="tableMiniWrap">
+            <table class="miniTable" id="actTable">
+              <thead>
+                <tr>
+                  <th style="min-width:260px">ANGAJAT</th>
+                  <th style="min-width:340px">PERIOADA</th>
+                  <th style="min-width:260px">ACȚIUNI</th>
+                </tr>
+              </thead>
+              <tbody id="actTbody"></tbody>
+            </table>
+          </div>
         </div>
       </div>
+    </div>
+  </div>
 
-      <div class="side">
-        <h3>În așteptare <span class="badge" id="pendingCount">0</span></h3>
-        <div class="muted">Click pe o zi cu cerere pentru aprobare / respingere.</div>
-        <div id="err" class="err" style="display:none"></div>
-        <div class="muted" id="dbg" style="margin-top:6px"></div>
-        <div class="list" id="pendingList"></div>
-        <div class="muted" id="emptyMsg" style="margin-top:10px;display:none">Nu există cereri pending în luna selectată.</div>
+  <!-- Approval modal -->
+  <div class="ov" id="ov">
+    <div class="modal" role="dialog" aria-modal="true">
+      <div class="body">
+        <div class="k">Perioadă</div>
+        <div class="v" id="mPeriod">—</div>
+
+        <div class="k">Tip</div>
+        <div class="v" id="mReason">—</div>
+
+        <div class="k">Status</div>
+        <div class="v" id="mCount">—</div>
+
+        <div class="k">Ziua selectată</div>
+        <div class="v" id="mDay">—</div>
+
+        <textarea id="mNote" placeholder="Notă (opțional) — se aplică la approve/reject"></textarea>
+      </div>
+      <div class="foot">
+        <button class="bbtn reject" id="mReject">✕ Respinge</button>
+        <button class="bbtn approve" id="mApprove">✓ Aprobă</button>
       </div>
     </div>
   </div>
-</div>
 
-<!-- Approval modal -->
-<div class="ov" id="ov">
-  <div class="modal" role="dialog" aria-modal="true">
-    <div class="body">
-      <div class="k">Perioadă</div>
-      <div class="v" id="mPeriod">—</div>
-
-      <div class="k">Număr</div>
-      <div class="v" id="mCount">—</div>
-
-      <div class="k">Motiv</div>
-      <div class="v" id="mReason">—</div>
-
-      <div class="k">Ziua selectată</div>
-      <div class="v" id="mDay">—</div>
-
-      <div class="k">În aceeași zi cu</div>
-      <div class="avatars" id="sameDayAv"></div>
-
-      <div class="k">În aceeași perioadă cu</div>
-      <div class="avatars" id="samePeriodAv"></div>
-
-      <textarea id="mNote" placeholder="Notă (opțional) — se aplică la approve/reject"></textarea>
-    </div>
-    <div class="foot">
-      <button class="bbtn secondary icon" id="mDl" title="Export (placeholder)">⤓</button>
-      <button class="bbtn reject" id="mReject">✕ Respinge</button>
-      <button class="bbtn approve" id="mApprove">✓ Aprobă</button>
-    </div>
-  </div>
-</div>
-
-<div class="toast" id="toast">—</div>
+  <div class="toast" id="toast">—</div>
 
 <script>
 (() => {
-  // ===== Config loading (same smart loader used elsewhere) =====
   const CFG_PATHS = ["./config.json","../config.json","/config.json"];
   let CFG = null;
-
   const LS_ADMIN = "pontaj/admin/v1";
   const LS_ADMIN_KEY = "pontaj_adminKey";
 
-  function $(sel){ return document.querySelector(sel); }
+  const $ = (s)=>document.querySelector(s);
+  const $$ = (s)=>Array.from(document.querySelectorAll(s));
+
+  let YM = null;
+  let ALL = [];
+  let VIEW = [];
+  let CURRENT = null; // current request (modal)
+
+  function escapeHtml(s){ return String(s??"").replace(/[&<>"']/g, m=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"":"&quot;","'":"&#39;" }[m])); }
   function toast(msg){
-    const t = $("#toast");
-    if (!t) return;
-    t.textContent = msg;
-    t.classList.add("show");
-    setTimeout(()=>t.classList.remove("show"), 2200);
-  }
-  function setError(msg){
-    const e = $("#err");
-    if (!e) return;
-    if(!msg){ e.style.display="none"; e.textContent=""; return; }
-    e.style.display="block";
-    e.textContent = msg;
+    const el = $("#toast");
+    el.textContent = msg;
+    el.classList.add("show");
+    clearTimeout(el._t);
+    el._t = setTimeout(()=>el.classList.remove("show"), 2200);
   }
 
-  async function loadCFG(){
+  async function loadCfg(){
     for (const p of CFG_PATHS){
       try{
-        const r = await fetch(p, { cache:"no-store" });
-        if (!r.ok) continue;
-        CFG = await r.json();
-        return;
+        const r = await fetch(p, {cache:"no-store"});
+        if (r.ok){ CFG = await r.json(); return CFG; }
       }catch(e){}
     }
-    CFG = {};
+    return null;
   }
-  function ep(){ return (CFG && (CFG.leaveEndpoint || CFG.adminEventsEndpoint || CFG.stateEndpoint)) || ""; }
-
-  // ===== Admin session =====
-  function getAdminSession(){
-    const raw = (localStorage.getItem(LS_ADMIN) || "").trim();
-    if (!raw) return null;
-    let obj = null;
-    try{ obj = JSON.parse(raw); }catch(_){ obj = null; }
-    if (obj && typeof obj === "object"){
-      const label = (obj.label || obj.name || obj.user || obj.email || obj.id || "").toString().trim();
-      const email = (obj.email || obj.userEmail || obj.mail || "").toString().trim();
-      if (!label && !email) return null;
-      return { raw: obj, label: label || email, email: email || "" };
-    }
-    return { raw: { value: raw }, label: raw, email: "" };
+  function endpoint(){
+    return (CFG && (CFG.leaveEndpoint || CFG.adminEventsEndpoint)) || "";
   }
 
-  function getAdminKey(){
-    let k = "";
-    try{ k = (localStorage.getItem(LS_ADMIN_KEY) || "").trim(); }catch(e){}
-    if (!k){
-      k = (prompt("Cheie admin (ADMIN_KEY) pentru aprobări:", "") || "").trim();
-      if (k){ try{ localStorage.setItem(LS_ADMIN_KEY, k); }catch(e){} }
-    }
-    return k;
-  }
-
-  // ===== JSONP =====
-  function jsonp(url){
-    return new Promise((resolve,reject)=>{
-      const cb = "cb_"+Math.random().toString(16).slice(2);
+  function jsonp(url, params){
+    return new Promise((resolve, reject)=>{
+      const cb = "cb_" + Math.random().toString(36).slice(2);
+      const qs = new URLSearchParams({...params, callback: cb}).toString();
       const s = document.createElement("script");
-      const t = setTimeout(()=>{ cleanup(); reject(new Error("JSONP timeout")); }, 20000);
-      function cleanup(){
-        clearTimeout(t);
-        try{ delete window[cb]; }catch(_){ window[cb]=undefined; }
-        if (s && s.parentNode) s.parentNode.removeChild(s);
-      }
+      const cleanup = ()=>{
+        try{ delete window[cb]; }catch(e){ window[cb] = undefined; }
+        s.remove();
+      };
       window[cb] = (data)=>{ cleanup(); resolve(data); };
       s.onerror = ()=>{ cleanup(); reject(new Error("JSONP error")); };
-      s.src = url + (url.includes("?") ? "&" : "?") + "callback=" + cb;
-      document.body.appendChild(s);
+      s.src = url + (url.includes("?")?"&":"?") + qs;
+      document.head.appendChild(s);
     });
   }
 
-  
-  function escapeHtml(s){
-    s = String(s==null?"":s);
-    return s.replace(/[&<>"']/g, (c)=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
+  function getAdmin(){
+    try{ return JSON.parse(localStorage.getItem(LS_ADMIN) || "null"); }catch(e){ return null; }
   }
-
-// ===== helpers =====
-  function norm(s){ return String(s||"").trim().toLowerCase(); }
-  function deacc(s){ return (s||"").normalize("NFD").replace(/[\u0300-\u036f]/g, ""); }
-  function keyName(s){ return deacc(norm(s)).replace(/\s+/g," ").trim(); }
-
-  function tokens(s){
-    return keyName(s).split(/[^a-z0-9]+/).filter(Boolean);
+  function getAdminName(admin){
+    if (!admin) return "";
+    return admin.label || admin.name || admin.fullName || admin.email || admin.user || "";
   }
-  function samePerson(a,b){
-    const A = keyName(a), B = keyName(b);
-    if (!A || !B) return false;
-    if (A === B) return true;
-    if (A.includes(B) || B.includes(A)) return true;
-    // token match (useful for emails)
-    const ta = tokens(A), tb = tokens(B);
-    const small = ta.length<=tb.length ? ta : tb;
-    const big = ta.length<=tb.length ? tb : ta;
-    // require at least 1 token match, or all tokens from smaller contained
-    let hits = 0;
-    for (const t of small){
-      if (big.includes(t)) hits++;
-    }
-    return hits >= Math.min(2, small.length); // usually "alin ceclan" => 2 hits
+  function getAdminEmail(admin){
+    if (!admin) return "";
+    return admin.email || admin.userEmail || admin.personalEmail || "";
   }
-
-  function initials(name){
-    const parts = String(name||"").trim().split(/\s+/).filter(Boolean);
-    const a = parts[0]?.[0] || "?";
-    const b = parts.length>1 ? parts[parts.length-1][0] : "";
-    return (a+b).toUpperCase();
-  }
+  function norm(s){ return String(s||"").trim().toLowerCase().replace(/\s+/g," "); }
+  function same(a,b){ a=norm(a); b=norm(b); if (!a||!b) return false; return a===b || a.replace(/[^a-z0-9@.]+/g,"")===b.replace(/[^a-z0-9@.]+/g,""); }
 
   function pad2(n){ return String(n).padStart(2,"0"); }
-  function fmtTime(v){
-    if (v === null || v === undefined || v === "") return "";
-    // String like "09:30" or "9:30"
-    if (typeof v === "string"){
-      const m = v.match(/(\d{1,2}):(\d{2})/);
-      if (m) return pad2(m[1]) + ":" + m[2];
-      // ISO datetime or Date string
-      const d = new Date(v);
-      if (!isNaN(d.getTime())) return pad2(d.getHours()) + ":" + pad2(d.getMinutes());
-      return v;
-    }
-    // Date object (Google Sheets time often comes as 1899-12-30...)
-    if (v instanceof Date){
-      if (!isNaN(v.getTime())) return pad2(v.getHours()) + ":" + pad2(v.getMinutes());
-      return "";
-    }
-    // Number: Google Sheets serial date/time or fraction of day
-    if (typeof v === "number" && isFinite(v)){
-      let frac = v % 1;
-      if (frac < 0) frac += 1;
-      const totalMin = Math.round(frac * 24 * 60);
-      const hh = Math.floor(totalMin / 60) % 24;
-      const mm = totalMin % 60;
-      return pad2(hh) + ":" + pad2(mm);
-    }
-    try{
-      const d = new Date(v);
-      if (!isNaN(d.getTime())) return pad2(d.getHours()) + ":" + pad2(d.getMinutes());
-    }catch(e){}
-    return "";
-  }
-
-
   function daysInMonth(ym){
-    const [y,m] = ym.split("-").map(Number);
+    const y = Number(ym.slice(0,4)), m = Number(ym.slice(5,7));
     return new Date(y, m, 0).getDate();
   }
-  function dowShort(d){
-    const arr=["Du","Lu","Ma","Mi","Jo","Vi","Sâ"];
-    return arr[d.getDay()];
+  function toISODate(d){
+    return d.getFullYear()+"-"+pad2(d.getMonth()+1)+"-"+pad2(d.getDate());
   }
-  function iso(d){
-    const y = d.getFullYear();
-    const m = String(d.getMonth()+1).padStart(2,"0");
-    const da= String(d.getDate()).padStart(2,"0");
-    return y+"-"+m+"-"+da;
+  function parseISO(iso){
+    if (!iso) return null;
+    if (iso instanceof Date) return new Date(iso.getTime());
+    const s = String(iso);
+    // accept YYYY-MM-DD or DD.MM.YYYY
+    let m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (m) return new Date(Number(m[1]), Number(m[2])-1, Number(m[3]), 12,0,0,0);
+    m = s.match(/^(\d{2})\.(\d{2})\.(\d{4})/);
+    if (m) return new Date(Number(m[3]), Number(m[2])-1, Number(m[1]), 12,0,0,0);
+    const d = new Date(s);
+    return isNaN(d) ? null : d;
   }
-  function parseIsoDate(s){
-    const m = String(s||"").match(/^(\d{4})-(\d{2})-(\d{2})$/);
-    if(!m) return null;
-    return new Date(Number(m[1]), Number(m[2])-1, Number(m[3]), 12,0,0,0);
+  function fmtRO(iso){
+    const d = parseISO(iso);
+    if (!d) return "—";
+    return pad2(d.getDate())+"."+pad2(d.getMonth()+1)+"."+d.getFullYear();
   }
-  function between(d, a, b){
-    return d && a && b && d.getTime() >= a.getTime() && d.getTime() <= b.getTime();
+  function getWeekdayShort(iso){
+    const d = parseISO(iso);
+    const map = ["Du","Lu","Ma","Mi","Jo","Vi","Sâ"];
+    return map[d.getDay()];
+  }
+  function initials(name){
+    const p = String(name||"").trim().split(/\s+/).filter(Boolean);
+    if (!p.length) return "—";
+    return (p[0][0] + (p[1]?p[1][0]:"")).toUpperCase();
   }
 
-  // ===== data =====
-  let LEAVES_ALL = [];
-  let LEAVES_VIEW = [];
-  let MANAGERS = null; // { keyName(emp): {managerName, managerEmail} }
+  function fmtTime(v){
+    if (v==null || v==="") return "";
+    // Date object (often 1899-12-30)
+    if (v instanceof Date){
+      const h = v.getHours(), m = v.getMinutes();
+      return pad2(h)+":"+pad2(m);
+    }
+    // numeric serial (fraction of day)
+    if (typeof v === "number" && isFinite(v)){
+      const totalMin = Math.round(v * 24 * 60);
+      const h = Math.floor(totalMin/60)%24;
+      const m = totalMin%60;
+      return pad2(h)+":"+pad2(m);
+    }
+    const s = String(v).trim();
+    // "09:30" or "09:30:00"
+    const m = s.match(/^(\d{1,2}):(\d{2})/);
+    if (m) return pad2(Number(m[1]))+":"+m[2];
+    // try Date parse
+    const d = new Date(s);
+    if (!isNaN(d)) return pad2(d.getHours())+":"+pad2(d.getMinutes());
+    return s;
+  }
 
-  async function loadManagersMap(endpoint, key){
-    if (MANAGERS) return MANAGERS;
-    try{
-      const u = endpoint + "?fn=adminManagersMap&key=" + encodeURIComponent(key) + "&ts=" + Date.now();
-      const data = await jsonp(u);
-      if (data && data.ok && data.map){
-        MANAGERS = data.map;
-        return MANAGERS;
+  const LEAVE_MAP = {
+    "CO":"Concediu de odihnă",
+    "BO":"Concediu medical",
+    "CCC":"Concediu pentru creșterea copilului",
+    "CFP":"Concediu fără plată",
+    "EV":"Eveniment"
+  };
+
+  function tipConcediu(req){
+    if (req.kind !== "concediu") return "—";
+    const code = (req.code||"").toUpperCase();
+    return LEAVE_MAP[code] || (code ? ("Concediu ("+code+")") : "Concediu");
+  }
+  function tipInvoire(req){
+    if (req.kind !== "invoire") return "—";
+    const st = fmtTime(req.startTime||req.start||req.from);
+    const en = fmtTime(req.endTime||req.end||req.to);
+    const hh = (st && en) ? (st+"–"+en) : (st||en||"");
+    return hh ? ("Învoire "+hh) : "Învoire";
+  }
+  function statusText(req){
+    const s = (req.status||"pending").toLowerCase();
+    if (s==="approved") return "Solicitare aprobată";
+    if (s==="rejected") return "Solicitare respinsă";
+    return "În așteptare";
+  }
+  function statusClass(req){
+    const s = (req.status||"pending").toLowerCase();
+    if (s==="approved") return "st-approved";
+    if (s==="rejected") return "st-rejected";
+    return "st-pending";
+  }
+
+  function fillMonthSelect(){
+    const sel = $("#monthSel");
+    sel.innerHTML = "";
+    const now = new Date();
+    for (let i=-12;i<=12;i++){
+      const d = new Date(now.getFullYear(), now.getMonth()+i, 1);
+      const ym = d.getFullYear()+"-"+pad2(d.getMonth()+1);
+      const opt = document.createElement("option");
+      opt.value = ym;
+      opt.textContent = d.getFullYear()+" / "+pad2(d.getMonth()+1);
+      sel.appendChild(opt);
+    }
+  }
+
+  function applyFilters(){
+    const q = norm($("#q").value);
+    const onlyMine = $("#onlyMine").checked;
+    const admin = getAdmin();
+    const an = getAdminName(admin);
+    const ae = getAdminEmail(admin);
+
+    VIEW = ALL.filter(r=>{
+      if (q){
+        const hay = norm(r.employeeName) + " " + norm(r.dept) + " " + norm(r.code) + " " + norm(r.kind);
+        if (!hay.includes(q)) return false;
       }
-    }catch(_){}
-    MANAGERS = {};
-    return MANAGERS;
-  }
-
-  function enrichLeave(l){
-    const emp = String(l.employeeName||"").trim();
-    const k = keyName(emp);
-    const m = (MANAGERS && MANAGERS[k]) ? MANAGERS[k] : null;
-    const mgrName = String(l.managerName||"").trim() || (m ? String(m.managerName||"").trim() : "");
-    const mgrEmail = String(l.managerEmail||"").trim() || (m ? String(m.managerEmail||"").trim() : "");
-    return {
-      ...l,
-      _empKey: k,
-      _mgrName: mgrName,
-      _mgrEmail: mgrEmail
-    };
-  }
-
-  function filterMine(list, admin){
-    const onlyMine = $("#onlyMine")?.checked;
-    if (!onlyMine) return list;
-    if (!admin) return list; // can't filter
-    const adminId = admin.label || admin.email || "";
-    if (!adminId) return list;
-
-    return list.filter(l=>{
-      const a = l._mgrName || "";
-      const b = l._mgrEmail || "";
-      // if request has no manager assigned, hide it in "mine"
-      if (!a && !b) return false;
-      return samePerson(a, adminId) || samePerson(b, adminId) || samePerson(a, admin.email||"") || samePerson(b, admin.email||"");
-    });
-  }
-
-  function filterSearch(list){
-    const q = norm($("#q")?.value || "");
-    if (!q) return list;
-    const qq = deacc(q);
-    return list.filter(l=>{
-      const n = deacc(norm(l.employeeName||""));
-      const c = deacc(norm(l.code||""));
-      return n.includes(qq) || c.includes(qq);
-    });
-  }
-
-  function buildView(admin){
-    const enriched = LEAVES_ALL.map(enrichLeave);
-    let list = enriched;
-    list = filterMine(list, admin);
-    list = filterSearch(list);
-    LEAVES_VIEW = list;
-  }
-
-  // ===== UI render =====
-  
-  // ===== UI render (calendar ca in prezență) =====
-  function render(ym, admin){
-    const thead = $("#thead");
-    const tbody = $("#tbody");
-    if (!thead || !tbody) return;
-
-    const dim = daysInMonth(ym);
-
-    // header
-    let h = `<tr>
-      <th class="idxHead">#</th>
-      <th class="empHead">ANGAJAT <span class="sort">↑↓</span></th>`;
-    for (let d=1; d<=dim; d++){
-      const dt = new Date(Number(ym.slice(0,4)), Number(ym.slice(5,7))-1, d, 12,0,0,0);
-      h += `<th class="dayHead">${String(d).padStart(2,"0")}<span class="dow">${dowShort(dt)}</span></th>`;
-    }
-    h += `</tr>`;
-    thead.innerHTML = h;
-
-    // group by employee
-    const byEmp = new Map();
-    for (const l of LEAVES_VIEW){
-      const emp = String(l.employeeName||"").trim() || "—";
-      if (!byEmp.has(emp)) byEmp.set(emp, []);
-      byEmp.get(emp).push(l);
-    }
-    const emps = Array.from(byEmp.keys()).sort((a,b)=>keyName(a).localeCompare(keyName(b)));
-
-    // build rows
-    let out = "";
-    emps.forEach((emp, idx)=>{
-      const list = byEmp.get(emp) || [];
-      const mgr = list[0]?._mgrName || list[0]?._mgrEmail || "";
-      const mgrTxt = mgr ? `Manager: ${mgr}` : `Manager: —`;
-
-      // map day -> requests
-      const cellMap = new Map(); // d => [requests]
-      for (const l of list){
-        const sd = parseIsoDate(l.startDate);
-        const ed = parseIsoDate(l.endDate || l.startDate);
-        if (!sd || !ed) continue;
-        for (let d=1; d<=dim; d++){
-          const day = new Date(Number(ym.slice(0,4)), Number(ym.slice(5,7))-1, d, 12,0,0,0);
-          if (between(day, sd, ed)){
-            if (!cellMap.has(d)) cellMap.set(d, []);
-            cellMap.get(d).push(l);
-          }
+      if (onlyMine){
+        const mn = r.managerName || r.manager || "";
+        const me = r.managerEmail || "";
+        // match by name OR email OR if request has empty manager then show (so you can see & fix)
+        if (mn || me){
+          return same(mn, an) || same(me, ae) || same(mn, ae) || same(me, an);
         }
       }
+      return true;
+    });
+  }
 
-      out += `<tr>
-        <th class="idxCell">${idx+1}</th>
-        <th class="empCell">
-          <div class="who">
-            <div class="av">${initials(emp)}</div>
-            <div class="name">
-              <div class="n">${escapeHtml(emp)}</div>
-              <div class="d">${escapeHtml(mgrTxt)}</div>
-            </div>
-          </div>
-        </th>`;
+  function buildByEmpDay(list){
+    const by = new Map(); // emp -> {dept, days: Map(iso->array)}
+    for (const r of list){
+      const emp = String(r.employeeName||"").trim() || "—";
+      if (!by.has(emp)) by.set(emp, {dept: r.dept||"", days: new Map()});
+      const info = by.get(emp);
+      if (!info.dept && r.dept) info.dept = r.dept;
 
-      for (let d=1; d<=dim; d++){
-        const arr = cellMap.get(d) || [];
-        if (!arr.length){ out += `<td class="dayTd"></td>`; continue; }
+      const s = parseISO(r.startDate || r.date || r.day);
+      const e = parseISO(r.endDate || r.startDate || r.date || r.day);
+      if (!s) continue;
+      const end = e || s;
+      const cur = new Date(s.getTime());
+      while (cur <= end){
+        const dk = toISODate(cur);
+        if (dk.startsWith(YM)){
+          if (!info.days.has(dk)) info.days.set(dk, []);
+          info.days.get(dk).push(r);
+        }
+        cur.setDate(cur.getDate()+1);
+      }
+    }
+    // sort arrays by createdAt
+    for (const [k,v] of by){
+      for (const [d,arr] of v.days){
+        arr.sort((a,b)=> String(a.createdAt||"").localeCompare(String(b.createdAt||"")));
+      }
+    }
+    return by;
+  }
 
-        // pick first, prefer pending if exists
-        const pendingFirst = arr.find(x=>norm(x.status)==="pending");
-        const first = pendingFirst || arr[0];
+  function renderCalendar(){
+    const dim = daysInMonth(YM);
+    const thead = $("#thead");
+    const tbody = $("#tbody");
+    const cols = Array.from({length:dim}, (_,i)=>{
+      const dk = YM+"-"+pad2(i+1);
+      return `<th title="${dk}">${pad2(i+1)}<br><span style="font-weight:900">${getWeekdayShort(dk)}</span></th>`;
+    }).join("");
 
-        const isInv = (norm(first.kind)==="invoire");
-        const code = isInv ? "INV" : (first.code || "—");
+    thead.innerHTML = `<tr>
+      <th class="stickyL" style="min-width:56px">#</th>
+      <th class="stickyL2" style="min-width:264px">Angajat</th>
+      <th class="stickyL3" style="min-width:160px">Departament</th>
+      ${cols}
+    </tr>`;
 
-        const hasPending = arr.some(x=>norm(x.status)==="pending");
-        const hasRejected = arr.some(x=>norm(x.status)==="rejected");
-        const hasApproved = arr.some(x=>norm(x.status)==="approved");
+    const by = buildByEmpDay(VIEW);
+    const emps = Array.from(by.keys()).sort((a,b)=>a.localeCompare(b, "ro"));
+    let html = "";
+    emps.forEach((emp, idx)=>{
+      const info = by.get(emp);
+      const daysMap = info.days;
 
-        const statusClass = hasPending ? "pending" : (hasRejected && !hasApproved ? "rejected" : (hasApproved ? "approved" : ""));
-        const bang = hasPending ? `<div class="bang">!</div>` : "";
-        const more = arr.length>1 ? `<div class="more">+${arr.length-1}</div>` : "";
-        const time = isInv ? `<div class="time">${fmtTime(first.startTime)}–${fmtTime(first.endTime)}</div>` : "";
-
-        const payload = encodeURIComponent(JSON.stringify(arr));
-        out += `<td class="dayTd">
-          <div class="lvcell dayBox ${statusClass}" data-ym="${ym}" data-day="${String(d).padStart(2,"0")}" data-arr="${payload}">
-            <div class="bar"></div>
-            ${bang}
-            <div class="code">${escapeHtml(code)}</div>
-            ${time}
-            ${more}
+      const cells = Array.from({length:dim}, (_,i)=>{
+        const dk = YM+"-"+pad2(i+1);
+        const arr = daysMap.get(dk) || [];
+        if (!arr.length){
+          return `<td class="dayCell"><div class="cell inactive" data-ids="" data-day="${dk}" data-name="${escapeHtml(emp)}"></div></td>`;
+        }
+        const first = arr[0];
+        const kind = (first.kind||"concediu").toLowerCase();
+        const isInv = kind==="invoire";
+        const label = isInv ? "INV" : (String(first.code||"").toUpperCase() || "CO");
+        const sub = isInv ? (fmtTime(first.startTime||first.start||first.from)+"–"+fmtTime(first.endTime||first.end||first.to)) : "";
+        const pendingAny = arr.some(x=>String(x.status||"pending").toLowerCase()==="pending");
+        const clsBase = isInv ? "inv" : "leave";
+        const ids = arr.map(x=>x.id).filter(Boolean).join(",");
+        const more = arr.length>1 ? `<span class="more">+${arr.length-1}</span>` : "";
+        const bang = pendingAny ? `<span class="bang">!</span>` : "";
+        const subHtml = sub ? `<small>${escapeHtml(sub)}</small>` : "";
+        const title = `${emp} • ${dk}\n${arr.map(x=>{
+          const k = (x.kind||"").toLowerCase();
+          const t = k==="invoire" ? ("Învoire "+(fmtTime(x.startTime||x.start||x.from)||"")+"–"+(fmtTime(x.endTime||x.end||x.to)||"")) : (String(x.code||"").toUpperCase());
+          return `${t} (${x.status||"pending"})`;
+        }).join("\n")}`;
+        return `<td class="dayCell">
+          <div class="cell ${clsBase} ${pendingAny?'pending':''}" data-ids="${escapeHtml(ids)}" data-day="${dk}" data-name="${escapeHtml(emp)}" title="${escapeHtml(title)}">
+            ${bang}${escapeHtml(label)}${subHtml}${more}
           </div>
         </td>`;
-      }
+      }).join("");
 
-      out += `</tr>`;
+      html += `<tr>
+        <td class="stickyL">${idx+1}</td>
+        <td class="stickyL2">
+          <div class="empCell">
+            <div class="empBubble">${escapeHtml(initials(emp))}</div>
+            <div>
+              <div class="empName">${escapeHtml(emp)}</div>
+              <div class="empDept">Manager: ${escapeHtml((info.managerName||"") || (VIEW.find(r=>r.employeeName===emp)?.managerName) || "—")}</div>
+            </div>
+          </div>
+        </td>
+        <td class="stickyL3">${escapeHtml(info.dept || "—")}</td>
+        ${cells}
+      </tr>`;
     });
 
-    tbody.innerHTML = out;
+    tbody.innerHTML = html || `<tr><td class="stickyL" colspan="${3+dim}" style="padding:16px;color:var(--muted)">Nu există cereri în luna selectată.</td></tr>`;
+  }
 
-    // click on cell => modal
-    tbody.onclick = (ev)=>{
-      const el = ev.target && ev.target.closest ? ev.target.closest(".lvcell") : null;
-      if (!el) return;
-      try{
-        const day = ym + "-" + el.getAttribute("data-day");
-        const arr = JSON.parse(decodeURIComponent(el.getAttribute("data-arr")||"[]"));
-        openModal(arr, day, admin);
-      }catch(e){
-        console.warn("openModal failed", e);
-      }
-    };
+  function renderReqTables(){
+    const reqTbody = $("#reqTbody");
+    const actTbody = $("#actTbody");
 
-    // pending badge + list (existing UI, below or right)
-    const pending = LEAVES_VIEW.filter(l=>norm(l.status)==="pending");
-    $("#pendingCount") && ($("#pendingCount").textContent = String(pending.length));
+    const pending = VIEW.filter(r=>String(r.status||"pending").toLowerCase()==="pending");
+    $("#pendingCount").textContent = String(pending.length);
 
-    const pl = $("#pendingList");
-    const emptyMsg = $("#emptyMsg");
-    if (pl) pl.innerHTML = "";
-    if (emptyMsg) emptyMsg.style.display = pending.length ? "none" : "block";
+    // debug label
+    const admin = getAdmin();
+    const dbg = `Încărcate: ${ALL.length} • Afișate: ${VIEW.length} • Admin: ${getAdminName(admin) || "—"}`;
+    $("#dbg").textContent = dbg;
 
-    if (pl && pending.length){
-      pending.slice(0,50).forEach(l=>{
-        const txt = (norm(l.kind)==="invoire")
-          ? `Învoire ${l.startDate} • ${fmtTime(l.startTime)}–${fmtTime(l.endTime)}`
-          : `${l.code||"—"} ${l.startDate}–${l.endDate}`;
-        const div = document.createElement("div");
-        div.className = "item";
-        div.innerHTML = `<div>
-            <strong>${escapeHtml(l.employeeName||"—")}</strong>
-            <div class="meta">${escapeHtml(txt)}</div>
+    // table 3 (all)
+    const rows = VIEW.slice().sort((a,b)=>String(b.createdAt||"").localeCompare(String(a.createdAt||"")));
+    reqTbody.innerHTML = rows.map(r=>{
+      const emp = r.employeeName || "—";
+      const av = initials(emp);
+      const tc = (r.kind==="concediu") ? tipConcediu(r) : "<span class='dash'>—</span>";
+      const ti = (r.kind==="invoire") ? (tipInvoire(r)) : "<span class='dash'>—</span>";
+      const st = statusText(r);
+      const stc = statusClass(r);
+      return `<tr>
+        <td>
+          <div class="empRow">
+            <div class="av">${escapeHtml(av)}</div>
+            <div>
+              <div style="font-weight:900">${escapeHtml(emp)}</div>
+              <div class="muted">${escapeHtml(r.dept || "—")}</div>
+            </div>
           </div>
-          <div class="actions"><span class="badge">pending</span></div>`;
-        div.addEventListener("click", ()=>openModal([l], l.startDate || (ym+"-01"), admin));
-        pl.appendChild(div);
-      });
-    }
+        </td>
+        <td>${tc}</td>
+        <td>${ti}</td>
+        <td class="status ${stc}">${escapeHtml(st)}</td>
+      </tr>`;
+    }).join("") || `<tr><td colspan="4" class="muted" style="padding:16px">Nu există cereri pentru luna selectată.</td></tr>`;
 
-    // debug
-    const dbg = $("#dbg");
-    if (dbg){
-      const a = admin ? (admin.label || admin.email || "—") : "—";
-      dbg.textContent = `Încărcate: ${LEAVES_ALL.length} • Afișate: ${LEAVES_VIEW.length} • Admin: ${a}`;
-    }
+    // table 4 (pending with actions)
+    actTbody.innerHTML = pending.map(r=>{
+      const emp = r.employeeName || "—";
+      const av = initials(emp);
+      const per = (r.kind==="invoire")
+        ? (fmtRO(r.startDate)+" • "+(fmtTime(r.startTime||r.start||r.from)||"")+"–"+(fmtTime(r.endTime||r.end||r.to)||""))
+        : (fmtRO(r.startDate) + " – " + fmtRO(r.endDate || r.startDate));
+      return `<tr data-id="${escapeHtml(r.id)}">
+        <td>
+          <div class="empRow">
+            <div class="av">${escapeHtml(av)}</div>
+            <div>
+              <div style="font-weight:900">${escapeHtml(emp)}</div>
+              <div class="muted">${escapeHtml(r.kind==="invoire" ? "Învoire" : "Concediu")}</div>
+            </div>
+          </div>
+        </td>
+        <td style="font-weight:900">${escapeHtml(per)}</td>
+        <td>
+          <div class="actions">
+            <button class="actBtn approve" data-act="approve">✓ Aprobă</button>
+            <button class="actBtn reject" data-act="reject">✕</button>
+          </div>
+        </td>
+      </tr>`;
+    }).join("") || `<tr><td colspan="3" class="muted" style="padding:16px">Nu există cereri pending în luna selectată.</td></tr>`;
   }
 
-
-  // ===== Modal (approval) =====
-  let CURRENT = null; // {arr, day}
-  function openModal(arr, day, admin){
-    if (!arr || !arr.length) return;
-    CURRENT = { arr, day };
-    const l = arr[0];
-
-    const ov = $("#ov");
-    if (!ov) return;
-    ov.classList.add("show");
-
-    // fill
-    const mPeriod = $("#mPeriod"), mCount=$("#mCount"), mReason=$("#mReason"), mDay=$("#mDay");
-    const mNote=$("#mNote");
-    if (mNote) mNote.value = "";
-
-    const kind = norm(l.kind);
-    if (kind === "invoire"){
-      if (mPeriod) mPeriod.textContent = `${l.startDate} • ${fmtTime(l.startTime)}–${fmtTime(l.endTime)}`;
-      if (mCount) mCount.textContent = "Învoire (ore)";
-    } else {
-      if (mPeriod) mPeriod.textContent = `${l.startDate} - ${l.endDate}`;
-      if (mCount) mCount.textContent = `${countDays(l.startDate, l.endDate)} zile`;
-    }
-    if (mReason) mReason.textContent = l.reason || "—";
-    if (mDay) mDay.textContent = day || l.startDate || "—";
-
-    // same day / period avatars
-    fillAvatars("#sameDayAv", listSameDay(arr, day));
-    fillAvatars("#samePeriodAv", listSamePeriod(arr));
-
-    // buttons
-    const mApprove = $("#mApprove"), mReject=$("#mReject");
-    if (mApprove) mApprove.disabled = false;
-    if (mReject) mReject.disabled = false;
+  function openModalById(id, day){
+    const r = VIEW.find(x=>x.id===id) || ALL.find(x=>x.id===id);
+    if (!r) return;
+    CURRENT = r;
+    const isInv = (r.kind||"").toLowerCase()==="invoire";
+    const per = isInv
+      ? (fmtRO(r.startDate)+" • "+(fmtTime(r.startTime||r.start||r.from)||"")+"–"+(fmtTime(r.endTime||r.end||r.to)||""))
+      : (fmtRO(r.startDate) + " – " + fmtRO(r.endDate || r.startDate));
+    $("#mPeriod").textContent = per;
+    $("#mReason").textContent = isInv ? tipInvoire(r) : tipConcediu(r);
+    $("#mCount").textContent = statusText(r);
+    $("#mDay").textContent = day || (r.startDate || "—");
+    $("#mNote").value = "";
+    $("#ov").classList.add("show");
   }
 
-  function closeModal(){
-    const ov = $("#ov");
-    if (!ov) return;
-    ov.classList.remove("show");
-    CURRENT = null;
-  }
-
-  function fillAvatars(sel, people){
-    const box = $(sel);
-    if (!box) return;
-    box.innerHTML = "";
-    if (!people.length){
-      box.innerHTML = `<div class="muted">—</div>`;
+  async function decide(id, decision){
+    if (!id) return;
+    const key = localStorage.getItem(LS_ADMIN_KEY) || "";
+    if (!key){
+      toast("Lipsește ADMIN_KEY (pontaj_adminKey).");
       return;
     }
-    people.slice(0,6).forEach(p=>{
-      const d = document.createElement("div");
-      d.className = "av2";
-      d.title = p;
-      d.textContent = initials(p);
-      box.appendChild(d);
+    const note = $("#mNote").value.trim();
+    const ep = endpoint();
+    const resp = await jsonp(ep, {fn:"adminLeaveDecide", id, decision, note, key});
+    if (!resp || resp.ok !== true){
+      throw new Error((resp && (resp.error || resp.message)) || "Decizie eșuată");
+    }
+    // update local
+    const allIdx = ALL.findIndex(x=>x.id===id);
+    if (allIdx>=0) ALL[allIdx].status = decision;
+    const viewIdx = VIEW.findIndex(x=>x.id===id);
+    if (viewIdx>=0) VIEW[viewIdx].status = decision;
+    toast(decision==="approved" ? "Aprobat" : "Respins");
+    $("#ov").classList.remove("show");
+    applyFilters();
+    renderCalendar();
+    renderReqTables();
+  }
+
+  async function loadMonth(){
+    $("#err").style.display = "none";
+    const ep = endpoint();
+    if (!ep){ $("#err").style.display="block"; $("#err").textContent = "Nu găsesc endpoint (config.json)."; return; }
+    const key = localStorage.getItem(LS_ADMIN_KEY) || "";
+    const admin = getAdmin();
+    const adminName = getAdminName(admin);
+    const adminEmail = getAdminEmail(admin);
+    const resp = await jsonp(ep, {fn:"adminLeavesMonth", ym:YM, key, adminName, adminEmail});
+    if (!resp || resp.ok !== true){
+      throw new Error((resp && (resp.error || resp.message)) || "Eroare adminLeavesMonth");
+    }
+    ALL = Array.isArray(resp.leaves) ? resp.leaves : (resp.items || []);
+    // normalize fields
+    ALL.forEach(r=>{
+      r.kind = (r.kind||r.type||"concediu").toLowerCase();
+      r.code = r.code || r.leaveCode || r.leaveType || (r.kind==="invoire" ? "INV" : "");
+      r.startDate = r.startDate || r.date || r.day;
+      r.endDate = r.endDate || r.end;
+      r.status = (r.status||"pending").toLowerCase();
     });
-  }
-
-  function countDays(sd, ed){
-    const a = parseIsoDate(sd), b = parseIsoDate(ed);
-    if (!a || !b) return 0;
-    const ms = b.getTime() - a.getTime();
-    return Math.floor(ms / 86400000) + 1;
-  }
-
-  function listSameDay(arr, day){
-    // within current view, show others in same day
-    const d = day || "";
-    const names = new Set();
-    for (const l of LEAVES_VIEW){
-      if (!l.startDate) continue;
-      const sd = parseIsoDate(l.startDate);
-      const ed = parseIsoDate(l.endDate || l.startDate);
-      const sel = parseIsoDate(d);
-      if (!sd || !ed || !sel) continue;
-      if (between(sel, sd, ed)) names.add(String(l.employeeName||"").trim());
-    }
-    // remove current employee
-    for (const x of arr){
-      names.delete(String(x.employeeName||"").trim());
-    }
-    return Array.from(names);
-  }
-
-  function listSamePeriod(arr){
-    const first = arr[0];
-    const sd = parseIsoDate(first.startDate);
-    const ed = parseIsoDate(first.endDate || first.startDate);
-    if (!sd || !ed) return [];
-    const names = new Set();
-    for (const l of LEAVES_VIEW){
-      const a = parseIsoDate(l.startDate);
-      const b = parseIsoDate(l.endDate || l.startDate);
-      if (!a || !b) continue;
-      // overlap
-      if (b < sd || a > ed) continue;
-      names.add(String(l.employeeName||"").trim());
-    }
-    for (const x of arr){ names.delete(String(x.employeeName||"").trim()); }
-    return Array.from(names);
-  }
-
-  async function decide(decision){
-    if (!CURRENT || !CURRENT.arr || !CURRENT.arr.length) return;
-    const endpoint = ep();
-    if (!endpoint){ setError("Lipsește endpoint în config.json."); return; }
-    const key = getAdminKey();
-    if (!key){ setError("Lipsește ADMIN_KEY."); return; }
-
-    const admin = getAdminSession();
-    const by = (admin && (admin.label || admin.email)) ? (admin.label || admin.email) : "admin";
-
-    // decide only first request for now (if multiple in same cell, admin can click each from pending list)
-    const l = CURRENT.arr[0];
-    const note = ($("#mNote")?.value || "").trim();
-
-    const url = endpoint + "?fn=adminLeaveDecide"
-      + "&id=" + encodeURIComponent(l.id)
-      + "&decision=" + encodeURIComponent(decision)
-      + "&note=" + encodeURIComponent(note)
-      + "&by=" + encodeURIComponent(by)
-      + "&key=" + encodeURIComponent(key)
-      + "&ts=" + Date.now();
-
-    try{
-      const res = await jsonp(url);
-      if (!res || !res.ok) throw new Error(res?.error || "Eroare la salvare.");
-      toast(decision === "approved" ? "Aprobat." : "Respins.");
-      closeModal();
-      await loadMonth(CUR_YM);
-    }catch(err){
-      setError(String(err && err.message ? err.message : err));
-    }
-  }
-
-  // ===== load month =====
-  let CUR_YM = "";
-
-  async function loadMonth(ym){
-    setError("");
-    const endpoint = ep();
-    if(!endpoint){ setError("Lipsește leaveEndpoint/adminEventsEndpoint în config.json."); return; }
-
-    const key = getAdminKey();
-    if(!key){ setError("Lipsește ADMIN_KEY."); return; }
-
-    CUR_YM = ym;
-
-    const admin = getAdminSession();
-    const adminName = admin ? (admin.label || admin.email || "") : "";
-    const adminEmail = admin ? (admin.email || "") : "";
-
-    const url = endpoint + "?fn=adminLeavesMonth"
-      + "&ym=" + encodeURIComponent(ym)
-      + "&key=" + encodeURIComponent(key)
-      + "&adminName=" + encodeURIComponent(adminName)
-      + "&adminEmail=" + encodeURIComponent(adminEmail)
-      + "&mine=0"
-      + "&ts=" + Date.now();
-
-    try{
-      const [data] = await Promise.all([
-        jsonp(url),
-        loadManagersMap(endpoint, key)
-      ]);
-
-      if (!data || !data.ok) throw new Error(data?.error || "Eroare la încărcare.");
-      LEAVES_ALL = Array.isArray(data.list) ? data.list : [];
-      buildView(admin);
-      render(ym, admin);
-    }catch(err){
-      setError(String(err && err.message ? err.message : err));
-    }
-  }
-
-  // ===== init =====
-  function ymNow(){
-    const d = new Date();
-    const y = d.getFullYear();
-    const m = String(d.getMonth()+1).padStart(2,"0");
-    return `${y}-${m}`;
+    applyFilters();
+    renderCalendar();
+    renderReqTables();
   }
 
   function bind(){
-    // month selector
-    const monthSel = $("#monthSel");
-    if (monthSel){
-      const now = ymNow();
-      monthSel.value = now;
-      monthSel.addEventListener("change", ()=>loadMonth(monthSel.value));
-    }
+    $("#refresh").addEventListener("click", ()=>loadMonth().catch(showErr));
+    $("#q").addEventListener("input", ()=>{ applyFilters(); renderCalendar(); renderReqTables(); });
+    $("#onlyMine").addEventListener("change", ()=>{ applyFilters(); renderCalendar(); renderReqTables(); });
 
-    $("#prev")?.addEventListener("click", ()=>{
-      const m = ($("#monthSel")?.value || ymNow()).split("-").map(Number);
-      const d = new Date(m[0], m[1]-2, 1);
-      const ym = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;
-      if ($("#monthSel")) $("#monthSel").value = ym;
-      loadMonth(ym);
+    $("#monthSel").addEventListener("change", (e)=>{
+      YM = e.target.value;
+      loadMonth().catch(showErr);
+    });
+    $("#prev").addEventListener("click", ()=>{
+      const y = Number(YM.slice(0,4)), m = Number(YM.slice(5,7));
+      const d = new Date(y, m-2, 1);
+      YM = d.getFullYear()+"-"+pad2(d.getMonth()+1);
+      $("#monthSel").value = YM;
+      loadMonth().catch(showErr);
+    });
+    $("#next").addEventListener("click", ()=>{
+      const y = Number(YM.slice(0,4)), m = Number(YM.slice(5,7));
+      const d = new Date(y, m, 1);
+      YM = d.getFullYear()+"-"+pad2(d.getMonth()+1);
+      $("#monthSel").value = YM;
+      loadMonth().catch(showErr);
     });
 
-    $("#next")?.addEventListener("click", ()=>{
-      const m = ($("#monthSel")?.value || ymNow()).split("-").map(Number);
-      const d = new Date(m[0], m[1], 1);
-      const ym = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;
-      if ($("#monthSel")) $("#monthSel").value = ym;
-      loadMonth(ym);
+    // calendar click
+    $("#tbody").addEventListener("click", (e)=>{
+      const cell = e.target.closest(".cell");
+      if (!cell) return;
+      const ids = (cell.getAttribute("data-ids")||"").split(",").filter(Boolean);
+      if (!ids.length) return;
+      const day = cell.getAttribute("data-day") || "";
+      // prefer first pending
+      const pending = ids.map(id=>VIEW.find(x=>x.id===id)).filter(Boolean).find(x=>String(x.status||"pending")==="pending");
+      const id = pending ? pending.id : ids[0];
+      openModalById(id, day);
     });
 
-    $("#refresh")?.addEventListener("click", ()=>loadMonth($("#monthSel")?.value || ymNow()));
-    $("#q")?.addEventListener("input", ()=>{
-      const admin = getAdminSession();
-      buildView(admin);
-      render(CUR_YM || ($("#monthSel")?.value || ymNow()), admin);
-    });
-    $("#onlyMine")?.addEventListener("change", ()=>{
-      const admin = getAdminSession();
-      buildView(admin);
-      render(CUR_YM || ($("#monthSel")?.value || ymNow()), admin);
+    // actions table
+    $("#actTbody").addEventListener("click", (e)=>{
+      const btn = e.target.closest("button[data-act]");
+      if (!btn) return;
+      const tr = e.target.closest("tr[data-id]");
+      if (!tr) return;
+      const id = tr.getAttribute("data-id");
+      const act = btn.getAttribute("data-act");
+      $("#mNote").value = "";
+      if (act==="approve") decide(id, "approved").catch(showErr);
+      if (act==="reject") decide(id, "rejected").catch(showErr);
     });
 
     // modal
-    $("#ov")?.addEventListener("click", (e)=>{
-      if (e.target && e.target.id === "ov") closeModal();
+    $("#ov").addEventListener("click", (e)=>{
+      if (e.target.id==="ov") $("#ov").classList.remove("show");
     });
-    $("#mApprove")?.addEventListener("click", ()=>decide("approved"));
-    $("#mReject")?.addEventListener("click", ()=>decide("rejected"));
-    $("#mDl")?.addEventListener("click", ()=>toast("Export: în curând"));
-    document.addEventListener("keydown", (e)=>{
-      if (e.key === "Escape") closeModal();
-    });
+    $("#mApprove").addEventListener("click", ()=>{ if(CURRENT) decide(CURRENT.id, "approved").catch(showErr); });
+    $("#mReject").addEventListener("click", ()=>{ if(CURRENT) decide(CURRENT.id, "rejected").catch(showErr); });
+  }
+
+  function showErr(err){
+    console.error(err);
+    const el = $("#err");
+    el.style.display = "block";
+    el.textContent = (err && (err.message||err.error)) ? (err.message||err.error) : String(err);
   }
 
   async function init(){
-    await loadCFG();
+    fillMonthSelect();
+    const now = new Date();
+    YM = now.getFullYear()+"-"+pad2(now.getMonth()+1);
+    $("#monthSel").value = YM;
+    await loadCfg();
     bind();
-    const ym = $("#monthSel")?.value || ymNow();
-    CUR_YM = ym;
-    await loadMonth(ym);
+    await loadMonth();
   }
 
-  document.addEventListener("DOMContentLoaded", init);
+  init().catch(showErr);
 })();
 </script>
 </body>
