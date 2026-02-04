@@ -751,18 +751,20 @@
       </td>
       ${cells}
     </tr>`;
-  }
-
-    // bind click on days with pending leaves -> jump to Cereri
-    tbody.querySelectorAll('.dayBox').forEach(box=>{
-      box.addEventListener('click', ()=>{
-        const dk = box.getAttribute('data-day');
-        const pend = (__PENDING_BY_DAY__.get(dk) || []);
-        if (pend.length){
-          try{ window.__jumpToRequests__ && window.__jumpToRequests__(dk); }catch(e){}
-        }
+    // bind click pe zilele cu cereri pending -> sari la Cereri
+    try{
+      tbody.querySelectorAll('.dayBox').forEach(box=>{
+        box.addEventListener('click', ()=>{
+          const dk = box.getAttribute('data-day');
+          const pend = (__PENDING_BY_DAY__.get(dk) || []);
+          if (pend.length){
+            try{ window.__jumpToRequests__ && window.__jumpToRequests__(dk); }catch(e){}
+          }
+        });
       });
-    });
+    }catch(e){}
+
+  }
 
   function showCenterMessage(html){
     $("#thead").innerHTML = "";
@@ -858,9 +860,43 @@
     }
     return out;
   }
+  function fmtTime(v){
+    if (v === undefined || v === null) return "";
+    // Date object
+    try{
+      if (v instanceof Date && !isNaN(v.getTime())){
+        return String(v.getHours()).padStart(2,'0') + ":" + String(v.getMinutes()).padStart(2,'0');
+      }
+    }catch(e){}
+
+    const s = String(v).trim();
+    if (!s) return "";
+
+    // "HH:mm" or "H:mm" (optional seconds)
+    const m = s.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/);
+    if (m){
+      return String(m[1]).padStart(2,'0') + ":" + String(m[2]).padStart(2,'0');
+    }
+
+    // Google Sheets / Apps Script time may arrive as a full Date string (often 1899-12-30)
+    const d = new Date(s);
+    if (!isNaN(d.getTime())){
+      return String(d.getHours()).padStart(2,'0') + ":" + String(d.getMinutes()).padStart(2,'0');
+    }
+
+    // numeric day fraction (0..1) sometimes from sheets
+    const num = Number(s.replace(',', '.'));
+    if (!Number.isNaN(num) && num >= 0 && num < 2){
+      const mins = Math.round((num % 1) * 24 * 60);
+      return String(Math.floor(mins/60)).padStart(2,'0') + ":" + String(mins%60).padStart(2,'0');
+    }
+
+    return s;
+  }
+
   function fmtPeriod(item){
     if (String(item.kind||"").toLowerCase()==="invoire"){
-      return `${item.startDate} • ${item.startTime || "?"}–${item.endTime || "?"}`;
+      return `${item.startDate} • ${fmtTime(item.startTime) || "?"}–${fmtTime(item.endTime) || "?"}`;
     }
     return `${item.startDate} – ${item.endDate} • ${item.code||""}`;
   }
@@ -1168,7 +1204,6 @@
         </div>
 
         
-<div class="view" 
 <div class="view" id="view-requests">
   <div class="panel">
     <div class="panelHead">
