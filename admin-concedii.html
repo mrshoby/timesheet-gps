@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>Admin — Concedii (v17)</title>
+  <title>Admin — Concedii (v16)</title>
   <style>
     :root{
       --bg:#f5f6ff;
@@ -25,15 +25,15 @@
       --purpleInk:#f5f4ff;
       --purpleMuted: rgba(245,244,255,.72);
       --purpleLine: rgba(255,255,255,.12);
-
-/* Culori tip concedii / învoiri */
---co-rgb: 245, 184, 58;   /* CO - odihnă */
---bo-rgb: 108, 123, 255;  /* BO - medical */
---ccc-rgb: 179, 102, 255; /* CCC - creștere copil */
---cfp-rgb: 63, 200, 140;  /* CFP - fără plată */
---ev-rgb: 255, 106, 91;   /* EV - eveniment */
---inv-rgb: 51, 181, 229;  /* ÎNV - învoire */
-    }
+    
+      /* Leave & invoiri colors */
+      --lv-CO:#f0b429;      --lv-CO-bg:rgba(240,180,41,.18);  --lv-CO-cell:rgba(240,180,41,.08);
+      --lv-BO:#7c3aed;      --lv-BO-bg:rgba(124,58,237,.16); --lv-BO-cell:rgba(124,58,237,.07);
+      --lv-CCC:#0ea5a0;     --lv-CCC-bg:rgba(14,165,160,.16);--lv-CCC-cell:rgba(14,165,160,.07);
+      --lv-CFP:#64748b;     --lv-CFP-bg:rgba(100,116,139,.14);--lv-CFP-cell:rgba(100,116,139,.06);
+      --lv-EV:#f97316;      --lv-EV-bg:rgba(249,115,22,.16); --lv-EV-cell:rgba(249,115,22,.07);
+      --lv-INV:#0ea5e9;     --lv-INV-bg:rgba(14,165,233,.16);--lv-INV-cell:rgba(14,165,233,.07);
+}
     *{box-sizing:border-box}
     body{margin:0;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial;background:var(--bg);color:var(--ink)}
     .wrap{max-width:1600px;margin:18px auto;padding:0 14px}
@@ -138,45 +138,11 @@
   
 
     .dow{font-size:10px; color:var(--muted); margin-top:2px; font-weight:800}
-    .lvcell{
-  position:relative;
-  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
-  height:100%; min-height:64px;
-  border-radius:12px;
-  border:1px solid var(--line);
-  background:#fff;
-  padding:6px 6px 5px;
-  overflow:hidden;
-  cursor:pointer;
-}
-.lvcell:hover{filter:brightness(.985)}
-.lvcell::before{
-  content:"";
-  position:absolute;left:0;right:0;top:0;height:4px;
-  background:rgba(0,0,0,.06);
-}
+    .lvcell{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px; height:100%; min-height:64px}
     .lvcell .c{font-weight:900; letter-spacing:.3px}
     .lvcell .t{font-size:11px; color:rgba(27,27,40,.7); font-weight:800}
     .lvcell .mini{font-size:10px; opacity:.75}
     .lvcell .bang{position:absolute;top:6px;right:6px}
-
-    /* Tipuri concedii / învoiri (culori) */
-    .lvcell.t-CO{border-color:rgba(var(--co-rgb),.55);background:rgba(var(--co-rgb),.18)}
-    .lvcell.t-CO::before{background:rgb(var(--co-rgb))}
-    .lvcell.t-BO{border-color:rgba(var(--bo-rgb),.55);background:rgba(var(--bo-rgb),.16)}
-    .lvcell.t-BO::before{background:rgb(var(--bo-rgb))}
-    .lvcell.t-CCC{border-color:rgba(var(--ccc-rgb),.55);background:rgba(var(--ccc-rgb),.16)}
-    .lvcell.t-CCC::before{background:rgb(var(--ccc-rgb))}
-    .lvcell.t-CFP{border-color:rgba(var(--cfp-rgb),.55);background:rgba(var(--cfp-rgb),.16)}
-    .lvcell.t-CFP::before{background:rgb(var(--cfp-rgb))}
-    .lvcell.t-EV{border-color:rgba(var(--ev-rgb),.55);background:rgba(var(--ev-rgb),.14)}
-    .lvcell.t-EV::before{background:rgb(var(--ev-rgb))}
-    .lvcell.t-INV{border-color:rgba(var(--inv-rgb),.55);background:rgba(var(--inv-rgb),.14)}
-    .lvcell.t-INV::before{background:rgb(var(--inv-rgb))}
-    
-    /* Status (vizual subtil, păstrăm doar indicii) */
-    .lvcell.pending{outline:2px dashed rgba(255,176,32,.60); outline-offset:-2px}
-    .lvcell.rejected{opacity:.55}
     .av2{width:40px;height:40px;border-radius:999px;background:#e9ecff;display:grid;place-items:center;font-weight:900;color:#3a2d71;border:2px solid rgba(255,255,255,.7)}
 
 
@@ -252,6 +218,42 @@
       font-weight:900;color:#2f245c;letter-spacing:.02em;
       line-height:1.05;
     }
+
+    /* Leave tag colors (calendar) */
+    td.day.hasLV.t-CO{background:var(--lv-CO-cell)}
+    td.day.hasLV.t-BO{background:var(--lv-BO-cell)}
+    td.day.hasLV.t-CCC{background:var(--lv-CCC-cell)}
+    td.day.hasLV.t-CFP{background:var(--lv-CFP-cell)}
+    td.day.hasLV.t-EV{background:var(--lv-EV-cell)}
+    td.day.hasLV.t-INV{background:var(--lv-INV-cell)}
+
+    .lvTag.t-CO{border-top-color:var(--lv-CO); background:var(--lv-CO-bg)}
+    .lvTag.t-BO{border-top-color:var(--lv-BO); background:var(--lv-BO-bg)}
+    .lvTag.t-CCC{border-top-color:var(--lv-CCC); background:var(--lv-CCC-bg)}
+    .lvTag.t-CFP{border-top-color:var(--lv-CFP); background:var(--lv-CFP-bg)}
+    .lvTag.t-EV{border-top-color:var(--lv-EV); background:var(--lv-EV-bg)}
+    .lvTag.t-INV{border-top-color:var(--lv-INV); background:var(--lv-INV-bg)}
+
+    .lvcell .bang{background:var(--lv-CO); color:#1b1b1b} /* will be overridden by type via inline var */
+    .lvcell[data-type="CO"] .bang{background:var(--lv-CO)}
+    .lvcell[data-type="BO"] .bang{background:var(--lv-BO); color:#fff}
+    .lvcell[data-type="CCC"] .bang{background:var(--lv-CCC); color:#fff}
+    .lvcell[data-type="CFP"] .bang{background:var(--lv-CFP); color:#fff}
+    .lvcell[data-type="EV"] .bang{background:var(--lv-EV); color:#fff}
+    .lvcell[data-type="INV"] .bang{background:var(--lv-INV); color:#fff}
+
+    /* Legend (leave types only) */
+    .legendBox{margin-top:14px;display:flex;flex-direction:column;gap:8px}
+    .legendNote{font-size:13px;color:var(--accent);font-weight:700}
+    .legendRow{display:flex;flex-wrap:wrap;gap:18px;align-items:center}
+    .legItem{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:13px}
+    .dot{width:9px;height:9px;border-radius:50%}
+    .dot.co{background:var(--lv-CO)}
+    .dot.bo{background:var(--lv-BO)}
+    .dot.ccc{background:var(--lv-CCC)}
+    .dot.cfp{background:var(--lv-CFP)}
+    .dot.ev{background:var(--lv-EV)}
+    .dot.inv{background:var(--lv-INV)}
     .lvTag .code{font-size:13px}
     .lvTag .t{font-size:11px;color:var(--muted);font-weight:800;margin-top:2px}
     .lvMore{font-size:11px;color:var(--muted);font-weight:800}
@@ -354,26 +356,6 @@
       .stab{ font-size: 18px; }
     }
 
-
-    .leaveLegend{
-      margin-top:12px;
-      padding-top:12px;
-      border-top:1px solid var(--line);
-      display:flex;
-      flex-wrap:wrap;
-      gap:16px 20px;
-      align-items:center;
-      color:var(--muted);
-      font-size:13px;
-    }
-    .leaveLegend .item{display:flex;align-items:center;gap:8px;white-space:nowrap}
-    .leaveLegend .dot{width:10px;height:10px;border-radius:999px;display:inline-block}
-    .dot.co{background:rgb(var(--co-rgb))}
-    .dot.bo{background:rgb(var(--bo-rgb))}
-    .dot.ccc{background:rgb(var(--ccc-rgb))}
-    .dot.cfp{background:rgb(var(--cfp-rgb))}
-    .dot.ev{background:rgb(var(--ev-rgb))}
-    .dot.inv{background:rgb(var(--inv-rgb))}
 </style>
 </head>
 <body>
@@ -439,6 +421,19 @@
 
       <div id="err" class="err" style="display:none"></div>
       <div class="muted" id="dbg" style="margin-top:10px"></div>
+
+      <div class="legendBox" aria-label="Legendă concedii și învoiri">
+        <div class="legendNote">Legendă (concedii &amp; învoiri)</div>
+        <div class="legendRow">
+          <div class="legItem"><span class="dot co"></span><b>CO</b> – Concediu de odihnă</div>
+          <div class="legItem"><span class="dot bo"></span><b>BO</b> – Concediu medical</div>
+          <div class="legItem"><span class="dot ccc"></span><b>CCC</b> – Concediu creștere copil</div>
+          <div class="legItem"><span class="dot cfp"></span><b>CFP</b> – Concediu fără plată</div>
+          <div class="legItem"><span class="dot ev"></span><b>EV</b> – Eveniment</div>
+          <div class="legItem"><span class="dot inv"></span><b>ÎNV</b> – Învoire</div>
+        </div>
+      </div>
+
     </div>
       </div>
 
@@ -857,20 +852,18 @@
         }
         const first = arr[0];
         const isInv = norm(first.kind)==="invoire";
-        const code = isInv ? "ÎNV" : (first.code || "—");
+        let typeKey = isInv ? "INV" : (String(first.code||"").trim().toUpperCase() || "UNK");
+        if (!["CO","BO","CCC","CFP","EV","INV"].includes(typeKey)) typeKey = isInv ? "INV" : "UNK";
+        const code = isInv ? "ÎNV" : typeKey;
         const pending = arr.some(x=>norm(x.status)==="pending");
         const more = arr.length>1 ? `<div class="lvMore">+${arr.length-1}</div>` : "";
         const bang = pending ? `<div class="bang">!</div>` : "";
         const time = isInv ? `<div class="t">${fmtTime(first.startTime)}–${fmtTime(first.endTime)}</div>` : "";
-        const raw = (isInv ? "INV" : String(first.code||"").trim().toUpperCase());
-        const typeKey = raw === "ÎNV" ? "INV" : raw; // siguranță
-        const typeClass = (typeKey==="CO"||typeKey==="BO"||typeKey==="CCC"||typeKey==="CFP"||typeKey==="EV") ? ("t-"+typeKey) : (isInv ? "t-INV" : "");
-        const statusClass = pending ? "pending" : (arr.some(x=>norm(x.status)==="rejected") ? "rejected" : "approved");
         const dataPayload = encodeURIComponent(JSON.stringify(arr));
-        html += `<td class="day${wk}">
-          <div class="lvcell ${typeClass} ${statusClass}" data-day="${String(d).padStart(2,"0")}" data-arr="${dataPayload}">
+        html += `<td class="day${wk} hasLV t-${typeKey}">
+          <div class="lvcell" data-type="${typeKey}" data-day="${String(d).padStart(2,"0")}" data-arr="${dataPayload}">
             ${bang}
-            <div class="lvTag">
+            <div class="lvTag t-${typeKey}">
               <div class="code">${esc(code)}</div>
               ${time}
             </div>
