@@ -90,6 +90,8 @@
 
     /* Approval modal (purple) */
     .ov{position:fixed;inset:0;background:rgba(0,0,0,.28);display:none;align-items:center;justify-content:center;padding:18px;z-index:9999}
+    .ov.show{display:flex}
+
     .ov.open{display:flex}
     .modal{
       width:min(520px, 96vw);
@@ -331,43 +333,39 @@
     return (a+b).toUpperCase();
   }
 
-  function fmt2(n){ return String(n).padStart(2,"0"); }
-
-  // Normalizează orele pentru învoiri (Sheets poate întoarce Date 1899-12-30 sau număr fracție de zi)
+  function pad2(n){ return String(n).padStart(2,"0"); }
   function fmtTime(v){
-    if (v == null) return "";
-    if (v instanceof Date && !isNaN(v)) return fmt2(v.getHours()) + ":" + fmt2(v.getMinutes());
-
-    const t = typeof v;
-    if (t === "number" && isFinite(v)){
-      // Google Sheets time serial (fraction of day)
-      const mins = Math.round(v * 24 * 60);
-      const hh = Math.floor(mins / 60) % 24;
-      const mm = mins % 60;
-      return fmt2(hh) + ":" + fmt2(mm);
+    if (v === null || v === undefined || v === "") return "";
+    // String like "09:30" or "9:30"
+    if (typeof v === "string"){
+      const m = v.match(/(\d{1,2}):(\d{2})/);
+      if (m) return pad2(m[1]) + ":" + m[2];
+      // ISO datetime or Date string
+      const d = new Date(v);
+      if (!isNaN(d.getTime())) return pad2(d.getHours()) + ":" + pad2(d.getMinutes());
+      return v;
     }
-
-    let s = String(v).trim();
-    if (!s) return "";
-
-    // "09:30" / "9:30" / "09:30:00"
-    const m = s.match(/^(\d{1,2}):(\d{2})(?::\d{2})?$/);
-    if (m){
-      return fmt2(Number(m[1])) + ":" + fmt2(Number(m[2]));
+    // Date object (Google Sheets time often comes as 1899-12-30...)
+    if (v instanceof Date){
+      if (!isNaN(v.getTime())) return pad2(v.getHours()) + ":" + pad2(v.getMinutes());
+      return "";
     }
-
-    // ISO datetime / Date string
-    const d = new Date(s);
-    if (!isNaN(d)){
-      return fmt2(d.getHours()) + ":" + fmt2(d.getMinutes());
+    // Number: Google Sheets serial date/time or fraction of day
+    if (typeof v === "number" && isFinite(v)){
+      let frac = v % 1;
+      if (frac < 0) frac += 1;
+      const totalMin = Math.round(frac * 24 * 60);
+      const hh = Math.floor(totalMin / 60) % 24;
+      const mm = totalMin % 60;
+      return pad2(hh) + ":" + pad2(mm);
     }
-
-    // fallback: dacă e ceva gen "Sat Dec 30 1899 09:30:56 ..." returnează hh:mm dacă putem extrage
-    const m2 = s.match(/\b(\d{1,2}):(\d{2})\b/);
-    if (m2) return fmt2(Number(m2[1])) + ":" + fmt2(Number(m2[2]));
-
+    try{
+      const d = new Date(v);
+      if (!isNaN(d.getTime())) return pad2(d.getHours()) + ":" + pad2(d.getMinutes());
+    }catch(e){}
     return "";
   }
+
 
   function daysInMonth(ym){
     const [y,m] = ym.split("-").map(Number);
@@ -528,7 +526,7 @@
         const pending = arr.some(x=>norm(x.status)==="pending");
         const more = arr.length>1 ? `<div class="mini">+${arr.length-1}</div>` : "";
         const bang = pending ? `<div class="bang">!</div>` : "";
-        const time = (norm(first.kind)==="invoire") ? `<div class="t">${fmtTime(first.startTime)}–${fmtTime(first.endTime)}</div>` : "";
+        const time = (norm(first.kind)==="invoire") ? `<div class="t">${fmtTime(first.startTime)}-${fmtTime(first.endTime)}</div>` : "";
         const dataPayload = encodeURIComponent(JSON.stringify(arr));
         html += `<td class="day">
           <div class="lvcell cell" data-ym="${ym}" data-day="${String(d).padStart(2,"0")}" data-arr="${dataPayload}">
@@ -542,6 +540,17 @@
       html += `</tr>`;
     }
     tbody.innerHTML = html;
+
+    // bind clicks (delegare robustă)
+    tbody.addEventListener('click', (ev)=>{
+      const el = ev.target && ev.target.closest ? ev.target.closest('.lvcell') : null;
+      if (!el) return;
+      try{
+        const day = ym + '-' + el.getAttribute('data-day');
+        const arr = JSON.parse(decodeURIComponent(el.getAttribute('data-arr')||'[]'));
+        openModal(arr, day, admin);
+      }catch(e){ console.warn('openModal failed', e); }
+    }, { passive:true });
 
     // bind clicks
     tbody.querySelectorAll(".lvcell").forEach(el=>{
@@ -565,7 +574,7 @@
     if (pl && pending.length){
       pending.slice(0,50).forEach(l=>{
         const txt = (norm(l.kind)==="invoire")
-          ? `Învoire ${l.startDate} • ${fmtTime(l.startTime)}–${fmtTime(l.endTime)}`
+          ? `Învoire ${l.startDate} ${fmtTime(l.startTime)}–${fmtTime(l.endTime)}`
           : `${l.code||"—"} ${l.startDate}–${l.endDate}`;
         const div = document.createElement("div");
         div.className = "item";
@@ -607,7 +616,7 @@
 
     const kind = norm(l.kind);
     if (kind === "invoire"){
-      if (mPeriod) mPeriod.textContent = `${l.startDate} (${fmtTime(l.startTime)}–${fmtTime(l.endTime)})`;
+      if (mPeriod) mPeriod.textContent = `${l.startDate} • ${fmtTime(l.startTime)}–${fmtTime(l.endTime)}`;
       if (mCount) mCount.textContent = "Învoire (ore)";
     } else {
       if (mPeriod) mPeriod.textContent = `${l.startDate} - ${l.endDate}`;
