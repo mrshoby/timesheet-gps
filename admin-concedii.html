@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>Admin — Concedii (v15)</title>
+  <title>Admin — Concedii (v16)</title>
   <style>
     :root{
       --bg:#f5f6ff;
@@ -272,56 +272,55 @@
     }
 
 
+    /* ===== Submeniuri (ca în admin dashboard) ===== */
+    .subtabs{
+      margin: 6px 0 14px;
+      padding: 12px 18px 0;
+      background: rgba(109,94,252,.10);
+      border-radius: 14px;
+      display:flex;
+      gap: 28px;
+      align-items:flex-end;
+      border: 1px solid rgba(231,233,246,.9);
+      box-shadow: 0 8px 18px rgba(20,18,40,.05);
+    }
+    .stab{
+      appearance:none;
+      border:0;
+      background:transparent;
+      cursor:pointer;
+      padding: 14px 6px 12px;
+      font-weight: 700;
+      font-size: 20px;
+      color: #8a90a8;
+      border-bottom: 4px solid transparent;
+      transition: color .15s ease, border-color .15s ease;
+    }
+    .stab:hover{ color:#5e67a8; }
+    .stab.active{
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+    }
 
+    .tabViews{ display:block; }
+    .tabView{ display:none; }
+    .tabView.active{ display:block; }
 
-/* ===== Subtabs (ca în 6.png) ===== */
-.subtabs{
-  display:flex; align-items:flex-end; gap:26px;
-  padding: 10px 18px 0;
-  border-bottom: 1px solid rgba(105,112,160,.18);
-  background: transparent;
-}
-.subtab{
-  appearance:none; border:0; background:transparent;
-  padding: 12px 2px 14px;
-  font-weight: 1000;
-  color: rgba(40,48,80,.55);
-  cursor:pointer;
-  position:relative;
-  font-size: 18px;
-}
-.subtab::after{
-  content:"";
-  position:absolute; left:0; right:0; bottom:-1px;
-  height:3px; border-radius:999px;
-  background: transparent;
-}
-.subtab.active{
-  color: rgba(60,48,160,.92);
-}
-.subtab.active::after{
-  background: rgba(60,48,160,.92);
-}
-.tabPanel{ display:none; }
-.tabPanel.active{ display:block; }
+    /* pe mobil: tabs scrollabile */
+    @media (max-width: 820px){
+      .subtabs{ overflow:auto; white-space:nowrap; gap:18px; }
+      .stab{ font-size: 18px; }
+    }
+
 </style>
 </head>
 <body>
 <div class="wrap">
-  <div class="tabPanel" id="tab-pending" role="tabpanel"><div class="tabPanel" id="tab-quick" role="tabpanel"><div class="panel">
+  <div class="panel">
     <div class="head">
       <div class="title">
         <h1>Concedii &amp; învoiri</h1>
         <div class="sub" id="sub">Aprobări</div>
-
-<!-- Sub-tabs -->
-<div class="subtabs" role="tablist" aria-label="Submeniuri concedii">
-  <button class="subtab active" data-tab="tab-concedii" role="tab" aria-selected="true">Concedii &amp; învoiri</button>
-  <button class="subtab" data-tab="tab-pending" role="tab" aria-selected="false">În așteptare</button>
-  <button class="subtab" data-tab="tab-quick" role="tab" aria-selected="false">Aprobări rapide</button>
-</div>
-
-
       </div>
       <div class="controls">
         <button class="btn" id="prev">‹</button>
@@ -344,7 +343,17 @@
       </div>
     </div>
 
-    <!-- Calendar (stil identic cu Calendar prezență) -->
+    
+    <!-- Submeniuri -->
+    <div class="subtabs" id="subtabs">
+      <button class="stab active" data-tab="cal">Concedii &amp; învoiri</button>
+      <button class="stab" data-tab="pending">În așteptare</button>
+      <button class="stab" data-tab="quick">Aprobări rapide</button>
+    </div>
+
+    <div class="tabViews">
+      <div class="tabView active" id="view-cal">
+<!-- Calendar (stil identic cu Calendar prezență) -->
     <div class="presenceFrame">
       <div class="presenceTop">
         <div class="presenceSearch">
@@ -369,11 +378,11 @@
       <div id="err" class="err" style="display:none"></div>
       <div class="muted" id="dbg" style="margin-top:10px"></div>
     </div>
+      </div>
 
-    <!-- LISTE (sub calendar) -->
-    <div class="stack">
-      <!-- În așteptare / istoric -->
-      <div class="stackCard">
+      <div class="tabView" id="view-pending">
+        <div class="stack">
+          <div class="stackCard">
         <div class="stackHead">
           <div class="stackTitle">
             <div class="h">În așteptare <span class="badge" id="pendingCount">0</span></div>
@@ -396,9 +405,12 @@
           <div class="empty" id="reqEmpty" style="display:none">Nu există cereri în luna selectată.</div>
         </div>
       </div>
+        </div>
+      </div>
 
-      <!-- Aprobări rapide -->
-      <div class="stackCard">
+      <div class="tabView" id="view-quick">
+        <div class="stack">
+          <div class="stackCard">
         <div class="stackHead">
           <div class="stackTitle">
             <div class="h">Aprobări rapide</div>
@@ -420,8 +432,13 @@
           <div class="empty" id="actEmpty" style="display:none">Nu există cereri pending în luna selectată.</div>
         </div>
       </div>
+        </div>
+      </div>
     </div>
-  </div></div></div>
+
+
+    </div>
+  </div>
 </div>
 
 <!-- Approval modal -->
@@ -1175,6 +1192,35 @@
   }
 
   function bind(){
+
+    // submeniuri
+    (function(){
+      const btns = document.querySelectorAll(".stab");
+      const views = {
+        cal: document.getElementById("view-cal"),
+        pending: document.getElementById("view-pending"),
+        quick: document.getElementById("view-quick"),
+      };
+      function show(tab){
+        btns.forEach(b=> b.classList.toggle("active", b.dataset.tab===tab));
+        Object.keys(views).forEach(k=>{
+          const el = views[k];
+          if(!el) return;
+          el.classList.toggle("active", k===tab);
+        });
+        try{ history.replaceState(null,"", "#" + tab); }catch(_){}
+      }
+      btns.forEach(b=>{
+        b.addEventListener("click", ()=>{
+          show(b.dataset.tab);
+          window.scrollTo({top:0, behavior:"smooth"});
+        });
+      });
+      const h = (location.hash||"").replace("#","");
+      if (h && views[h]) show(h);
+      else show("cal");
+    })();
+
     // sync search boxes (top + calendar)
     const q1 = $("#q"), q2 = $("#q2");
     if (q1 && q2){
@@ -1242,33 +1288,5 @@
   document.addEventListener("DOMContentLoaded", init);
 })();
 </script>
-
-<script>
-(function(){
-  const $$ = (s, r=document)=>Array.from(r.querySelectorAll(s));
-  function setTab(id){
-    $$(".subtab").forEach(b=>{
-      const on = b.dataset.tab === id;
-      b.classList.toggle("active", on);
-      b.setAttribute("aria-selected", on ? "true" : "false");
-    });
-    $$(".tabPanel").forEach(p=>p.classList.toggle("active", p.id === id));
-    try{ history.replaceState(null, "", "#"+id.replace("tab-","")); }catch(e){}
-  }
-  function init(){
-    const tabs = $$(".subtab");
-    if (!tabs.length) return;
-    let hash = (location.hash || "").replace("#","").trim();
-    let id = "tab-concedii";
-    if (hash === "pending") id = "tab-pending";
-    if (hash === "quick") id = "tab-quick";
-    if (hash === "concedii") id = "tab-concedii";
-    tabs.forEach(b=>b.addEventListener("click", ()=>setTab(b.dataset.tab)));
-    setTab(id);
-  }
-  window.addEventListener("DOMContentLoaded", init);
-})();
-</script>
-
 </body>
 </html>
