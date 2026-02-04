@@ -125,7 +125,16 @@
     .bbtn.icon{flex:0 0 54px}
     .toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:#1f2330;color:#fff;padding:10px 12px;border-radius:12px;font-weight:700;box-shadow:var(--shadow);display:none;z-index:99999}
     .toast.show{display:block}
-  </style>
+  
+
+    .dow{font-size:10px; color:var(--muted); margin-top:2px; font-weight:800}
+    .lvcell{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px; height:100%; min-height:64px}
+    .lvcell .c{font-weight:900; letter-spacing:.3px}
+    .lvcell .t{font-size:11px; color:rgba(27,27,40,.7); font-weight:800}
+    .lvcell .mini{font-size:10px; opacity:.75}
+    .lvcell .bang{position:absolute;top:6px;right:6px}
+    .av2{width:40px;height:40px;border-radius:999px;background:#e9ecff;display:grid;place-items:center;font-weight:900;color:#3a2d71;border:2px solid rgba(255,255,255,.7)}
+</style>
 </head>
 <body>
 <div class="wrap">
@@ -167,6 +176,7 @@
         <h3>În așteptare <span class="badge" id="pendingCount">0</span></h3>
         <div class="muted">Click pe o zi cu cerere pentru aprobare / respingere.</div>
         <div id="err" class="err" style="display:none"></div>
+        <div class="muted" id="dbg" style="margin-top:6px"></div>
         <div class="list" id="pendingList"></div>
         <div class="muted" id="emptyMsg" style="margin-top:10px;display:none">Nu există cereri pending în luna selectată.</div>
       </div>
@@ -214,12 +224,23 @@
   const CFG_PATHS = ["./config.json","../config.json","/config.json"];
   let CFG = null;
 
+  const LS_ADMIN = "pontaj/admin/v1";
+  const LS_ADMIN_KEY = "pontaj_adminKey";
+
   function $(sel){ return document.querySelector(sel); }
   function toast(msg){
     const t = $("#toast");
+    if (!t) return;
     t.textContent = msg;
     t.classList.add("show");
     setTimeout(()=>t.classList.remove("show"), 2200);
+  }
+  function setError(msg){
+    const e = $("#err");
+    if (!e) return;
+    if(!msg){ e.style.display="none"; e.textContent=""; return; }
+    e.style.display="block";
+    e.textContent = msg;
   }
 
   async function loadCFG(){
@@ -233,37 +254,22 @@
     }
     CFG = {};
   }
-  function ep(){ return CFG?.leaveEndpoint || CFG?.adminEventsEndpoint || CFG?.stateEndpoint || ""; }
+  function ep(){ return (CFG && (CFG.leaveEndpoint || CFG.adminEventsEndpoint || CFG.stateEndpoint)) || ""; }
 
-  // ===== Admin session (from admin shell) =====
-  const LS_ADMIN = "pontaj/admin/v1";
-  const LS_ADMIN_KEY = "pontaj_adminKey";
-
+  // ===== Admin session =====
   function getAdminSession(){
-      const raw = (localStorage.getItem(LS_ADMIN) || "").trim();
-      if (!raw) return null;
-  
-      // raw can be JSON or a plain string (email/name)
-      let obj = null;
-      try{ obj = JSON.parse(raw); }catch(_){ obj = null; }
-  
-      if (obj && typeof obj === 'object'){
-        // many builds store {email,name,user,label,ts,...} – do NOT require obj.ok
-        const adminName = (obj.label || obj.name || obj.user || obj.email || obj.id || "").toString().trim();
-        const adminEmail = (obj.email || obj.userEmail || obj.mail || "").toString().trim();
-        if (!adminName && !adminEmail) return null;
-        return { raw: obj, name: adminName || adminEmail, email: adminEmail || adminName };
-      }
-  
-      // fallback: treat raw as identifier
-      return { raw: { value: raw }, name: raw, email: raw };
+    const raw = (localStorage.getItem(LS_ADMIN) || "").trim();
+    if (!raw) return null;
+    let obj = null;
+    try{ obj = JSON.parse(raw); }catch(_){ obj = null; }
+    if (obj && typeof obj === "object"){
+      const label = (obj.label || obj.name || obj.user || obj.email || obj.id || "").toString().trim();
+      const email = (obj.email || obj.userEmail || obj.mail || "").toString().trim();
+      if (!label && !email) return null;
+      return { raw: obj, label: label || email, email: email || "" };
     }
-  
-    function requireAdmin(){
-      const s = getAdminSession();
-      if (!s) throw new Error("Nu ești logat ca admin.");
-      return s;
-    }
+    return { raw: { value: raw }, label: raw, email: "" };
+  }
 
   function getAdminKey(){
     let k = "";
@@ -279,30 +285,52 @@
   function jsonp(url){
     return new Promise((resolve,reject)=>{
       const cb = "cb_"+Math.random().toString(16).slice(2);
-      window[cb] = (data)=>{ try{ delete window[cb]; }catch(e){} s.remove(); resolve(data); };
       const s = document.createElement("script");
-      s.src = url + (url.includes("?")?"&":"?") + "callback=" + cb;
-      s.onerror = ()=>{ try{ delete window[cb]; }catch(e){} s.remove(); reject(new Error("JSONP error")); };
+      const t = setTimeout(()=>{ cleanup(); reject(new Error("JSONP timeout")); }, 20000);
+      function cleanup(){
+        clearTimeout(t);
+        try{ delete window[cb]; }catch(_){ window[cb]=undefined; }
+        if (s && s.parentNode) s.parentNode.removeChild(s);
+      }
+      window[cb] = (data)=>{ cleanup(); resolve(data); };
+      s.onerror = ()=>{ cleanup(); reject(new Error("JSONP error")); };
+      s.src = url + (url.includes("?") ? "&" : "?") + "callback=" + cb;
       document.body.appendChild(s);
     });
   }
 
-  // ===== State =====
-  let LEAVES = [];
-  let INDEX = new Map(); // name -> list
-  let DAYINDEX = new Map(); // yyyy-mm-dd -> list
-  let YM = "";
-  let ACTIVE = null; // active leave object
-  let ACTIVE_DAY = "";
-
+  // ===== helpers =====
   function norm(s){ return String(s||"").trim().toLowerCase(); }
   function deacc(s){ return (s||"").normalize("NFD").replace(/[\u0300-\u036f]/g, ""); }
+  function keyName(s){ return deacc(norm(s)).replace(/\s+/g," ").trim(); }
+
+  function tokens(s){
+    return keyName(s).split(/[^a-z0-9]+/).filter(Boolean);
+  }
+  function samePerson(a,b){
+    const A = keyName(a), B = keyName(b);
+    if (!A || !B) return false;
+    if (A === B) return true;
+    if (A.includes(B) || B.includes(A)) return true;
+    // token match (useful for emails)
+    const ta = tokens(A), tb = tokens(B);
+    const small = ta.length<=tb.length ? ta : tb;
+    const big = ta.length<=tb.length ? tb : ta;
+    // require at least 1 token match, or all tokens from smaller contained
+    let hits = 0;
+    for (const t of small){
+      if (big.includes(t)) hits++;
+    }
+    return hits >= Math.min(2, small.length); // usually "alin ceclan" => 2 hits
+  }
+
   function initials(name){
     const parts = String(name||"").trim().split(/\s+/).filter(Boolean);
     const a = parts[0]?.[0] || "?";
     const b = parts.length>1 ? parts[parts.length-1][0] : "";
     return (a+b).toUpperCase();
   }
+
   function daysInMonth(ym){
     const [y,m] = ym.split("-").map(Number);
     return new Date(y, m, 0).getDate();
@@ -320,113 +348,187 @@
   function parseIsoDate(s){
     const m = String(s||"").match(/^(\d{4})-(\d{2})-(\d{2})$/);
     if(!m) return null;
-    const d = new Date(Number(m[1]), Number(m[2])-1, Number(m[3]));
-    d.setHours(0,0,0,0);
-    return d;
+    return new Date(Number(m[1]), Number(m[2])-1, Number(m[3]), 12,0,0,0);
   }
-  function overlaps(aStart,aEnd,bStart,bEnd){
-    return !(aEnd < bStart || aStart > bEnd);
-  }
-  function inRange(day, start, end){
-    return day >= start && day <= end;
+  function between(d, a, b){
+    return d && a && b && d.getTime() >= a.getTime() && d.getTime() <= b.getTime();
   }
 
-  function indexLeaves(list){
-    LEAVES = Array.isArray(list) ? list.slice() : [];
-    INDEX = new Map();
-    DAYINDEX = new Map();
-    for (const l of LEAVES){
-      const name = String(l.employeeName||"").trim();
-      if(!name) continue;
-      if(!INDEX.has(name)) INDEX.set(name, []);
-      INDEX.get(name).push(l);
+  // ===== data =====
+  let LEAVES_ALL = [];
+  let LEAVES_VIEW = [];
+  let MANAGERS = null; // { keyName(emp): {managerName, managerEmail} }
 
-      const sd = String(l.startDate||"");
-      const ed = String(l.endDate||"");
-      const sdd = parseIsoDate(sd);
-      const edd = parseIsoDate(ed);
-      if(!sdd || !edd) continue;
-      for(let d=new Date(sdd); d<=edd; d.setDate(d.getDate()+1)){
-        const day = iso(d);
-        if(!DAYINDEX.has(day)) DAYINDEX.set(day, []);
-        DAYINDEX.get(day).push(l);
+  async function loadManagersMap(endpoint, key){
+    if (MANAGERS) return MANAGERS;
+    try{
+      const u = endpoint + "?fn=adminManagersMap&key=" + encodeURIComponent(key) + "&ts=" + Date.now();
+      const data = await jsonp(u);
+      if (data && data.ok && data.map){
+        MANAGERS = data.map;
+        return MANAGERS;
       }
-    }
-    // sort leaves per employee by startDate
-    for (const [k,arr] of INDEX.entries()){
-      arr.sort((a,b)=>String(a.startDate||"").localeCompare(String(b.startDate||"")));
-    }
+    }catch(_){}
+    MANAGERS = {};
+    return MANAGERS;
   }
 
-  function bestForCell(list){
-    if(!list || !list.length) return null;
-    const pending = list.find(x=>norm(x.status)==="pending");
-    return pending || list[0];
+  function enrichLeave(l){
+    const emp = String(l.employeeName||"").trim();
+    const k = keyName(emp);
+    const m = (MANAGERS && MANAGERS[k]) ? MANAGERS[k] : null;
+    const mgrName = String(l.managerName||"").trim() || (m ? String(m.managerName||"").trim() : "");
+    const mgrEmail = String(l.managerEmail||"").trim() || (m ? String(m.managerEmail||"").trim() : "");
+    return {
+      ...l,
+      _empKey: k,
+      _mgrName: mgrName,
+      _mgrEmail: mgrEmail
+    };
   }
 
-  function render(ym){
-    const q = norm($("#q").value);
-    const onlyMine = $("#onlyMine").checked;
-    const days = daysInMonth(ym);
+  function filterMine(list, admin){
+    const onlyMine = $("#onlyMine")?.checked;
+    if (!onlyMine) return list;
+    if (!admin) return list; // can't filter
+    const adminId = admin.label || admin.email || "";
+    if (!adminId) return list;
+
+    return list.filter(l=>{
+      const a = l._mgrName || "";
+      const b = l._mgrEmail || "";
+      // if request has no manager assigned, hide it in "mine"
+      if (!a && !b) return false;
+      return samePerson(a, adminId) || samePerson(b, adminId) || samePerson(a, admin.email||"") || samePerson(b, admin.email||"");
+    });
+  }
+
+  function filterSearch(list){
+    const q = norm($("#q")?.value || "");
+    if (!q) return list;
+    const qq = deacc(q);
+    return list.filter(l=>{
+      const n = deacc(norm(l.employeeName||""));
+      const c = deacc(norm(l.code||""));
+      return n.includes(qq) || c.includes(qq);
+    });
+  }
+
+  function buildView(admin){
+    const enriched = LEAVES_ALL.map(enrichLeave);
+    let list = enriched;
+    list = filterMine(list, admin);
+    list = filterSearch(list);
+    LEAVES_VIEW = list;
+  }
+
+  // ===== UI render =====
+  function render(ym, admin){
     const thead = $("#thead");
     const tbody = $("#tbody");
-
-    // build roster from leaves (names)
-    let names = Array.from(INDEX.keys());
-    if(q) names = names.filter(n=>deacc(n.toLowerCase()).includes(deacc(q)));
-    names.sort((a,b)=>a.localeCompare(b,"ro"));
+    if (!thead || !tbody) return;
 
     // header
-    let h = "<tr>";
-    h += "<th>ANGAJAT</th>";
-    for(let i=1;i<=days;i++){
-      const d = new Date(ym+"-"+String(i).padStart(2,"0")+"T00:00:00");
-      h += `<th><div style="font-weight:800;color:#1f2330">${String(i).padStart(2,"0")}</div><div>${dowShort(d)}</div></th>`;
+    const dim = daysInMonth(ym);
+    let h = `<tr><th class="stickyL">Angajat</th>`;
+    for (let d=1; d<=dim; d++){
+      const dt = new Date(Number(ym.slice(0,4)), Number(ym.slice(5,7))-1, d, 12,0,0,0);
+      h += `<th>${String(d).padStart(2,"0")}<div class="dow">${dowShort(dt)}</div></th>`;
     }
-    h += "</tr>";
+    h += `</tr>`;
     thead.innerHTML = h;
 
-    // body rows
+    // group leaves by employee
+    const byEmp = new Map();
+    for (const l of LEAVES_VIEW){
+      const emp = String(l.employeeName||"").trim() || "—";
+      if (!byEmp.has(emp)) byEmp.set(emp, []);
+      byEmp.get(emp).push(l);
+    }
+    const emps = Array.from(byEmp.keys()).sort((a,b)=>keyName(a).localeCompare(keyName(b)));
+
+    // rows
     let html = "";
-    for (const name of names){
-      html += "<tr>";
-      html += `<th><div class="who"><div class="av">${initials(name)}</div><div class="name"><span class="n">${name}</span><span class="d">—</span></div></div></th>`;
-      for(let i=1;i<=days;i++){
-        const day = ym+"-"+String(i).padStart(2,"0");
-        const all = (INDEX.get(name)||[]).filter(l=>inRange(day, String(l.startDate||""), String(l.endDate||"")));
-        if(!all.length){
-          html += `<td class="cell" data-day="${day}" data-name="${encodeURIComponent(name)}"></td>`;
+    for (const emp of emps){
+      const list = byEmp.get(emp) || [];
+      // map day -> leaves
+      const cellMap = new Map(); // d => [leaves]
+      for (const l of list){
+        const sd = parseIsoDate(l.startDate);
+        const ed = parseIsoDate(l.endDate || l.startDate);
+        if (!sd || !ed) continue;
+        for (let d=1; d<=dim; d++){
+          const day = new Date(Number(ym.slice(0,4)), Number(ym.slice(5,7))-1, d, 12,0,0,0);
+          if (between(day, sd, ed)){
+            if (!cellMap.has(d)) cellMap.set(d, []);
+            cellMap.get(d).push(l);
+          }
+        }
+      }
+
+      const mgr = list[0]?._mgrName || list[0]?._mgrEmail || "";
+      const mgrTxt = mgr ? `Manager: ${mgr}` : `Manager: —`;
+      html += `<tr><th class="stickyL">
+        <div class="who">
+          <div class="av">${initials(emp)}</div>
+          <div class="name">
+            <div class="n">${emp}</div>
+            <div class="d">${mgrTxt}</div>
+          </div>
+        </div>
+      </th>`;
+
+      for (let d=1; d<=dim; d++){
+        const arr = cellMap.get(d) || [];
+        if (!arr.length){
+          html += `<td class="day"></td>`;
           continue;
         }
-        const pick = bestForCell(all);
-        const st = norm(pick.status);
-        const cls = st==="pending" ? "pending" : (st==="approved" ? "approved" : (st==="rejected" ? "rejected" : ""));
-        const isInv = norm(pick.kind)==="invoire";
-        const tagCls = isInv ? "tag inv" : "tag co";
-        const tagTxt = isInv ? "INV" : (pick.code||"—");
-        const mini = isInv ? (`<span class="mini">${pick.startTime||""}-${pick.endTime||""}</span>`) : "";
-        const bang = st==="pending" ? `<div class="bang">!</div>` : "";
-        const ids = all.map(x=>x.id).filter(Boolean).join(",");
-        html += `<td class="cell ${cls}" data-day="${day}" data-name="${encodeURIComponent(name)}" data-ids="${ids}">
-                  ${bang}
-                  <span class="${tagCls}">${tagTxt}</span>
-                  ${mini}
-                 </td>`;
+        // show first request + badge for more
+        const first = arr[0];
+        const code = (norm(first.kind)==="invoire") ? "INV" : (first.code || "—");
+        const pending = arr.some(x=>norm(x.status)==="pending");
+        const more = arr.length>1 ? `<div class="mini">+${arr.length-1}</div>` : "";
+        const bang = pending ? `<div class="bang">!</div>` : "";
+        const time = (norm(first.kind)==="invoire") ? `<div class="t">${(first.startTime||"").slice(0,5)}-${(first.endTime||"").slice(0,5)}</div>` : "";
+        const dataPayload = encodeURIComponent(JSON.stringify(arr));
+        html += `<td class="day">
+          <div class="lvcell cell" data-ym="${ym}" data-day="${String(d).padStart(2,"0")}" data-arr="${dataPayload}">
+            ${bang}
+            <div class="c">${code}</div>
+            ${time}
+            ${more}
+          </div>
+        </td>`;
       }
-      html += "</tr>";
+      html += `</tr>`;
     }
     tbody.innerHTML = html;
 
+    // bind clicks
+    tbody.querySelectorAll(".lvcell").forEach(el=>{
+      el.addEventListener("click", ()=>{
+        try{
+          const day = ym + "-" + el.getAttribute("data-day");
+          const arr = JSON.parse(decodeURIComponent(el.getAttribute("data-arr")||"[]"));
+          openModal(arr, day, admin);
+        }catch(_){}
+      });
+    });
+
     // pending list right
-    const pending = LEAVES.filter(l=>norm(l.status)==="pending");
+    const pending = LEAVES_VIEW.filter(l=>norm(l.status)==="pending");
     const pc = $("#pendingCount"); if (pc) pc.textContent = String(pending.length);
     const pl = $("#pendingList");
     const emptyMsg = $("#emptyMsg");
     if (pl) pl.innerHTML = "";
     if (emptyMsg) emptyMsg.style.display = pending.length ? "none" : "block";
+
     if (pl && pending.length){
-      pending.slice(0,30).forEach(l=>{
-        const txt = (norm(l.kind)==="invoire") ? `Învoire ${l.startDate} ${l.startTime||""}-${l.endTime||""}` : `${l.code||"—"} ${l.startDate}–${l.endDate}`;
+      pending.slice(0,50).forEach(l=>{
+        const txt = (norm(l.kind)==="invoire")
+          ? `Învoire ${l.startDate} ${l.startTime||""}-${l.endTime||""}`
+          : `${l.code||"—"} ${l.startDate}–${l.endDate}`;
         const div = document.createElement("div");
         div.className = "item";
         div.innerHTML = `<div>
@@ -435,191 +537,261 @@
           </div>
           <div class="actions"><span class="badge">pending</span></div>`;
         div.addEventListener("click", ()=>{
-          const day = l.startDate || ym+"-01";
-          openModal(l, day);
+          openModal([l], l.startDate || (ym+"-01"), admin);
         });
         pl.appendChild(div);
       });
     }
+
+    // debug
+    const dbg = $("#dbg");
+    if (dbg){
+      const a = admin ? (admin.label || admin.email || "—") : "—";
+      dbg.textContent = `Încărcate: ${LEAVES_ALL.length} • Afișate: ${LEAVES_VIEW.length} • Admin: ${a}`;
+    }
   }
 
-  function setError(msg){
-    const e = $("#err");
-    if(!msg){ e.style.display="none"; e.textContent=""; return; }
-    e.style.display="block";
-    e.textContent = msg;
+  // ===== Modal (approval) =====
+  let CURRENT = null; // {arr, day}
+  function openModal(arr, day, admin){
+    if (!arr || !arr.length) return;
+    CURRENT = { arr, day };
+    const l = arr[0];
+
+    const ov = $("#ov");
+    if (!ov) return;
+    ov.classList.add("show");
+
+    // fill
+    const mPeriod = $("#mPeriod"), mCount=$("#mCount"), mReason=$("#mReason"), mDay=$("#mDay");
+    const mNote=$("#mNote");
+    if (mNote) mNote.value = "";
+
+    const kind = norm(l.kind);
+    if (kind === "invoire"){
+      if (mPeriod) mPeriod.textContent = `${l.startDate} (${l.startTime||""}-${l.endTime||""})`;
+      if (mCount) mCount.textContent = "Învoire (ore)";
+    } else {
+      if (mPeriod) mPeriod.textContent = `${l.startDate} - ${l.endDate}`;
+      if (mCount) mCount.textContent = `${countDays(l.startDate, l.endDate)} zile`;
+    }
+    if (mReason) mReason.textContent = l.reason || "—";
+    if (mDay) mDay.textContent = day || l.startDate || "—";
+
+    // same day / period avatars
+    fillAvatars("#sameDayAv", listSameDay(arr, day));
+    fillAvatars("#samePeriodAv", listSamePeriod(arr));
+
+    // buttons
+    const mApprove = $("#mApprove"), mReject=$("#mReject");
+    if (mApprove) mApprove.disabled = false;
+    if (mReject) mReject.disabled = false;
   }
+
+  function closeModal(){
+    const ov = $("#ov");
+    if (!ov) return;
+    ov.classList.remove("show");
+    CURRENT = null;
+  }
+
+  function fillAvatars(sel, people){
+    const box = $(sel);
+    if (!box) return;
+    box.innerHTML = "";
+    if (!people.length){
+      box.innerHTML = `<div class="muted">—</div>`;
+      return;
+    }
+    people.slice(0,6).forEach(p=>{
+      const d = document.createElement("div");
+      d.className = "av2";
+      d.title = p;
+      d.textContent = initials(p);
+      box.appendChild(d);
+    });
+  }
+
+  function countDays(sd, ed){
+    const a = parseIsoDate(sd), b = parseIsoDate(ed);
+    if (!a || !b) return 0;
+    const ms = b.getTime() - a.getTime();
+    return Math.floor(ms / 86400000) + 1;
+  }
+
+  function listSameDay(arr, day){
+    // within current view, show others in same day
+    const d = day || "";
+    const names = new Set();
+    for (const l of LEAVES_VIEW){
+      if (!l.startDate) continue;
+      const sd = parseIsoDate(l.startDate);
+      const ed = parseIsoDate(l.endDate || l.startDate);
+      const sel = parseIsoDate(d);
+      if (!sd || !ed || !sel) continue;
+      if (between(sel, sd, ed)) names.add(String(l.employeeName||"").trim());
+    }
+    // remove current employee
+    for (const x of arr){
+      names.delete(String(x.employeeName||"").trim());
+    }
+    return Array.from(names);
+  }
+
+  function listSamePeriod(arr){
+    const first = arr[0];
+    const sd = parseIsoDate(first.startDate);
+    const ed = parseIsoDate(first.endDate || first.startDate);
+    if (!sd || !ed) return [];
+    const names = new Set();
+    for (const l of LEAVES_VIEW){
+      const a = parseIsoDate(l.startDate);
+      const b = parseIsoDate(l.endDate || l.startDate);
+      if (!a || !b) continue;
+      // overlap
+      if (b < sd || a > ed) continue;
+      names.add(String(l.employeeName||"").trim());
+    }
+    for (const x of arr){ names.delete(String(x.employeeName||"").trim()); }
+    return Array.from(names);
+  }
+
+  async function decide(decision){
+    if (!CURRENT || !CURRENT.arr || !CURRENT.arr.length) return;
+    const endpoint = ep();
+    if (!endpoint){ setError("Lipsește endpoint în config.json."); return; }
+    const key = getAdminKey();
+    if (!key){ setError("Lipsește ADMIN_KEY."); return; }
+
+    const admin = getAdminSession();
+    const by = (admin && (admin.label || admin.email)) ? (admin.label || admin.email) : "admin";
+
+    // decide only first request for now (if multiple in same cell, admin can click each from pending list)
+    const l = CURRENT.arr[0];
+    const note = ($("#mNote")?.value || "").trim();
+
+    const url = endpoint + "?fn=adminLeaveDecide"
+      + "&id=" + encodeURIComponent(l.id)
+      + "&decision=" + encodeURIComponent(decision)
+      + "&note=" + encodeURIComponent(note)
+      + "&by=" + encodeURIComponent(by)
+      + "&key=" + encodeURIComponent(key)
+      + "&ts=" + Date.now();
+
+    try{
+      const res = await jsonp(url);
+      if (!res || !res.ok) throw new Error(res?.error || "Eroare la salvare.");
+      toast(decision === "approved" ? "Aprobat." : "Respins.");
+      closeModal();
+      await loadMonth(CUR_YM);
+    }catch(err){
+      setError(String(err && err.message ? err.message : err));
+    }
+  }
+
+  // ===== load month =====
+  let CUR_YM = "";
 
   async function loadMonth(ym){
     setError("");
     const endpoint = ep();
-    if(!endpoint){ setError("Lipsește endpoint în config.json (leaveEndpoint/adminEventsEndpoint)."); return; }
-
-    let admin = null;
-    try{ admin = requireAdmin(); }catch(err){ admin = null; }
+    if(!endpoint){ setError("Lipsește leaveEndpoint/adminEventsEndpoint în config.json."); return; }
 
     const key = getAdminKey();
     if(!key){ setError("Lipsește ADMIN_KEY."); return; }
 
-    const adminName = (admin && (admin.name||admin.email)) || '';
-    const adminEmail = (admin && admin.email) || '';
+    CUR_YM = ym;
 
-    const onlyMine = $("#onlyMine").checked;
+    const admin = getAdminSession();
+    const adminName = admin ? (admin.label || admin.email || "") : "";
+    const adminEmail = admin ? (admin.email || "") : "";
+
     const url = endpoint + "?fn=adminLeavesMonth"
       + "&ym=" + encodeURIComponent(ym)
       + "&key=" + encodeURIComponent(key)
       + "&adminName=" + encodeURIComponent(adminName)
       + "&adminEmail=" + encodeURIComponent(adminEmail)
-      + "&mine=" + (onlyMine ? "1" : "0")
+      + "&mine=0"
       + "&ts=" + Date.now();
 
     try{
-      const res = await jsonp(url);
-      if(!res || !res.ok) throw new Error(res?.error || "Nu pot încărca cererile.");
-      indexLeaves(res.list||[]);
-      $("#sub").textContent = onlyMine ? "Aprobări — doar ale mele" : "Aprobări — toate";
-      render(ym);
+      const [data] = await Promise.all([
+        jsonp(url),
+        loadManagersMap(endpoint, key)
+      ]);
+
+      if (!data || !data.ok) throw new Error(data?.error || "Eroare la încărcare.");
+      LEAVES_ALL = Array.isArray(data.list) ? data.list : [];
+      buildView(admin);
+      render(ym, admin);
     }catch(err){
-      setError(String(err?.message||err||"Eroare"));
-      indexLeaves([]);
-      render(ym);
+      setError(String(err && err.message ? err.message : err));
     }
   }
 
-  // ===== Modal =====
-  function openModal(leave, day){
-    ACTIVE = leave;
-    ACTIVE_DAY = day;
-    $("#mDay").textContent = day;
-    const isInv = norm(leave.kind)==="invoire";
-    $("#mPeriod").textContent = isInv ? `${leave.startDate} (${leave.startTime||""}-${leave.endTime||""})` : `${leave.startDate} - ${leave.endDate}`;
-    $("#mCount").textContent = isInv ? "Învoire" : (calcDays(leave.startDate, leave.endDate) + " zile");
-    $("#mReason").textContent = (leave.reason && String(leave.reason).trim()) ? leave.reason : "—";
-    $("#mNote").value = "";
-
-    // same day avatars
-    $("#sameDayAv").innerHTML = "";
-    const sameDay = (DAYINDEX.get(day)||[]).filter(x=>x.id!==leave.id && norm(x.status)==="pending");
-    sameDay.slice(0,6).forEach(x=>{
-      const d = document.createElement("div");
-      d.className="av";
-      d.textContent = initials(x.employeeName);
-      d.title = x.employeeName;
-      $("#sameDayAv").appendChild(d);
-    });
-    if(!sameDay.length) $("#sameDayAv").innerHTML = '<span class="k" style="margin-top:0">—</span>';
-
-    // same period avatars
-    $("#samePeriodAv").innerHTML = "";
-    const sd = parseIsoDate(leave.startDate), ed = parseIsoDate(leave.endDate);
-    const samePer = LEAVES.filter(x=>{
-      if(x.id===leave.id) return false;
-      if(norm(x.status)!=="pending") return false;
-      const a = parseIsoDate(x.startDate), b = parseIsoDate(x.endDate);
-      if(!a||!b||!sd||!ed) return false;
-      return overlaps(sd,ed,a,b);
-    });
-    samePer.slice(0,6).forEach(x=>{
-      const d = document.createElement("div");
-      d.className="av";
-      d.textContent = initials(x.employeeName);
-      d.title = x.employeeName;
-      $("#samePeriodAv").appendChild(d);
-    });
-    if(!samePer.length) $("#samePeriodAv").innerHTML = '<span class="k" style="margin-top:0">—</span>';
-
-    $("#ov").classList.add("open");
-  }
-  function closeModal(){ $("#ov").classList.remove("open"); ACTIVE=null; ACTIVE_DAY=""; }
-  $("#ov").addEventListener("click", (e)=>{ if(e.target.id==="ov") closeModal(); });
-
-  function calcDays(s,e){
-    const sd = parseIsoDate(s), ed = parseIsoDate(e);
-    if(!sd||!ed) return 0;
-    return Math.round((ed - sd)/86400000) + 1;
+  // ===== init =====
+  function ymNow(){
+    const d = new Date();
+    const y = d.getFullYear();
+    const m = String(d.getMonth()+1).padStart(2,"0");
+    return `${y}-${m}`;
   }
 
-  async function decide(decision){
-    if(!ACTIVE) return;
-    const endpoint = ep();
-    const key = getAdminKey();
-    const admin = getAdminSession();
-    const adminName = (admin && (admin.name||admin.email)) || ''
-    const url = endpoint + "?fn=adminLeaveDecide"
-      + "&id=" + encodeURIComponent(ACTIVE.id)
-      + "&decision=" + encodeURIComponent(decision)
-      + "&note=" + encodeURIComponent($("#mNote").value||"")
-      + "&decidedBy=" + encodeURIComponent(adminName)
-      + "&key=" + encodeURIComponent(key)
-      + "&ts=" + Date.now();
-    try{
-      const res = await jsonp(url);
-      if(!res || !res.ok) throw new Error(res?.error || "Nu pot salva decizia.");
-      toast(decision==="approved" ? "Aprobat ✅" : "Respins ✕");
-      closeModal();
-      await loadMonth(YM);
-    }catch(err){
-      toast("Eroare: " + (err?.message||String(err)));
+  function bind(){
+    // month selector
+    const monthSel = $("#monthSel");
+    if (monthSel){
+      const now = ymNow();
+      monthSel.value = now;
+      monthSel.addEventListener("change", ()=>loadMonth(monthSel.value));
     }
-  }
 
-  $("#mApprove").addEventListener("click", ()=>decide("approved"));
-  $("#mReject").addEventListener("click", ()=>decide("rejected"));
-  $("#mDl").addEventListener("click", ()=>toast("Export — în curând"));
-
-  // cell click
-  document.addEventListener("click", (e)=>{
-    const td = e.target.closest("td.cell");
-    if(!td) return;
-    const ids = String(td.getAttribute("data-ids")||"").split(",").filter(Boolean);
-    if(!ids.length) return;
-    const day = td.getAttribute("data-day")||"";
-    const name = decodeURIComponent(td.getAttribute("data-name")||"");
-    const list = (INDEX.get(name)||[]).filter(x=>ids.includes(String(x.id)));
-    const pick = bestForCell(list);
-    if(pick) openModal(pick, day);
-  });
-
-  function fillMonths(){
-    const sel = $("#monthSel");
-    sel.innerHTML = "";
-    const now = new Date();
-    const months = [];
-    for(let i=-6;i<=6;i++){
-      const d = new Date(now.getFullYear(), now.getMonth()+i, 1);
-      const ym = d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0");
-      months.push({ ym, label: d.toLocaleDateString("ro-RO",{month:"long",year:"numeric"}) });
-    }
-    months.forEach(m=>{
-      const o = document.createElement("option");
-      o.value=m.ym; o.textContent=m.label;
-      sel.appendChild(o);
+    $("#prev")?.addEventListener("click", ()=>{
+      const m = ($("#monthSel")?.value || ymNow()).split("-").map(Number);
+      const d = new Date(m[0], m[1]-2, 1);
+      const ym = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;
+      if ($("#monthSel")) $("#monthSel").value = ym;
+      loadMonth(ym);
     });
-  }
 
-  function shiftMonth(delta){
-    const [y,m] = YM.split("-").map(Number);
-    const d = new Date(y, m-1+delta, 1);
-    YM = d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0");
-    $("#monthSel").value = YM;
-    loadMonth(YM);
+    $("#next")?.addEventListener("click", ()=>{
+      const m = ($("#monthSel")?.value || ymNow()).split("-").map(Number);
+      const d = new Date(m[0], m[1], 1);
+      const ym = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;
+      if ($("#monthSel")) $("#monthSel").value = ym;
+      loadMonth(ym);
+    });
+
+    $("#refresh")?.addEventListener("click", ()=>loadMonth($("#monthSel")?.value || ymNow()));
+    $("#q")?.addEventListener("input", ()=>{
+      const admin = getAdminSession();
+      buildView(admin);
+      render(CUR_YM || ($("#monthSel")?.value || ymNow()), admin);
+    });
+    $("#onlyMine")?.addEventListener("change", ()=>{
+      const admin = getAdminSession();
+      buildView(admin);
+      render(CUR_YM || ($("#monthSel")?.value || ymNow()), admin);
+    });
+
+    // modal
+    $("#ov")?.addEventListener("click", (e)=>{
+      if (e.target && e.target.id === "ov") closeModal();
+    });
+    $("#mApprove")?.addEventListener("click", ()=>decide("approved"));
+    $("#mReject")?.addEventListener("click", ()=>decide("rejected"));
+    $("#mDl")?.addEventListener("click", ()=>toast("Export: în curând"));
+    document.addEventListener("keydown", (e)=>{
+      if (e.key === "Escape") closeModal();
+    });
   }
 
   async function init(){
     await loadCFG();
-    fillMonths();
-    const now = new Date();
-    YM = now.getFullYear()+"-"+String(now.getMonth()+1).padStart(2,"0");
-    $("#monthSel").value = YM;
-
-    $("#refresh").addEventListener("click", ()=>loadMonth($("#monthSel").value));
-    $("#monthSel").addEventListener("change", ()=>{ YM=$("#monthSel").value; loadMonth(YM); });
-    $("#q").addEventListener("input", ()=>render(YM));
-    $("#onlyMine").addEventListener("change", ()=>loadMonth(YM));
-    $("#prev").addEventListener("click", ()=>shiftMonth(-1));
-    $("#next").addEventListener("click", ()=>shiftMonth(1));
-
-    await loadMonth(YM);
+    bind();
+    const ym = $("#monthSel")?.value || ymNow();
+    CUR_YM = ym;
+    await loadMonth(ym);
   }
 
   document.addEventListener("DOMContentLoaded", init);
