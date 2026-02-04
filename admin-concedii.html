@@ -28,7 +28,7 @@
     }
     *{box-sizing:border-box}
     body{margin:0;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial;background:var(--bg);color:var(--ink)}
-    .wrap{max-width:1600px;margin:18px auto;padding:0 14px}
+    .wrap{max-width:1800px;margin:18px auto;padding:0 14px}
     .panel{background:var(--card);border:1px solid var(--line);border-radius:22px;box-shadow:var(--shadow);overflow:hidden}
     .head{padding:14px 16px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
     .title{display:flex;flex-direction:column;gap:2px}
@@ -47,11 +47,17 @@
     @media(max-width:1100px){ .grid{grid-template-columns:1fr} }
 
     .tableWrap{background:var(--card);border:1px solid var(--line);border-radius:18px;overflow:hidden}
-    .tableScroll{overflow:auto}
-    table{border-collapse:separate;border-spacing:0;width:100%;min-width:980px}
-    thead th{position:sticky;top:0;z-index:5;background:#fbfbff;border-bottom:1px solid var(--line);font-size:12px;color:var(--muted);text-align:center;padding:10px 6px}
-    thead th:first-child{left:0;z-index:7;text-align:left;padding-left:14px;min-width:260px}
-    tbody td, tbody th{border-bottom:1px solid var(--line);border-right:1px solid var(--line);height:64px;vertical-align:middle;text-align:center;font-size:13px;color:var(--ink);background:#fff}
+    .tableScroll{overflow-y:auto;overflow-x:hidden}
+    table{border-collapse:separate;border-spacing:0;width:100%;min-width:0;table-layout:fixed}
+    thead th{position:sticky;top:0;z-index:5;background:#fbfbff;border-bottom:1px solid var(--line);font-size:12px;color:var(--muted);text-align:center;padding:8px 2px}
+
+    thead th.idx{width:46px;min-width:46px;text-align:center;padding:8px 0}
+    thead th.emp{text-align:left;padding-left:14px;width:300px;min-width:300px}
+    tbody td.idx{width:46px;min-width:46px;text-align:center;color:var(--muted);font-weight:800;background:#fff}
+    tbody td.emp{text-align:left;padding-left:14px}
+    thead th.wk{background:#f2f3ff}
+    tbody td.wk{background:#fbfbff}
+        tbody td, tbody th{border-bottom:1px solid var(--line);border-right:1px solid var(--line);height:58px;vertical-align:middle;text-align:center;font-size:13px;color:var(--ink);background:#fff}
     tbody tr:last-child td, tbody tr:last-child th{border-bottom:0}
     tbody td:last-child, thead th:last-child{border-right:0}
     tbody th{position:sticky;left:0;z-index:6;background:#fff;text-align:left;padding:10px 12px;min-width:260px;border-right:1px solid var(--line)}
@@ -130,7 +136,7 @@
   
 
     .dow{font-size:10px; color:var(--muted); margin-top:2px; font-weight:800}
-    .lvcell{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px; height:100%; min-height:64px}
+    .lvcell{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px; height:100%; min-height:58px}
     .lvcell .c{font-weight:900; letter-spacing:.3px}
     .lvcell .t{font-size:11px; color:rgba(27,27,40,.7); font-weight:800}
     .lvcell .mini{font-size:10px; opacity:.75}
@@ -148,7 +154,8 @@
 
     /* Calendar container */
     #pane-cal .tableWrap{border-radius:22px}
-    #pane-cal .tableScroll{max-height:420px;overflow:auto}
+    #pane-cal .tableWrap{height:calc(100vh - 260px)}
+    #pane-cal .tableScroll{height:calc(100vh - 260px);max-height:none;overflow-y:auto;overflow-x:hidden}
 
     /* Pending + Quick tables */
     .cardSection{background:var(--card);border:1px solid var(--line);border-radius:22px;box-shadow:var(--shadow);padding:16px}
@@ -301,6 +308,8 @@
 <div class="toast" id="toast">—</div>
 
 <script>
+
+
 (() => {
   // ===== Config loading (same smart loader used elsewhere) =====
   const CFG_PATHS = ["./config.json","../config.json","/config.json"];
@@ -469,6 +478,8 @@
   function between(d, a, b){
     return d && a && b && d.getTime() >= a.getTime() && d.getTime() <= b.getTime();
   }
+  function isWeekend(dt){ const g=dt.getDay(); return g===0||g===6; }
+
 
   // ===== data =====
   let LEAVES_ALL = [];
@@ -560,10 +571,11 @@
 
     // header
     const dim = daysInMonth(ym);
-    let h = `<tr><th class="stickyL">Angajat</th>`;
+    let h = `<tr><th class="idx">#</th><th class="emp">ANGAJAT</th>`;
     for (let d=1; d<=dim; d++){
       const dt = new Date(Number(ym.slice(0,4)), Number(ym.slice(5,7))-1, d, 12,0,0,0);
-      h += `<th>${String(d).padStart(2,"0")}<div class="dow">${dowShort(dt)}</div></th>`;
+      const wk = isWeekend(dt) ? "wk" : "";
+      h += `<th class="${wk}">${String(d).padStart(2,"0")}<div class="dow">${dowShort(dt)}</div></th>`;
     }
     h += `</tr>`;
     thead.innerHTML = h;
@@ -579,6 +591,7 @@
 
     // rows
     let html = "";
+    let rowIndex = 0;
     for (const emp of emps){
       const list = byEmp.get(emp) || [];
       // map day -> leaves
@@ -598,7 +611,8 @@
 
       const mgr = list[0]?._mgrName || list[0]?._mgrEmail || "";
       const mgrTxt = mgr ? `Manager: ${mgr}` : `Manager: —`;
-      html += `<tr><th class="stickyL">
+      rowIndex++;
+      html += `<tr><td class="idx">${rowIndex}</td><td class="emp">
         <div class="who">
           <div class="av">${initials(emp)}</div>
           <div class="name">
@@ -606,12 +620,14 @@
             <div class="d">${mgrTxt}</div>
           </div>
         </div>
-      </th>`;
+      </td>`;
 
       for (let d=1; d<=dim; d++){
         const arr = cellMap.get(d) || [];
         if (!arr.length){
-          html += `<td class="day"></td>`;
+          const dt0 = new Date(Number(ym.slice(0,4)), Number(ym.slice(5,7))-1, d, 12,0,0,0);
+          const wk0 = isWeekend(dt0) ? " wk" : "";
+          html += `<td class="day${wk0}"></td>`;
           continue;
         }
         // show first request + badge for more
@@ -622,7 +638,9 @@
         const bang = pending ? `<div class="bang">!</div>` : "";
         const time = (norm(first.kind)==="invoire") ? `<div class="t">${fmtTime(first.startTime)}-${fmtTime(first.endTime)}</div>` : "";
         const dataPayload = encodeURIComponent(JSON.stringify(arr));
-        html += `<td class="day">
+        const dt2 = new Date(Number(ym.slice(0,4)), Number(ym.slice(5,7))-1, d, 12,0,0,0);
+        const wk2 = isWeekend(dt2) ? " wk" : "";
+        html += `<td class="day${wk2}">
           <div class="lvcell cell" data-ym="${ym}" data-day="${String(d).padStart(2,"0")}" data-arr="${dataPayload}">
             ${bang}
             <div class="c">${code}</div>
@@ -1082,6 +1100,8 @@
 
   document.addEventListener("DOMContentLoaded", init);
 })();
+
+
 </script>
 </body>
 </html>
