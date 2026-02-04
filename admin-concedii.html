@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>Admin — Concedii (v14)</title>
+  <title>Admin — Concedii (v10)</title>
   <style>
     :root{
       --bg:#f5f6ff;
@@ -90,7 +90,6 @@
 
     /* Approval modal (purple) */
     .ov{position:fixed;inset:0;background:rgba(0,0,0,.28);display:none;align-items:center;justify-content:center;padding:18px;z-index:9999}
-    .ov.show{display:flex}
     .ov.open{display:flex}
     .modal{
       width:min(520px, 96vw);
@@ -302,40 +301,7 @@
 
   // ===== helpers =====
   function norm(s){ return String(s||"").trim().toLowerCase(); }
-  
-  function pad2(n){ return String(n).padStart(2,"0"); }
-  // normalize time values coming from Sheets (can be "Sat Dec 30 1899 09:30:56 ...", ISO, number, "09:30")
-  function timeHM(v){
-    if (v == null) return "";
-    // numbers: Sheets time fraction (0..1) or serial; keep fractional part
-    if (typeof v === "number"){
-      return excelTimeHM(v);
-    }
-    const s = String(v).trim();
-    if (!s) return "";
-    // common: "Sat Dec 30 1899 09:30:56 GMT+..."
-    let m = s.match(/(\d{1,2}):(\d{2})/);
-    if (m) return pad2(m[1]) + ":" + m[2];
-    // ISO or Date.parse-able
-    const d = new Date(s);
-    if (!isNaN(d)) return pad2(d.getHours()) + ":" + pad2(d.getMinutes());
-    // numeric string
-    if (/^\d+(\.\d+)?$/.test(s)){
-      const n = parseFloat(s);
-      if (!isNaN(n)) return excelTimeHM(n);
-    }
-    return s.slice(0,5);
-  }
-  function excelTimeHM(n){
-    if (n == null || isNaN(n)) return "";
-    const f = ((n % 1) + 1) % 1; // keep fractional part
-    let mins = Math.round(f * 24 * 60);
-    if (mins >= 24*60) mins = 0;
-    const hh = Math.floor(mins/60);
-    const mm = mins % 60;
-    return pad2(hh) + ":" + pad2(mm);
-  }
-function deacc(s){ return (s||"").normalize("NFD").replace(/[\u0300-\u036f]/g, ""); }
+  function deacc(s){ return (s||"").normalize("NFD").replace(/[\u0300-\u036f]/g, ""); }
   function keyName(s){ return deacc(norm(s)).replace(/\s+/g," ").trim(); }
 
   function tokens(s){
@@ -363,6 +329,44 @@ function deacc(s){ return (s||"").normalize("NFD").replace(/[\u0300-\u036f]/g, "
     const a = parts[0]?.[0] || "?";
     const b = parts.length>1 ? parts[parts.length-1][0] : "";
     return (a+b).toUpperCase();
+  }
+
+  function fmt2(n){ return String(n).padStart(2,"0"); }
+
+  // Normalizează orele pentru învoiri (Sheets poate întoarce Date 1899-12-30 sau număr fracție de zi)
+  function fmtTime(v){
+    if (v == null) return "";
+    if (v instanceof Date && !isNaN(v)) return fmt2(v.getHours()) + ":" + fmt2(v.getMinutes());
+
+    const t = typeof v;
+    if (t === "number" && isFinite(v)){
+      // Google Sheets time serial (fraction of day)
+      const mins = Math.round(v * 24 * 60);
+      const hh = Math.floor(mins / 60) % 24;
+      const mm = mins % 60;
+      return fmt2(hh) + ":" + fmt2(mm);
+    }
+
+    let s = String(v).trim();
+    if (!s) return "";
+
+    // "09:30" / "9:30" / "09:30:00"
+    const m = s.match(/^(\d{1,2}):(\d{2})(?::\d{2})?$/);
+    if (m){
+      return fmt2(Number(m[1])) + ":" + fmt2(Number(m[2]));
+    }
+
+    // ISO datetime / Date string
+    const d = new Date(s);
+    if (!isNaN(d)){
+      return fmt2(d.getHours()) + ":" + fmt2(d.getMinutes());
+    }
+
+    // fallback: dacă e ceva gen "Sat Dec 30 1899 09:30:56 ..." returnează hh:mm dacă putem extrage
+    const m2 = s.match(/\b(\d{1,2}):(\d{2})\b/);
+    if (m2) return fmt2(Number(m2[1])) + ":" + fmt2(Number(m2[2]));
+
+    return "";
   }
 
   function daysInMonth(ym){
@@ -524,7 +528,7 @@ function deacc(s){ return (s||"").normalize("NFD").replace(/[\u0300-\u036f]/g, "
         const pending = arr.some(x=>norm(x.status)==="pending");
         const more = arr.length>1 ? `<div class="mini">+${arr.length-1}</div>` : "";
         const bang = pending ? `<div class="bang">!</div>` : "";
-        const time = (norm(first.kind)==="invoire") ? `<div class="t">${timeHM(first.startTime)}-${timeHM(first.endTime)}</div>` : "";
+        const time = (norm(first.kind)==="invoire") ? `<div class="t">${fmtTime(first.startTime)}–${fmtTime(first.endTime)}</div>` : "";
         const dataPayload = encodeURIComponent(JSON.stringify(arr));
         html += `<td class="day">
           <div class="lvcell cell" data-ym="${ym}" data-day="${String(d).padStart(2,"0")}" data-arr="${dataPayload}">
@@ -561,7 +565,7 @@ function deacc(s){ return (s||"").normalize("NFD").replace(/[\u0300-\u036f]/g, "
     if (pl && pending.length){
       pending.slice(0,50).forEach(l=>{
         const txt = (norm(l.kind)==="invoire")
-          ? `Învoire ${l.startDate} ${timeHM(l.startTime)}–${timeHM(l.endTime)}`
+          ? `Învoire ${l.startDate} • ${fmtTime(l.startTime)}–${fmtTime(l.endTime)}`
           : `${l.code||"—"} ${l.startDate}–${l.endDate}`;
         const div = document.createElement("div");
         div.className = "item";
@@ -603,7 +607,7 @@ function deacc(s){ return (s||"").normalize("NFD").replace(/[\u0300-\u036f]/g, "
 
     const kind = norm(l.kind);
     if (kind === "invoire"){
-      if (mPeriod) mPeriod.textContent = `${l.startDate} (${timeHM(l.startTime)}–${timeHM(l.endTime)})`;
+      if (mPeriod) mPeriod.textContent = `${l.startDate} (${fmtTime(l.startTime)}–${fmtTime(l.endTime)})`;
       if (mCount) mCount.textContent = "Învoire (ore)";
     } else {
       if (mPeriod) mPeriod.textContent = `${l.startDate} - ${l.endDate}`;
