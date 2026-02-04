@@ -318,7 +318,7 @@
   let VIEW = [];
   let CURRENT = null; // current request (modal)
 
-  function escapeHtml(s){ return String(s??"").replace(/[&<>"']/g, m=>({ "&":"&amp;","<":"&lt;",">":"&gt;", '"':"&quot;","'":"&#39;" }[m])); }
+  function escapeHtml(s){ return String(s??"").replace(/[&<>"']/g, m=>({ "&":"&amp;","<":"&lt;",">":"&gt;", '"':"&quot;","'":"&#39;" }[m])) };
   function toast(msg){
     const el = $("#toast");
     el.textContent = msg;
