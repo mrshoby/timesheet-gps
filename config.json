@@ -29,11 +29,11 @@
     "Ana Radu"
   ],
 
-{
+
   "employeeAvatars": {
-    "Maria Ionescu": "avatars/maria-ionescu.png"
-  }
-},
+    "Maria Ionescu": "avatars/maria-ionescu.png",
+  },
+
   
   "adminAuthUrl": "https://raw.githubusercontent.com/mrshoby/timesheet-gps/main/admin-auth.json",
 
