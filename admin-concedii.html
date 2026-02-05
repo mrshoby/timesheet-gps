@@ -65,7 +65,6 @@
     tbody th{position:sticky;left:0;z-index:6;background:#fff;text-align:left;padding:10px 12px;min-width:260px;border-right:1px solid var(--line)}
     .who{display:flex;align-items:center;gap:10px}
     .av{width:34px;height:34px;border-radius:999px;background:#e9ecff;display:grid;place-items:center;font-weight:800;color:#3a2d71;flex:0 0 auto;overflow:hidden}
-    .av img{width:100%;height:100%;object-fit:cover;display:block}
     .name{display:flex;flex-direction:column;line-height:1.1}
     .name .n{font-weight:700}
     .name .d{font-size:12px;color:var(--muted)}
@@ -144,7 +143,9 @@
     .lvcell .t{font-size:11px; color:rgba(27,27,40,.7); font-weight:800}
     .lvcell .mini{font-size:10px; opacity:.75}
     .lvcell .bang{position:absolute;top:6px;right:6px}
-    .av2{width:40px;height:40px;border-radius:999px;background:#e9ecff;display:grid;place-items:center;font-weight:900;color:#3a2d71;border:2px solid rgba(255,255,255,.7)}
+    .av2{width:40px;height:40px;border-radius:999px;background:#e9ecff;display:grid;place-items:center;font-weight:900;color:#3a2d71;border:2px solid rgba(255,255,255,.7);overflow:hidden}
+    .avatar img, .av img, .av2 img{width:100%;height:100%;object-fit:cover;display:block}
+
 
 
     /* ===== Redesign (v15) — calendar ca în 2.png + liste ca în 3.png/4.png ===== */
@@ -302,7 +303,6 @@
       width:40px;height:40px;border-radius:999px;overflow:hidden;
       display:grid;place-items:center;background:#e9ecff;color:#3a2d71;font-weight:900
     }
-    .avatar img{width:100%;height:100%;object-fit:cover;display:block}
     .empName{font-weight:800;color:#2f245c}
     .mut{font-size:13px;color:var(--muted);margin-top:2px}
     .statusTxt{font-weight:900}
@@ -538,6 +538,28 @@
   const CFG_PATHS = ["./config.json","../config.json","/config.json"];
   let CFG = null;
 
+  // ===== Avatars =====
+  let __avatarMap = {}; // keyName(employeeName) -> avatarUrl
+
+  function buildAvatarMap(list){
+    const m = {};
+    (list||[]).forEach(l=>{
+      const emp = String(l?.employeeName || "").trim();
+      const url = String(l?.avatarUrl || l?.avatarURL || "").trim();
+      if (emp && url) m[keyName(emp)] = url;
+    });
+    return m;
+  }
+  function getAvatarUrl(name){
+    const k = keyName(name);
+    return (__avatarMap && __avatarMap[k]) ? String(__avatarMap[k]) : "";
+  }
+  function avatarInnerHtml(name){
+    const u = getAvatarUrl(name);
+    return u ? `<img src="${esc(u)}" alt="">` : esc(initials(name));
+  }
+
+
   const LS_ADMIN = "pontaj/admin/v1";
   const LS_ADMIN_KEY = "pontaj_adminKey";
 
@@ -653,13 +675,6 @@
     const b = parts.length>1 ? parts[parts.length-1][0] : "";
     return (a+b).toUpperCase();
   }
-
-function avatarInner(name, avatarUrl){
-  const u = String(avatarUrl||"").trim();
-  if (u) return `<img class="avatarImg" src="${esc(u)}" alt="">`;
-  return esc(initials(name));
-}
-
 
   function pad2(n){ return String(n).padStart(2,"0"); }
   function fmtTime(v){
@@ -780,6 +795,7 @@ function avatarInner(name, avatarUrl){
 
   function buildView(admin){
     const enriched = LEAVES_ALL.map(enrichLeave);
+    __avatarMap = buildAvatarMap(enriched);
     let list = enriched;
     list = filterMine(list, admin);
     list = filterSearch(list);
@@ -841,7 +857,7 @@ function avatarInner(name, avatarUrl){
         <th class="idxC">${rowIdx++}</th>
         <th class="empC">
           <div class="who">
-            <div class="av">${avatarInner(emp, (list[0] && list[0].avatarUrl) ? list[0].avatarUrl : "")}</div>
+            <div class="av">${avatarInnerHtml(emp)}</div>
             <div class="name">
               <div class="n">${esc(emp)}</div>
               <div class="d">${esc(mgrTxt)}</div>
@@ -920,7 +936,7 @@ function avatarInner(name, avatarUrl){
         tr.innerHTML = `
           <td>
             <div class="empCell">
-              <div class="avatar">${avatarInner(empName, l.avatarUrl)}</div>
+              <div class="avatar">${avatarInnerHtml(empName)}</div>
               <div>
                 <div class="empName">${esc(empName)}</div>
               </div>
@@ -951,7 +967,7 @@ function avatarInner(name, avatarUrl){
         tr.innerHTML = `
           <td>
             <div class="empCell">
-              <div class="avatar">${avatarInner(empName, l.avatarUrl)}</div>
+              <div class="avatar">${avatarInnerHtml(empName)}</div>
               <div>
                 <div class="empName">${esc(empName)}</div>
                 <div class="mut">${esc(per.meta)}</div>
@@ -1127,7 +1143,15 @@ function avatarInner(name, avatarUrl){
       const d = document.createElement("div");
       d.className = "av2";
       d.title = p;
-      d.textContent = initials(p);
+      const url = getAvatarUrl(p);
+      if (url){
+        const img = document.createElement("img");
+        img.src = url;
+        img.alt = "";
+        d.appendChild(img);
+      } else {
+        d.textContent = initials(p);
+      }
       box.appendChild(d);
     });
   }
