@@ -64,7 +64,8 @@
     tbody td:last-child, thead th:last-child{border-right:0}
     tbody th{position:sticky;left:0;z-index:6;background:#fff;text-align:left;padding:10px 12px;min-width:260px;border-right:1px solid var(--line)}
     .who{display:flex;align-items:center;gap:10px}
-    .av{width:34px;height:34px;border-radius:999px;background:#e9ecff;display:grid;place-items:center;font-weight:800;color:#3a2d71;flex:0 0 auto}
+    .av{width:34px;height:34px;border-radius:999px;background:#e9ecff;display:grid;place-items:center;font-weight:800;color:#3a2d71;flex:0 0 auto;overflow:hidden}
+    .av img{width:100%;height:100%;object-fit:cover;display:block}
     .name{display:flex;flex-direction:column;line-height:1.1}
     .name .n{font-weight:700}
     .name .d{font-size:12px;color:var(--muted)}
@@ -301,6 +302,7 @@
       width:40px;height:40px;border-radius:999px;overflow:hidden;
       display:grid;place-items:center;background:#e9ecff;color:#3a2d71;font-weight:900
     }
+    .avatar img{width:100%;height:100%;object-fit:cover;display:block}
     .empName{font-weight:800;color:#2f245c}
     .mut{font-size:13px;color:var(--muted);margin-top:2px}
     .statusTxt{font-weight:900}
@@ -652,6 +654,13 @@
     return (a+b).toUpperCase();
   }
 
+function avatarInner(name, avatarUrl){
+  const u = String(avatarUrl||"").trim();
+  if (u) return `<img class="avatarImg" src="${esc(u)}" alt="">`;
+  return esc(initials(name));
+}
+
+
   function pad2(n){ return String(n).padStart(2,"0"); }
   function fmtTime(v){
     if (v === null || v === undefined || v === "") return "";
@@ -832,7 +841,7 @@
         <th class="idxC">${rowIdx++}</th>
         <th class="empC">
           <div class="who">
-            <div class="av">${initials(emp)}</div>
+            <div class="av">${avatarInner(emp, (list[0] && list[0].avatarUrl) ? list[0].avatarUrl : "")}</div>
             <div class="name">
               <div class="n">${esc(emp)}</div>
               <div class="d">${esc(mgrTxt)}</div>
@@ -911,7 +920,7 @@
         tr.innerHTML = `
           <td>
             <div class="empCell">
-              <div class="avatar">${initials(empName)}</div>
+              <div class="avatar">${avatarInner(empName, l.avatarUrl)}</div>
               <div>
                 <div class="empName">${esc(empName)}</div>
               </div>
@@ -942,7 +951,7 @@
         tr.innerHTML = `
           <td>
             <div class="empCell">
-              <div class="avatar">${initials(empName)}</div>
+              <div class="avatar">${avatarInner(empName, l.avatarUrl)}</div>
               <div>
                 <div class="empName">${esc(empName)}</div>
                 <div class="mut">${esc(per.meta)}</div>
