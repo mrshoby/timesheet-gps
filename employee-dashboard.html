@@ -383,37 +383,23 @@
 .notifMeta{margin-top:8px;color:rgba(40,48,80,.45);font-weight:900;font-size:11px}
 
 
-  /* ===== Avatar settings ===== */
-  .avatarRow{display:flex;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-top:10px}
-  .avatarPreview{display:flex;align-items:center;justify-content:center}
-  .avatarTools{flex:1;min-width:min(420px, 100%)}
-  .avatarDrop{
-    border:1px dashed rgba(105,112,160,.35);
-    background:rgba(240,242,255,.55);
-    border-radius:18px;
-    padding:12px;
-  }
-  .avatarDrop.dragover{background:rgba(124,92,255,.10);border-color:rgba(124,92,255,.55)}
-  .avatarSaveRow{margin-top:10px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-  .avatarSaveRow #avatarStatus{flex:1}
-
-  /* Crop modal */
-  .cropOv{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(20,18,40,.45);z-index:10000;padding:18px}
-  .cropOv.show{display:flex}
-  .cropModal{
-    width:min(520px, 96vw);
-    background:#fff;border:1px solid rgba(105,112,160,.18);
-    border-radius:22px;box-shadow:0 26px 80px rgba(20,18,40,.25);
-    overflow:hidden;
-  }
-  .cropHead{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:14px 16px;border-bottom:1px solid rgba(105,112,160,.14);background:rgba(240,242,255,.55)}
-  .cropHead .t{font-weight:1000}
-  .cropBody{padding:14px 16px}
-  .cropCanvasWrap{display:flex;align-items:center;justify-content:center}
-  #cropCanvas{width:320px;height:320px;border-radius:18px;background:#eef1ff;border:1px solid rgba(105,112,160,.18);touch-action:none}
-  .cropTools{margin-top:12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-  .cropTools input[type="range"]{width:220px}
-  .cropFoot{padding:14px 16px;border-top:1px solid rgba(105,112,160,.14);display:flex;gap:10px;justify-content:flex-end;background:#fff}
+    .card{background:#fff;border:1px solid rgba(0,0,0,.06);border-radius:18px;box-shadow:0 16px 40px rgba(20,18,40,.06);padding:12px 12px}
+    .avatarBig{width:54px;height:54px;border-radius:999px;background:#f0f2ff;border:2px solid #fff;box-shadow:0 12px 22px rgba(20,18,40,.10);display:grid;place-items:center;overflow:hidden}
+    .avatarBig img{width:100%;height:100%;object-fit:cover;border-radius:999px}
+    .avatarBig #setAvatarInitial{font-weight:1000;color:#3a3f5b}
+    .dropZone{border:2px dashed rgba(80,90,140,.25);border-radius:16px;padding:16px 14px;text-align:center;
+      background:rgba(245,246,255,.65);font-weight:850;color:rgba(60,65,90,.9);cursor:pointer}
+    .dropZone.drag{background:rgba(220,235,255,.9);border-color:rgba(80,110,200,.45)}
+    .modalOv{position:fixed;inset:0;background:rgba(0,0,0,.45);display:grid;place-items:center;z-index:9999;padding:18px}
+    .modalBox{width:min(520px, 96vw);background:#fff;border-radius:22px;box-shadow:0 30px 90px rgba(0,0,0,.35);overflow:hidden;border:1px solid rgba(0,0,0,.06)}
+    .modalHead{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;padding:14px 14px;border-bottom:1px solid rgba(0,0,0,.06);background:rgba(245,246,255,.6)}
+    .mhTitle{font-weight:1000}
+    .iconBtn{border:0;background:#fff;border-radius:12px;box-shadow:0 10px 18px rgba(20,18,40,.10);cursor:pointer;padding:10px 12px;font-weight:1000}
+    .modalBody{padding:14px 14px}
+    #avCanvas{width:100%;max-width:420px;aspect-ratio:1/1;border-radius:18px;border:1px solid rgba(0,0,0,.06);display:block;margin:0 auto;background:#f7f8ff}
+    .cropRow{display:flex;gap:10px;align-items:center;margin-top:12px}
+    .cropRow input[type="range"]{flex:1}
+    .modalFoot{display:flex;gap:10px;padding:14px;border-top:1px solid rgba(0,0,0,.06);background:rgba(245,246,255,.4)}
 
 </style>
 </head>
@@ -1380,41 +1366,41 @@
               <div class="note" style="margin-top:6px"><b>Departament:</b> <span id="setDept">—</span></div>
               <div class="note" style="margin-top:6px"><b>Manager:</b> <span id="setMgr">—</span></div>
 
-
-              <div class="avatarSet" style="margin-top:14px">
-                <div class="note" style="font-weight:1000;color:rgba(40,48,80,.82)">Avatar</div>
-                <div class="avatarRow">
-                  <div class="avatarPreview">
-                    <img id="setAvatarImg" class="bigAvatar" alt="" style="display:none"/>
-                    <div id="setAvatar" class="bigAvatar">•</div>
-                  </div>
-                  <div class="avatarTools">
-                    <div id="avatarDrop" class="avatarDrop">
-                      <div style="font-weight:1000">Drag & drop imagine aici</div>
-                      <div class="note">PNG/JPG • decupare pătrat + resize automat 256×256.</div>
-                      <div style="margin-top:10px;display:flex;gap:10px;flex-wrap:wrap">
-                        <button class="btnPill" id="btnPickAvatar" type="button">Alege fișier</button>
-                        <button class="btnPill" id="btnClearAvatar" type="button">Șterge avatar</button>
-                      </div>
-                      <input id="inpAvatar" type="file" accept="image/*" style="display:none">
-                    </div>
-
-                    <div class="avatarSaveRow">
-                      <button class="btnPill primary" id="btnSaveAvatar" type="button" disabled>Salvează avatar</button>
-                      <div class="note" id="avatarStatus">—</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-
               <div style="margin-top:14px;display:flex;gap:10px;flex-wrap:wrap">
                 <button class="btnPill" id="btnOpenIndex" type="button">Deschide index.html</button>
                 <button class="btnPill" id="btnRefreshAll" type="button">Reîncarcă date</button>
                 <button class="btnPill primary" id="btnLogout" type="button">Logout</button>
               </div>
 
-              <div class="note" style="margin-top:12px">
+              
+              <div class="card" style="margin-top:14px">
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+                  <div style="display:flex;align-items:center;gap:12px">
+                    <div class="avatarBig" id="setAvatarCircle">
+                      <img id="setAvatarImg" alt="avatar" style="display:none" />
+                      <div id="setAvatarInitial">—</div>
+                    </div>
+                    <div>
+                      <div style="font-weight:1000">Avatar</div>
+                      <div class="note">Trage &amp; lasă o imagine, apoi decupează și salvează. (PNG/JPG)</div>
+                    </div>
+                  </div>
+                  <div style="display:flex;gap:10px;flex-wrap:wrap">
+                    <button class="btnPill" id="btnAvatarChoose" type="button">Alege imagine</button>
+                    <button class="btnPill primary" id="btnAvatarSave" type="button" disabled>Salvează</button>
+                    <button class="btnPill" id="btnAvatarClear" type="button">Șterge</button>
+                    <input id="avatarFile" type="file" accept="image/*" style="display:none" />
+                  </div>
+                </div>
+
+                <div class="dropZone" id="avatarDrop" style="margin-top:12px">
+                  Trage &amp; lasă aici imaginea (sau apasă „Alege imagine”).
+                </div>
+
+                <div class="note" id="avatarStatus" style="margin-top:10px">—</div>
+              </div>
+
+<div class="note" style="margin-top:12px">
                 Dacă vrei, pot adăuga aici: schimbare temă, schimbare PIN (doar dacă permiți), notificări, etc.
               </div>
             </div>
@@ -1472,30 +1458,30 @@
   </div>
 
 
-  <!-- Avatar crop modal -->
-  <div class="cropOv" id="cropOv">
-    <div class="cropModal">
-      <div class="cropHead">
-        <div class="t">Decupează avatar</div>
-        <button class="iconBtn" id="cropClose" type="button">✕</button>
+<!-- Avatar crop modal -->
+<div class="modalOv" id="avOv" style="display:none">
+  <div class="modalBox">
+    <div class="modalHead">
+      <div>
+        <div class="mhTitle">Decupează avatar</div>
+        <div class="note">Trage imaginea cu mouse-ul. Ajustează zoom-ul. Se salvează pătrat 256×256.</div>
       </div>
-      <div class="cropBody">
-        <div class="note">Trage imaginea cu mouse-ul / degetul. Folosește zoom pentru încadrare.</div>
-        <div class="cropCanvasWrap" style="margin-top:10px">
-          <canvas id="cropCanvas" width="320" height="320"></canvas>
-        </div>
-        <div class="cropTools">
-          <div class="note" style="font-weight:1000">Zoom</div>
-          <input id="cropZoom" type="range" min="1" max="3" step="0.01" value="1">
-          <div class="note" id="cropZoomVal">1.00×</div>
-        </div>
-      </div>
-      <div class="cropFoot">
-        <button class="btnPill" id="cropCancel" type="button">Renunță</button>
-        <button class="btnPill primary" id="cropOk" type="button">Folosește</button>
+      <button class="iconBtn" id="avClose" type="button">✕</button>
+    </div>
+    <div class="modalBody">
+      <canvas id="avCanvas" width="320" height="320"></canvas>
+      <div class="cropRow">
+        <div class="note" style="min-width:44px">Zoom</div>
+        <input id="avZoom" type="range" min="1" max="3" step="0.01" value="1" />
+        <button class="btnPill" id="avReset" type="button">Reset</button>
       </div>
     </div>
+    <div class="modalFoot">
+      <button class="btnPill" id="avCancel" type="button">Anulează</button>
+      <button class="btnPill primary" id="avUse" type="button">Folosește</button>
+    </div>
   </div>
+</div>
 
 <script>
 /* ===== Employee dashboard menu + profile ===== */
@@ -1542,14 +1528,12 @@
       const dept = res.dept || "";
       const mgr = res.managerName || res.managerEmail || "";
 
-      let avatarUrl = String(res.avatarUrl || "").trim();
+      let avatarUrl = (res && res.avatarUrl) ? String(res.avatarUrl) : "";
       try{
         if (!avatarUrl && window.CFG && window.CFG.employeeAvatars && window.CFG.employeeAvatars[name]) avatarUrl = String(window.CFG.employeeAvatars[name]);
       }catch(e){}
 
       $("#topName").textContent = name;
-      __currentProfileName = name;
-      __currentAvatarUrl = avatarUrl || "";
       $("#topMgr").textContent = "Manager: " + (mgr || "—");
 
       if (avatarUrl){
@@ -1580,23 +1564,8 @@
         $("#drawerAvatar").textContent = initials(name);
         $("#drawerAvatar").style.display = "";
         $("#drawerAvatarImg").style.display = "none";
+      try{ setAvatarEverywhere(avatarUrl, name); }catch(e){}
       }
-
-      // Settings avatar preview (current)
-      try{
-        const si = $("#setAvatarImg"), sd = $("#setAvatar");
-        if (si && sd){
-          if (avatarUrl){
-            si.src = avatarUrl;
-            si.style.display = "";
-            sd.style.display = "none";
-          } else {
-            sd.textContent = initials(name);
-            sd.style.display = "";
-            si.style.display = "none";
-          }
-        }
-      }catch(e){}
     }catch(e){
       console.warn("meProfile failed", e);
     }
@@ -1611,246 +1580,286 @@
     }catch(e){}
     window.location.href = "index.html";
   }
+  // ========= Avatar Settings (drag&drop + crop + resize + GitHub upload via JSONP) =========
+  let __avatarDataUrl = "";
+  let __crop = { img:null, zoom:1, offX:0, offY:0, drag:false, lastX:0, lastY:0 };
 
+  function showAvatarStatus(msg, isErr){
+    const el = $("#avatarStatus");
+    if (!el) return;
+    el.textContent = msg || "—";
+    el.style.color = isErr ? "rgba(200,60,60,.95)" : "rgba(60,70,95,.95)";
+    el.style.fontWeight = isErr ? "900" : "800";
+  }
 
-  // ===== Avatar upload (drag&drop + crop + resize + upload in GH via Apps Script) =====
-  let __pendingAvatarDataUrl = ""; // 256x256 png dataURL (preview)
-  let __currentProfileName = "";
-  let __currentAvatarUrl = "";
-
-  function setAvatarPreview(dataUrlOrUrl){
-    const name = __currentProfileName || (getEmpSession()?.name || "");
-    const si = $("#setAvatarImg"), sd = $("#setAvatar");
-    if (!si || !sd) return;
-
-    const url = String(dataUrlOrUrl||"").trim();
+  function setAvatarEverywhere(url, name){
+    const ini = initials(name || $("#topName")?.textContent || "");
     if (url){
-      si.src = url;
-      si.style.display = "";
-      sd.style.display = "none";
+      $("#topAvatarImg").src = url;
+      $("#topAvatarImg").style.display = "";
+      $("#topAvatar").style.display = "none";
+
+      $("#drawerAvatarImg").src = url;
+      $("#drawerAvatarImg").style.display = "";
+      $("#drawerAvatar").style.display = "none";
+
+      const si = $("#setAvatarImg"), st = $("#setAvatarInitial");
+      if (si){ si.src = url; si.style.display = ""; }
+      if (st){ st.style.display = "none"; st.textContent = ini || "—"; }
     } else {
-      sd.textContent = initials(name);
-      sd.style.display = "";
-      si.style.display = "none";
+      $("#topAvatar").textContent = ini;
+      $("#topAvatar").style.display = "";
+      $("#topAvatarImg").style.display = "none";
+
+      $("#drawerAvatar").textContent = ini;
+      $("#drawerAvatar").style.display = "";
+      $("#drawerAvatarImg").style.display = "none";
+
+      const si = $("#setAvatarImg"), st = $("#setAvatarInitial");
+      if (si){ si.style.display = "none"; si.src = ""; }
+      if (st){ st.textContent = ini || "—"; st.style.display = ""; }
     }
   }
 
-  function setAvatarStatus(msg){
-    const el = $("#avatarStatus");
-    if (el) el.textContent = msg || "—";
+  function openCropModal(img){
+    __crop.img = img;
+    __crop.zoom = 1;
+    __crop.offX = 0;
+    __crop.offY = 0;
+    const z = $("#avZoom"); if (z) z.value = "1";
+    drawCrop();
+    const ov = $("#avOv");
+    if (ov){ ov.style.display = "grid"; ov.classList.add("show"); }
   }
 
-  async function readFileAsDataURL(file){
+  function closeCropModal(){
+    const ov = $("#avOv");
+    if (ov){ ov.style.display = "none"; ov.classList.remove("show"); }
+  }
+
+  function drawCrop(){
+    const c = $("#avCanvas");
+    if (!c || !__crop.img) return;
+    const ctx = c.getContext("2d");
+    const S = c.width;
+    ctx.clearRect(0,0,S,S);
+    ctx.fillStyle = "#f7f8ff";
+    ctx.fillRect(0,0,S,S);
+
+    const img = __crop.img;
+    const base = Math.max(S/img.width, S/img.height);
+    const scale = base * __crop.zoom;
+
+    const w = img.width * scale;
+    const h = img.height * scale;
+    const x = (S - w)/2 + __crop.offX;
+    const y = (S - h)/2 + __crop.offY;
+
+    ctx.drawImage(img, x, y, w, h);
+    ctx.strokeStyle = "rgba(0,0,0,.10)";
+    ctx.lineWidth = 2;
+    ctx.strokeRect(1,1,S-2,S-2);
+  }
+
+  function exportCroppedPng(){
+    const img = __crop.img;
+    if (!img) return "";
+    const out = document.createElement("canvas");
+    out.width = 256;
+    out.height = 256;
+    const ctx = out.getContext("2d");
+    const S = out.width;
+
+    const base = Math.max(S/img.width, S/img.height);
+    const scale = base * __crop.zoom;
+
+    const w = img.width * scale;
+    const h = img.height * scale;
+    const preview = 320;
+    const k = S / preview;
+
+    const x = (S - w)/2 + (__crop.offX * k);
+    const y = (S - h)/2 + (__crop.offY * k);
+
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0,0,S,S);
+    ctx.drawImage(img, x, y, w, h);
+    return out.toDataURL("image/png");
+  }
+
+  function loadImageFromFile(file){
     return new Promise((resolve, reject)=>{
-      const r = new FileReader();
-      r.onerror = ()=>reject(new Error("Nu pot citi fișierul."));
-      r.onload = ()=>resolve(String(r.result||""));
-      r.readAsDataURL(file);
+      const fr = new FileReader();
+      fr.onerror = ()=>reject(new Error("Nu pot citi fișierul."));
+      fr.onload = ()=>{
+        const img = new Image();
+        img.onload = ()=>resolve(img);
+        img.onerror = ()=>reject(new Error("Imagine invalidă."));
+        img.src = String(fr.result || "");
+      };
+      fr.readAsDataURL(file);
     });
   }
 
-  function openCropper(dataUrl){
-    return new Promise((resolve, reject)=>{
-      const ov = $("#cropOv");
-      const canvas = $("#cropCanvas");
-      const zoomEl = $("#cropZoom");
-      const zoomVal = $("#cropZoomVal");
-      const btnOk = $("#cropOk");
-      const btnCancel = $("#cropCancel");
-      const btnClose = $("#cropClose");
-      if (!ov || !canvas || !zoomEl || !btnOk || !btnCancel || !btnClose) return reject(new Error("UI cropper lipsă."));
+  async function uploadAvatarDataUrl(dataUrl){
+    const s = (typeof getEmpSession === "function") ? getEmpSession() : null;
+    const endpoint = (typeof ep === "function") ? ep() : "";
+    if (!s || !s.token || !endpoint) throw new Error("Nu ești logat sau lipsește endpoint.");
 
-      const ctx = canvas.getContext("2d");
-      const S = canvas.width; // 320
+    const token = String(s.token);
+    const m = String(dataUrl||"").match(/^data:([^;]+);base64,(.+)$/);
+    if (!m) throw new Error("DataURL invalid.");
+    const mime = m[1];
+    const b64 = m[2];
 
-      const img = new Image();
-      img.crossOrigin = "anonymous";
+    const uploadId = "av_" + Math.random().toString(16).slice(2) + "_" + Date.now();
+    const chunkSize = 3500;
+    const total = Math.ceil(b64.length / chunkSize);
 
-      let cover = 1;
-      let scale = 1;
-      let offX = 0;
-      let offY = 0;
-      let dragging = false;
-      let lastX = 0, lastY = 0;
-
-      function clampOffset(){
-        const w = img.width * scale;
-        const h = img.height * scale;
-        const minX = Math.min(0, S - w);
-        const minY = Math.min(0, S - h);
-        offX = clamp(offX, minX, 0);
-        offY = clamp(offY, minY, 0);
-      }
-
-      function draw(){
-        if (!img.width) return;
-        ctx.clearRect(0,0,S,S);
-        ctx.drawImage(img, offX, offY, img.width*scale, img.height*scale);
-        // subtle frame
-        ctx.save();
-        ctx.strokeStyle = "rgba(124,92,255,.55)";
-        ctx.lineWidth = 2;
-        ctx.strokeRect(1,1,S-2,S-2);
-        ctx.restore();
-      }
-
-      function cleanup(){
-        canvas.onpointerdown = null;
-        canvas.onpointermove = null;
-        canvas.onpointerup = null;
-        canvas.onpointercancel = null;
-        zoomEl.oninput = null;
-        btnOk.onclick = null;
-        btnCancel.onclick = null;
-        btnClose.onclick = null;
-      }
-
-      function close(){
-        ov.classList.remove("show");
-        cleanup();
-      }
-
-      canvas.onpointerdown = (ev)=>{
-        dragging = true;
-        lastX = ev.clientX;
-        lastY = ev.clientY;
-        canvas.setPointerCapture(ev.pointerId);
-      };
-      canvas.onpointermove = (ev)=>{
-        if (!dragging) return;
-        const dx = ev.clientX - lastX;
-        const dy = ev.clientY - lastY;
-        lastX = ev.clientX;
-        lastY = ev.clientY;
-        offX += dx;
-        offY += dy;
-        clampOffset();
-        draw();
-      };
-      canvas.onpointerup = (ev)=>{
-        dragging = false;
-        try{ canvas.releasePointerCapture(ev.pointerId); }catch(e){}
-      };
-      canvas.onpointercancel = ()=>{ dragging = false; };
-
-      zoomEl.oninput = ()=>{
-        const z = Number(zoomEl.value || 1);
-        if (zoomVal) zoomVal.textContent = z.toFixed(2) + "×";
-        // keep center point stable
-        const cx = S/2, cy = S/2;
-        const relX = (cx - offX) / scale;
-        const relY = (cy - offY) / scale;
-        scale = cover * z;
-        offX = cx - relX * scale;
-        offY = cy - relY * scale;
-        clampOffset();
-        draw();
-      };
-
-      btnCancel.onclick = ()=>{ close(); resolve(""); };
-      btnClose.onclick = ()=>{ close(); resolve(""); };
-
-      btnOk.onclick = ()=>{
-        try{
-          const outS = 256;
-          const out = document.createElement("canvas");
-          out.width = outS; out.height = outS;
-          const octx = out.getContext("2d");
-          const f = outS / S;
-          octx.drawImage(img, offX*f, offY*f, img.width*scale*f, img.height*scale*f);
-          const outUrl = out.toDataURL("image/png");
-          close();
-          resolve(outUrl);
-        }catch(err){
-          close();
-          reject(err);
-        }
-      };
-
-      img.onload = ()=>{
-        cover = Math.max(S / img.width, S / img.height);
-        scale = cover;
-        offX = (S - img.width*scale)/2;
-        offY = (S - img.height*scale)/2;
-        zoomEl.value = "1";
-        if (zoomVal) zoomVal.textContent = "1.00×";
-        clampOffset();
-        draw();
-        ov.classList.add("show");
-      };
-      img.onerror = ()=>{ close(); reject(new Error("Imagine invalidă.")); };
-      img.src = dataUrl;
-    });
-  }
-
-  async function uploadAvatar(dataUrl){
-    const s = getEmpSession();
-    const endpoint = ep();
-    if (!s || !s.token) throw new Error("Sesiune lipsă. Re-loghează-te.");
-    if (!endpoint) throw new Error("Endpoint lipsă (config.json).");
-
-    const b64 = String(dataUrl||"").split(",")[1] || "";
-    if (!b64) throw new Error("Date avatar invalide.");
-
-    const chunkSize = 6000; // safe for Apps Script + URL limits
-    const chunks = [];
-    for (let i=0;i<b64.length;i+=chunkSize) chunks.push(b64.slice(i, i+chunkSize));
-    const uploadId = "av_" + Math.random().toString(16).slice(2) + "_" + Date.now().toString(16);
-
-    for (let i=0;i<chunks.length;i++){
-      setAvatarStatus(`Upload ${i+1}/${chunks.length}…`);
-      const url = endpoint
-        + "?fn=meAvatarUploadChunk"
-        + "&token=" + encodeURIComponent(s.token)
+    for (let i=0;i<total;i++){
+      const part = b64.slice(i*chunkSize, (i+1)*chunkSize);
+      const url = endpoint + "?fn=meAvatarUploadChunk"
+        + "&token=" + encodeURIComponent(token)
         + "&uploadId=" + encodeURIComponent(uploadId)
-        + "&i=" + i
-        + "&n=" + chunks.length
-        + "&chunk=" + encodeURIComponent(chunks[i])
+        + "&idx=" + i
+        + "&total=" + total
+        + "&mime=" + encodeURIComponent(mime)
+        + "&chunk=" + encodeURIComponent(part)
         + "&ts=" + Date.now();
       const r = await jsonp(url);
-      if (!r || !r.ok) throw new Error((r && r.error) ? r.error : "Upload chunk eșuat.");
+      if (!r || !r.ok) throw new Error(r?.error || ("Eroare chunk #" + i));
+      showAvatarStatus("Upload: " + (i+1) + "/" + total, false);
     }
 
-    setAvatarStatus("Finalize…");
-    const finUrl = endpoint
-      + "?fn=meAvatarUploadFinalize"
-      + "&token=" + encodeURIComponent(s.token)
+    const finUrl = endpoint + "?fn=meAvatarUploadFinalize"
+      + "&token=" + encodeURIComponent(token)
       + "&uploadId=" + encodeURIComponent(uploadId)
+      + "&total=" + total
+      + "&mime=" + encodeURIComponent(mime)
       + "&ts=" + Date.now();
+
     const fin = await jsonp(finUrl);
-    if (!fin || !fin.ok) throw new Error((fin && fin.error) ? fin.error : "Finalize eșuat.");
-    return String(fin.avatarUrl||"").trim();
+    if (!fin || !fin.ok) throw new Error(fin?.error || "Finalize error");
+    return String(fin.avatarUrl||"");
   }
 
-  async function clearAvatar(){
-    const s = getEmpSession();
-    const endpoint = ep();
-    if (!s || !s.token) throw new Error("Sesiune lipsă.");
-    const url = endpoint + "?fn=meAvatarClear&token=" + encodeURIComponent(s.token) + "&ts=" + Date.now();
-    const r = await jsonp(url);
-    if (!r || !r.ok) throw new Error((r && r.error) ? r.error : "Ștergere eșuată.");
-    return true;
+  async function bindAvatarSettings(){
+    const choose = $("#btnAvatarChoose");
+    const save = $("#btnAvatarSave");
+    const clear = $("#btnAvatarClear");
+    const file = $("#avatarFile");
+    const drop = $("#avatarDrop");
+
+    if (choose && file){
+      choose.addEventListener("click", ()=>file.click());
+    }
+    if (file){
+      file.addEventListener("change", async ()=>{
+        if (!file.files || !file.files[0]) return;
+        try{
+          showAvatarStatus("Se încarcă imaginea…", false);
+          const img = await loadImageFromFile(file.files[0]);
+          openCropModal(img);
+        }catch(err){
+          showAvatarStatus(String(err && err.message ? err.message : err), true);
+        }finally{
+          file.value = "";
+        }
+      });
+    }
+
+    if (drop){
+      const prevent = (ev)=>{ ev.preventDefault(); ev.stopPropagation(); };
+      ["dragenter","dragover","dragleave","drop"].forEach(evt=>drop.addEventListener(evt, prevent, false));
+      drop.addEventListener("dragenter", ()=>drop.classList.add("drag"));
+      drop.addEventListener("dragleave", ()=>drop.classList.remove("drag"));
+      drop.addEventListener("drop", async (ev)=>{
+        drop.classList.remove("drag");
+        const f = ev.dataTransfer && ev.dataTransfer.files ? ev.dataTransfer.files[0] : null;
+        if (!f) return;
+        try{
+          showAvatarStatus("Se încarcă imaginea…", false);
+          const img = await loadImageFromFile(f);
+          openCropModal(img);
+        }catch(err){
+          showAvatarStatus(String(err && err.message ? err.message : err), true);
+        }
+      });
+      drop.addEventListener("click", ()=> file && file.click());
+    }
+
+    $("#avClose")?.addEventListener("click", closeCropModal);
+    $("#avCancel")?.addEventListener("click", closeCropModal);
+    $("#avReset")?.addEventListener("click", ()=>{ __crop.zoom=1; __crop.offX=0; __crop.offY=0; const z=$("#avZoom"); if(z) z.value="1"; drawCrop(); });
+    $("#avZoom")?.addEventListener("input", (ev)=>{ __crop.zoom = parseFloat(ev.target.value || "1"); drawCrop(); });
+
+    const canvas = $("#avCanvas");
+    if (canvas){
+      canvas.addEventListener("pointerdown", (ev)=>{
+        __crop.drag = true;
+        __crop.lastX = ev.clientX;
+        __crop.lastY = ev.clientY;
+        canvas.setPointerCapture(ev.pointerId);
+      });
+      canvas.addEventListener("pointermove", (ev)=>{
+        if (!__crop.drag) return;
+        const dx = ev.clientX - __crop.lastX;
+        const dy = ev.clientY - __crop.lastY;
+        __crop.lastX = ev.clientX;
+        __crop.lastY = ev.clientY;
+        __crop.offX += dx;
+        __crop.offY += dy;
+        drawCrop();
+      });
+      canvas.addEventListener("pointerup", ()=>{ __crop.drag=false; });
+      canvas.addEventListener("pointercancel", ()=>{ __crop.drag=false; });
+    }
+
+    $("#avUse")?.addEventListener("click", ()=>{
+      __avatarDataUrl = exportCroppedPng();
+      closeCropModal();
+      if (save) save.disabled = !__avatarDataUrl;
+      showAvatarStatus(__avatarDataUrl ? "Avatar pregătit. Apasă „Salvează”." : "—", false);
+    });
+
+    if (save){
+      save.addEventListener("click", async ()=>{
+        try{
+          if (!__avatarDataUrl) return;
+          save.disabled = true;
+          showAvatarStatus("Se urcă avatarul…", false);
+          const url = await uploadAvatarDataUrl(__avatarDataUrl);
+          const ses = (typeof getEmpSession === "function") ? getEmpSession() : null;
+          setAvatarEverywhere(url, ses ? ses.name : "");
+          showAvatarStatus("Salvat ✔", false);
+          __avatarDataUrl = "";
+        }catch(err){
+          showAvatarStatus(String(err && err.message ? err.message : err), true);
+        }finally{
+          if (save) save.disabled = !__avatarDataUrl;
+        }
+      });
+    }
+
+    if (clear){
+      clear.addEventListener("click", async ()=>{
+        try{
+          const s = (typeof getEmpSession === "function") ? getEmpSession() : null;
+          const endpoint = (typeof ep === "function") ? ep() : "";
+          if (!s || !s.token || !endpoint) throw new Error("Nu ești logat.");
+          showAvatarStatus("Se șterge…", false);
+          const url = endpoint + "?fn=meAvatarClear&token=" + encodeURIComponent(s.token) + "&ts=" + Date.now();
+          const r = await jsonp(url);
+          if (!r || !r.ok) throw new Error(r?.error || "Eroare la ștergere.");
+          setAvatarEverywhere("", s.name);
+          showAvatarStatus("Avatar șters.", false);
+        }catch(err){
+          showAvatarStatus(String(err && err.message ? err.message : err), true);
+        }
+      });
+    }
   }
 
-  async function handleAvatarFile(file){
-    if (!file) return;
-    if (!String(file.type||"").startsWith("image/")){
-      setAvatarStatus("Te rog alege un fișier imagine (PNG/JPG).");
-      return;
-    }
-    setAvatarStatus("Se încarcă imaginea…");
-    const dataUrl = await readFileAsDataURL(file);
-    const cropped = await openCropper(dataUrl);
-    if (!cropped){
-      setAvatarStatus("Anulat.");
-      return;
-    }
-    __pendingAvatarDataUrl = cropped;
-    setAvatarPreview(cropped);
-    const btnSave = $("#btnSaveAvatar");
-    if (btnSave) btnSave.disabled = false;
-    setAvatarStatus("Pregătit (nu e salvat).");
-  }
 
   function bind(){
     $$(".navBtn").forEach(btn=>{
@@ -1872,6 +1881,7 @@
     $("#btnOpenIndex")?.addEventListener("click", ()=>window.open("index.html","_blank"));
     $("#btnRefreshAll")?.addEventListener("click", ()=>window.location.reload());
     $("#btnLogout")?.addEventListener("click", logout);
+    try{ bindAvatarSettings(); }catch(e){}
 // menu collapse (ca în admin)
     const shell = document.querySelector('.shell');
     const btn = document.getElementById('menuCollapse');
@@ -1888,64 +1898,6 @@
         }catch(e){}
       });
     }
-
-    // Avatar settings handlers
-    const inp = $("#inpAvatar");
-    const drop = $("#avatarDrop");
-    $("#btnPickAvatar")?.addEventListener("click", ()=> inp && inp.click());
-    inp?.addEventListener("change", async ()=>{
-      const f = inp.files && inp.files[0];
-      inp.value = "";
-      try{ await handleAvatarFile(f); }catch(err){ setAvatarStatus(String(err && err.message ? err.message : err)); }
-    });
-
-    if (drop){
-      ["dragenter","dragover"].forEach(evName=>{
-        drop.addEventListener(evName, (ev)=>{ ev.preventDefault(); drop.classList.add("dragover"); });
-      });
-      ["dragleave","drop"].forEach(evName=>{
-        drop.addEventListener(evName, (ev)=>{ ev.preventDefault(); drop.classList.remove("dragover"); });
-      });
-      drop.addEventListener("drop", async (ev)=>{
-        const f = ev.dataTransfer && ev.dataTransfer.files ? ev.dataTransfer.files[0] : null;
-        try{ await handleAvatarFile(f); }catch(err){ setAvatarStatus(String(err && err.message ? err.message : err)); }
-      });
-    }
-
-    $("#btnSaveAvatar")?.addEventListener("click", async ()=>{
-      const btn = $("#btnSaveAvatar");
-      if (!__pendingAvatarDataUrl) return;
-      try{
-        if (btn) btn.disabled = true;
-        setAvatarStatus("Se salvează…");
-        const url = await uploadAvatar(__pendingAvatarDataUrl);
-        __pendingAvatarDataUrl = "";
-        __currentAvatarUrl = url;
-        setAvatarPreview(url);
-        setAvatarStatus("Salvat ✔");
-        // refresh profile so top/drawer update with new URL
-        try{ await loadProfile(); }catch(e){}
-      }catch(err){
-        setAvatarStatus(String(err && err.message ? err.message : err));
-        if (btn) btn.disabled = false;
-      }
-    });
-
-    $("#btnClearAvatar")?.addEventListener("click", async ()=>{
-      try{
-        setAvatarStatus("Se șterge…");
-        await clearAvatar();
-        __pendingAvatarDataUrl = "";
-        __currentAvatarUrl = "";
-        setAvatarPreview("");
-        setAvatarStatus("Șters ✔");
-        try{ await loadProfile(); }catch(e){}
-        const btnSave = $("#btnSaveAvatar"); if (btnSave) btnSave.disabled = true;
-      }catch(err){
-        setAvatarStatus(String(err && err.message ? err.message : err));
-      }
-    });
-
 }
 
   window.addEventListener("load", ()=>{
