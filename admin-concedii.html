@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>Admin — Concedii (v16)</title>
+  <title>Admin — Concedii (v18)</title>
   <style>
     :root{
       --bg:#f5f6ff;
@@ -164,11 +164,26 @@
     }
     .presenceSearch .ico{opacity:.6}
     .presenceSearch input{border:0;outline:0;background:transparent;width:100%;font-size:14px}
-    .presenceIcons{display:flex;gap:10px}
+    .presenceIcons{display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
     .iconBtn{
       width:40px;height:40px;border-radius:12px;border:1px solid var(--line);
       background:#fff;cursor:pointer;font-size:16px;display:grid;place-items:center
     }
+
+    .monthPill{
+      height:40px;border-radius:12px;border:1px solid var(--line);
+      background:#fff;padding:0 10px;display:flex;align-items:center
+    }
+    .monthPill select{
+      border:none;outline:none;background:transparent;font:inherit;color:var(--ink);
+      padding:0;margin:0
+    }
+    .iconBtn.toggleOn{
+      background:rgba(109,94,252,.10);
+      border-color:rgba(109,94,252,.35);
+      color:var(--accent)
+    }
+
     .iconBtn:hover{background:#fbfbff}
 
     .presenceFrame .tableScroll{max-height:520px;}
@@ -356,15 +371,6 @@
       .stab{ font-size: 18px; }
     }
 
-
-    /* --- v18: header removed, controls moved near calendar --- */
-    .presenceTop{justify-content:flex-start;gap:14px}
-    .presenceLeft{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
-    .presenceNav{display:flex;align-items:center;gap:10px}
-    .presenceIcons{margin-left:auto}
-    #mineBtn.active{background:#ece9ff;border-color:#bfb4ff;color:#3a2d71}
-    #mineBtn{font-size:16px}
-
 </style>
 </head>
 <body>
@@ -382,25 +388,21 @@
 <!-- Calendar (stil identic cu Calendar prezență) -->
     <div class="presenceFrame">
       <div class="presenceTop">
-        <div class="presenceLeft">
-          <div class="presenceNav">
-            <button class="btn" id="prev" title="Luna anterioară">‹</button>
-            <div class="pill">
-              <select id="monthSel" aria-label="Selectează luna"></select>
-            </div>
-            <button class="btn" id="next" title="Luna următoare">›</button>
-            <button class="btn primary" id="refresh" title="Refresh">Refresh</button>
-          </div>
-
-          <div class="presenceSearch">
-            <span class="ico">🔎</span>
-            <input id="q2" placeholder="Caută angajat" aria-label="Caută angajat (calendar)"/>
-          </div>
+        <div class="presenceSearch">
+          <span class="ico">🔎</span>
+          <input id="q2" placeholder="Caută angajat" aria-label="Caută angajat (calendar)"/>
         </div>
+                <div class="presenceIcons">
+          <button class="iconBtn" id="prev" title="Luna anterioară">‹</button>
+          <div class="monthPill" title="Selectează luna">
+            <select id="monthSel" aria-label="Selectează luna"></select>
+          </div>
+          <button class="iconBtn" id="next" title="Luna următoare">›</button>
 
-        <div class="presenceIcons">
-          <input type="checkbox" id="onlyMine" checked style="display:none" />
-          <button class="iconBtn" id="mineBtn" title="Doar ale mele" aria-pressed="true">👤</button>
+          <input type="checkbox" id="onlyMine" checked hidden />
+          <button class="iconBtn toggle" id="onlyMineBtn" title="Doar ale mele" aria-pressed="true">👤</button>
+
+          <button class="iconBtn" id="refresh" title="Refresh">⟳</button>
           <button class="iconBtn" id="dl" title="Download (placeholder)">⤓</button>
           <button class="iconBtn" id="xl" title="Excel (placeholder)">⧉</button>
         </div>
@@ -757,7 +759,7 @@
   }
 
   function filterSearch(list){
-    const q = norm(($("#q2")?.value || $("#q")?.value || ""));
+    const q = norm($("#q")?.value || "");
     if (!q) return list;
     const qq = deacc(q);
     return list.filter(l=>{
@@ -1275,13 +1277,11 @@
       if (h && views[h]) show(h);
       else show("cal");
     })();
-    // search box (calendar)
-    $("#q2")?.addEventListener("input", ()=>{
-      const admin = getAdminSession();
-      buildView(admin);
-      render(CUR_YM || ($("#monthSel")?.value || ymNow()), admin);
-    }, {passive:true});
-;
+
+    // sync search boxes (top + calendar)
+    const q1 = $("#q"), q2 = $("#q2");
+    if (q1 && q2){
+      const sync = (src, dst) => { dst.value = src.value; };
       q1.addEventListener("input", ()=>{ sync(q1,q2); buildView(getAdminSession()); render(CUR_YM, getAdminSession()); }, {passive:true});
       q2.addEventListener("input", ()=>{ sync(q2,q1); buildView(getAdminSession()); render(CUR_YM, getAdminSession()); }, {passive:true});
     }
@@ -1311,29 +1311,36 @@
     });
 
     $("#refresh")?.addEventListener("click", ()=>loadMonth($("#monthSel")?.value || ymNow()));
-$("#onlyMine")?.addEventListener("change", ()=>{
+    $("#q")?.addEventListener("input", ()=>{
+      const admin = getAdminSession();
+      buildView(admin);
+      render(CUR_YM || ($("#monthSel")?.value || ymNow()), admin);
+    });
+    $("#onlyMine")?.addEventListener("change", ()=>{
       const admin = getAdminSession();
       buildView(admin);
       render(CUR_YM || ($("#monthSel")?.value || ymNow()), admin);
     });
 
-    
-    // v18: "Doar ale mele" toggle button near calendar icons
-    (function(){
-      const btn = $("#mineBtn");
-      const chk = $("#onlyMine");
-      if(!btn || !chk) return;
-      const sync = ()=>{ btn.classList.toggle("active", !!chk.checked); btn.setAttribute("aria-pressed", chk.checked ? "true" : "false"); };
-      sync();
-      btn.addEventListener("click", ()=>{
-        chk.checked = !chk.checked;
-        sync();
-        const admin = getAdminSession();
-        buildView(admin);
-        render(CUR_YM || ($("#monthSel")?.value || ymNow()), admin);
-      });
-    })();
-// modal
+
+    // sync "Doar ale mele" (buton pătrat)
+    const onlyCb = $("#onlyMine");
+    const onlyBtn = $("#onlyMineBtn");
+    const syncOnlyMine = ()=>{
+      if (!onlyCb || !onlyBtn) return;
+      onlyBtn.classList.toggle("toggleOn", !!onlyCb.checked);
+      onlyBtn.setAttribute("aria-pressed", onlyCb.checked ? "true" : "false");
+    };
+    syncOnlyMine();
+    onlyBtn?.addEventListener("click", ()=>{
+      if (!onlyCb) return;
+      onlyCb.checked = !onlyCb.checked;
+      onlyCb.dispatchEvent(new Event("change"));
+      syncOnlyMine();
+    });
+    onlyCb?.addEventListener("change", syncOnlyMine);
+
+    // modal
     $("#ov")?.addEventListener("click", (e)=>{
       if (e.target && e.target.id === "ov") closeModal();
     });
