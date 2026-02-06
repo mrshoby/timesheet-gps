@@ -301,6 +301,7 @@
       width:40px;height:40px;border-radius:999px;overflow:hidden;
       display:grid;place-items:center;background:#e9ecff;color:#3a2d71;font-weight:900
     }
+    .avatar img{width:100%;height:100%;object-fit:cover;display:block}
     .empName{font-weight:800;color:#2f245c}
     .mut{font-size:13px;color:var(--muted);margin-top:2px}
     .statusTxt{font-weight:900}
@@ -531,8 +532,6 @@
 <div class="toast" id="toast">—</div>
 
 <script>
-window.__avatarMap = window.__avatarMap || {};
-
 (() => {
   // ===== Config loading (same smart loader used elsewhere) =====
   const CFG_PATHS = ["./config.json","../config.json","/config.json"];
@@ -609,23 +608,56 @@ window.__avatarMap = window.__avatarMap || {};
     return new Promise((resolve,reject)=>{
       const cb = "cb_"+Math.random().toString(16).slice(2);
       const s = document.createElement("script");
+      let called = false;
+
       const t = setTimeout(()=>{ cleanup(); reject(new Error("JSONP timeout")); }, 20000);
+
       function cleanup(){
         clearTimeout(t);
         try{ delete window[cb]; }catch(_){ window[cb]=undefined; }
         if (s && s.parentNode) s.parentNode.removeChild(s);
       }
-      window[cb] = (data)=>{ cleanup(); resolve(data); };
-      s.onerror = ()=>{ cleanup(); reject(new Error("JSONP error")); };
+      window[cb] = (data)=>{ called = true; cleanup(); resolve(data); };
+      s.onerror = ()=>{ cleanup(); reject(new Error("JSONP error (src " + (s.src ? s.src.length : 0) + " chars)")); };
+      s.onload = ()=>{ if (!called){ cleanup(); reject(new Error("JSONP no-callback")); } };
       s.src = url + (url.includes("?") ? "&" : "?") + "callback=" + cb;
       document.body.appendChild(s);
     });
   }
 
+
   // ===== helpers =====
   function norm(s){ return String(s||"").trim().toLowerCase(); }
   function deacc(s){ return (s||"").normalize("NFD").replace(/[\u0300-\u036f]/g, ""); }
   function keyName(s){ return deacc(norm(s)).replace(/\s+/g," ").trim(); }
+
+  // ===== Avatars (global map, used across admin pages) =====
+  const __avatarMap = (window.__avatarMap = window.__avatarMap || {});
+  function avatarUrlFor(empName){
+    const k = keyName(empName || "");
+    return (k && __avatarMap[k]) ? String(__avatarMap[k]) : "";
+  }
+  function avatarInnerHTML(empName){
+    const u = avatarUrlFor(empName);
+    if (u) return `<img src="${esc(u)}" alt="" referrerpolicy="no-referrer" />`;
+    return esc(initials(empName || ""));
+  }
+  async function loadAvatarMap(endpoint, key){
+    try{
+      const u = endpoint + "?fn=adminEmployees&key=" + encodeURIComponent(key) + "&ts=" + Date.now();
+      const data = await jsonp(u);
+      if (!data || !data.ok) return;
+      const list = Array.isArray(data.list) ? data.list : [];
+      for (const it of list){
+        const nm = String(it.name || "").trim();
+        const av = String(it.avatarUrl || "").trim();
+        if (nm && av) __avatarMap[keyName(nm)] = av;
+      }
+    }catch(err){
+      console.warn("loadAvatarMap failed", err);
+    }
+  }
+
 
   function tokens(s){
     return keyName(s).split(/[^a-z0-9]+/).filter(Boolean);
@@ -653,16 +685,6 @@ window.__avatarMap = window.__avatarMap || {};
     const b = parts.length>1 ? parts[parts.length-1][0] : "";
     return (a+b).toUpperCase();
   }
-
-  function avatarInner(name){
-    try{
-      const k = keyName(name);
-      const url = (window.__avatarMap && window.__avatarMap[k]) ? String(window.__avatarMap[k]) : "";
-      if (url) return `<img src="${esc(url)}" alt="" style="width:100%;height:100%;object-fit:cover"/>`;
-    }catch(e){}
-    return esc(initials(name));
-  }
-
 
   function pad2(n){ return String(n).padStart(2,"0"); }
   function fmtTime(v){
@@ -726,27 +748,7 @@ window.__avatarMap = window.__avatarMap || {};
   let LEAVES_VIEW = [];
   let MANAGERS = null; // { keyName(emp): {managerName, managerEmail} }
 
-  async 
-  async function loadAvatarsMap(endpoint, key){
-    try{
-      const url = endpoint + "?fn=adminEmployees"
-        + "&key=" + encodeURIComponent(key)
-        + "&ts=" + Date.now();
-      const res = await jsonp(url);
-      if (res && res.ok && Array.isArray(res.employees)){
-        const map = {};
-        for (const e of res.employees){
-          if (!e) continue;
-          const k = e.employeeKey ? String(e.employeeKey) : keyName(e.name||"");
-          const u = String(e.avatarUrl || "").trim();
-          if (k && u) map[k] = u;
-        }
-        window.__avatarMap = map;
-      }
-    }catch(err){ }
-  }
-
-function loadManagersMap(endpoint, key){
+  async function loadManagersMap(endpoint, key){
     if (MANAGERS) return MANAGERS;
     try{
       const u = endpoint + "?fn=adminManagersMap&key=" + encodeURIComponent(key) + "&ts=" + Date.now();
@@ -943,7 +945,7 @@ function loadManagersMap(endpoint, key){
         tr.innerHTML = `
           <td>
             <div class="empCell">
-              <div class="avatar">${avatarInner(empName)}</div>
+              <div class="avatar">${avatarInnerHTML(empName)}</div>
               <div>
                 <div class="empName">${esc(empName)}</div>
               </div>
@@ -974,7 +976,7 @@ function loadManagersMap(endpoint, key){
         tr.innerHTML = `
           <td>
             <div class="empCell">
-              <div class="avatar">${avatarInner(empName)}</div>
+              <div class="avatar">${avatarInnerHTML(empName)}</div>
               <div>
                 <div class="empName">${esc(empName)}</div>
                 <div class="mut">${esc(per.meta)}</div>
@@ -1261,7 +1263,7 @@ function loadManagersMap(endpoint, key){
       const [data] = await Promise.all([
         jsonp(url),
         loadManagersMap(endpoint, key),
-        loadAvatarsMap(endpoint, key)
+        loadAvatarMap(endpoint, key)
       ]);
 
       if (!data || !data.ok) throw new Error(data?.error || "Eroare la încărcare.");
