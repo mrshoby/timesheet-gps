@@ -1564,8 +1564,10 @@
         $("#drawerAvatar").textContent = initials(name);
         $("#drawerAvatar").style.display = "";
         $("#drawerAvatarImg").style.display = "none";
-      try{ setAvatarEverywhere(avatarUrl, name); }catch(e){}
       }
+
+      try{ setAvatarEverywhere(avatarUrl, name); }catch(e){}
+
     }catch(e){
       console.warn("meProfile failed", e);
     }
@@ -1704,38 +1706,56 @@
   async function uploadAvatarDataUrl(dataUrl){
     const s = (typeof getEmpSession === "function") ? getEmpSession() : null;
     const endpoint = (typeof ep === "function") ? ep() : "";
-    if (!s || !s.token || !endpoint) throw new Error("Nu ești logat sau lipsește endpoint.");
+    if (!s || !endpoint) throw new Error("Sesiune/endpoint lipsă.");
+    const token = s.token;
 
-    const token = String(s.token);
+    // data:image/png;base64,...
     const m = String(dataUrl||"").match(/^data:([^;]+);base64,(.+)$/);
     if (!m) throw new Error("DataURL invalid.");
-    const mime = m[1];
-    const b64 = m[2];
+    const mime = m[1] || "image/png";
+    const b64 = m[2] || "";
+
+    // Convert to Base64URL to avoid encodeURIComponent bloat and URL length issues (JSONP = GET).
+    // Remove padding to keep it short; server will re-pad.
+    const b64u = b64.replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
 
     const uploadId = "av_" + Math.random().toString(16).slice(2) + "_" + Date.now();
-    const chunkSize = 3500;
-    const total = Math.ceil(b64.length / chunkSize);
+
+    // Keep each JSONP URL comfortably under limits.
+    const chunkSize = 2500;
+    const total = Math.ceil(b64u.length / chunkSize);
 
     for (let i=0;i<total;i++){
-      const part = b64.slice(i*chunkSize, (i+1)*chunkSize);
+      const part = b64u.slice(i*chunkSize, (i+1)*chunkSize);
       const url = endpoint + "?fn=meAvatarUploadChunk"
         + "&token=" + encodeURIComponent(token)
         + "&uploadId=" + encodeURIComponent(uploadId)
-        + "&idx=" + i
-        + "&total=" + total
-        + "&mime=" + encodeURIComponent(mime)
-        + "&chunk=" + encodeURIComponent(part)
+        + "&i=" + i
+        + "&n=" + total
+        + (i===0 ? ("&mime=" + encodeURIComponent(mime)) : "")
+        + "&c=" + part
         + "&ts=" + Date.now();
-      const r = await jsonp(url);
-      if (!r || !r.ok) throw new Error(r?.error || ("Eroare chunk #" + i));
+
+      try{
+        const r = await jsonp(url);
+        if (!r || !r.ok) throw new Error(r?.error || ("Eroare chunk #" + i));
+      }catch(err){
+        // retry once (helps with intermittent network/script tag issues)
+        try{
+          const r2 = await jsonp(url);
+          if (!r2 || !r2.ok) throw new Error(r2?.error || ("Eroare chunk #" + i));
+        }catch(err2){
+          const msg = (err2 && err2.message) ? err2.message : (err && err.message) ? err.message : "JSONP error";
+          throw new Error(msg + " (chunk " + (i+1) + "/" + total + ")");
+        }
+      }
+
       showAvatarStatus("Upload: " + (i+1) + "/" + total, false);
     }
 
     const finUrl = endpoint + "?fn=meAvatarUploadFinalize"
       + "&token=" + encodeURIComponent(token)
       + "&uploadId=" + encodeURIComponent(uploadId)
-      + "&total=" + total
-      + "&mime=" + encodeURIComponent(mime)
       + "&ts=" + Date.now();
 
     const fin = await jsonp(finUrl);
