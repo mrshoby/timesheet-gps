@@ -65,6 +65,7 @@
     tbody th{position:sticky;left:0;z-index:6;background:#fff;text-align:left;padding:10px 12px;min-width:260px;border-right:1px solid var(--line)}
     .who{display:flex;align-items:center;gap:10px}
     .av{width:34px;height:34px;border-radius:999px;background:#e9ecff;display:grid;place-items:center;font-weight:800;color:#3a2d71;flex:0 0 auto}
+.avImg{width:100%;height:100%;object-fit:cover;display:block}
     .name{display:flex;flex-direction:column;line-height:1.1}
     .name .n{font-weight:700}
     .name .d{font-size:12px;color:var(--muted)}
@@ -371,10 +372,6 @@
       .stab{ font-size: 18px; }
     }
 
-
-    /* avatar image support */
-    .av.hasImg{ padding:0; background:#fff; overflow:hidden; }
-    .av.hasImg img{ width:100%; height:100%; object-fit:cover; display:block; }
 </style>
 </head>
 <body>
@@ -543,6 +540,9 @@
   const LS_ADMIN = "pontaj/admin/v1";
   const LS_ADMIN_KEY = "pontaj_adminKey";
 
+  // Avatar map (employeeKey -> url)
+  let __avatarMap = {};
+
   function $(sel){ return document.querySelector(sel); }
 
   function esc(s){
@@ -628,6 +628,41 @@
   function norm(s){ return String(s||"").trim().toLowerCase(); }
   function deacc(s){ return (s||"").normalize("NFD").replace(/[\u0300-\u036f]/g, ""); }
   function keyName(s){ return deacc(norm(s)).replace(/\s+/g," ").trim(); }
+
+  function avatarUrlFor(name){
+    const k = keyName(name);
+    return (__avatarMap && __avatarMap[k]) ? String(__avatarMap[k]) : "";
+  }
+
+  async function loadAvatarMap(){
+    // 1) start with config.json fallback
+    __avatarMap = {};
+    try{
+      const m = (CFG && CFG.employeeAvatars) ? CFG.employeeAvatars : {};
+      Object.keys(m || {}).forEach((n)=>{
+        const u = String(m[n] || "").trim();
+        if (u) __avatarMap[keyName(n)] = u;
+      });
+    }catch(e){}
+
+    // 2) refresh from server if we have ADMIN_KEY saved
+    const endpoint = ep();
+    if (!endpoint) return;
+    let key = "";
+    try{ key = String(localStorage.getItem(LS_ADMIN_KEY) || "").trim(); }catch(e){}
+    if (!key) return;
+
+    try{
+      const u = endpoint + "?fn=adminAvatarsMap&key=" + encodeURIComponent(key) + "&ts=" + Date.now();
+      const r = await jsonp(u);
+      if (r && r.ok && r.map){
+        __avatarMap = Object.assign(__avatarMap || {}, r.map || {});
+      }
+    }catch(e){
+      // ignore
+    }
+  }
+
 
   function tokens(s){
     return keyName(s).split(/[^a-z0-9]+/).filter(Boolean);
@@ -732,25 +767,6 @@
     return MANAGERS;
   }
 
-  let AVATARS = null; // { keyName(emp): url }
-
-  async function loadAvatarsMap(endpoint, key){
-    if (AVATARS) return AVATARS;
-    try{
-      const u = endpoint + "?fn=adminAvatarsMap&key=" + encodeURIComponent(key) + "&ts=" + Date.now();
-      const data = await jsonp(u);
-      if (data && data.ok && data.map){
-        AVATARS = data.map;
-        window.__avatarMap = AVATARS;
-        return AVATARS;
-      }
-    }catch(_){}
-    AVATARS = {};
-    window.__avatarMap = AVATARS;
-    return AVATARS;
-  }
-
-
   function enrichLeave(l){
     const emp = String(l.employeeName||"").trim();
     const k = keyName(emp);
@@ -849,19 +865,13 @@
       }
 
       const mgr = list[0]?._mgrName || list[0]?._mgrEmail || "";
-      const avUrl = (window.__avatarMap && window.__avatarMap[keyName(emp)]) ? String(window.__avatarMap[keyName(emp)]) : "";
-      const ini = initials(emp);
-      const avBlock = avUrl
-        ? `<div class="av hasImg" data-fallback="${esc(ini)}"><img src="${esc(avUrl)}" alt="" onerror="this.remove(); this.parentNode.classList.remove('hasImg'); this.parentNode.textContent=this.parentNode.dataset.fallback;"></div>`
-        : `<div class="av" data-fallback="${esc(ini)}">${esc(ini)}</div>`;
-
       const mgrTxt = mgr ? `Manager: ${mgr}` : `Manager: —`;
 
       html += `<tr>
         <th class="idxC">${rowIdx++}</th>
         <th class="empC">
           <div class="who">
-            ${avBlock}
+            <div class="av">${(avatarUrlFor(emp) ? `<img class="avImg" src="${esc(avatarUrlFor(emp))}" alt=""/>` : initials(emp))}</div>
             <div class="name">
               <div class="n">${esc(emp)}</div>
               <div class="d">${esc(mgrTxt)}</div>
@@ -1257,8 +1267,7 @@
     try{
       const [data] = await Promise.all([
         jsonp(url),
-        loadManagersMap(endpoint, key),
-        loadAvatarsMap(endpoint, key)
+        loadManagersMap(endpoint, key)
       ]);
 
       if (!data || !data.ok) throw new Error(data?.error || "Eroare la încărcare.");
@@ -1282,8 +1291,6 @@
 
     // submeniuri
     (function(){
-  window.__avatarMap = window.__avatarMap || {};
-
       const btns = document.querySelectorAll(".stab");
       const views = {
         cal: document.getElementById("view-cal"),
@@ -1387,6 +1394,7 @@
   async function init(){
     await loadCFG();
     bind();
+    await loadAvatarMap();
     const ym = $("#monthSel")?.value || ymNow();
     CUR_YM = ym;
     await loadMonth(ym);
