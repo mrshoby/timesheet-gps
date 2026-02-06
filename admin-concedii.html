@@ -64,7 +64,8 @@
     tbody td:last-child, thead th:last-child{border-right:0}
     tbody th{position:sticky;left:0;z-index:6;background:#fff;text-align:left;padding:10px 12px;min-width:260px;border-right:1px solid var(--line)}
     .who{display:flex;align-items:center;gap:10px}
-    .av{width:34px;height:34px;border-radius:999px;background:#e9ecff;display:grid;place-items:center;font-weight:800;color:#3a2d71;flex:0 0 auto}
+    .av{width:34px;height:34px;border-radius:999px;background:#e9ecff;display:grid;place-items:center;font-weight:800;color:#3a2d71;flex:0 0 auto;overflow:hidden}
+    .avImg{width:34px;height:34px;border-radius:999px;object-fit:cover;flex:0 0 auto;border:1px solid var(--purpleLine);background:#e9ecff}
     .name{display:flex;flex-direction:column;line-height:1.1}
     .name .n{font-weight:700}
     .name .d{font-size:12px;color:var(--muted)}
@@ -143,8 +144,7 @@
     .lvcell .t{font-size:11px; color:rgba(27,27,40,.7); font-weight:800}
     .lvcell .mini{font-size:10px; opacity:.75}
     .lvcell .bang{position:absolute;top:6px;right:6px}
-    .av2{width:40px;height:40px;border-radius:999px;background:#e9ecff;display:grid;place-items:center;font-weight:900;color:#3a2d71;border:2px solid rgba(255,255,255,.7);overflow:hidden}
-    .av2 img{width:100%;height:100%;border-radius:999px;object-fit:cover;display:block}
+    .av2{width:40px;height:40px;border-radius:999px;background:#e9ecff;display:grid;place-items:center;font-weight:900;color:#3a2d71;border:2px solid rgba(255,255,255,.7)}
 
 
     /* ===== Redesign (v15) — calendar ca în 2.png + liste ca în 3.png/4.png ===== */
@@ -533,7 +533,6 @@
 
 <script>
 (() => {
-  window.__avatarMap = window.__avatarMap || {};
   // ===== Config loading (same smart loader used elsewhere) =====
   const CFG_PATHS = ["./config.json","../config.json","/config.json"];
   let CFG = null;
@@ -542,6 +541,9 @@
   const LS_ADMIN_KEY = "pontaj_adminKey";
 
   function $(sel){ return document.querySelector(sel); }
+
+  // global avatar map (employeeKey => url)
+  window.__avatarMap = window.__avatarMap || Object.create(null);
 
   function esc(s){
     return String(s==null?"":s)
@@ -830,11 +832,14 @@
       const mgr = list[0]?._mgrName || list[0]?._mgrEmail || "";
       const mgrTxt = mgr ? `Manager: ${mgr}` : `Manager: —`;
 
+      const avUrl = (window.__avatarMap && window.__avatarMap[keyName(emp)]) ? String(window.__avatarMap[keyName(emp)]) : "";
+      const avHtml = avUrl ? `<img class="avImg" src="${esc(avUrl)}" alt="">` : `<div class="av">${initials(emp)}</div>`;
+
       html += `<tr>
         <th class="idxC">${rowIdx++}</th>
         <th class="empC">
           <div class="who">
-            <div class="av">${initials(emp)}</div>
+            ${avHtml}
             <div class="name">
               <div class="n">${esc(emp)}</div>
               <div class="d">${esc(mgrTxt)}</div>
@@ -1117,19 +1122,10 @@
       return;
     }
     people.slice(0,6).forEach(p=>{
-      const name = String(p||"").trim();
-      const url = (window.__avatarMap && window.__avatarMap[name]) ? String(window.__avatarMap[name]) : "";
       const d = document.createElement("div");
       d.className = "av2";
-      d.title = name;
-      if (url){
-        const im = document.createElement("img");
-        im.src = url;
-        im.alt = name;
-        d.appendChild(im);
-      } else {
-        d.textContent = initials(name);
-      }
+      d.title = p;
+      d.textContent = initials(p);
       box.appendChild(d);
     });
   }
@@ -1244,9 +1240,18 @@
 
       if (!data || !data.ok) throw new Error(data?.error || "Eroare la încărcare.");
       LEAVES_ALL = Array.isArray(data.list) ? data.list : [];
+
+      // build avatar map from returned data
       try{
-        (LEAVES_ALL||[]).forEach(l=>{ if(l && l.employeeName && l.avatarUrl){ window.__avatarMap[l.employeeName] = String(l.avatarUrl); } });
+        window.__avatarMap = Object.create(null);
+        for (const it of LEAVES_ALL){
+          const nm = String(it.employeeName||"").trim();
+          const k = keyName(nm);
+          const u = String(it.avatarUrl||"").trim();
+          if (k && u) window.__avatarMap[k] = u;
+        }
       }catch(e){}
+
       buildView(admin);
       render(ym, admin);
     }catch(err){
