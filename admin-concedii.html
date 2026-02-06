@@ -143,8 +143,7 @@
     .lvcell .t{font-size:11px; color:rgba(27,27,40,.7); font-weight:800}
     .lvcell .mini{font-size:10px; opacity:.75}
     .lvcell .bang{position:absolute;top:6px;right:6px}
-    .av2{width:40px;height:40px;border-radius:999px;background:#e9ecff;display:grid;place-items:center;font-weight:900;color:#3a2d71;border:2px solid rgba(255,255,255,.7);overflow:hidden}
-    .av2 img{width:100%;height:100%;border-radius:999px;object-fit:cover;display:block}
+    .av2{width:40px;height:40px;border-radius:999px;background:#e9ecff;display:grid;place-items:center;font-weight:900;color:#3a2d71;border:2px solid rgba(255,255,255,.7)}
 
 
     /* ===== Redesign (v15) — calendar ca în 2.png + liste ca în 3.png/4.png ===== */
@@ -372,6 +371,10 @@
       .stab{ font-size: 18px; }
     }
 
+
+    /* avatar image support */
+    .av.hasImg{ padding:0; background:#fff; overflow:hidden; }
+    .av.hasImg img{ width:100%; height:100%; object-fit:cover; display:block; }
 </style>
 </head>
 <body>
@@ -533,7 +536,6 @@
 
 <script>
 (() => {
-  window.__avatarMap = window.__avatarMap || {};
   // ===== Config loading (same smart loader used elsewhere) =====
   const CFG_PATHS = ["./config.json","../config.json","/config.json"];
   let CFG = null;
@@ -730,6 +732,25 @@
     return MANAGERS;
   }
 
+  let AVATARS = null; // { keyName(emp): url }
+
+  async function loadAvatarsMap(endpoint, key){
+    if (AVATARS) return AVATARS;
+    try{
+      const u = endpoint + "?fn=adminAvatarsMap&key=" + encodeURIComponent(key) + "&ts=" + Date.now();
+      const data = await jsonp(u);
+      if (data && data.ok && data.map){
+        AVATARS = data.map;
+        window.__avatarMap = AVATARS;
+        return AVATARS;
+      }
+    }catch(_){}
+    AVATARS = {};
+    window.__avatarMap = AVATARS;
+    return AVATARS;
+  }
+
+
   function enrichLeave(l){
     const emp = String(l.employeeName||"").trim();
     const k = keyName(emp);
@@ -828,13 +849,19 @@
       }
 
       const mgr = list[0]?._mgrName || list[0]?._mgrEmail || "";
+      const avUrl = (window.__avatarMap && window.__avatarMap[keyName(emp)]) ? String(window.__avatarMap[keyName(emp)]) : "";
+      const ini = initials(emp);
+      const avBlock = avUrl
+        ? `<div class="av hasImg" data-fallback="${esc(ini)}"><img src="${esc(avUrl)}" alt="" onerror="this.remove(); this.parentNode.classList.remove('hasImg'); this.parentNode.textContent=this.parentNode.dataset.fallback;"></div>`
+        : `<div class="av" data-fallback="${esc(ini)}">${esc(ini)}</div>`;
+
       const mgrTxt = mgr ? `Manager: ${mgr}` : `Manager: —`;
 
       html += `<tr>
         <th class="idxC">${rowIdx++}</th>
         <th class="empC">
           <div class="who">
-            <div class="av">${initials(emp)}</div>
+            ${avBlock}
             <div class="name">
               <div class="n">${esc(emp)}</div>
               <div class="d">${esc(mgrTxt)}</div>
@@ -1117,19 +1144,10 @@
       return;
     }
     people.slice(0,6).forEach(p=>{
-      const name = String(p||"").trim();
-      const url = (window.__avatarMap && window.__avatarMap[name]) ? String(window.__avatarMap[name]) : "";
       const d = document.createElement("div");
       d.className = "av2";
-      d.title = name;
-      if (url){
-        const im = document.createElement("img");
-        im.src = url;
-        im.alt = name;
-        d.appendChild(im);
-      } else {
-        d.textContent = initials(name);
-      }
+      d.title = p;
+      d.textContent = initials(p);
       box.appendChild(d);
     });
   }
@@ -1239,14 +1257,12 @@
     try{
       const [data] = await Promise.all([
         jsonp(url),
-        loadManagersMap(endpoint, key)
+        loadManagersMap(endpoint, key),
+        loadAvatarsMap(endpoint, key)
       ]);
 
       if (!data || !data.ok) throw new Error(data?.error || "Eroare la încărcare.");
       LEAVES_ALL = Array.isArray(data.list) ? data.list : [];
-      try{
-        (LEAVES_ALL||[]).forEach(l=>{ if(l && l.employeeName && l.avatarUrl){ window.__avatarMap[l.employeeName] = String(l.avatarUrl); } });
-      }catch(e){}
       buildView(admin);
       render(ym, admin);
     }catch(err){
@@ -1266,6 +1282,8 @@
 
     // submeniuri
     (function(){
+  window.__avatarMap = window.__avatarMap || {};
+
       const btns = document.querySelectorAll(".stab");
       const views = {
         cal: document.getElementById("view-cal"),
