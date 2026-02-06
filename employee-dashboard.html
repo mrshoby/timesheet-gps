@@ -563,9 +563,11 @@
       const cb = "cb_" + Math.random().toString(16).slice(2);
       const s = document.createElement("script");
       let done = false;
+      const tmr = setTimeout(()=>{ if (done) return; cleanup(); reject(new Error("JSONP timeout")); }, 25000);
 
       window[cb] = (data)=>{ done = true; cleanup(); resolve(data); };
       function cleanup(){
+        try{ clearTimeout(tmr); }catch(e){}
         try{ delete window[cb]; }catch(e){ window[cb] = undefined; }
         if (s && s.parentNode) s.parentNode.removeChild(s);
       }
@@ -1564,10 +1566,8 @@
         $("#drawerAvatar").textContent = initials(name);
         $("#drawerAvatar").style.display = "";
         $("#drawerAvatarImg").style.display = "none";
-      }
-
       try{ setAvatarEverywhere(avatarUrl, name); }catch(e){}
-
+      }
     }catch(e){
       console.warn("meProfile failed", e);
     }
@@ -1706,56 +1706,46 @@
   async function uploadAvatarDataUrl(dataUrl){
     const s = (typeof getEmpSession === "function") ? getEmpSession() : null;
     const endpoint = (typeof ep === "function") ? ep() : "";
-    if (!s || !endpoint) throw new Error("Sesiune/endpoint lipsă.");
-    const token = s.token;
+    if (!s || !s.token || !endpoint) throw new Error("Nu ești logat sau lipsește endpoint.");
 
-    // data:image/png;base64,...
+    const token = String(s.token);
     const m = String(dataUrl||"").match(/^data:([^;]+);base64,(.+)$/);
     if (!m) throw new Error("DataURL invalid.");
-    const mime = m[1] || "image/png";
-    const b64 = m[2] || "";
-
-    // Convert to Base64URL to avoid encodeURIComponent bloat and URL length issues (JSONP = GET).
-    // Remove padding to keep it short; server will re-pad.
+    const mime = m[1];
+    const b64 = m[2];
+    // Use base64url (URL-safe) and remove padding to keep JSONP URLs short
     const b64u = b64.replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
 
     const uploadId = "av_" + Math.random().toString(16).slice(2) + "_" + Date.now();
-
-    // Keep each JSONP URL comfortably under limits.
-    const chunkSize = 2500;
+    // Keep each JSONP URL comfortably under common limits (~2KB). Compute a safe chunk size dynamically.
+    const MAX_URL = 1600;
+    const overhead0 = (endpoint + "?fn=meAvatarUploadChunk&token=" + token
+      + "&uploadId=" + encodeURIComponent(uploadId)
+      + "&i=0&n=999&mime=" + encodeURIComponent(mime)
+      + "&c=&ts=" + Date.now()).length;
+    const chunkSize = Math.max(400, MAX_URL - overhead0);
     const total = Math.ceil(b64u.length / chunkSize);
 
     for (let i=0;i<total;i++){
       const part = b64u.slice(i*chunkSize, (i+1)*chunkSize);
       const url = endpoint + "?fn=meAvatarUploadChunk"
-        + "&token=" + encodeURIComponent(token)
+        + "&token=" + token
         + "&uploadId=" + encodeURIComponent(uploadId)
         + "&i=" + i
         + "&n=" + total
         + (i===0 ? ("&mime=" + encodeURIComponent(mime)) : "")
         + "&c=" + part
         + "&ts=" + Date.now();
-
-      try{
-        const r = await jsonp(url);
-        if (!r || !r.ok) throw new Error(r?.error || ("Eroare chunk #" + i));
-      }catch(err){
-        // retry once (helps with intermittent network/script tag issues)
-        try{
-          const r2 = await jsonp(url);
-          if (!r2 || !r2.ok) throw new Error(r2?.error || ("Eroare chunk #" + i));
-        }catch(err2){
-          const msg = (err2 && err2.message) ? err2.message : (err && err.message) ? err.message : "JSONP error";
-          throw new Error(msg + " (chunk " + (i+1) + "/" + total + ")");
-        }
-      }
-
+const r = await jsonp(url);
+      if (!r || !r.ok) throw new Error(r?.error || ("Eroare chunk #" + i));
       showAvatarStatus("Upload: " + (i+1) + "/" + total, false);
     }
 
     const finUrl = endpoint + "?fn=meAvatarUploadFinalize"
-      + "&token=" + encodeURIComponent(token)
+      + "&token=" + token
       + "&uploadId=" + encodeURIComponent(uploadId)
+      + "&total=" + total
+      + "&mime=" + encodeURIComponent(mime)
       + "&ts=" + Date.now();
 
     const fin = await jsonp(finUrl);
