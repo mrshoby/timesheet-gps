@@ -383,27 +383,29 @@
 .notifMeta{margin-top:8px;color:rgba(40,48,80,.45);font-weight:900;font-size:11px}
 
 
-    /* ===== Avatar Upload (Employee Settings) ===== */
-    .avCard{margin-top:14px;padding:14px 14px;border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.06);border-radius:16px}
-    .avRow{display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap}
-    .avPrev{width:74px;height:74px;border-radius:18px;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.18);display:flex;align-items:center;justify-content:center;overflow:hidden}
-    .avPrev img{width:100%;height:100%;object-fit:cover;display:block}
-    .dropZone{flex:1;min-width:240px;padding:12px 12px;border:1px dashed rgba(255,255,255,.28);border-radius:14px;background:rgba(255,255,255,.05);cursor:pointer}
-    .dropZone.drag{background:rgba(120,90,255,.18);border-color:rgba(120,90,255,.55)}
-    .btnRow{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
-    .btnPill.danger{background:rgba(255,80,80,.14);border-color:rgba(255,80,80,.35);color:#ffd0d0}
-    .btnPill:disabled{opacity:.55;cursor:not-allowed}
-    /* Crop modal */
-    .avOv{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.55);backdrop-filter: blur(4px);z-index:9999}
-    .avOv.show{display:flex}
-    .avModal{width:min(520px, calc(100vw - 24px));background:rgba(26,20,60,.95);border:1px solid rgba(255,255,255,.18);border-radius:18px;box-shadow:0 14px 40px rgba(0,0,0,.45);padding:14px}
-    .avModal h3{margin:0 0 10px 0;font-size:16px}
-    .avCanvasWrap{display:flex;justify-content:center}
-    #avCropCanvas{width:320px;height:320px;border-radius:16px;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.06);touch-action:none}
-    .avControls{margin-top:10px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-    .avControls input[type="range"]{width:240px}
+/* Avatar uploader */
+.cardAva{border:1px solid rgba(0,0,0,.06);border-radius:16px;padding:14px;background:rgba(255,255,255,.7);box-shadow:inset 0 0 0 1px rgba(255,255,255,.6)}
+.avaRow{display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap}
+.avaPreview{width:64px;height:64px;border-radius:999px;overflow:hidden;display:grid;place-items:center;background:#eef1ff;border:2px solid #fff;box-shadow:0 12px 20px rgba(20,18,40,.10)}
+.avaPreview img{width:100%;height:100%;object-fit:cover}
+.avaFallback{font-weight:1000;color:#3a3f5b}
+.avaCol{flex:1;min-width:260px}
+.avaTitle{font-weight:1000;color:rgba(45,50,70,.98);margin-bottom:2px}
+.avaDrop{margin-top:8px;border:2px dashed rgba(109,94,252,.35);border-radius:14px;padding:12px 14px;background:rgba(109,94,252,.06);font-weight:900;color:#3a2d71;cursor:pointer;user-select:none}
+.avaDrop:hover{background:rgba(109,94,252,.10)}
+.avaDrop:focus{outline:none;box-shadow:0 0 0 4px rgba(109,94,252,.18)}
+.avaDrop.drag{background:rgba(109,94,252,.14);border-color:rgba(109,94,252,.65)}
+.avaBtns{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
+.avaModal{position:fixed;inset:0;z-index:9999;background:rgba(20,18,40,.45);display:flex;align-items:center;justify-content:center;padding:18px}
+.avaModalCard{width:min(520px,92vw);background:#fff;border-radius:18px;box-shadow:0 25px 70px rgba(0,0,0,.35);overflow:hidden;border:1px solid rgba(0,0,0,.08)}
+.avaModalHead{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:1px solid rgba(0,0,0,.06);background:rgba(245,246,255,.8)}
+.avaModalBody{padding:14px}
+.avaModalFoot{display:flex;gap:10px;padding:12px 14px;border-top:1px solid rgba(0,0,0,.06);background:rgba(245,246,255,.55)}
+.avaModalFoot .btnPill{flex:1}
+.avaZoomRow{display:flex;gap:10px;align-items:center;margin-top:10px}
+#avatarCropCanvas{width:100%;height:auto;border-radius:14px;border:1px solid rgba(0,0,0,.06);background:#fafbff}
 
-  </style>
+</style>
 </head>
 
 <body>
@@ -1368,26 +1370,44 @@
               <div class="note" style="margin-top:6px"><b>Departament:</b> <span id="setDept">—</span></div>
               <div class="note" style="margin-top:6px"><b>Manager:</b> <span id="setMgr">—</span></div>
 
-              <div class="avCard">
-                <div style="font-weight:1000;margin-bottom:8px">Avatar</div>
-                <div class="note" style="margin:-2px 0 10px 0">Încarcă o poză (drag&amp;drop), decupează și salvează. Se actualizează peste tot.</div>
-                <div class="avRow">
-                  <div class="avPrev">
+              <div class="cardAva" style="margin-top:14px">
+                <div class="avaRow">
+                  <div class="avaPreview">
                     <img id="setAvatarImg" alt="" style="display:none"/>
-                    <div id="setAvatarFallback" style="font-weight:1000">•</div>
+                    <div id="setAvatarFallback" class="avaFallback">•</div>
                   </div>
-                  <div style="flex:1">
-                    <div id="avatarDrop" class="dropZone">
-                      Trage o imagine aici sau apasă pentru a selecta.
-                      <div class="note" style="margin-top:6px">Recomandat: portret, lumină bună. Se salvează ca PNG 256×256.</div>
+                  <div class="avaCol">
+                    <div class="avaTitle">Avatar</div>
+                    <div class="note">Trage o imagine aici sau apasă „Alege”. O poți decupa înainte de salvare.</div>
+                    <div id="avatarDrop" class="avaDrop" tabindex="0">Drag &amp; Drop aici (sau click)</div>
+                    <input id="avatarFile" type="file" accept="image/*" style="display:none" />
+                    <div class="avaBtns">
+                      <button class="btnPill" id="btnAvatarPick" type="button">Alege imagine</button>
+                      <button class="btnPill primary" id="btnAvatarSave" type="button" disabled>Salvează avatar</button>
+                      <button class="btnPill" id="btnAvatarClear" type="button">Șterge avatar</button>
                     </div>
-                    <input id="avatarFile" type="file" accept="image/*" style="display:none"/>
-                    <div class="btnRow">
-                      <button class="btnPill" id="btnPickAvatar" type="button">Alege imagine</button>
-                      <button class="btnPill primary" id="btnSaveAvatar" type="button" disabled>Salvează</button>
-                      <button class="btnPill danger" id="btnClearAvatar" type="button">Șterge</button>
+                    <div class="note" id="avatarStatus" style="margin-top:8px;display:none"></div>
+                  </div>
+                </div>
+              </div>
+
+              <div id="avatarCropWrap" class="avaModal" style="display:none">
+                <div class="avaModalCard">
+                  <div class="avaModalHead">
+                    <div style="font-weight:1000">Decupează avatar</div>
+                    <button class="btnPill" id="btnCropClose" type="button">✕</button>
+                  </div>
+                  <div class="avaModalBody">
+                    <canvas id="avatarCropCanvas" width="320" height="320"></canvas>
+                    <div class="avaZoomRow">
+                      <span class="note" style="min-width:64px">Zoom</span>
+                      <input id="avatarZoom" type="range" min="1" max="3" step="0.01" value="1"/>
                     </div>
-                    <div class="note" id="avatarStatus" style="margin-top:10px">—</div>
+                    <div class="note">Trage cu mouse-ul pentru poziționare, folosește slider-ul pentru zoom.</div>
+                  </div>
+                  <div class="avaModalFoot">
+                    <button class="btnPill" id="btnCropCancel" type="button">Renunță</button>
+                    <button class="btnPill primary" id="btnCropApply" type="button">Aplică</button>
                   </div>
                 </div>
               </div>
@@ -1523,8 +1543,7 @@
       $("#setDept").textContent = dept || "—";
       $("#setMgr").textContent = mgr || "—";
 
-      try{ syncSettingsAvatar_(name, avatarUrl); }catch(e){}
-
+      try{ _avaSetPreview(avatarUrl, name); }catch(e){}
 
       $("#drawerName").textContent = name;
       $("#drawerDept").textContent = dept || "—";
@@ -1556,320 +1575,179 @@
     window.location.href = "index.html";
   }
 
+    // ========= Avatar uploader (Settings) =========
+  let __avaPendingDataUrl = "";
+  let __avaCrop = null;
 
-  // ========= Avatar upload (drag & drop + crop + resize 256x256) =========
-  let __avB64Url = "";     // PNG 256x256, base64url (no padding)
-  let __avLastUrl = "";    // last saved URL (for preview)
-  let __avCrop = { img:null, base:1, zoom:1.2, offX:0, offY:0, dragging:false, lx:0, ly:0 };
-
-  function setAvatarStatus_(msg, isErr){
-    const el = document.getElementById("avatarStatus");
+  function _avaStatus(msg, isErr){
+    const el = $("#avatarStatus");
     if (!el) return;
-    el.textContent = msg || "—";
-    el.style.color = isErr ? "#ffb6b6" : "";
+    if (!msg){ el.style.display="none"; el.textContent=""; return; }
+    el.style.display="";
+    el.textContent = msg;
+    el.style.color = isErr ? "#b42318" : "";
   }
 
-  function syncSettingsAvatar_(name, avatarUrl){
-    const img = document.getElementById("setAvatarImg");
-    const fb  = document.getElementById("setAvatarFallback");
+  function _avaSetPreview(url, name){
+    const img = $("#setAvatarImg");
+    const fb  = $("#setAvatarFallback");
     if (!img || !fb) return;
-    if (avatarUrl){
-      img.src = avatarUrl;
+    if (url){
+      img.src = url;
       img.style.display = "";
       fb.style.display = "none";
     } else {
-      fb.textContent = initials(name || "•");
+      fb.textContent = initials(name||"");
       fb.style.display = "";
       img.style.display = "none";
     }
   }
 
-  function _b64ToB64Url_(b64){
-    return String(b64||"").replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
+  function _avaB64urlFromDataUrl(dataUrl){
+    const b64 = String(dataUrl||"").split(",")[1] || "";
+    return b64.replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
   }
 
-  function _openCrop_(dataUrl){
-    const ov = document.getElementById("avCropOv");
-    const cv = document.getElementById("avCropCanvas");
-    const zoom = document.getElementById("avZoom");
-    if (!ov || !cv || !zoom) return;
+  function _avaCloseCrop(){
+    const wrap = $("#avatarCropWrap");
+    if (wrap) wrap.style.display = "none";
+    __avaCrop = null;
+  }
 
-    const img = new Image();
-    img.onload = ()=>{
-      const cw = cv.width, ch = cv.height;
-      const bw = img.naturalWidth || img.width;
-      const bh = img.naturalHeight || img.height;
-      const base = Math.max(cw / bw, ch / bh); // cover
-      __avCrop = { img: img, base: base, zoom: Number(zoom.value||1.2), offX:0, offY:0, dragging:false, lx:0, ly:0 };
-      _drawCrop_();
-      ov.classList.add("show");
-      ov.setAttribute("aria-hidden","false");
+  function _avaOpenCrop(img){
+    const wrap = $("#avatarCropWrap");
+    const canvas = $("#avatarCropCanvas");
+    const zoom = $("#avatarZoom");
+    if (!wrap || !canvas || !zoom) return;
+
+    const ctx = canvas.getContext("2d");
+    __avaCrop = { img, zoom:1, offX:0, offY:0, drag:false, sx:0, sy:0, ox:0, oy:0 };
+
+    const draw = ()=>{
+      if (!__avaCrop) return;
+      const W = canvas.width, H = canvas.height;
+      ctx.clearRect(0,0,W,H);
+      const iw = img.naturalWidth||img.width, ih = img.naturalHeight||img.height;
+      const base = Math.max(W/iw, H/ih);
+      const sc = base * __avaCrop.zoom;
+      const dw = iw*sc, dh = ih*sc;
+      const dx = (W-dw)/2 + __avaCrop.offX;
+      const dy = (H-dh)/2 + __avaCrop.offY;
+      ctx.drawImage(img, dx, dy, dw, dh);
     };
-    img.onerror = ()=> setAvatarStatus_("Imagine invalidă.", true);
-    img.src = dataUrl;
+
+    const clamp = ()=>{
+      if (!__avaCrop) return;
+      const W = canvas.width, H = canvas.height;
+      const iw = img.naturalWidth||img.width, ih = img.naturalHeight||img.height;
+      const base = Math.max(W/iw, H/ih);
+      const sc = base * __avaCrop.zoom;
+      const dw = iw*sc, dh = ih*sc;
+      const maxX = Math.max(0, (dw-W)/2);
+      const maxY = Math.max(0, (dh-H)/2);
+      __avaCrop.offX = Math.min(maxX, Math.max(-maxX, __avaCrop.offX));
+      __avaCrop.offY = Math.min(maxY, Math.max(-maxY, __avaCrop.offY));
+    };
+
+    zoom.value = "1";
+    zoom.oninput = ()=>{ if(!__avaCrop) return; __avaCrop.zoom=Number(zoom.value||1); clamp(); draw(); };
+
+    const down = (ev)=>{
+      if (!__avaCrop) return;
+      __avaCrop.drag = true;
+      const pt = (ev.touches && ev.touches[0]) ? ev.touches[0] : ev;
+      __avaCrop.sx = pt.clientX; __avaCrop.sy = pt.clientY;
+      __avaCrop.ox = __avaCrop.offX; __avaCrop.oy = __avaCrop.offY;
+      ev.preventDefault();
+    };
+    const move = (ev)=>{
+      if (!__avaCrop || !__avaCrop.drag) return;
+      const pt = (ev.touches && ev.touches[0]) ? ev.touches[0] : ev;
+      __avaCrop.offX = __avaCrop.ox + (pt.clientX-__avaCrop.sx);
+      __avaCrop.offY = __avaCrop.oy + (pt.clientY-__avaCrop.sy);
+      clamp(); draw();
+      ev.preventDefault();
+    };
+    const up = ()=>{ if(__avaCrop) __avaCrop.drag=false; };
+
+    canvas.onmousedown = down;
+    canvas.onmousemove = move;
+    window.addEventListener("mouseup", up);
+    canvas.ontouchstart = down;
+    canvas.ontouchmove = move;
+    window.addEventListener("touchend", up);
+
+    wrap.style.display = "flex";
+    setTimeout(()=>{ clamp(); draw(); }, 30);
+
+    $("#btnCropClose")?.addEventListener("click", _avaCloseCrop, { once:true });
+    $("#btnCropCancel")?.addEventListener("click", _avaCloseCrop, { once:true });
+    $("#btnCropApply")?.addEventListener("click", ()=>{
+      try{
+        const out = document.createElement("canvas");
+        out.width=256; out.height=256;
+        const octx = out.getContext("2d");
+        const W=out.width, H=out.height;
+        const iw = img.naturalWidth||img.width, ih = img.naturalHeight||img.height;
+        const base = Math.max(W/iw, H/ih);
+        const sc = base * (__avaCrop?__avaCrop.zoom:1);
+        const dw = iw*sc, dh = ih*sc;
+        const dx = (W-dw)/2 + (__avaCrop?(__avaCrop.offX*(W/canvas.width)):0);
+        const dy = (H-dh)/2 + (__avaCrop?(__avaCrop.offY*(H/canvas.height)):0);
+        octx.drawImage(img, dx, dy, dw, dh);
+        __avaPendingDataUrl = out.toDataURL("image/png");
+        const name = $("#topName")?.textContent || "";
+        _avaSetPreview(__avaPendingDataUrl, name);
+        $("#btnAvatarSave") && ($("#btnAvatarSave").disabled=false);
+        _avaStatus("Pregătit pentru salvare.", false);
+      }catch(e){
+        _avaStatus("Eroare la crop: " + String(e && e.message ? e.message : e), true);
+      }
+      _avaCloseCrop();
+    }, { once:true });
   }
 
-  function _clampCrop_(){
-    const cv = document.getElementById("avCropCanvas");
-    if (!cv || !__avCrop.img) return;
-    const cw = cv.width, ch = cv.height;
-    const bw = __avCrop.img.naturalWidth || __avCrop.img.width;
-    const bh = __avCrop.img.naturalHeight || __avCrop.img.height;
-    const s = __avCrop.base * __avCrop.zoom;
-    const dw = bw * s, dh = bh * s;
-    const minX = Math.min(0, cw - dw), maxX = 0;
-    const minY = Math.min(0, ch - dh), maxY = 0;
-    // our x is (cw-dw)/2 + offX, so offX range shifts by that center
-    const centerX = (cw - dw) / 2;
-    const centerY = (ch - dh) / 2;
-    const x = centerX + __avCrop.offX;
-    const y = centerY + __avCrop.offY;
-    const clampedX = clamp(x, minX, maxX);
-    const clampedY = clamp(y, minY, maxY);
-    __avCrop.offX += (clampedX - x);
-    __avCrop.offY += (clampedY - y);
-  }
-
-  function _drawCrop_(){
-    const cv = document.getElementById("avCropCanvas");
-    if (!cv || !__avCrop.img) return;
-    const ctx = cv.getContext("2d");
-    const cw = cv.width, ch = cv.height;
-
-    _clampCrop_();
-
-    const bw = __avCrop.img.naturalWidth || __avCrop.img.width;
-    const bh = __avCrop.img.naturalHeight || __avCrop.img.height;
-    const s = __avCrop.base * __avCrop.zoom;
-    const dw = bw * s, dh = bh * s;
-    const x = (cw - dw)/2 + __avCrop.offX;
-    const y = (ch - dh)/2 + __avCrop.offY;
-
-    ctx.clearRect(0,0,cw,ch);
-    // soft background
-    ctx.fillStyle = "rgba(255,255,255,0.04)";
-    ctx.fillRect(0,0,cw,ch);
-    ctx.drawImage(__avCrop.img, x, y, dw, dh);
-
-    // guide border
-    ctx.lineWidth = 2;
-    ctx.strokeStyle = "rgba(255,255,255,0.28)";
-    ctx.strokeRect(6,6,cw-12,ch-12);
-  }
-
-  function _closeCrop_(){
-    const ov = document.getElementById("avCropOv");
-    if (!ov) return;
-    ov.classList.remove("show");
-    ov.setAttribute("aria-hidden","true");
-  }
-
-  function _useCrop_(){
-    const cv = document.getElementById("avCropCanvas");
-    if (!cv || !__avCrop.img) return;
-
-    const out = document.createElement("canvas");
-    out.width = 256; out.height = 256;
-    const ctx = out.getContext("2d");
-
-    const bw = __avCrop.img.naturalWidth || __avCrop.img.width;
-    const bh = __avCrop.img.naturalHeight || __avCrop.img.height;
-
-    const cw = cv.width, ch = cv.height;
-    const s = __avCrop.base * __avCrop.zoom;
-    const dw = bw * s, dh = bh * s;
-    const x = (cw - dw)/2 + __avCrop.offX;
-    const y = (ch - dh)/2 + __avCrop.offY;
-
-    const factor = out.width / cw;
-    ctx.drawImage(__avCrop.img, x*factor, y*factor, dw*factor, dh*factor);
-
-    const dataUrl = out.toDataURL("image/png");
-    const b64 = dataUrl.split(",")[1] || "";
-    __avB64Url = _b64ToB64Url_(b64);
-
-    const btnSave = document.getElementById("btnSaveAvatar");
-    if (btnSave) btnSave.disabled = !__avB64Url;
-
-    setAvatarStatus_("Gata de salvat.", false);
-    _closeCrop_();
-  }
-
-  async function _avatarUpload_(){
+  async function _avatarUploadAvatar_(dataUrl){
     const s = (typeof getEmpSession === "function") ? getEmpSession() : null;
     const endpoint = (typeof ep === "function") ? ep() : "";
-    if (!s || !s.token) { setAvatarStatus_("Nu ești logat.", true); return; }
-    if (!endpoint){ setAvatarStatus_("Lipsește endpoint în config.json.", true); return; }
-    if (!__avB64Url){ setAvatarStatus_("Alege o imagine întâi.", true); return; }
+    if (!s || !s.token || !endpoint) throw new Error("Sesiune invalidă.");
 
-    const btnSave = document.getElementById("btnSaveAvatar");
-    if (btnSave) btnSave.disabled = true;
+    _avaStatus("Inițializez upload...", false);
+    const init = await jsonp(endpoint + "?fn=meAvatarUploadInit&token=" + encodeURIComponent(s.token) + "&ts=" + Date.now());
+    if (!init || !init.ok) throw new Error(init?.error || "Init a eșuat.");
 
-    try{
-      setAvatarStatus_("Inițializare upload…", false);
-      const initUrl = endpoint + "?fn=meAvatarUploadInit&token=" + encodeURIComponent(s.token) + "&ts=" + Date.now();
-      const init = await jsonp(initUrl);
-      if (!init || !init.ok) throw new Error(init?.error || "Init a eșuat.");
+    const uid = init.uid, uk = init.uk;
+    const b64url = _avaB64urlFromDataUrl(dataUrl);
+    const CHUNK = 900;
+    const total = Math.ceil(b64url.length / CHUNK);
 
-      const uid = String(init.uid || "");
-      const uk  = String(init.uk || "");
-      const maxChunk = Math.max(400, Math.min(1200, Number(init.maxChunk || 900)));
-
-      const total = __avB64Url.length;
-      const n = Math.ceil(total / maxChunk);
-
-      for (let i=0;i<n;i++){
-        const chunk = __avB64Url.slice(i*maxChunk, (i+1)*maxChunk);
-        setAvatarStatus_(`Upload… ${i+1}/${n}`, false);
-        const url = endpoint + "?fn=meAvatarUploadChunk"
-          + "&uid=" + encodeURIComponent(uid)
-          + "&uk=" + encodeURIComponent(uk)
-          + "&i=" + i
-          + "&n=" + n
-          + "&c=" + chunk
-          + "&ts=" + Date.now();
-        const res = await jsonp(url);
-        if (!res || !res.ok) throw new Error(res?.error || `Chunk ${i+1} a eșuat.`);
-      }
-
-      setAvatarStatus_("Finalizează…", false);
-      const finUrl = endpoint + "?fn=meAvatarUploadFinalize"
+    for (let i=0;i<total;i++){
+      const part = b64url.slice(i*CHUNK,(i+1)*CHUNK);
+      const u = endpoint + "?fn=meAvatarUploadChunk"
         + "&uid=" + encodeURIComponent(uid)
         + "&uk=" + encodeURIComponent(uk)
-        + "&n=" + n
+        + "&i=" + i
+        + "&n=" + total
+        + "&c=" + part
         + "&ts=" + Date.now();
-      const fin = await jsonp(finUrl);
-      if (!fin || !fin.ok) throw new Error(fin?.error || "Finalize a eșuat.");
-
-      const urlSaved = String(fin.avatarUrl || "");
-      __avLastUrl = urlSaved;
-
-      // update UI everywhere
-      await loadProfile();
-      setAvatarStatus_("Avatar salvat.", false);
-      __avB64Url = "";
-    }catch(err){
-      setAvatarStatus_(String(err && err.message ? err.message : err), true);
-      console.error("avatar upload failed", err);
-    }finally{
-      const btnSave2 = document.getElementById("btnSaveAvatar");
-      if (btnSave2) btnSave2.disabled = false;
+      _avaStatus(`Upload avatar... (${i+1}/${total})`, false);
+      const r = await jsonp(u);
+      if (!r || !r.ok) throw new Error(r?.error || ("Chunk failed " + (i+1)));
     }
+
+    _avaStatus("Finalizez...", false);
+    const fin = await jsonp(endpoint + "?fn=meAvatarUploadFinalize&uid=" + encodeURIComponent(uid) + "&uk=" + encodeURIComponent(uk) + "&n=" + total + "&ts=" + Date.now());
+    if (!fin || !fin.ok) throw new Error(fin?.error || "Finalize a eșuat.");
+
+    _avaStatus("Avatar salvat ✔", false);
+    __avaPendingDataUrl = "";
+    $("#btnAvatarSave") && ($("#btnAvatarSave").disabled=true);
+    await loadProfile();
+    if (fin.avatarUrl) _avaSetPreview(fin.avatarUrl, $("#topName")?.textContent || "");
   }
 
-  async function _avatarClear_(){
-    const s = (typeof getEmpSession === "function") ? getEmpSession() : null;
-    const endpoint = (typeof ep === "function") ? ep() : "";
-    if (!s || !s.token) { setAvatarStatus_("Nu ești logat.", true); return; }
-    if (!endpoint){ setAvatarStatus_("Lipsește endpoint în config.json.", true); return; }
 
-    try{
-      setAvatarStatus_("Ștergere…", false);
-      const url = endpoint + "?fn=meAvatarClear&token=" + encodeURIComponent(s.token) + "&ts=" + Date.now();
-      const res = await jsonp(url);
-      if (!res || !res.ok) throw new Error(res?.error || "Nu pot șterge avatarul.");
-      __avB64Url = "";
-      await loadProfile();
-      setAvatarStatus_("Avatar șters.", false);
-    }catch(err){
-      setAvatarStatus_(String(err && err.message ? err.message : err), true);
-    }
-  }
-
-  function initAvatarUI_(){
-    const drop = document.getElementById("avatarDrop");
-    const file = document.getElementById("avatarFile");
-    const pick = document.getElementById("btnPickAvatar");
-    const save = document.getElementById("btnSaveAvatar");
-    const clear = document.getElementById("btnClearAvatar");
-
-    const ov = document.getElementById("avCropOv");
-    const cv = document.getElementById("avCropCanvas");
-    const zoom = document.getElementById("avZoom");
-    const cancel = document.getElementById("avCancel");
-    const ok = document.getElementById("avOk");
-
-    if (pick && file) pick.addEventListener("click", ()=>file.click());
-    if (drop && file) drop.addEventListener("click", ()=>file.click());
-
-    function handleFile(f){
-      if (!f) return;
-      if (!/^image\//i.test(f.type || "")) { setAvatarStatus_("Fișierul nu e imagine.", true); return; }
-      const reader = new FileReader();
-      reader.onload = ()=>{ _openCrop_(String(reader.result||"")); };
-      reader.onerror = ()=> setAvatarStatus_("Nu pot citi imaginea.", true);
-      reader.readAsDataURL(f);
-    }
-
-    if (file){
-      file.addEventListener("change", ()=>{
-        const f = file.files && file.files[0];
-        handleFile(f);
-        try{ file.value = ""; }catch(e){}
-      });
-    }
-
-    if (drop){
-      drop.addEventListener("dragover", (ev)=>{ ev.preventDefault(); drop.classList.add("drag"); });
-      drop.addEventListener("dragleave", ()=> drop.classList.remove("drag"));
-      drop.addEventListener("drop", (ev)=>{
-        ev.preventDefault();
-        drop.classList.remove("drag");
-        const f = ev.dataTransfer && ev.dataTransfer.files && ev.dataTransfer.files[0];
-        handleFile(f);
-      });
-    }
-
-    if (save) save.addEventListener("click", _avatarUpload_);
-    if (clear) clear.addEventListener("click", _avatarClear_);
-
-    // crop modal interactions
-    if (zoom){
-      zoom.addEventListener("input", ()=>{
-        __avCrop.zoom = Number(zoom.value || 1.2);
-        _drawCrop_();
-      });
-    }
-    if (cancel) cancel.addEventListener("click", _closeCrop_);
-    if (ok) ok.addEventListener("click", _useCrop_);
-    if (ov){
-      ov.addEventListener("click", (ev)=>{ if (ev.target === ov) _closeCrop_(); });
-    }
-
-    if (cv){
-      const getPt = (ev)=>{
-        const r = cv.getBoundingClientRect();
-        const x = (ev.clientX - r.left) * (cv.width / r.width);
-        const y = (ev.clientY - r.top) * (cv.height / r.height);
-        return {x,y};
-      };
-      cv.addEventListener("pointerdown", (ev)=>{
-        if (!__avCrop.img) return;
-        cv.setPointerCapture(ev.pointerId);
-        __avCrop.dragging = true;
-        const p = getPt(ev);
-        __avCrop.lx = p.x; __avCrop.ly = p.y;
-      });
-      cv.addEventListener("pointermove", (ev)=>{
-        if (!__avCrop.dragging) return;
-        const p = getPt(ev);
-        const dx = p.x - __avCrop.lx;
-        const dy = p.y - __avCrop.ly;
-        __avCrop.lx = p.x; __avCrop.ly = p.y;
-        __avCrop.offX += dx;
-        __avCrop.offY += dy;
-        _drawCrop_();
-      });
-      const up = ()=>{ __avCrop.dragging = false; };
-      cv.addEventListener("pointerup", up);
-      cv.addEventListener("pointercancel", up);
-    }
-
-    // default status
-    setAvatarStatus_("—", false);
-  }
-
-  function bind(){
+function bind(){
     $$(".navBtn").forEach(btn=>{
       btn.addEventListener("click", ()=>{
         const v = btn.getAttribute("data-view");
@@ -1889,6 +1767,65 @@
     $("#btnOpenIndex")?.addEventListener("click", ()=>window.open("index.html","_blank"));
     $("#btnRefreshAll")?.addEventListener("click", ()=>window.location.reload());
     $("#btnLogout")?.addEventListener("click", logout);
+
+    // Avatar controls
+    const drop = $("#avatarDrop");
+    const file = $("#avatarFile");
+    const pick = $("#btnAvatarPick");
+    const save = $("#btnAvatarSave");
+    const clear = $("#btnAvatarClear");
+
+    const openPicker = ()=>{ try{ file && file.click(); }catch(e){} };
+    pick && pick.addEventListener("click", openPicker);
+    drop && drop.addEventListener("click", openPicker);
+
+    drop && drop.addEventListener("dragover", (ev)=>{ ev.preventDefault(); drop.classList.add("drag"); });
+    drop && drop.addEventListener("dragleave", ()=>{ drop.classList.remove("drag"); });
+    drop && drop.addEventListener("drop", (ev)=>{ ev.preventDefault(); drop.classList.remove("drag"); const f = ev.dataTransfer && ev.dataTransfer.files && ev.dataTransfer.files[0]; if (f) _avaHandleFile(f); });
+
+    file && file.addEventListener("change", ()=>{ const f = file.files && file.files[0]; if (f) _avaHandleFile(f); try{ file.value=""; }catch(e){} });
+
+    save && save.addEventListener("click", async ()=>{
+      try{
+        if (!__avaPendingDataUrl) throw new Error("Nu ai selectat o imagine.");
+        save.disabled = true;
+        await _avatarUploadAvatar_(__avaPendingDataUrl);
+      }catch(err){
+        _avaStatus(String(err && err.message ? err.message : err), true);
+        save.disabled = false;
+      }
+    });
+
+    clear && clear.addEventListener("click", async ()=>{
+      try{
+        const s = (typeof getEmpSession === "function") ? getEmpSession() : null;
+        const endpoint = (typeof ep === "function") ? ep() : "";
+        if (!s || !s.token || !endpoint) throw new Error("Sesiune invalidă.");
+        _avaStatus("Șterg avatar...", false);
+        const r = await jsonp(endpoint + "?fn=meAvatarClear&token=" + encodeURIComponent(s.token) + "&ts=" + Date.now());
+        if (!r || !r.ok) throw new Error(r?.error || "Eroare la ștergere.");
+        __avaPendingDataUrl = "";
+        save && (save.disabled = true);
+        _avaStatus("Avatar șters ✔", false);
+        await loadProfile();
+      }catch(err){
+        _avaStatus(String(err && err.message ? err.message : err), true);
+      }
+    });
+
+    function _avaHandleFile(f){
+      try{
+        if (!f || !f.type || !f.type.startsWith("image/")) throw new Error("Fișier invalid.");
+        _avaStatus("Deschid editor...", false);
+        const img = new Image();
+        img.onload = ()=>{ _avaOpenCrop(img); };
+        img.onerror = ()=>{ _avaStatus("Nu pot încărca imaginea.", true); };
+        img.src = URL.createObjectURL(f);
+      }catch(err){
+        _avaStatus(String(err && err.message ? err.message : err), true);
+      }
+    }
+
 // menu collapse (ca în admin)
     const shell = document.querySelector('.shell');
     const btn = document.getElementById('menuCollapse');
@@ -1905,9 +1842,6 @@
         }catch(e){}
       });
     }
-
-    try{ initAvatarUI_(); }catch(e){}
-
 }
 
   window.addEventListener("load", ()=>{
@@ -1928,25 +1862,6 @@
   // allow calendar click to jump into Cereri
   window.__jumpToRequests__ = (dk)=>{ setPage('requests'); try{ if(document.getElementById('reqMonth')){ const ym = String(dk||'').slice(0,7); document.getElementById('reqMonth').value = ym; } }catch(e){}; try{ window.__onViewChange__ && window.__onViewChange__('requests'); }catch(e){} };
 </script>
-
-
-  <!-- Avatar crop / resize modal -->
-  <div class="avOv" id="avCropOv" aria-hidden="true">
-    <div class="avModal">
-      <h3>Decupează avatarul</h3>
-      <div class="note" style="margin:-6px 0 10px 0">Trage imaginea în canvas. Folosește slider pentru zoom.</div>
-      <div class="avCanvasWrap">
-        <canvas id="avCropCanvas" width="320" height="320"></canvas>
-      </div>
-      <div class="avControls">
-        <label class="note" style="margin:0">Zoom</label>
-        <input id="avZoom" type="range" min="1" max="3" step="0.01" value="1.2"/>
-        <div style="flex:1"></div>
-        <button class="btnPill" id="avCancel" type="button">Renunță</button>
-        <button class="btnPill primary" id="avOk" type="button">Folosește</button>
-      </div>
-    </div>
-  </div>
 
 </body>
 
