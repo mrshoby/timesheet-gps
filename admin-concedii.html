@@ -146,9 +146,7 @@
     .av2{width:40px;height:40px;border-radius:999px;background:#e9ecff;display:grid;place-items:center;font-weight:900;color:#3a2d71;border:2px solid rgba(255,255,255,.7)}
 
 
-    
-    .av2 img{width:100%;height:100%;object-fit:cover;border-radius:999px;display:block}
-/* ===== Redesign (v15) — calendar ca în 2.png + liste ca în 3.png/4.png ===== */
+    /* ===== Redesign (v15) — calendar ca în 2.png + liste ca în 3.png/4.png ===== */
     .presenceFrame{
       background:rgba(109,94,252,.18);
       border-radius:28px;
@@ -303,9 +301,7 @@
       width:40px;height:40px;border-radius:999px;overflow:hidden;
       display:grid;place-items:center;background:#e9ecff;color:#3a2d71;font-weight:900
     }
-    
-    .avatar img{width:100%;height:100%;object-fit:cover;border-radius:999px;display:block}
-.empName{font-weight:800;color:#2f245c}
+    .empName{font-weight:800;color:#2f245c}
     .mut{font-size:13px;color:var(--muted);margin-top:2px}
     .statusTxt{font-weight:900}
     .st-approved{color:#55b86a}
@@ -535,11 +531,12 @@
 <div class="toast" id="toast">—</div>
 
 <script>
+window.__avatarMap = window.__avatarMap || {};
+
 (() => {
   // ===== Config loading (same smart loader used elsewhere) =====
   const CFG_PATHS = ["./config.json","../config.json","/config.json"];
   let CFG = null;
-  window.__avatarMap = window.__avatarMap || {};
 
   const LS_ADMIN = "pontaj/admin/v1";
   const LS_ADMIN_KEY = "pontaj_adminKey";
@@ -553,20 +550,6 @@
       .replace(/>/g,"&gt;")
       .replace(/"/g,"&quot;")
       .replace(/'/g,"&#39;");
-  }
-
-  function _nk(s){
-    return String(s||"").trim().toLowerCase().replace(/\s+/g," ");
-  }
-  function avatarUrlFor(name){
-    try{ return String((window.__avatarMap||{})[_nk(name)] || ""); }catch(e){ return ""; }
-  }
-  function avatarBadge(name){
-    const u = avatarUrlFor(name);
-    if (u){
-      return `<div class="avatar"><img alt="" src="${esc(u)}"/></div>`;
-    }
-    return `<div class="avatar">${initials(name)}</div>`;
   }
   function toast(msg){
     const t = $("#toast");
@@ -671,6 +654,16 @@
     return (a+b).toUpperCase();
   }
 
+  function avatarInner(name){
+    try{
+      const k = keyName(name);
+      const url = (window.__avatarMap && window.__avatarMap[k]) ? String(window.__avatarMap[k]) : "";
+      if (url) return `<img src="${esc(url)}" alt="" style="width:100%;height:100%;object-fit:cover"/>`;
+    }catch(e){}
+    return esc(initials(name));
+  }
+
+
   function pad2(n){ return String(n).padStart(2,"0"); }
   function fmtTime(v){
     if (v === null || v === undefined || v === "") return "";
@@ -733,7 +726,27 @@
   let LEAVES_VIEW = [];
   let MANAGERS = null; // { keyName(emp): {managerName, managerEmail} }
 
-  async function loadManagersMap(endpoint, key){
+  async 
+  async function loadAvatarsMap(endpoint, key){
+    try{
+      const url = endpoint + "?fn=adminEmployees"
+        + "&key=" + encodeURIComponent(key)
+        + "&ts=" + Date.now();
+      const res = await jsonp(url);
+      if (res && res.ok && Array.isArray(res.employees)){
+        const map = {};
+        for (const e of res.employees){
+          if (!e) continue;
+          const k = e.employeeKey ? String(e.employeeKey) : keyName(e.name||"");
+          const u = String(e.avatarUrl || "").trim();
+          if (k && u) map[k] = u;
+        }
+        window.__avatarMap = map;
+      }
+    }catch(err){ }
+  }
+
+function loadManagersMap(endpoint, key){
     if (MANAGERS) return MANAGERS;
     try{
       const u = endpoint + "?fn=adminManagersMap&key=" + encodeURIComponent(key) + "&ts=" + Date.now();
@@ -930,7 +943,7 @@
         tr.innerHTML = `
           <td>
             <div class="empCell">
-              ${avatarBadge(empName)}
+              <div class="avatar">${avatarInner(empName)}</div>
               <div>
                 <div class="empName">${esc(empName)}</div>
               </div>
@@ -961,7 +974,7 @@
         tr.innerHTML = `
           <td>
             <div class="empCell">
-              ${avatarBadge(empName)}
+              <div class="avatar">${avatarInner(empName)}</div>
               <div>
                 <div class="empName">${esc(empName)}</div>
                 <div class="mut">${esc(per.meta)}</div>
@@ -1137,12 +1150,7 @@
       const d = document.createElement("div");
       d.className = "av2";
       d.title = p;
-      const u = avatarUrlFor(p);
-      if (u){
-        d.innerHTML = `<img alt="" src="${esc(u)}"/>`;
-      } else {
-        d.textContent = initials(p);
-      }
+      d.textContent = initials(p);
       box.appendChild(d);
     });
   }
@@ -1252,30 +1260,17 @@
     try{
       const [data] = await Promise.all([
         jsonp(url),
-        loadManagersMap(endpoint, key)
+        loadManagersMap(endpoint, key),
+        loadAvatarsMap(endpoint, key)
       ]);
 
       if (!data || !data.ok) throw new Error(data?.error || "Eroare la încărcare.");
       LEAVES_ALL = Array.isArray(data.list) ? data.list : [];
-      try{ buildAvatarMapFromLeaves_(LEAVES_ALL); }catch(e){}
-
       buildView(admin);
       render(ym, admin);
     }catch(err){
       setError(String(err && err.message ? err.message : err));
     }
-  }
-
-
-  function buildAvatarMapFromLeaves_(list){
-    try{
-      window.__avatarMap = window.__avatarMap || {};
-      (list||[]).forEach(l=>{
-        const n = String(l && l.employeeName || "").trim();
-        const u = String(l && l.avatarUrl || "").trim();
-        if (n && u) window.__avatarMap[_nk(n)] = u;
-      });
-    }catch(e){}
   }
 
   // ===== init =====
