@@ -64,8 +64,7 @@
     tbody td:last-child, thead th:last-child{border-right:0}
     tbody th{position:sticky;left:0;z-index:6;background:#fff;text-align:left;padding:10px 12px;min-width:260px;border-right:1px solid var(--line)}
     .who{display:flex;align-items:center;gap:10px}
-    .av{width:34px;height:34px;border-radius:999px;background:#e9ecff;display:grid;place-items:center;font-weight:800;color:#3a2d71;flex:0 0 auto;overflow:hidden}
-    .avImg{width:34px;height:34px;border-radius:999px;object-fit:cover;flex:0 0 auto;border:1px solid var(--purpleLine);background:#e9ecff}
+    .av{width:34px;height:34px;border-radius:999px;background:#e9ecff;display:grid;place-items:center;font-weight:800;color:#3a2d71;flex:0 0 auto}
     .name{display:flex;flex-direction:column;line-height:1.1}
     .name .n{font-weight:700}
     .name .d{font-size:12px;color:var(--muted)}
@@ -147,7 +146,9 @@
     .av2{width:40px;height:40px;border-radius:999px;background:#e9ecff;display:grid;place-items:center;font-weight:900;color:#3a2d71;border:2px solid rgba(255,255,255,.7)}
 
 
-    /* ===== Redesign (v15) — calendar ca în 2.png + liste ca în 3.png/4.png ===== */
+    
+    .av2 img{width:100%;height:100%;object-fit:cover;border-radius:999px;display:block}
+/* ===== Redesign (v15) — calendar ca în 2.png + liste ca în 3.png/4.png ===== */
     .presenceFrame{
       background:rgba(109,94,252,.18);
       border-radius:28px;
@@ -302,7 +303,9 @@
       width:40px;height:40px;border-radius:999px;overflow:hidden;
       display:grid;place-items:center;background:#e9ecff;color:#3a2d71;font-weight:900
     }
-    .empName{font-weight:800;color:#2f245c}
+    
+    .avatar img{width:100%;height:100%;object-fit:cover;border-radius:999px;display:block}
+.empName{font-weight:800;color:#2f245c}
     .mut{font-size:13px;color:var(--muted);margin-top:2px}
     .statusTxt{font-weight:900}
     .st-approved{color:#55b86a}
@@ -536,14 +539,12 @@
   // ===== Config loading (same smart loader used elsewhere) =====
   const CFG_PATHS = ["./config.json","../config.json","/config.json"];
   let CFG = null;
+  window.__avatarMap = window.__avatarMap || {};
 
   const LS_ADMIN = "pontaj/admin/v1";
   const LS_ADMIN_KEY = "pontaj_adminKey";
 
   function $(sel){ return document.querySelector(sel); }
-
-  // global avatar map (employeeKey => url)
-  window.__avatarMap = window.__avatarMap || Object.create(null);
 
   function esc(s){
     return String(s==null?"":s)
@@ -552,6 +553,20 @@
       .replace(/>/g,"&gt;")
       .replace(/"/g,"&quot;")
       .replace(/'/g,"&#39;");
+  }
+
+  function _nk(s){
+    return String(s||"").trim().toLowerCase().replace(/\s+/g," ");
+  }
+  function avatarUrlFor(name){
+    try{ return String((window.__avatarMap||{})[_nk(name)] || ""); }catch(e){ return ""; }
+  }
+  function avatarBadge(name){
+    const u = avatarUrlFor(name);
+    if (u){
+      return `<div class="avatar"><img alt="" src="${esc(u)}"/></div>`;
+    }
+    return `<div class="avatar">${initials(name)}</div>`;
   }
   function toast(msg){
     const t = $("#toast");
@@ -832,14 +847,11 @@
       const mgr = list[0]?._mgrName || list[0]?._mgrEmail || "";
       const mgrTxt = mgr ? `Manager: ${mgr}` : `Manager: —`;
 
-      const avUrl = (window.__avatarMap && window.__avatarMap[keyName(emp)]) ? String(window.__avatarMap[keyName(emp)]) : "";
-      const avHtml = avUrl ? `<img class="avImg" src="${esc(avUrl)}" alt="">` : `<div class="av">${initials(emp)}</div>`;
-
       html += `<tr>
         <th class="idxC">${rowIdx++}</th>
         <th class="empC">
           <div class="who">
-            ${avHtml}
+            <div class="av">${initials(emp)}</div>
             <div class="name">
               <div class="n">${esc(emp)}</div>
               <div class="d">${esc(mgrTxt)}</div>
@@ -918,7 +930,7 @@
         tr.innerHTML = `
           <td>
             <div class="empCell">
-              <div class="avatar">${initials(empName)}</div>
+              ${avatarBadge(empName)}
               <div>
                 <div class="empName">${esc(empName)}</div>
               </div>
@@ -949,7 +961,7 @@
         tr.innerHTML = `
           <td>
             <div class="empCell">
-              <div class="avatar">${initials(empName)}</div>
+              ${avatarBadge(empName)}
               <div>
                 <div class="empName">${esc(empName)}</div>
                 <div class="mut">${esc(per.meta)}</div>
@@ -1125,7 +1137,12 @@
       const d = document.createElement("div");
       d.className = "av2";
       d.title = p;
-      d.textContent = initials(p);
+      const u = avatarUrlFor(p);
+      if (u){
+        d.innerHTML = `<img alt="" src="${esc(u)}"/>`;
+      } else {
+        d.textContent = initials(p);
+      }
       box.appendChild(d);
     });
   }
@@ -1240,23 +1257,25 @@
 
       if (!data || !data.ok) throw new Error(data?.error || "Eroare la încărcare.");
       LEAVES_ALL = Array.isArray(data.list) ? data.list : [];
-
-      // build avatar map from returned data
-      try{
-        window.__avatarMap = Object.create(null);
-        for (const it of LEAVES_ALL){
-          const nm = String(it.employeeName||"").trim();
-          const k = keyName(nm);
-          const u = String(it.avatarUrl||"").trim();
-          if (k && u) window.__avatarMap[k] = u;
-        }
-      }catch(e){}
+      try{ buildAvatarMapFromLeaves_(LEAVES_ALL); }catch(e){}
 
       buildView(admin);
       render(ym, admin);
     }catch(err){
       setError(String(err && err.message ? err.message : err));
     }
+  }
+
+
+  function buildAvatarMapFromLeaves_(list){
+    try{
+      window.__avatarMap = window.__avatarMap || {};
+      (list||[]).forEach(l=>{
+        const n = String(l && l.employeeName || "").trim();
+        const u = String(l && l.avatarUrl || "").trim();
+        if (n && u) window.__avatarMap[_nk(n)] = u;
+      });
+    }catch(e){}
   }
 
   // ===== init =====
