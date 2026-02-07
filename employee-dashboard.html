@@ -1750,6 +1750,109 @@
     return String(fin.avatarUrl||"");
   }
 
+
+  // ===== AVATAR V2 (2026-02-07) =====
+  // Fix: JSONP error din cauza URL-urilor prea lungi (token repetat + encodeURIComponent pe base64).
+  // Flow nou: meAvatarUploadInit(token, mime, n) -> {uid, uk}; apoi chunks fara token (uid/uk + c websafe); finalize(uid/uk).
+
+  function _b64ToWebSafe(b64){
+    return String(b64||"")
+      .replace(/\+/g, "-")
+      .replace(/\//g, "_")
+      .replace(/=+$/g, "");
+  }
+
+  // JSONP cu timeout + mesaj care include lungimea src-ului (util pt debug)
+  function jsonp2(url, timeoutMs){
+    return new Promise((resolve, reject)=>{
+      const cb = "cb_" + Math.random().toString(16).slice(2);
+      const s = document.createElement("script");
+      let done = false;
+      let timer = null;
+      const to = Number(timeoutMs || 25000);
+
+      window[cb] = (data)=>{ done = true; cleanup(); resolve(data); };
+
+      function cleanup(){
+        if (timer) { clearTimeout(timer); timer = null; }
+        try{ delete window[cb]; }catch(e){ window[cb] = undefined; }
+        if (s && s.parentNode) s.parentNode.removeChild(s);
+      }
+
+      timer = setTimeout(()=>{
+        if (done) return;
+        cleanup();
+        reject(new Error("JSONP timeout (" + to + "ms). (src " + (String(s.src||"").length) + " chars)"));
+      }, to);
+
+      s.onerror = ()=>{
+        if (done) return;
+        cleanup();
+        reject(new Error("JSONP error (src " + (String(s.src||"").length) + " chars)"));
+      };
+
+      s.src = url + (url.includes("?") ? "&" : "?") + "callback=" + cb;
+      document.head.appendChild(s);
+    });
+  }
+
+  async function uploadAvatarDataUrlV2(dataUrl){
+    const s = (typeof getEmpSession === "function") ? getEmpSession() : null;
+    const endpoint = (typeof ep === "function") ? ep() : "";
+    if (!s || !s.token || !endpoint) throw new Error("Nu ești logat sau lipsește endpoint.");
+
+    const token = String(s.token);
+    const m = String(dataUrl||"").match(/^data:([^;]+);base64,(.+)$/);
+    if (!m) throw new Error("DataURL invalid.");
+    const mime = String(m[1]||"image/png").toLowerCase();
+    const b64 = String(m[2]||"");
+    const b64ws = _b64ToWebSafe(b64);
+
+    // chunk websafe (fara token) -> URL scurt
+    const CHUNK = 950;
+    const total = Math.ceil(b64ws.length / CHUNK);
+
+    // 1) init (cu token) -> uid/uk
+    const initUrl = endpoint + "?fn=meAvatarUploadInit"
+      + "&token=" + encodeURIComponent(token)
+      + "&mime=" + encodeURIComponent(mime)
+      + "&n=" + total
+      + "&ts=" + Date.now();
+
+    const init = await jsonp2(initUrl, 25000);
+    if (!init || !init.ok) throw new Error(init?.error || "Init error");
+    const uid = String(init.uid||"");
+    const uk  = String(init.uk||"");
+    if (!uid || !uk) throw new Error("Lipsește uid/uk.");
+
+    // 2) chunks (fara token)
+    for (let i=0;i<total;i++){
+      const part = b64ws.slice(i*CHUNK, (i+1)*CHUNK);
+      const url = endpoint + "?fn=meAvatarUploadChunk"
+        + "&uid=" + encodeURIComponent(uid)
+        + "&uk=" + encodeURIComponent(uk)
+        + "&i=" + i
+        + "&n=" + total
+        + "&c=" + encodeURIComponent(part)
+        + "&ts=" + Date.now();
+
+      const r = await jsonp2(url, 25000);
+      if (!r || !r.ok) throw new Error(r?.error || ("Eroare chunk #" + i));
+      showAvatarStatus("Upload: " + (i+1) + "/" + total, false);
+    }
+
+    // 3) finalize (fara token)
+    const finUrl = endpoint + "?fn=meAvatarUploadFinalize"
+      + "&uid=" + encodeURIComponent(uid)
+      + "&uk=" + encodeURIComponent(uk)
+      + "&n=" + total
+      + "&ts=" + Date.now();
+
+    const fin = await jsonp2(finUrl, 45000);
+    if (!fin || !fin.ok) throw new Error(fin?.error || "Finalize error");
+    return String(fin.avatarUrl||"");
+  }
+
   async function bindAvatarSettings(){
     const choose = $("#btnAvatarChoose");
     const save = $("#btnAvatarSave");
@@ -1835,7 +1938,7 @@
           if (!__avatarDataUrl) return;
           save.disabled = true;
           showAvatarStatus("Se urcă avatarul…", false);
-          const url = await uploadAvatarDataUrl(__avatarDataUrl);
+          const url = await uploadAvatarDataUrlV2(__avatarDataUrl);
           const ses = (typeof getEmpSession === "function") ? getEmpSession() : null;
           setAvatarEverywhere(url, ses ? ses.name : "");
           showAvatarStatus("Salvat ✔", false);
