@@ -558,61 +558,19 @@
   }
   function clamp(n,a,b){ return Math.max(a, Math.min(b, n)); }
 
-  function jsonp(url, timeoutMs){
-    timeoutMs = (timeoutMs==null) ? 20000 : Number(timeoutMs);
+  function jsonp(url){
     return new Promise((resolve, reject)=>{
       const cb = "cb_" + Math.random().toString(16).slice(2);
       const s = document.createElement("script");
       let done = false;
 
-      const timer = setTimeout(()=>{
-        if (done) return;
-        done = true;
-        cleanup();
-        reject(new Error("JSONP timeout (src " + (s.src ? s.src.length : 0) + " chars)"));
-      }, timeoutMs);
-
-      window[cb] = (data)=>{
-        if (done) return;
-        done = true;
-        clearTimeout(timer);
-        cleanup();
-        resolve(data);
-      };
-
+      window[cb] = (data)=>{ done = true; cleanup(); resolve(data); };
       function cleanup(){
         try{ delete window[cb]; }catch(e){ window[cb] = undefined; }
         if (s && s.parentNode) s.parentNode.removeChild(s);
       }
-
-      s.onerror = ()=>{
-        if (done) return;
-        done = true;
-        clearTimeout(timer);
-        cleanup();
-        reject(new Error("JSONP error (src " + (s.src ? s.src.length : 0) + " chars)"));
-      };
-
-      // Dacă scriptul se încarcă dar nu apelează callback-ul (ex: răspuns HTML/text),
-      // onload se poate declanșa înainte să se întâmple ceva util.
-      s.onload = ()=>{
-        setTimeout(()=>{
-          if (done) return;
-          done = true;
-          clearTimeout(timer);
-          cleanup();
-          reject(new Error("JSONP no-callback (src " + (s.src ? s.src.length : 0) + " chars)"));
-        }, 0);
-      };
-
+      s.onerror = ()=>{ if (done) return; cleanup(); reject(new Error("JSONP error")); };
       s.src = url + (url.includes("?") ? "&" : "?") + "callback=" + cb;
-      // mică protecție: url prea lung = risc 414 => JSONP error
-      if (s.src.length > 1900){
-        clearTimeout(timer);
-        cleanup();
-        reject(new Error("JSONP URL too long (" + s.src.length + " chars). Micșorează chunk-ul."));
-        return;
-      }
       document.head.appendChild(s);
     });
   }
@@ -1636,6 +1594,13 @@
 
   function setAvatarEverywhere(url, name){
     const ini = initials(name || $("#topName")?.textContent || "");
+    // update in-memory config map so other places render instantly
+    try{
+      window.CFG = window.CFG || {};
+      window.CFG.employeeAvatars = window.CFG.employeeAvatars || {};
+      if (name) window.CFG.employeeAvatars[name] = url || "";
+    }catch(e){}
+
     if (url){
       $("#topAvatarImg").src = url;
       $("#topAvatarImg").style.display = "";
@@ -1754,56 +1719,33 @@
     const mime = m[1];
     const b64 = m[2];
 
-    // convertim doar pentru transport: base64url (fără + / =)
-    const b64url = b64.replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
-
-    // 1) INIT (returnează uid + uk scurt, ca să nu trimitem token la fiecare chunk)
-    const initUrl = endpoint + "?fn=meAvatarUploadInit"
-      + "&token=" + encodeURIComponent(token)
-      + "&mime=" + encodeURIComponent(mime)
-      + "&ts=" + Date.now();
-
-    const init = await jsonp(initUrl);
-    if (!init || !init.ok) throw new Error((init && init.error) ? init.error : "Init error");
-
-    const uid = String(init.uid || "");
-    const uk  = String(init.uk  || "");
-    if (!uid || !uk) throw new Error("Init invalid (uid/uk lipsă).");
-
-    // 2) CHUNK-URI mici (evită 414 / URL prea lung)
-    const probe = endpoint + "?fn=meAvatarUploadChunk"
-      + "&uid=" + encodeURIComponent(uid)
-      + "&uk=" + encodeURIComponent(uk)
-      + "&i=0&n=0&c=&ts=" + Date.now();
-
-    const MAX_SRC = 1800; // foarte sigur pentru <script src>
-    let chunkSize = Math.max(150, Math.min(900, MAX_SRC - probe.length - 60));
-    const total = Math.ceil(b64url.length / chunkSize);
+    const uploadId = "av_" + Math.random().toString(16).slice(2) + "_" + Date.now();
+    const chunkSize = 3500;
+    const total = Math.ceil(b64.length / chunkSize);
 
     for (let i=0;i<total;i++){
-      const part = b64url.slice(i*chunkSize, (i+1)*chunkSize);
+      const part = b64.slice(i*chunkSize, (i+1)*chunkSize);
       const url = endpoint + "?fn=meAvatarUploadChunk"
-        + "&uid=" + encodeURIComponent(uid)
-        + "&uk=" + encodeURIComponent(uk)
-        + "&i=" + i
-        + "&n=" + total
-        + "&c=" + part
+        + "&token=" + encodeURIComponent(token)
+        + "&uploadId=" + encodeURIComponent(uploadId)
+        + "&idx=" + i
+        + "&total=" + total
+        + "&mime=" + encodeURIComponent(mime)
+        + "&chunk=" + encodeURIComponent(part)
         + "&ts=" + Date.now();
-
       const r = await jsonp(url);
       if (!r || !r.ok) throw new Error(r?.error || ("Eroare chunk #" + i));
       showAvatarStatus("Upload: " + (i+1) + "/" + total, false);
     }
 
-    // 3) FINALIZE (salvează în GitHub + update sheet)
     const finUrl = endpoint + "?fn=meAvatarUploadFinalize"
-      + "&uid=" + encodeURIComponent(uid)
-      + "&uk=" + encodeURIComponent(uk)
-      + "&n=" + total
+      + "&token=" + encodeURIComponent(token)
+      + "&uploadId=" + encodeURIComponent(uploadId)
+      + "&total=" + total
       + "&mime=" + encodeURIComponent(mime)
       + "&ts=" + Date.now();
 
-    const fin = await jsonp(finUrl, 45000);
+    const fin = await jsonp(finUrl);
     if (!fin || !fin.ok) throw new Error(fin?.error || "Finalize error");
     return String(fin.avatarUrl||"");
   }
