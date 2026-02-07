@@ -65,7 +65,6 @@
     tbody th{position:sticky;left:0;z-index:6;background:#fff;text-align:left;padding:10px 12px;min-width:260px;border-right:1px solid var(--line)}
     .who{display:flex;align-items:center;gap:10px}
     .av{width:34px;height:34px;border-radius:999px;background:#e9ecff;display:grid;place-items:center;font-weight:800;color:#3a2d71;flex:0 0 auto}
-.avImg{width:100%;height:100%;object-fit:cover;display:block}
     .name{display:flex;flex-direction:column;line-height:1.1}
     .name .n{font-weight:700}
     .name .d{font-size:12px;color:var(--muted)}
@@ -299,9 +298,12 @@
 
     .empCell{display:flex;align-items:center;gap:14px}
     .avatar{
+
       width:40px;height:40px;border-radius:999px;overflow:hidden;
       display:grid;place-items:center;background:#e9ecff;color:#3a2d71;font-weight:900
     }
+    .avatar img{width:100%;height:100%;object-fit:cover;display:block}
+
     .empName{font-weight:800;color:#2f245c}
     .mut{font-size:13px;color:var(--muted);margin-top:2px}
     .statusTxt{font-weight:900}
@@ -540,9 +542,6 @@
   const LS_ADMIN = "pontaj/admin/v1";
   const LS_ADMIN_KEY = "pontaj_adminKey";
 
-  // Avatar map (employeeKey -> url)
-  let __avatarMap = {};
-
   function $(sel){ return document.querySelector(sel); }
 
   function esc(s){
@@ -626,43 +625,59 @@
 
   // ===== helpers =====
   function norm(s){ return String(s||"").trim().toLowerCase(); }
-  function deacc(s){ return (s||"").normalize("NFD").replace(/[\u0300-\u036f]/g, ""); }
-  function keyName(s){ return deacc(norm(s)).replace(/\s+/g," ").trim(); }
+
+  // ===== Avatare (map name -> url) =====
+  let __avatarMap = {};
 
   function avatarUrlFor(name){
-    const k = keyName(name);
-    return (__avatarMap && __avatarMap[k]) ? String(__avatarMap[k]) : "";
+    const n = String(name||"").trim();
+    if (!n) return "";
+    if (__avatarMap && __avatarMap[n]) return String(__avatarMap[n]||"");
+    try{
+      if (CFG && CFG.employeeAvatars && CFG.employeeAvatars[n]) return String(CFG.employeeAvatars[n]||"");
+    }catch(_){}
+    return "";
   }
 
-  async function loadAvatarMap(){
-    // 1) start with config.json fallback
-    __avatarMap = {};
-    try{
-      const m = (CFG && CFG.employeeAvatars) ? CFG.employeeAvatars : {};
-      Object.keys(m || {}).forEach((n)=>{
-        const u = String(m[n] || "").trim();
-        if (u) __avatarMap[keyName(n)] = u;
-      });
-    }catch(e){}
-
-    // 2) refresh from server if we have ADMIN_KEY saved
-    const endpoint = ep();
-    if (!endpoint) return;
-    let key = "";
-    try{ key = String(localStorage.getItem(LS_ADMIN_KEY) || "").trim(); }catch(e){}
-    if (!key) return;
-
-    try{
-      const u = endpoint + "?fn=adminAvatarsMap&key=" + encodeURIComponent(key) + "&ts=" + Date.now();
-      const r = await jsonp(u);
-      if (r && r.ok && r.map){
-        __avatarMap = Object.assign(__avatarMap || {}, r.map || {});
-      }
-    }catch(e){
-      // ignore
+  function avatarHtml(name){
+    const url = avatarUrlFor(name);
+    if (url){
+      return `<div class="avatar"><img src="${esc(url)}" alt=""></div>`;
     }
+    return `<div class="avatar">${initials(name)}</div>`;
   }
 
+  async function loadAvatarMap(endpoint, key){
+    __avatarMap = {};
+    // 1) din config.json (fallback)
+    try{
+      if (CFG && CFG.employeeAvatars){
+        Object.keys(CFG.employeeAvatars).forEach(n=>{
+          const u = CFG.employeeAvatars[n];
+          if (u) __avatarMap[n] = String(u);
+        });
+      }
+    }catch(_){}
+
+    // 2) din backend (dacă avem ADMIN_KEY)
+    try{
+      if (endpoint && key){
+        const u = endpoint + "?fn=adminEmployees&key=" + encodeURIComponent(key) + "&ts=" + Date.now();
+        const data = await jsonp(u);
+        if (data && data.ok && Array.isArray(data.employees)){
+          data.employees.forEach(emp=>{
+            if (emp && emp.name && emp.avatarUrl){
+              __avatarMap[String(emp.name)] = String(emp.avatarUrl);
+            }
+          });
+        }
+      }
+    }catch(_){}
+    return __avatarMap;
+  }
+
+  function deacc(s){ return (s||"").normalize("NFD").replace(/[\u0300-\u036f]/g, ""); }
+  function keyName(s){ return deacc(norm(s)).replace(/\s+/g," ").trim(); }
 
   function tokens(s){
     return keyName(s).split(/[^a-z0-9]+/).filter(Boolean);
@@ -753,7 +768,7 @@
   let LEAVES_VIEW = [];
   let MANAGERS = null; // { keyName(emp): {managerName, managerEmail} }
 
-  async function loadManagersMap(endpoint, key){
+  async async function loadManagersMap(endpoint, key){
     if (MANAGERS) return MANAGERS;
     try{
       const u = endpoint + "?fn=adminManagersMap&key=" + encodeURIComponent(key) + "&ts=" + Date.now();
@@ -817,7 +832,7 @@
   }
 
   // ===== UI render =====
-  function render(ym, admin){
+  async function render(ym, admin){
     const thead = $("#thead");
     const tbody = $("#tbody");
     if (!thead || !tbody) return;
@@ -871,7 +886,7 @@
         <th class="idxC">${rowIdx++}</th>
         <th class="empC">
           <div class="who">
-            <div class="av">${(avatarUrlFor(emp) ? `<img class="avImg" src="${esc(avatarUrlFor(emp))}" alt=""/>` : initials(emp))}</div>
+            <div class="av">${initials(emp)}</div>
             <div class="name">
               <div class="n">${esc(emp)}</div>
               <div class="d">${esc(mgrTxt)}</div>
@@ -950,7 +965,7 @@
         tr.innerHTML = `
           <td>
             <div class="empCell">
-              <div class="avatar">${initials(empName)}</div>
+              ${avatarHtml(empName)}
               <div>
                 <div class="empName">${esc(empName)}</div>
               </div>
@@ -981,7 +996,7 @@
         tr.innerHTML = `
           <td>
             <div class="empCell">
-              <div class="avatar">${initials(empName)}</div>
+              ${avatarHtml(empName)}
               <div>
                 <div class="empName">${esc(empName)}</div>
                 <div class="mut">${esc(per.meta)}</div>
@@ -1070,7 +1085,7 @@
     return `${dd}.${mm}.${yy}`;
   }
 
-  async function decideOne(l, decision){
+  async async function decideOne(l, decision){
     const endpoint = ep();
     if (!endpoint){ setError("Lipsește endpoint în config.json."); return; }
     const key = getAdminKey();
@@ -1149,15 +1164,20 @@
     const box = $(sel);
     if (!box) return;
     box.innerHTML = "";
-    if (!people.length){
+    if (!people || !people.length){
       box.innerHTML = `<div class="muted">—</div>`;
       return;
     }
     people.slice(0,6).forEach(p=>{
+      const url = avatarUrlFor(p);
       const d = document.createElement("div");
       d.className = "av2";
       d.title = p;
-      d.textContent = initials(p);
+      if (url){
+        d.innerHTML = `<img src="${esc(url)}" alt="" style="width:100%;height:100%;object-fit:cover;display:block;border-radius:999px">`;
+      } else {
+        d.textContent = initials(p);
+      }
       box.appendChild(d);
     });
   }
@@ -1206,7 +1226,7 @@
     return Array.from(names);
   }
 
-  async function decide(decision){
+  async async function decide(decision){
     if (!CURRENT || !CURRENT.arr || !CURRENT.arr.length) return;
     const endpoint = ep();
     if (!endpoint){ setError("Lipsește endpoint în config.json."); return; }
@@ -1242,7 +1262,7 @@
   // ===== load month =====
   let CUR_YM = "";
 
-  async function loadMonth(ym){
+  async async function loadMonth(ym){
     setError("");
     const endpoint = ep();
     if(!endpoint){ setError("Lipsește leaveEndpoint/adminEventsEndpoint în config.json."); return; }
@@ -1394,7 +1414,11 @@
   async function init(){
     await loadCFG();
     bind();
-    await loadAvatarMap();
+    try{
+      const endpoint = ep();
+      const key = getAdminKey();
+      await loadAvatarMap(endpoint, key);
+    }catch(_){}
     const ym = $("#monthSel")?.value || ymNow();
     CUR_YM = ym;
     await loadMonth(ym);
