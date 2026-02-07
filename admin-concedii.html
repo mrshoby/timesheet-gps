@@ -143,8 +143,7 @@
     .lvcell .t{font-size:11px; color:rgba(27,27,40,.7); font-weight:800}
     .lvcell .mini{font-size:10px; opacity:.75}
     .lvcell .bang{position:absolute;top:6px;right:6px}
-    .av2{width:40px;height:40px;border-radius:999px;background:#e9ecff;display:grid;place-items:center;font-weight:900;color:#3a2d71;border:2px solid rgba(255,255,255,.7);overflow:hidden}
-    .av2 img{width:100%;height:100%;border-radius:999px;object-fit:cover;display:block}
+    .av2{width:40px;height:40px;border-radius:999px;background:#e9ecff;display:grid;place-items:center;font-weight:900;color:#3a2d71;border:2px solid rgba(255,255,255,.7)}
 
 
     /* ===== Redesign (v15) — calendar ca în 2.png + liste ca în 3.png/4.png ===== */
@@ -302,6 +301,7 @@
       width:40px;height:40px;border-radius:999px;overflow:hidden;
       display:grid;place-items:center;background:#e9ecff;color:#3a2d71;font-weight:900
     }
+    .avatar img,.av2 img{width:100%;height:100%;object-fit:cover;display:block}
     .empName{font-weight:800;color:#2f245c}
     .mut{font-size:13px;color:var(--muted);margin-top:2px}
     .statusTxt{font-weight:900}
@@ -533,7 +533,6 @@
 
 <script>
 (() => {
-  window.__avatarMap = window.__avatarMap || {};
   // ===== Config loading (same smart loader used elsewhere) =====
   const CFG_PATHS = ["./config.json","../config.json","/config.json"];
   let CFG = null;
@@ -622,6 +621,43 @@
     });
   }
 
+  // ===== Avatars map (pentru imagini în listă + modal) =====
+  let __avatarMap = {};
+  window.__avatarMap = window.__avatarMap || __avatarMap;
+
+  function getAvatarUrl(name){
+    try{
+      const n = String(name||"").trim();
+      if (__avatarMap && __avatarMap[n]) return String(__avatarMap[n]);
+      if (CFG && CFG.employeeAvatars && CFG.employeeAvatars[n]) return String(CFG.employeeAvatars[n]);
+    }catch(e){}
+    return "";
+  }
+
+  function avatarHtml(name){
+    const url = getAvatarUrl(name);
+    if (url) return `<img src="${esc(url)}" alt="">`;
+    return esc(initials(name));
+  }
+
+  async function loadAvatarMap(){
+    try{
+      const endpoint = ep();
+      if (!endpoint) return;
+      const key = getAdminKey();
+      if (!key) return;
+      const url = endpoint + "?fn=adminAvatarsMap&key=" + encodeURIComponent(key) + "&ts=" + Date.now();
+      const res = await jsonp(url);
+      if (res && res.ok && res.map){
+        __avatarMap = res.map || {};
+        window.__avatarMap = __avatarMap;
+      }
+    }catch(e){
+      console.warn("adminAvatarsMap failed", e);
+    }
+  }
+
+
   // ===== helpers =====
   function norm(s){ return String(s||"").trim().toLowerCase(); }
   function deacc(s){ return (s||"").normalize("NFD").replace(/[\u0300-\u036f]/g, ""); }
@@ -653,21 +689,6 @@
     const b = parts.length>1 ? parts[parts.length-1][0] : "";
     return (a+b).toUpperCase();
   }
-
-  function getEmpAvatarUrl(empName, leaveObj){
-    try{
-      if (leaveObj && leaveObj.avatarUrl) return String(leaveObj.avatarUrl||'').trim();
-    }catch(_){}
-    try{
-      var k = keyName(empName||'');
-      if (k && window.__avatarMap && window.__avatarMap[k]) return String(window.__avatarMap[k]||'').trim();
-    }catch(_){}
-    try{
-      if (CFG && CFG.employeeAvatars && CFG.employeeAvatars[empName]) return String(CFG.employeeAvatars[empName]||'').trim();
-    }catch(_){}
-    return '';
-  }
-
 
   function pad2(n){ return String(n).padStart(2,"0"); }
   function fmtTime(v){
@@ -744,23 +765,6 @@
     MANAGERS = {};
     return MANAGERS;
   }
-
-  async function loadAvatarsMap(endpoint, key){
-    try{
-      if (!endpoint || !key) return {};
-      // Prefer secured map (EmployeeAuth) if backend supports it
-      const u = endpoint + "?fn=adminAvatarsMap&key=" + encodeURIComponent(key) + "&ts=" + Date.now();
-      const data = await jsonp(u);
-      if (data && data.ok && data.map){
-        window.__avatarMap = window.__avatarMap || {};
-        // map is keyed by employeeKey
-        window.__avatarMap = Object.assign(window.__avatarMap, data.map);
-        return data.map;
-      }
-    }catch(_){}
-    return {};
-  }
-
 
   function enrichLeave(l){
     const emp = String(l.employeeName||"").trim();
@@ -945,7 +949,7 @@
         tr.innerHTML = `
           <td>
             <div class="empCell">
-              <div class="avatar">${initials(empName)}</div>
+              <div class="avatar">${avatarHtml(empName)}</div>
               <div>
                 <div class="empName">${esc(empName)}</div>
               </div>
@@ -976,7 +980,7 @@
         tr.innerHTML = `
           <td>
             <div class="empCell">
-              <div class="avatar">${initials(empName)}</div>
+              <div class="avatar">${avatarHtml(empName)}</div>
               <div>
                 <div class="empName">${esc(empName)}</div>
                 <div class="mut">${esc(per.meta)}</div>
@@ -1149,19 +1153,12 @@
       return;
     }
     people.slice(0,6).forEach(p=>{
-      const name = String(p||"").trim();
-      const url = (window.__avatarMap && window.__avatarMap[name]) ? String(window.__avatarMap[name]) : "";
       const d = document.createElement("div");
       d.className = "av2";
-      d.title = name;
-      if (url){
-        const im = document.createElement("img");
-        im.src = url;
-        im.alt = name;
-        d.appendChild(im);
-      } else {
-        d.textContent = initials(name);
-      }
+      d.title = p;
+      const u = getAvatarUrl(p);
+      if (u){ d.innerHTML = `<img src="${esc(u)}" alt="">`; }
+      else { d.textContent = initials(p); }
       box.appendChild(d);
     });
   }
@@ -1276,9 +1273,6 @@
 
       if (!data || !data.ok) throw new Error(data?.error || "Eroare la încărcare.");
       LEAVES_ALL = Array.isArray(data.list) ? data.list : [];
-      try{
-        (LEAVES_ALL||[]).forEach(l=>{ if(l && l.employeeName && l.avatarUrl){ window.__avatarMap[l.employeeName] = String(l.avatarUrl); } });
-      }catch(e){}
       buildView(admin);
       render(ym, admin);
     }catch(err){
@@ -1401,13 +1395,7 @@
   async function init(){
     await loadCFG();
     bind();
-    try{
-      const s = getAdminSession();
-      const endpoint = ep();
-      const key = getAdminKey();
-      if (endpoint && key) await loadAvatarsMap(endpoint, key);
-    }catch(_){ }
-
+    await loadAvatarMap();
     const ym = $("#monthSel")?.value || ymNow();
     CUR_YM = ym;
     await loadMonth(ym);
