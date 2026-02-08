@@ -395,7 +395,8 @@
       employeeKey: x.employeeKey || x.key || x.usernameHash || "",
       name: x.name || x.employeeName || x.label || "",
       dept: x.dept || x.department || "",
-      active: (x.active === false || String(x.active).toLowerCase()==="false") ? false : true
+      active: (x.active === false || String(x.active).toLowerCase()==="false") ? false : true,
+      avatarUrl: (x.avatarUrl || x.avatarURL || x.AvatarURL || x.avatar || "") || ""
     })).filter(x=>x.name);
   }
 
@@ -478,7 +479,9 @@
     $("#subLine").textContent = `${STATE.filtered.length} angajați • ${fmtPeriod(STATE.from, STATE.to)}${STATE.adminName ? " • " + STATE.adminName : ""}`;
 
     list.innerHTML = STATE.filtered.map(emp=>{
-      const avatarUrl = (CFG.employeeAvatars && CFG.employeeAvatars[emp.name]) ? String(CFG.employeeAvatars[emp.name]) : "";
+      const avatarUrl = (emp.avatarUrl && String(emp.avatarUrl).trim())
+        ? String(emp.avatarUrl).trim()
+        : ((CFG.employeeAvatars && CFG.employeeAvatars[emp.name]) ? String(CFG.employeeAvatars[emp.name]) : "");
       const avatarHtml = avatarUrl
         ? `<img class="aaAvatarImg" src="${esc(avatarUrl)}" alt="">`
         : `<div class="aaAvatar">${esc(initials(emp.name))}</div>`;
