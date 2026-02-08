@@ -279,6 +279,8 @@
       border: 1px solid rgba(108,92,231,.20);
       flex:0 0 auto;
     }
+    .avatar img{width:100%;height:100%;object-fit:cover;border-radius:50%;display:block;}
+
     .emp-meta{display:flex; flex-direction:column; line-height:1.15;}
     .emp-name{ font-weight:900; }
     .emp-dept{ font-size:11px; color: var(--muted); font-weight:700; margin-top:2px; }
@@ -797,14 +799,6 @@
       background: linear-gradient(180deg, rgba(155,127,255,.92), rgba(0,210,255,.45));
     }
 
-
-    /* avatars (img inside) */
-    .avatar img{
-      width:100%;height:100%;border-radius:50%;object-fit:cover;display:block;
-    }
-    .upAvatar img, #upAvatar img{
-      width:100%;height:100%;border-radius:999px;object-fit:cover;display:block;
-    }
 </style>
 </head>
 <body>
@@ -965,6 +959,56 @@ function adminEndpointBase(cfg){
     const raw = cfg.adminEventsEndpoint || cfg.webappUrl || cfg.scriptUrl || '';
     return String(raw || '').replace(/\?.*$/, '').trim();
   }
+
+  // ======= Avatar helpers (global) =======
+  window.__avatarMap = window.__avatarMap || {};
+  function _normKeyName_(s){
+    try{
+      return String(s||'').trim().toLowerCase()
+        .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+        .replace(/\s+/g,' ');
+    }catch(_){
+      return String(s||'').trim().toLowerCase().replace(/\s+/g,' ');
+    }
+  }
+  function _initials2_(name){
+    const parts = String(name||'').trim().split(/\s+/).filter(Boolean);
+    const a = (parts[0]||'')[0]||'';
+    const b = (parts.length>1 ? (parts[parts.length-1]||'')[0] : '') || '';
+    return (a+b).toUpperCase() || '•';
+  }
+  function _avatarUrlFor_(name){
+    const k = _normKeyName_(name);
+    return (window.__avatarMap && window.__avatarMap[k]) ? String(window.__avatarMap[k]||'') : '';
+  }
+  function _avatarInnerHtml_(name, avatarUrl, fallbackInitials){
+    const url = String(avatarUrl || _avatarUrlFor_(name) || '').trim();
+    const ini = String(fallbackInitials || _initials2_(name) || '•');
+    if (url){
+      return `<img src="${escapeHtml(url)}" alt="${escapeHtml(name||'')}" referrerpolicy="no-referrer" onerror="this.remove();">`;
+    }
+    return escapeHtml(ini);
+  }
+  let __avatarsPromise = null;
+  function loadAdminAvatarsMap(){
+    if (__avatarsPromise) return __avatarsPromise;
+    __avatarsPromise = (async ()=>{
+      try{
+        const base = adminEndpointBase(CFG||{});
+        if (!base) return window.__avatarMap || {};
+        const url = base + '?fn=adminAvatarsMap' + _keyQS();
+        const data = await _jsonp(url);
+        if (data && data.ok && data.map){
+          window.__avatarMap = data.map || {};
+        }
+      }catch(err){
+        console.warn('adminAvatarsMap failed', err);
+      }
+      return window.__avatarMap || {};
+    })();
+    return __avatarsPromise;
+  }
+
 
   async function fetchAdminEvents(){
     const base = adminEndpointBase(CFG);
@@ -1358,7 +1402,7 @@ function adminEndpointBase(cfg){
         <td>
           <div class="emp">
             <div class="idx">${idx}</div>
-            <div class="avatar">${_avatarInnerHtml_(r.name, r.initials)}</div>
+            <div class="avatar">${_avatarInnerHtml_(r.name, r.avatarUrl, r.initials)}</div>
             <div class="emp-meta">
               <div class="emp-name">${escapeHtml(r.name)}</div>
               <div class="emp-dept">${escapeHtml(r.dept || '—')}</div>
@@ -1578,53 +1622,6 @@ function adminEndpointBase(cfg){
       }catch(_){}
       return '';
     }
-  // ===== Avatare globale (din sheet: AvatarURL) =====
-  window.__avatarMap = window.__avatarMap || {};
-  function _deacc_(s){
-    return String(s||"")
-      .normalize("NFD").replace(/[\u0300-\u036f]/g,"")
-      .replace(/ș/g,"s").replace(/Ș/g,"S")
-      .replace(/ț/g,"t").replace(/Ț/g,"T")
-      .replace(/ă/g,"a").replace(/Ă/g,"A")
-      .replace(/î/g,"i").replace(/Î/g,"I")
-      .replace(/â/g,"a").replace(/Â/g,"A");
-  }
-  function _keyName_(name){
-    return _deacc_(String(name||"").trim()).toLowerCase().replace(/\s+/g," ");
-  }
-  function _getEmpAvatarUrl_(name){
-    const k = _keyName_(name);
-    const m = window.__avatarMap || {};
-    return (k && m[k]) ? String(m[k]) : "";
-  }
-  function _avatarInnerHtml_(name, fallbackInitials){
-    const url = _getEmpAvatarUrl_(name);
-    if (url) return `<img src="${escapeHtml(url)}" alt="">`;
-    return escapeHtml(fallbackInitials || "");
-  }
-  function _setAvatarEl_(el, name, fallbackInitials){
-    const url = _getEmpAvatarUrl_(name);
-    if (url){
-      el.innerHTML = `<img src="${escapeHtml(url)}" alt="">`;
-    }else{
-      el.textContent = fallbackInitials || "";
-    }
-  }
-  async function _loadAvatarMap_(){
-    try{
-      const base = _webappBase();
-      const key = _getAdminKey();
-      if (!base || !key) return;
-      const res = await _jsonp(base + '?fn=adminAvatarsMap&key=' + encodeURIComponent(key));
-      if (res && res.ok && res.map){
-        window.__avatarMap = Object.assign(window.__avatarMap||{}, res.map||{});
-      }
-    }catch(err){
-      console.warn('adminAvatarsMap failed', err);
-    }
-  }
-
-
 
 // ===== Mini User Panel PRO (mov) =====
     // (ADMINS is defined at IIFE scope)
@@ -2314,10 +2311,7 @@ function adminEndpointBase(cfg){
           extraH: ev.extraH || ev.extra || ev['Extra (h)'] || '',
           dept: ev.dept || ev.Departament || UP.dept || '',
           _expanded: false
-        })).filter(ev => ev.time);{
-        const elA = qs('#upAvatar');
-        _setAvatarEl_(elA, UP.name, _upInit());
-      }
+        })).filter(ev => ev.time);qs('#upAvatar').innerHTML = _avatarInnerHtml_(UP.name, null, _upInit());
         qs('#upEmpEmail').textContent = UP.email || '—';
         qs('#upEmpChat').textContent = (UP.chat && String(UP.chat).trim()) ? String(UP.chat).trim() : '—';
         qs('#upEmpDept').textContent = UP.dept || '—';
@@ -2641,9 +2635,6 @@ document.documentElement.classList.remove('upLockScroll');
     _wirePanel();
 
     async function refresh(){
-    // update avatar map (best-effort)
-    _loadAvatarMap_();
-
       qs('#loading').style.display = '';
       qs('#content').style.display = 'none';
 
@@ -2654,6 +2645,9 @@ document.documentElement.classList.remove('upLockScroll');
         // load admins list + managers map AFTER config is available
         await _loadAdminAuth();
         await _loadManagersMap();
+
+        // load avatar map (for global avatars)
+        await loadAdminAvatarsMap();
 
         const data = await fetchAdminEvents();
         ALL_EVENTS = buildIndices(data.events);
@@ -2669,7 +2663,6 @@ document.documentElement.classList.remove('upLockScroll');
       }
     }
 
-    await _loadAvatarMap_();
     await refresh();
   }
 
