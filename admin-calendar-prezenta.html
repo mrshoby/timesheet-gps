@@ -101,6 +101,8 @@
       width:28px;height:28px;border-radius:10px;background:var(--bg);
       display:flex;align-items:center;justify-content:center;font-weight:900;color:#3b3f55;border:1px solid var(--line)
     }
+    .empBubble img{width:100%;height:100%;object-fit:cover;border-radius:10px;display:block;}
+    .ava img{width:100%;height:100%;object-fit:cover;border-radius:999px;display:block;}
     .empName{font-weight:850}
     .empDept{font-size:12px;color:var(--muted);margin-top:2px}
 
@@ -301,11 +303,7 @@
     .lmNote{width:100%;padding:10px 12px;border-radius:14px;border:1px solid rgba(105,112,160,.22);font-weight:800;outline:none}
     .lmFoot{padding:12px 16px;border-top:1px solid rgba(105,112,160,.16);display:flex;justify-content:flex-end;gap:10px;background:#fff}
     
-  
-    /* avatars (img inside) */
-    .empBubble img{width:100%;height:100%;border-radius:999px;object-fit:cover;display:block;}
-    .ava img{width:100%;height:100%;border-radius:999px;object-fit:cover;display:block;}
-</style>
+  </style>
 </head>
 <body>
   <div class="wrap">
@@ -472,52 +470,52 @@ window.addEventListener('DOMContentLoaded', () => {
     const b = (parts.length>1 ? (parts[parts.length-1]||"")[0] : "") || "";
     return (a+b).toUpperCase() || "U";
   }
-  // ===== Avatare globale (din sheet: AvatarURL) =====
-  window.__avatarMap = window.__avatarMap || {};
-  function _deacc_(s){
-    return String(s||"")
-      .normalize("NFD").replace(/[\u0300-\u036f]/g,"")
-      .replace(/ș/g,"s").replace(/Ș/g,"S")
-      .replace(/ț/g,"t").replace(/Ț/g,"T")
-      .replace(/ă/g,"a").replace(/Ă/g,"A")
-      .replace(/î/g,"i").replace(/Î/g,"I")
-      .replace(/â/g,"a").replace(/Â/g,"A");
-  }
-  function keyName(name){
-    return _deacc_(String(name||"").trim()).toLowerCase().replace(/\s+/g," ");
-  }
-  function peekAdminKey(){
-    try{ return (localStorage.getItem(LS_ADMIN_KEY) || "").trim(); }catch(e){ return ""; }
-  }
-  function getEmpAvatarUrl(name){
-    const k = keyName(name);
-    const m = window.__avatarMap || {};
-    return (k && m[k]) ? String(m[k]) : "";
-  }
-  async function loadAvatarMap(){
+
+  // ====== Avatare (global) ======
+  let AVATAR_MAP = {};
+  function normKeyName(s){
     try{
-      const key = peekAdminKey();
-      const base = ep();
-      if (!key || !base) return;
-      const res = await jsonp(base + "?fn=adminAvatarsMap&key=" + encodeURIComponent(key) + "&ts=" + Date.now());
-      if (res && res.ok && res.map){
-        window.__avatarMap = Object.assign(window.__avatarMap||{}, res.map||{});
-      }
-    }catch(err){
-      console.warn("adminAvatarsMap failed", err);
+      return String(s||"").trim().toLowerCase()
+        .normalize("NFD").replace(/[\u0300-\u036f]/g,"")
+        .replace(/\s+/g," ");
+    }catch(_){
+      return String(s||"").trim().toLowerCase().replace(/\s+/g," ");
     }
   }
-  function avatarHtml(name){
-    const url = getEmpAvatarUrl(name);
-    if (url) return `<img src="${escapeHtml(url)}" alt="">`;
+  function avatarUrlFor(name){
+    const k = normKeyName(name);
+    return (AVATAR_MAP && AVATAR_MAP[k]) ? String(AVATAR_MAP[k]||"") : "";
+  }
+  function avatarBubbleInner(name){
+    const url = avatarUrlFor(name);
+    if (url){
+      return `<img src="${escapeHtml(url)}" alt="" referrerpolicy="no-referrer" onerror="this.remove();">`;
+    }
     return escapeHtml(initials(name));
   }
-  function setAvatarEl(el, name){
-    const url = getEmpAvatarUrl(name);
-    if (url) el.innerHTML = `<img src="${escapeHtml(url)}" alt="">`;
-    else el.textContent = initials(name);
+  let _avatarsPromise = null;
+  function loadAvatarMapSoft(){
+    if (_avatarsPromise) return _avatarsPromise;
+    _avatarsPromise = (async ()=>{
+      try{
+        const baseRaw = ep() || "";
+        const base = String(baseRaw).replace(/\?.*$/,"").trim();
+        if (!base) return AVATAR_MAP;
+        let key = "";
+        try{ key = (localStorage.getItem("ADMIN_KEY") || localStorage.getItem(LS_ADMIN_KEY) || "").trim(); }catch(e){}
+        if (!key) return AVATAR_MAP;
+        const url = base + "?fn=adminAvatarsMap&key=" + encodeURIComponent(key);
+        const data = await jsonp(url);
+        if (data && data.ok && data.map){
+          AVATAR_MAP = data.map || {};
+        }
+      }catch(err){
+        console.warn("adminAvatarsMap failed", err);
+      }
+      return AVATAR_MAP;
+    })();
+    return _avatarsPromise;
   }
-
 
   function parseIso(ts){
     const d = new Date(ts);
@@ -930,7 +928,7 @@ window.addEventListener('DOMContentLoaded', () => {
         <td class="stickyL">${idx+1}</td>
         <td class="stickyL2">
           <div class="empCell">
-            <div class="empBubble">${avatarHtml(row.name)}</div>
+            <div class="empBubble">${avatarBubbleInner(row.name)}</div>
             <div>
               <div class="empName">${escapeHtml(row.name)}</div>
               <div class="empDept">${escapeHtml(row.dept || "—")}</div>
@@ -982,7 +980,7 @@ window.addEventListener('DOMContentLoaded', () => {
   function setMiniUI(name, day){
     MP.name = name;
     MP.day = day;
-    setAvatarEl(document.getElementById("mpAva"), name);
+    document.getElementById("mpAva").innerHTML = avatarBubbleInner(name);
     document.getElementById("mpTitle").textContent = name;
     document.getElementById("mpSub").textContent = "User Panel (admin) — editare rapidă";
     document.getElementById("mpDay").textContent = day;
@@ -1165,8 +1163,8 @@ window.addEventListener('DOMContentLoaded', () => {
     try{
       requireAdmin();
       await loadConfig();
-      await loadAvatarMap();
       await buildRoster();
+      await loadAvatarMapSoft();
 
       const now = new Date();
       YM = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
