@@ -797,6 +797,14 @@
       background: linear-gradient(180deg, rgba(155,127,255,.92), rgba(0,210,255,.45));
     }
 
+
+    /* avatars (img inside) */
+    .avatar img{
+      width:100%;height:100%;border-radius:50%;object-fit:cover;display:block;
+    }
+    .upAvatar img, #upAvatar img{
+      width:100%;height:100%;border-radius:999px;object-fit:cover;display:block;
+    }
 </style>
 </head>
 <body>
@@ -1350,7 +1358,7 @@ function adminEndpointBase(cfg){
         <td>
           <div class="emp">
             <div class="idx">${idx}</div>
-            <div class="avatar">${escapeHtml(r.initials)}</div>
+            <div class="avatar">${_avatarInnerHtml_(r.name, r.initials)}</div>
             <div class="emp-meta">
               <div class="emp-name">${escapeHtml(r.name)}</div>
               <div class="emp-dept">${escapeHtml(r.dept || '—')}</div>
@@ -1570,6 +1578,53 @@ function adminEndpointBase(cfg){
       }catch(_){}
       return '';
     }
+  // ===== Avatare globale (din sheet: AvatarURL) =====
+  window.__avatarMap = window.__avatarMap || {};
+  function _deacc_(s){
+    return String(s||"")
+      .normalize("NFD").replace(/[\u0300-\u036f]/g,"")
+      .replace(/ș/g,"s").replace(/Ș/g,"S")
+      .replace(/ț/g,"t").replace(/Ț/g,"T")
+      .replace(/ă/g,"a").replace(/Ă/g,"A")
+      .replace(/î/g,"i").replace(/Î/g,"I")
+      .replace(/â/g,"a").replace(/Â/g,"A");
+  }
+  function _keyName_(name){
+    return _deacc_(String(name||"").trim()).toLowerCase().replace(/\s+/g," ");
+  }
+  function _getEmpAvatarUrl_(name){
+    const k = _keyName_(name);
+    const m = window.__avatarMap || {};
+    return (k && m[k]) ? String(m[k]) : "";
+  }
+  function _avatarInnerHtml_(name, fallbackInitials){
+    const url = _getEmpAvatarUrl_(name);
+    if (url) return `<img src="${escapeHtml(url)}" alt="">`;
+    return escapeHtml(fallbackInitials || "");
+  }
+  function _setAvatarEl_(el, name, fallbackInitials){
+    const url = _getEmpAvatarUrl_(name);
+    if (url){
+      el.innerHTML = `<img src="${escapeHtml(url)}" alt="">`;
+    }else{
+      el.textContent = fallbackInitials || "";
+    }
+  }
+  async function _loadAvatarMap_(){
+    try{
+      const base = _webappBase();
+      const key = _getAdminKey();
+      if (!base || !key) return;
+      const res = await _jsonp(base + '?fn=adminAvatarsMap&key=' + encodeURIComponent(key));
+      if (res && res.ok && res.map){
+        window.__avatarMap = Object.assign(window.__avatarMap||{}, res.map||{});
+      }
+    }catch(err){
+      console.warn('adminAvatarsMap failed', err);
+    }
+  }
+
+
 
 // ===== Mini User Panel PRO (mov) =====
     // (ADMINS is defined at IIFE scope)
@@ -2259,7 +2314,10 @@ function adminEndpointBase(cfg){
           extraH: ev.extraH || ev.extra || ev['Extra (h)'] || '',
           dept: ev.dept || ev.Departament || UP.dept || '',
           _expanded: false
-        })).filter(ev => ev.time);qs('#upAvatar').textContent = _upInit();
+        })).filter(ev => ev.time);{
+        const elA = qs('#upAvatar');
+        _setAvatarEl_(elA, UP.name, _upInit());
+      }
         qs('#upEmpEmail').textContent = UP.email || '—';
         qs('#upEmpChat').textContent = (UP.chat && String(UP.chat).trim()) ? String(UP.chat).trim() : '—';
         qs('#upEmpDept').textContent = UP.dept || '—';
@@ -2583,6 +2641,9 @@ document.documentElement.classList.remove('upLockScroll');
     _wirePanel();
 
     async function refresh(){
+    // update avatar map (best-effort)
+    _loadAvatarMap_();
+
       qs('#loading').style.display = '';
       qs('#content').style.display = 'none';
 
@@ -2608,6 +2669,7 @@ document.documentElement.classList.remove('upLockScroll');
       }
     }
 
+    await _loadAvatarMap_();
     await refresh();
   }
 
