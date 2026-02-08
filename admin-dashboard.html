@@ -279,8 +279,6 @@
       border: 1px solid rgba(108,92,231,.20);
       flex:0 0 auto;
     }
-    .avatar img{width:100%;height:100%;object-fit:cover;border-radius:50%;display:block;}
-
     .emp-meta{display:flex; flex-direction:column; line-height:1.15;}
     .emp-name{ font-weight:900; }
     .emp-dept{ font-size:11px; color: var(--muted); font-weight:700; margin-top:2px; }
@@ -949,7 +947,20 @@
     try{
       const cfg = window.CFG || {};
       const k = (cfg && cfg.adminKey) ? String(cfg.adminKey) : '';
-      const ls = (localStorage.getItem('ADMIN_KEY') || localStorage.getItem('pontaj_adminKey') || '');
+      let ls =
+        localStorage.getItem('ADMIN_KEY')
+        || localStorage.getItem('pontaj_adminKey')
+        || localStorage.getItem('pontaj/adminKey')
+        || localStorage.getItem('pontajAdminKey')
+        || '';
+      // optional: if stored inside pontaj/admin/v1
+      try{
+        const s = localStorage.getItem('pontaj/admin/v1');
+        if (s){
+          const o = JSON.parse(s);
+          if (o && (o.key || o.adminKey)) ls = ls || String(o.key || o.adminKey || '');
+        }
+      }catch(_){}
       const key = (k || ls || '').trim();
       return key ? ('&key=' + encodeURIComponent(key)) : '';
     }catch(_){ return ''; }
@@ -960,8 +971,9 @@ function adminEndpointBase(cfg){
     return String(raw || '').replace(/\?.*$/, '').trim();
   }
 
-  // ======= Avatar helpers (global) =======
+  // ======= Avatar helpers (global, live from Sheet -> GitHub URLs) =======
   window.__avatarMap = window.__avatarMap || {};
+
   function _normKeyName_(s){
     try{
       return String(s||'').trim().toLowerCase()
@@ -971,16 +983,19 @@ function adminEndpointBase(cfg){
       return String(s||'').trim().toLowerCase().replace(/\s+/g,' ');
     }
   }
+
   function _initials2_(name){
     const parts = String(name||'').trim().split(/\s+/).filter(Boolean);
     const a = (parts[0]||'')[0]||'';
     const b = (parts.length>1 ? (parts[parts.length-1]||'')[0] : '') || '';
     return (a+b).toUpperCase() || '•';
   }
+
   function _avatarUrlFor_(name){
     const k = _normKeyName_(name);
     return (window.__avatarMap && window.__avatarMap[k]) ? String(window.__avatarMap[k]||'') : '';
   }
+
   function _avatarInnerHtml_(name, avatarUrl, fallbackInitials){
     const url = String(avatarUrl || _avatarUrlFor_(name) || '').trim();
     const ini = String(fallbackInitials || _initials2_(name) || '•');
@@ -989,14 +1004,45 @@ function adminEndpointBase(cfg){
     }
     return escapeHtml(ini);
   }
+
   let __avatarsPromise = null;
-  function loadAdminAvatarsMap(){
-    if (__avatarsPromise) return __avatarsPromise;
+  let __avatarsKey = '';
+  let __avatarsLoadedAt = 0;
+
+  function loadAdminAvatarsMap(opts){
+    opts = opts || {};
+    const cfg = window.CFG || {};
+    const key = String(
+      (cfg.adminKey)
+      || localStorage.getItem('ADMIN_KEY')
+      || localStorage.getItem('pontaj_adminKey')
+      || localStorage.getItem('pontaj/adminKey')
+      || localStorage.getItem('pontajAdminKey')
+      || ''
+    ).trim();
+
+    // If key isn't ready yet, don't "lock" into an empty cached promise.
+    if (!key){
+      __avatarsPromise = null;
+      return Promise.resolve(window.__avatarMap || {});
+    }
+
+    const now = Date.now();
+    const force = !!opts.force;
+    const ttlMs = Number(opts.ttlMs || 60000);
+
+    if (!force && __avatarsPromise && __avatarsKey === key && (now - __avatarsLoadedAt) < ttlMs){
+      return __avatarsPromise;
+    }
+
+    __avatarsKey = key;
+    __avatarsLoadedAt = now;
+
     __avatarsPromise = (async ()=>{
       try{
         const base = adminEndpointBase(CFG||{});
         if (!base) return window.__avatarMap || {};
-        const url = base + '?fn=adminAvatarsMap' + _keyQS();
+        const url = base + '?fn=adminAvatarsMap&key=' + encodeURIComponent(key) + '&ts=' + now;
         const data = await _jsonp(url);
         if (data && data.ok && data.map){
           window.__avatarMap = data.map || {};
@@ -1006,8 +1052,10 @@ function adminEndpointBase(cfg){
       }
       return window.__avatarMap || {};
     })();
+
     return __avatarsPromise;
   }
+
 
 
   async function fetchAdminEvents(){
@@ -2646,8 +2694,8 @@ document.documentElement.classList.remove('upLockScroll');
         await _loadAdminAuth();
         await _loadManagersMap();
 
-        // load avatar map (for global avatars)
-        await loadAdminAvatarsMap();
+        // load avatar map (live from Sheet)
+        await loadAdminAvatarsMap({force:true});
 
         const data = await fetchAdminEvents();
         ALL_EVENTS = buildIndices(data.events);
