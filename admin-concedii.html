@@ -301,7 +301,6 @@
       width:40px;height:40px;border-radius:999px;overflow:hidden;
       display:grid;place-items:center;background:#e9ecff;color:#3a2d71;font-weight:900
     }
-    .avatar img,.av2 img{width:100%;height:100%;object-fit:cover;display:block}
     .empName{font-weight:800;color:#2f245c}
     .mut{font-size:13px;color:var(--muted);margin-top:2px}
     .statusTxt{font-weight:900}
@@ -372,6 +371,11 @@
       .stab{ font-size: 18px; }
     }
 
+
+    /* avatars (img inside) */
+    .av img{width:100%;height:100%;border-radius:999px;object-fit:cover;display:block;}
+    .avatar img{width:100%;height:100%;border-radius:999px;object-fit:cover;display:block;}
+    .av2 img{width:100%;height:100%;border-radius:999px;object-fit:cover;display:block;}
 </style>
 </head>
 <body>
@@ -621,43 +625,6 @@
     });
   }
 
-  // ===== Avatars map (pentru imagini în listă + modal) =====
-  let __avatarMap = {};
-  window.__avatarMap = window.__avatarMap || __avatarMap;
-
-  function getAvatarUrl(name){
-    try{
-      const n = String(name||"").trim();
-      if (__avatarMap && __avatarMap[n]) return String(__avatarMap[n]);
-      if (CFG && CFG.employeeAvatars && CFG.employeeAvatars[n]) return String(CFG.employeeAvatars[n]);
-    }catch(e){}
-    return "";
-  }
-
-  function avatarHtml(name){
-    const url = getAvatarUrl(name);
-    if (url) return `<img src="${esc(url)}" alt="">`;
-    return esc(initials(name));
-  }
-
-  async function loadAvatarMap(){
-    try{
-      const endpoint = ep();
-      if (!endpoint) return;
-      const key = getAdminKey();
-      if (!key) return;
-      const url = endpoint + "?fn=adminAvatarsMap&key=" + encodeURIComponent(key) + "&ts=" + Date.now();
-      const res = await jsonp(url);
-      if (res && res.ok && res.map){
-        __avatarMap = res.map || {};
-        window.__avatarMap = __avatarMap;
-      }
-    }catch(e){
-      console.warn("adminAvatarsMap failed", e);
-    }
-  }
-
-
   // ===== helpers =====
   function norm(s){ return String(s||"").trim().toLowerCase(); }
   function deacc(s){ return (s||"").normalize("NFD").replace(/[\u0300-\u036f]/g, ""); }
@@ -689,6 +656,48 @@
     const b = parts.length>1 ? parts[parts.length-1][0] : "";
     return (a+b).toUpperCase();
   }
+  // ===== Avatare globale (din sheet: AvatarURL) =====
+  window.__avatarMap = window.__avatarMap || {};
+  function _deacc_(s){
+    return String(s||"")
+      .normalize("NFD").replace(/[\u0300-\u036f]/g,"")
+      .replace(/ș/g,"s").replace(/Ș/g,"S")
+      .replace(/ț/g,"t").replace(/Ț/g,"T")
+      .replace(/ă/g,"a").replace(/Ă/g,"A")
+      .replace(/î/g,"i").replace(/Î/g,"I")
+      .replace(/â/g,"a").replace(/Â/g,"A");
+  }
+  function keyName(name){
+    return _deacc_(String(name||"").trim()).toLowerCase().replace(/\s+/g," ");
+  }
+  function peekAdminKey(){
+    try{ return (localStorage.getItem(LS_ADMIN_KEY) || "").trim(); }catch(e){ return ""; }
+  }
+  function getEmpAvatarUrl(name){
+    const k = keyName(name);
+    const m = window.__avatarMap || {};
+    return (k && m[k]) ? String(m[k]) : "";
+  }
+  async function loadAvatarMap(){
+    try{
+      const key = peekAdminKey();
+      const base = ep();
+      if (!key || !base) return;
+      const res = await jsonp(base + "?fn=adminAvatarsMap&key=" + encodeURIComponent(key) + "&ts=" + Date.now());
+      if (res && res.ok && res.map){
+        window.__avatarMap = Object.assign(window.__avatarMap||{}, res.map||{});
+      }
+    }catch(err){
+      console.warn("adminAvatarsMap failed", err);
+    }
+  }
+  function avatarHtml(name){
+    const url = getEmpAvatarUrl(name);
+    if (url) return `<img src="${esc(url)}" alt="">`;
+    return esc(initials(name));
+  }
+
+
 
   function pad2(n){ return String(n).padStart(2,"0"); }
   function fmtTime(v){
@@ -870,7 +879,7 @@
         <th class="idxC">${rowIdx++}</th>
         <th class="empC">
           <div class="who">
-            <div class="av">${initials(emp)}</div>
+            <div class="av">${avatarHtml(emp)}</div>
             <div class="name">
               <div class="n">${esc(emp)}</div>
               <div class="d">${esc(mgrTxt)}</div>
@@ -1156,9 +1165,16 @@
       const d = document.createElement("div");
       d.className = "av2";
       d.title = p;
-      const u = getAvatarUrl(p);
-      if (u){ d.innerHTML = `<img src="${esc(u)}" alt="">`; }
-      else { d.textContent = initials(p); }
+      const url = getEmpAvatarUrl(p);
+      if (url){
+        const img = document.createElement("img");
+        img.src = url;
+        img.alt = "";
+        d.textContent = "";
+        d.appendChild(img);
+      }else{
+        d.textContent = initials(p);
+      }
       box.appendChild(d);
     });
   }
