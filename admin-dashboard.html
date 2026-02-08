@@ -970,26 +970,68 @@ function adminEndpointBase(cfg){
       return String(s||'').trim().toLowerCase().replace(/\s+/g,' ');
     }
   }
+  function _normKeyAny_(s){
+    const raw = String(s||'').trim();
+    const lower = raw.toLowerCase();
+    const normName = _normKeyName_(raw);
+    return { raw, lower, normName };
+  }
   function _initials2_(name){
     const parts = String(name||'').trim().split(/\s+/).filter(Boolean);
     const a = (parts[0]||'')[0]||'';
     const b = (parts.length>1 ? (parts[parts.length-1]||'')[0] : '') || '';
     return (a+b).toUpperCase() || '•';
   }
-  function _avatarUrlFor_(name){
-    const k = _normKeyName_(name);
-    return (window.__avatarMap && window.__avatarMap[k]) ? String(window.__avatarMap[k]||'') : '';
+
+  function _normalizeAvatarUrl_(url){
+    url = String(url||'').trim();
+    if (!url) return '';
+    // Support GitHub "blob" links by converting to raw.githubusercontent.com
+    try{
+      let m = url.match(/^https?:\/\/github\.com\/([^\/]+)\/([^\/]+)\/blob\/([^\/]+)\/(.+)$/i);
+      if (m){
+        url = 'https://raw.githubusercontent.com/' + m[1] + '/' + m[2] + '/' + m[3] + '/' + m[4];
+      } else {
+        m = url.match(/^https?:\/\/github\.com\/([^\/]+)\/([^\/]+)\/raw\/([^\/]+)\/(.+)$/i);
+        if (m){
+          url = 'https://raw.githubusercontent.com/' + m[1] + '/' + m[2] + '/' + m[3] + '/' + m[4];
+        }
+      }
+    }catch(_){}
+    return url;
   }
-  function _avatarInnerHtml_(name, avatarUrl, fallbackInitials){
-    const ini = String(fallbackInitials || _initials2_(name) || '•');
-    const mapUrl = String(_avatarUrlFor_(name) || '').trim();
-    const url = String(mapUrl || avatarUrl || '').trim();
+
+  function _avatarUrlFor_(keyOrName){
+    const s = String(keyOrName||'').trim();
+    if (!s) return '';
+    const mp = window.__avatarMap || {};
+    const k = _normKeyAny_(s);
+    // try exact keys first (email keys are usually stored as lowercase)
+    const hit = mp[k.lower] || mp[k.normName] || mp[s] || '';
+    return String(hit || '').trim();
+  }
+
+  // keyOrName may be email/employeeKey OR display name.
+  // displayName is optional; used for alt/initials.
+  function _avatarInnerHtml_(keyOrName, avatarUrl, fallbackInitials, displayName){
+    const disp = String(displayName || keyOrName || '').trim();
+    const ini = String(fallbackInitials || _initials2_(disp) || '•');
+
+    const mapUrl = String(_avatarUrlFor_(keyOrName) || _avatarUrlFor_(disp) || '').trim();
+    let url = String(mapUrl || avatarUrl || '').trim();
+    url = _normalizeAvatarUrl_(url);
+
     if (url){
+      // one cache-bust per page load (helps after avatar update)
+      const bust = (window.__AVATAR_BUST__ || (window.__AVATAR_BUST__ = Date.now()));
+      const src = url + (url.includes('?') ? '&' : '?') + 'v=' + bust;
+
       const fb = escapeHtml(ini);
-      return `<img src="${escapeHtml(url)}" alt="${escapeHtml(name||'')}" referrerpolicy="no-referrer" data-fb="${fb}" onerror="this.onerror=null;this.replaceWith(document.createTextNode(this.getAttribute('data-fb')||'•'));">`;
+      return `<img src="${escapeHtml(src)}" alt="${escapeHtml(disp||'')}" referrerpolicy="no-referrer" data-fb="${fb}" onerror="this.onerror=null;this.replaceWith(document.createTextNode(this.getAttribute('data-fb')||'•'));">`;
     }
     return escapeHtml(ini);
   }
+
   let __avatarsPromise = null;
   function loadAdminAvatarsMap(force){
     if (force) __avatarsPromise = null;
@@ -1404,7 +1446,7 @@ function adminEndpointBase(cfg){
         <td>
           <div class="emp">
             <div class="idx">${idx}</div>
-            <div class="avatar">${_avatarInnerHtml_(r.name, r.avatarUrl, r.initials)}</div>
+            <div class="avatar">${_avatarInnerHtml_(r.key || r.email || r.name, r.avatarUrl, r.initials, r.name)}</div>
             <div class="emp-meta">
               <div class="emp-name">${escapeHtml(r.name)}</div>
               <div class="emp-dept">${escapeHtml(r.dept || '—')}</div>
@@ -1545,6 +1587,9 @@ function adminEndpointBase(cfg){
 
       return {
         name: emp.name || emp.email,
+        key: emp.key || (emp.email||'').toLowerCase() || (emp.name||'').toLowerCase(),
+        email: emp.email || '',
+        avatarUrl: _avatarUrlFor_(emp.key || emp.email || emp.name) || '',
         dept: emp.dept,
         manager: (emp.isAdmin ? 'Admin' : (emp.manager || emp.managerEmail || '—')),
         initials,
@@ -2313,7 +2358,7 @@ function adminEndpointBase(cfg){
           extraH: ev.extraH || ev.extra || ev['Extra (h)'] || '',
           dept: ev.dept || ev.Departament || UP.dept || '',
           _expanded: false
-        })).filter(ev => ev.time);qs('#upAvatar').innerHTML = _avatarInnerHtml_(UP.name, null, _upInit());
+        })).filter(ev => ev.time);qs('#upAvatar').innerHTML = _avatarInnerHtml_(UP.email || UP.name, null, _upInit(), UP.name);
         qs('#upEmpEmail').textContent = UP.email || '—';
         qs('#upEmpChat').textContent = (UP.chat && String(UP.chat).trim()) ? String(UP.chat).trim() : '—';
         qs('#upEmpDept').textContent = UP.dept || '—';
