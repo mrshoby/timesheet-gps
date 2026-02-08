@@ -279,7 +279,9 @@
       border: 1px solid rgba(108,92,231,.20);
       flex:0 0 auto;
     }
-    .emp-meta{display:flex; flex-direction:column; line-height:1.15;}
+        .avatar img{width:100%;height:100%;object-fit:cover;border-radius:50%;display:block;}
+    .upAvatar img{width:100%;height:100%;object-fit:cover;border-radius:50%;display:block;}
+.emp-meta{display:flex; flex-direction:column; line-height:1.15;}
     .emp-name{ font-weight:900; }
     .emp-dept{ font-size:11px; color: var(--muted); font-weight:700; margin-top:2px; }
 
@@ -945,25 +947,11 @@
   
   function _keyQS(){
     try{
-      const cfg = window.CFG || {};
-      const k = (cfg && cfg.adminKey) ? String(cfg.adminKey) : '';
-      let ls =
-        localStorage.getItem('ADMIN_KEY')
-        || localStorage.getItem('pontaj_adminKey')
-        || localStorage.getItem('pontaj/adminKey')
-        || localStorage.getItem('pontajAdminKey')
-        || '';
-      // optional: if stored inside pontaj/admin/v1
-      try{
-        const s = localStorage.getItem('pontaj/admin/v1');
-        if (s){
-          const o = JSON.parse(s);
-          if (o && (o.key || o.adminKey)) ls = ls || String(o.key || o.adminKey || '');
-        }
-      }catch(_){}
-      const key = (k || ls || '').trim();
-      return key ? ('&key=' + encodeURIComponent(key)) : '';
-    }catch(_){ return ''; }
+      const k = (typeof _getAdminKey === 'function') ? String(_getAdminKey()||'').trim() : '';
+      return k ? ('&key=' + encodeURIComponent(k)) : '';
+    }catch(_){
+      return '';
+    }
   }
 
 function adminEndpointBase(cfg){
@@ -971,24 +959,30 @@ function adminEndpointBase(cfg){
     return String(raw || '').replace(/\?.*$/, '').trim();
   }
 
-  // ======= Avatar helpers (global, live from Sheet -> GitHub URLs) =======
+
+  // ======= Avatars (global) =======
   window.__avatarMap = window.__avatarMap || {};
+  let __avatarsPromise = null;
 
   function _normKeyName_(s){
     try{
       return String(s||'').trim().toLowerCase()
         .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
-        .replace(/\s+/g,' ');
+        .replace(/\s+/g,' ')
+        .replace(/[^a-z0-9\s._-]/g,'')
+        .trim();
     }catch(_){
-      return String(s||'').trim().toLowerCase().replace(/\s+/g,' ');
+      return String(s||'').trim().toLowerCase().replace(/\s+/g,' ').trim();
     }
   }
 
   function _initials2_(name){
-    const parts = String(name||'').trim().split(/\s+/).filter(Boolean);
-    const a = (parts[0]||'')[0]||'';
-    const b = (parts.length>1 ? (parts[parts.length-1]||'')[0] : '') || '';
-    return (a+b).toUpperCase() || '•';
+    const s = String(name||'').trim().replace(/\s+/g,' ');
+    if (!s) return '•';
+    const parts = s.split(' ').filter(Boolean);
+    const a = parts[0] ? parts[0][0] : '';
+    const b = parts.length>1 ? parts[parts.length-1][0] : (parts[0] && parts[0].length>1 ? parts[0][1] : '');
+    return (String(a||'') + String(b||'')).toUpperCase() || '•';
   }
 
   function _avatarUrlFor_(name){
@@ -997,7 +991,6 @@ function adminEndpointBase(cfg){
   }
 
   function _avatarInnerHtml_(name, avatarUrl, fallbackInitials){
-    const url = String(avatarUrl || _avatarUrlFor_(name) || '').trim();
     const ini = String(fallbackInitials || _initials2_(name) || '•');
     if (url){
       return `<img src="${escapeHtml(url)}" alt="${escapeHtml(name||'')}" referrerpolicy="no-referrer" onerror="this.remove();">`;
@@ -1005,45 +998,24 @@ function adminEndpointBase(cfg){
     return escapeHtml(ini);
   }
 
-  let __avatarsPromise = null;
-  let __avatarsKey = '';
-  let __avatarsLoadedAt = 0;
-
-  function loadAdminAvatarsMap(opts){
+  async function loadAdminAvatarsMap(opts){
     opts = opts || {};
-    const cfg = window.CFG || {};
-    const key = String(
-      (cfg.adminKey)
-      || localStorage.getItem('ADMIN_KEY')
-      || localStorage.getItem('pontaj_adminKey')
-      || localStorage.getItem('pontaj/adminKey')
-      || localStorage.getItem('pontajAdminKey')
-      || ''
-    ).trim();
+    if (opts.force) __avatarsPromise = null;
 
-    // If key isn't ready yet, don't "lock" into an empty cached promise.
-    if (!key){
-      __avatarsPromise = null;
-      return Promise.resolve(window.__avatarMap || {});
+    // if already loaded and has data, keep it
+    if (!opts.force && window.__avatarMap && Object.keys(window.__avatarMap).length){
+      return window.__avatarMap;
     }
 
-    const now = Date.now();
-    const force = !!opts.force;
-    const ttlMs = Number(opts.ttlMs || 60000);
-
-    if (!force && __avatarsPromise && __avatarsKey === key && (now - __avatarsLoadedAt) < ttlMs){
-      return __avatarsPromise;
-    }
-
-    __avatarsKey = key;
-    __avatarsLoadedAt = now;
+    if (__avatarsPromise) return __avatarsPromise;
 
     __avatarsPromise = (async ()=>{
       try{
-        const base = adminEndpointBase(CFG||{});
-        if (!base) return window.__avatarMap || {};
-        const url = base + '?fn=adminAvatarsMap&key=' + encodeURIComponent(key) + '&ts=' + now;
-        const data = await _jsonp(url);
+        const base = adminEndpointBase(window.CFG || CFG || {});
+        const key = (typeof _getAdminKey === 'function') ? String(_getAdminKey()||'').trim() : '';
+        if (!base || !key) return window.__avatarMap || {};
+        // _jsonp expects full url including callback param name generated internally
+        const data = await _jsonp(base + '?fn=adminAvatarsMap&key=' + encodeURIComponent(key) + '&ts=' + Date.now());
         if (data && data.ok && data.map){
           window.__avatarMap = data.map || {};
         }
@@ -1057,11 +1029,9 @@ function adminEndpointBase(cfg){
   }
 
 
-
   async function fetchAdminEvents(){
     const base = adminEndpointBase(CFG);
     if (!base) throw new Error('Lipsește adminEventsEndpoint/webappUrl în config.json');
-    const url = base + '?fn=adminEvents&v=' + Date.now();
     const r = await fetch(url, {cache:'no-store'});
     const txt = await r.text();
     let data;
@@ -1659,11 +1629,26 @@ function adminEndpointBase(cfg){
 
     
     function _getAdminKey(){
-      // priority: localStorage, then CFG/admin config
+      // priority: localStorage, then known JSON blobs, then CFG/admin config
       try{
-        const v = localStorage.getItem('pontaj_adminKey') || localStorage.getItem('pontaj/adminKey') || localStorage.getItem('ADMIN_KEY');
+        const v = localStorage.getItem('pontaj_adminKey')
+               || localStorage.getItem('pontaj/adminKey')
+               || localStorage.getItem('ADMIN_KEY')
+               || localStorage.getItem('adminKey')
+               || localStorage.getItem('pv_adminKey');
         if (v && String(v).trim()) return String(v).trim();
       }catch(_){}
+
+      // sometimes stored inside pontaj/admin/v1 JSON
+      try{
+        const s = localStorage.getItem('pontaj/admin/v1');
+        if (s){
+          const o = JSON.parse(s);
+          const v = o.key || o.adminKey || o.ADMIN_KEY || '';
+          if (v && String(v).trim()) return String(v).trim();
+        }
+      }catch(_){}
+
       try{
         const cfg = window.CFG || {};
         if (cfg.adminKey && String(cfg.adminKey).trim()) return String(cfg.adminKey).trim();
@@ -1820,7 +1805,6 @@ function adminEndpointBase(cfg){
       try{
         const base = _webappBase();
         if (!base) return;
-        const url = base + '?fn=adminManagersMap' + _keyQS();
         const data = await _jsonp(url);
         if (!data || !data.ok || !data.map) return;
         const mp = data.map || {};
@@ -2324,8 +2308,6 @@ function adminEndpointBase(cfg){
       try{
         const base = _webappBase();
         if (!base) throw new Error('Lipsește webappUrl/adminEventsEndpoint în config.json');
-
-        const url = base + '?fn=fixDayGet&name=' + encodeURIComponent(UP.name) + '&date=' + encodeURIComponent(UP.date);
         const data = await _jsonp(url);
         if (!data || !data.ok) throw new Error((data && data.error) ? data.error : 'Răspuns invalid');
 
@@ -2423,7 +2405,6 @@ function adminEndpointBase(cfg){
 
         const b64 = _b64ws(JSON.stringify(payload));
         const k = _getAdminKey();
-        const url = base + '?fn=fixDayApply&payload=' + encodeURIComponent(b64) + (k ? ('&key=' + encodeURIComponent(k)) : '');
         if (url.length > 7000) { throw new Error('Payload prea mare pentru JSONP (URL > 7000). Redu câmpurile extinse (Device/MapsLink) sau dezactivează expand.'); }
         const res = await _jsonp(url);
         if (!res || !res.ok) throw new Error((res && res.error) ? res.error : 'Salvare eșuată');
@@ -2629,11 +2610,9 @@ document.documentElement.classList.remove('upLockScroll');
       qs('#upTz').addEventListener('change', ()=>{ UP.tz = String(qs('#upTz').value||'Europe/Bucharest'); });
 
       qs('#upOpenFull').addEventListener('click', ()=>{
-        const url = 'admin-user-panel.html?name=' + encodeURIComponent(UP.name) + '&date=' + encodeURIComponent(UP.date);
         window.open(url, '_blank');
       });
       qs('#upOpenFixDay').addEventListener('click', ()=>{
-        const url = 'fix-day.html?name=' + encodeURIComponent(UP.name) + '&date=' + encodeURIComponent(UP.date);
         window.open(url, '_blank');
       });
 
@@ -2694,8 +2673,9 @@ document.documentElement.classList.remove('upLockScroll');
         await _loadAdminAuth();
         await _loadManagersMap();
 
-        // load avatar map (live from Sheet)
+        // load avatar map (for global avatars)
         await loadAdminAvatarsMap({force:true});
+
 
         const data = await fetchAdminEvents();
         ALL_EVENTS = buildIndices(data.events);
