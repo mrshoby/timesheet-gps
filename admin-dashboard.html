@@ -279,8 +279,8 @@
       border: 1px solid rgba(108,92,231,.20);
       flex:0 0 auto;
     }
-        .avatar img{width:100%;height:100%;object-fit:cover;border-radius:50%;display:block;}
-    .upAvatar img{width:100%;height:100%;object-fit:cover;border-radius:50%;display:block;}
+    
+    .avatar img{width:100%;height:100%;border-radius:50%;object-fit:cover;display:block;}
 .emp-meta{display:flex; flex-direction:column; line-height:1.15;}
     .emp-name{ font-weight:900; }
     .emp-dept{ font-size:11px; color: var(--muted); font-weight:700; margin-top:2px; }
@@ -947,11 +947,10 @@
   
   function _keyQS(){
     try{
-      const k = (typeof _getAdminKey === 'function') ? String(_getAdminKey()||'').trim() : '';
+      const key = (_getAdminKey ? _getAdminKey() : '') || (localStorage.getItem('ADMIN_KEY') || localStorage.getItem('pontaj_adminKey') || localStorage.getItem('pontaj/adminKey') || '');
+      const k = String(key || '').trim();
       return k ? ('&key=' + encodeURIComponent(k)) : '';
-    }catch(_){
-      return '';
-    }
+    }catch(_){ return ''; }
   }
 
 function adminEndpointBase(cfg){
@@ -959,86 +958,67 @@ function adminEndpointBase(cfg){
     return String(raw || '').replace(/\?.*$/, '').trim();
   }
 
+  
 
-  // ======= Avatars (global) =======
-  window.__avatarMap = window.__avatarMap || {};
-  let __avatarsPromise = null;
+  // ======= Avatare globale (din EmployeeAuth.AvatarURL) =======
+  // Backend: fn=adminAvatarsMap -> { ok:true, map: { normName: url, ... } }
+  let __AVATAR_MAP__ = {};
+  window.__avatarMap = window.__avatarMap || __AVATAR_MAP__;
+  window.__avatarMapLoadedAt = window.__avatarMapLoadedAt || 0;
 
-  function _normKeyName_(s){
-    try{
-      return String(s||'').trim().toLowerCase()
-        .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
-        .replace(/\s+/g,' ')
-        .replace(/[^a-z0-9\s._-]/g,'')
-        .trim();
-    }catch(_){
-      return String(s||'').trim().toLowerCase().replace(/\s+/g,' ').trim();
-    }
-  }
-
-  function _initials2_(name){
-    const s = String(name||'').trim().replace(/\s+/g,' ');
-    if (!s) return '•';
-    const parts = s.split(' ').filter(Boolean);
-    const a = parts[0] ? parts[0][0] : '';
-    const b = parts.length>1 ? parts[parts.length-1][0] : (parts[0] && parts[0].length>1 ? parts[0][1] : '');
-    return (String(a||'') + String(b||'')).toUpperCase() || '•';
+  function _normKeyNameClient_(s){
+    return String(s||'')
+      .trim()
+      .toLowerCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+      .replace(/[^a-z0-9]+/g,' ')
+      .trim()
+      .replace(/\s+/g,' ');
   }
 
   function _avatarUrlFor_(name){
-    const k = _normKeyName_(name);
-    return (window.__avatarMap && window.__avatarMap[k]) ? String(window.__avatarMap[k]||'') : '';
+    const key = _normKeyNameClient_(name);
+    const map = window.__avatarMap || __AVATAR_MAP__ || {};
+    return (key && map && map[key]) ? String(map[key]) : '';
   }
 
-  function _avatarInnerHtml_(name, avatarUrl, fallbackInitials){
-    const ini = String(fallbackInitials || _initials2_(name) || '•');
+  function _avatarInnerHtml_(name, initialsText){
+    const url = _avatarUrlFor_(name);
     if (url){
-      return `<img src="${escapeHtml(url)}" alt="${escapeHtml(name||'')}" referrerpolicy="no-referrer" onerror="this.remove();">`;
+      return `<img src="${escapeAttr(url)}" alt="" loading="lazy" referrerpolicy="no-referrer">`;
     }
-    return escapeHtml(ini);
+    return escapeHtml(initialsText || '');
   }
 
-  async function loadAdminAvatarsMap(opts){
-    opts = opts || {};
-    if (opts.force) __avatarsPromise = null;
-
-    // if already loaded and has data, keep it
-    if (!opts.force && window.__avatarMap && Object.keys(window.__avatarMap).length){
-      return window.__avatarMap;
-    }
-
-    if (__avatarsPromise) return __avatarsPromise;
-
-    __avatarsPromise = (async ()=>{
-      try{
-        const base = adminEndpointBase(window.CFG || CFG || {});
-        const key = (typeof _getAdminKey === 'function') ? String(_getAdminKey()||'').trim() : '';
-        if (!base || !key) return window.__avatarMap || {};
-        // _jsonp expects full url including callback param name generated internally
-        const data = await _jsonp(base + '?fn=adminAvatarsMap&key=' + encodeURIComponent(key) + '&ts=' + Date.now());
-        if (data && data.ok && data.map){
-          window.__avatarMap = data.map || {};
-        }
-      }catch(err){
-        console.warn('adminAvatarsMap failed', err);
+  async function loadAdminAvatarsMap(force=false){
+    const now = Date.now();
+    try{
+      if (!force && window.__avatarMapLoadedAt && (now - window.__avatarMapLoadedAt) < 15000) return window.__avatarMap || __AVATAR_MAP__;
+      const base = adminEndpointBase(CFG || {});
+      if (!base) return window.__avatarMap || __AVATAR_MAP__;
+      const url = base + '?fn=adminAvatarsMap' + _keyQS() + '&ts=' + now;
+      const data = await _jsonp(url);
+      if (data && data.ok && data.map){
+        window.__avatarMap = data.map;
+        __AVATAR_MAP__ = data.map;
+        window.__avatarMapLoadedAt = now;
       }
-      return window.__avatarMap || {};
-    })();
-
-    return __avatarsPromise;
+    }catch(err){
+      console.warn('adminAvatarsMap failed:', err && err.message ? err.message : err);
+    }
+    return window.__avatarMap || __AVATAR_MAP__;
   }
 
-
-  async function fetchAdminEvents(){
+async function fetchAdminEvents(){
     const base = adminEndpointBase(CFG);
     if (!base) throw new Error('Lipsește adminEventsEndpoint/webappUrl în config.json');
-    const r = await fetch(url, {cache:'no-store'});
-    const txt = await r.text();
-    let data;
-    try{ data = JSON.parse(txt); }catch(e){ throw new Error('Răspuns invalid (JSON) de la adminEventsEndpoint.'); }
+    const url = base + '?fn=adminEvents' + _keyQS() + '&ts=' + Date.now();
+    const data = await _jsonp(url);
     if (!data || !data.ok || !Array.isArray(data.events)){
-      throw new Error('adminEventsEndpoint nu a întors un obiect ok cu events[].');
+      throw new Error((data && data.error) ? data.error : 'adminEventsEndpoint nu a întors un obiect ok cu events[].');
     }
+    return data;
+  }
     return data;
   }
 
@@ -1420,7 +1400,7 @@ function adminEndpointBase(cfg){
         <td>
           <div class="emp">
             <div class="idx">${idx}</div>
-            <div class="avatar">${_avatarInnerHtml_(r.name, r.avatarUrl, r.initials)}</div>
+            <div class="avatar">${_avatarInnerHtml_(r.name, r.initials)}</div>
             <div class="emp-meta">
               <div class="emp-name">${escapeHtml(r.name)}</div>
               <div class="emp-dept">${escapeHtml(r.dept || '—')}</div>
@@ -1629,26 +1609,11 @@ function adminEndpointBase(cfg){
 
     
     function _getAdminKey(){
-      // priority: localStorage, then known JSON blobs, then CFG/admin config
+      // priority: localStorage, then CFG/admin config
       try{
-        const v = localStorage.getItem('pontaj_adminKey')
-               || localStorage.getItem('pontaj/adminKey')
-               || localStorage.getItem('ADMIN_KEY')
-               || localStorage.getItem('adminKey')
-               || localStorage.getItem('pv_adminKey');
+        const v = localStorage.getItem('pontaj_adminKey') || localStorage.getItem('pontaj/adminKey') || localStorage.getItem('ADMIN_KEY');
         if (v && String(v).trim()) return String(v).trim();
       }catch(_){}
-
-      // sometimes stored inside pontaj/admin/v1 JSON
-      try{
-        const s = localStorage.getItem('pontaj/admin/v1');
-        if (s){
-          const o = JSON.parse(s);
-          const v = o.key || o.adminKey || o.ADMIN_KEY || '';
-          if (v && String(v).trim()) return String(v).trim();
-        }
-      }catch(_){}
-
       try{
         const cfg = window.CFG || {};
         if (cfg.adminKey && String(cfg.adminKey).trim()) return String(cfg.adminKey).trim();
@@ -1805,6 +1770,7 @@ function adminEndpointBase(cfg){
       try{
         const base = _webappBase();
         if (!base) return;
+        const url = base + '?fn=adminManagersMap' + _keyQS();
         const data = await _jsonp(url);
         if (!data || !data.ok || !data.map) return;
         const mp = data.map || {};
@@ -2308,6 +2274,8 @@ function adminEndpointBase(cfg){
       try{
         const base = _webappBase();
         if (!base) throw new Error('Lipsește webappUrl/adminEventsEndpoint în config.json');
+
+        const url = base + '?fn=fixDayGet&name=' + encodeURIComponent(UP.name) + '&date=' + encodeURIComponent(UP.date);
         const data = await _jsonp(url);
         if (!data || !data.ok) throw new Error((data && data.error) ? data.error : 'Răspuns invalid');
 
@@ -2341,7 +2309,7 @@ function adminEndpointBase(cfg){
           extraH: ev.extraH || ev.extra || ev['Extra (h)'] || '',
           dept: ev.dept || ev.Departament || UP.dept || '',
           _expanded: false
-        })).filter(ev => ev.time);qs('#upAvatar').innerHTML = _avatarInnerHtml_(UP.name, null, _upInit());
+        })).filter(ev => ev.time);qs('#upAvatar').innerHTML = _avatarInnerHtml_(UP.name, _upInit());
         qs('#upEmpEmail').textContent = UP.email || '—';
         qs('#upEmpChat').textContent = (UP.chat && String(UP.chat).trim()) ? String(UP.chat).trim() : '—';
         qs('#upEmpDept').textContent = UP.dept || '—';
@@ -2405,6 +2373,7 @@ function adminEndpointBase(cfg){
 
         const b64 = _b64ws(JSON.stringify(payload));
         const k = _getAdminKey();
+        const url = base + '?fn=fixDayApply&payload=' + encodeURIComponent(b64) + (k ? ('&key=' + encodeURIComponent(k)) : '');
         if (url.length > 7000) { throw new Error('Payload prea mare pentru JSONP (URL > 7000). Redu câmpurile extinse (Device/MapsLink) sau dezactivează expand.'); }
         const res = await _jsonp(url);
         if (!res || !res.ok) throw new Error((res && res.error) ? res.error : 'Salvare eșuată');
@@ -2610,9 +2579,11 @@ document.documentElement.classList.remove('upLockScroll');
       qs('#upTz').addEventListener('change', ()=>{ UP.tz = String(qs('#upTz').value||'Europe/Bucharest'); });
 
       qs('#upOpenFull').addEventListener('click', ()=>{
+        const url = 'admin-user-panel.html?name=' + encodeURIComponent(UP.name) + '&date=' + encodeURIComponent(UP.date);
         window.open(url, '_blank');
       });
       qs('#upOpenFixDay').addEventListener('click', ()=>{
+        const url = 'fix-day.html?name=' + encodeURIComponent(UP.name) + '&date=' + encodeURIComponent(UP.date);
         window.open(url, '_blank');
       });
 
@@ -2673,10 +2644,7 @@ document.documentElement.classList.remove('upLockScroll');
         await _loadAdminAuth();
         await _loadManagersMap();
 
-        // load avatar map (for global avatars)
-        await loadAdminAvatarsMap({force:true});
-
-
+        await loadAdminAvatarsMap(true);
         const data = await fetchAdminEvents();
         ALL_EVENTS = buildIndices(data.events);
         window.__pontajAdminEvents = ALL_EVENTS;
