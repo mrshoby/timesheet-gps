@@ -3,7 +3,7 @@
     {
       "label": "SERVELECT Admin",
       "usernameHash": "8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918",
-      "passwordHash": "8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918"
+      "passwordHash": "dad3ef3f713e99c0b97a450f87865f9de1235e2c1ae741ad81349b20dec60ab5"
     },
     {
       "label": "Alin Ceclan",
@@ -27,4 +27,5 @@
     }
   ]
 }
+
 
