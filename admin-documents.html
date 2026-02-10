@@ -240,60 +240,134 @@
 
   function setErr(msg){ $("err").textContent = msg || ""; }
 
+  
+  // ===== Admin identity (who am I?) =====
+  const ADMINS = { loaded:false, list:[], byEmail:new Map(), byName:new Map() };
+
+  function _parseAdminAuth(data){
+    const arr = Array.isArray(data) ? data : (data.admins || data.list || data.users || []);
+    const list = (Array.isArray(arr) ? arr : [])
+      .map(a => ({
+        name: String(a.label || a.name || a.displayName || a.n || a.user || a.username || a.managerName || '').trim(),
+        email: String(a.email || a.e || a.mail || a.managerEmail || '').trim()
+      }))
+      .filter(a => a.name || a.email);
+
+    // de-dup (by email|name)
+    const seen = new Set();
+    const dedup = list.filter(a=>{
+      const k = (a.email||'').toLowerCase() + '|' + (a.name||'').toLowerCase();
+      if (seen.has(k)) return false;
+      seen.add(k);
+      return true;
+    });
+
+    ADMINS.list = dedup;
+    ADMINS.byEmail = new Map(ADMINS.list.filter(a=>a.email).map(a=>[a.email.toLowerCase(), a]));
+    ADMINS.byName  = new Map(ADMINS.list.filter(a=>a.name).map(a=>[a.name.toLowerCase(), a]));
+  }
+
+  async function loadAdminAuth(){
+    if (ADMINS.loaded) return;
+    ADMINS.loaded = true;
+
+    try{
+      const cfg = (window.CFG || CFG || {}) || {};
+      const candidates = [];
+      const mainUrl = String(cfg.adminAuthUrl || '').trim();
+      if (mainUrl) candidates.push(mainUrl);
+      candidates.push('admin-auth.json','./admin-auth.json','../admin-auth.json','/admin-auth.json');
+
+      const seen = new Set();
+      const urls = candidates
+        .map(u => String(u || '').trim())
+        .filter(u => u && !seen.has(u) && (seen.add(u), true));
+
+      let lastErr = null;
+      for (const u of urls){
+        try{
+          const r = await fetch(u + (u.includes('?') ? '&' : '?') + 'v=' + Date.now(), {cache:'no-store'});
+          if (!r.ok) throw new Error('HTTP ' + r.status);
+          const data = await r.json();
+          _parseAdminAuth(data);
+          return;
+        }catch(e){ lastErr = e; }
+      }
+      if (lastErr) console.warn('admin-auth load failed:', lastErr);
+    }catch(e){
+      console.warn('admin-auth load failed:', e);
+    }
+  }
+
   function _detectAdminIdentity(){
-    // best-effort: try known session keys used in other admin pages
+    // Best-effort: try known session keys used in other admin pages
     const keys = ["pontaj/admin/v1","pontaj_admin_session","pontaj_admin","admin_session"];
     for (const k of keys){
       let raw = "";
       try{ raw = (localStorage.getItem(k) || "").trim(); }catch(e){}
       if (!raw) continue;
 
-      // sometimes value can be plain email
-      if (raw.includes("@") && raw[0] !== "{"){
-        return { email: raw, name: "" };
+      // sometimes value can be plain id/email
+      if (raw[0] !== "{"){
+        return { id: raw, name: "" };
       }
 
       try{
         const o = JSON.parse(raw);
         if (!o) continue;
-        const email = (o.email || o.user || o.username || o.login || o.mail || "").trim();
-        const name  = (o.label || o.name || o.fullName || o.displayName || "").trim();
-        if (email && email.includes("@")) return { email, name };
-        // sometimes "user" can be the name and email absent
-        if (name && name.includes("@")) return { email: name, name: "" };
+
+        // NOTE: in unele pagini o.user poate fi nume (nu email). Acceptăm ca "id".
+        const id = String(o.email || o.userEmail || o.user || o.username || o.login || o.mail || o.id || "").trim();
+        const name = String(o.label || o.name || o.fullName || o.displayName || o.userName || "").trim();
+
+        if (id) return { id, name };
+        if (name) return { id: name, name: "" };
       }catch(e){}
     }
     return null;
   }
 
-  function ensureManager(){
-    let meEmail = "";
-    let meName  = "";
+  async function ensureManager(){
+    let meId   = "";
+    let meName = "";
 
-    try{ meEmail = (localStorage.getItem(LS_ADMIN_ME_EMAIL) || "").trim(); }catch(e){}
-    try{ meName  = (localStorage.getItem(LS_ADMIN_ME_NAME)  || "").trim(); }catch(e){}
+    try{ meId   = (localStorage.getItem(LS_ADMIN_ME_EMAIL) || "").trim(); }catch(e){}
+    try{ meName = (localStorage.getItem(LS_ADMIN_ME_NAME)  || "").trim(); }catch(e){}
 
     // fallback: infer from admin session (most admin pages already set it)
-    if (!meEmail){
+    if (!meId){
       const id = _detectAdminIdentity();
-      if (id && id.email){
-        meEmail = id.email;
-        if (!meName) meName = id.name || "";
+      if (id && id.id){
+        meId = String(id.id || "").trim();
+        if (!meName) meName = String(id.name || "").trim();
+
         // persist for next time, so upload works without prompt
-        try{ localStorage.setItem(LS_ADMIN_ME_EMAIL, meEmail); }catch(e){}
+        try{ localStorage.setItem(LS_ADMIN_ME_EMAIL, meId); }catch(e){}
         if (meName) try{ localStorage.setItem(LS_ADMIN_ME_NAME, meName); }catch(e){}
       }
     }
 
-    if (meEmail){
-      state.managerEmail = meEmail;
+    // If we only have a name/label, try to resolve to real email from admin-auth.json (if available)
+    await loadAdminAuth();
+    if (meId && !meId.includes("@")){
+      const k = meId.toLowerCase();
+      const a = ADMINS.byEmail.get(k) || ADMINS.byName.get(k) || null;
+      if (a && a.email){
+        state.managerEmail = String(a.email).trim();
+        state.managerName  = meName || a.name || meId;
+      }else{
+        // fallback: use id as-is (compat with managerEmail stored as label)
+        state.managerEmail = meId;
+        state.managerName  = meName || meId;
+      }
+    }else if (meId){
+      state.managerEmail = meId;
       state.managerName  = meName;
     }
 
     $("mgrPill").textContent = "Manager: " + (state.managerEmail || "—");
   }
-
-  async function loadEmployees(){
+async function loadEmployees(){
     const url = ENDPOINT + "?fn=adminEmployees" + keyQS() + "&ts=" + Date.now();
     const data = await jsonp(url);
     if (!data || !data.ok) throw new Error(data?.error || "Nu pot încărca lista de angajați.");
@@ -498,7 +572,7 @@
       ENDPOINT = endpointBase(CFG);
       if (!ENDPOINT) throw new Error("Lipsește adminEventsEndpoint/leaveEndpoint/documentsEndpoint în config.json.");
 
-      ensureManager();
+      await ensureManager();
       await loadEmployees();
       await loadTemplates();
       await loadDocs();
@@ -528,8 +602,7 @@
     const name = prompt("Nume manager (opțional):", state.managerName || "");
     localStorage.setItem(LS_ADMIN_ME_EMAIL, (email||"").trim());
     localStorage.setItem(LS_ADMIN_ME_NAME, (name||"").trim());
-    ensureManager();
-    refreshAll();
+    ensureManager().then(()=>refreshAll());
   };
 
   // tabs
