@@ -4,6 +4,9 @@
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>Employee dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
 
 :root{
@@ -22,7 +25,7 @@
       --c-leave:#efe6ff;
     }
     *{box-sizing:border-box}
-    body{margin:0;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial;background:var(--bg);color:var(--ink)}
+    body{margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:var(--bg);color:var(--ink)}
     .wrap{max-width:1440px;margin:18px auto;padding:0 14px}
     .panel{background:var(--card); border:1px solid var(--line); border-radius:22px; box-shadow:var(--shadow); overflow:hidden;}
     .panelHead{padding:14px 16px; border-bottom:1px solid var(--line); display:flex; gap:12px; align-items:center; justify-content:space-between; flex-wrap:wrap;}
@@ -389,6 +392,8 @@
   .avatarDrop{margin-top:10px;border:1px dashed rgba(105,112,160,.35);border-radius:18px;padding:12px;background:rgba(240,242,255,.35);cursor:pointer}
   .avatarDrop:hover{background:rgba(240,242,255,.55)}
 
+
+    .docsFrame{width:100%;height:calc(100vh - 140px);border:0;display:block;background:transparent}
 </style>
 </head>
 
@@ -408,7 +413,13 @@
 
   <nav class="nav">
     <button class="navBtn active" data-view="calendar" type="button">
-      <span class="navIcon"><span class="navGlyph">📅</span></span>
+      <span class="navIcon" aria-hidden="true">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+          <path d="M8 2v3M16 2v3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          <path d="M3 9h18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          <path d="M6 5h12a3 3 0 013 3v12a3 3 0 01-3 3H6a3 3 0 01-3-3V8a3 3 0 013-3z" stroke="currentColor" stroke-width="2"/>
+        </svg>
+      </span>
       <span class="navText">
         <span class="navTitle">Calendar prezență</span>
         <span class="navSub">Luna curentă</span>
@@ -416,7 +427,12 @@
     </button>
 
     <button class="navBtn" data-view="requests" type="button">
-      <span class="navIcon"><span class="navGlyph">📝</span></span>
+      <span class="navIcon" aria-hidden="true">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+          <path d="M4 4h16v16H4z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+          <path d="M7 8h10M7 12h10M7 16h7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+      </span>
       <span class="navText">
         <span class="navTitle">Cereri</span>
         <span class="navSub">Concedii & evenimente</span>
@@ -424,7 +440,12 @@
     </button>
 
     <button class="navBtn" data-view="docs" type="button">
-      <span class="navIcon"><span class="navGlyph">📄</span></span>
+      <span class="navIcon" aria-hidden="true">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+          <path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v10a2 2 0 01-2 2H5a2 2 0 01-2-2V7z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+          <path d="M3 9h18" stroke="currentColor" stroke-width="2"/>
+        </svg>
+      </span>
       <span class="navText">
         <span class="navTitle">Documente</span>
         <span class="navSub">Fișiere & proceduri</span>
@@ -432,13 +453,18 @@
     </button>
 
     <button class="navBtn" data-view="settings" type="button">
-      <span class="navIcon"><span class="navGlyph">⚙</span></span>
+      <span class="navIcon" aria-hidden="true">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+          <path d="M12 15.5a3.5 3.5 0 100-7 3.5 3.5 0 000 7z" stroke="currentColor" stroke-width="2"/>
+          <path d="M19.4 15a1.8 1.8 0 00.36 1.98l.05.05a2 2 0 01-1.41 3.41h-.1a1.8 1.8 0 00-1.67 1.12 2 2 0 01-3.74 0 1.8 1.8 0 00-1.67-1.12h-.1A2 2 0 016 17.03l.05-.05A1.8 1.8 0 006.4 15a1.8 1.8 0 00-1.1-1.67 2 2 0 010-3.74A1.8 1.8 0 006.4 8a1.8 1.8 0 00-.36-1.98L6 5.97A2 2 0 017.41 2.56h.1A1.8 1.8 0 009.18 1.44a2 2 0 013.64 0 1.8 1.8 0 001.77 1.12h.1A2 2 0 0118 5.97l-.05.05A1.8 1.8 0 0017.6 8c0 .7.41 1.33 1.1 1.67a2 2 0 010 3.74A1.8 1.8 0 0019.4 15z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </span>
       <span class="navText">
         <span class="navTitle">Setări</span>
         <span class="navSub">Profil & sesiune</span>
       </span>
     </button>
-  </nav>
+</nav>
 
   <div class="sideFoot">
     <div class="sideHint"><b>Tip:</b> dacă nu ești logat, intră în index.html și apasă „Deschide dashboard”.</div>
@@ -1327,21 +1353,12 @@
 
 
 <div class="view" id="view-docs">
-          <div class="panel">
-            <div class="panelHead">
-              <div>
-                <h2>Documente</h2>
-                <div class="note">Documente puse de companie / formulare / proceduri. (UI pregătit)</div>
-              </div>
-            </div>
-            <div style="padding:14px 16px">
-              <div class="note">Aici putem afișa link-uri din config.json (ex: docsLinks) sau dintr-un sheet separat.</div>
-              <div id="docsList" style="margin-top:12px"></div>
-            </div>
-          </div>
-        </div>
+  <div class="panel" style="padding:0;overflow:hidden">
+    <iframe class="docsFrame" src="employee-documents.html" title="Documente" loading="lazy"></iframe>
+  </div>
+</div>
 
-        <div class="view" id="view-settings">
+<div class="view" id="view-settings">
           <div class="panel">
             <div class="panelHead">
               <div>
