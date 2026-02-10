@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ro">
 <head>
   <meta charset="utf-8"/>
@@ -12,887 +12,493 @@
       --bg:#F6F7FB;
       --card:#ffffff;
       --text:#0f172a;
-      --muted:#64748b;
+      --muted:#6b7280;
       --border:rgba(15,23,42,.08);
       --accent:#6D5EF1;
       --accent2:#8A7BFF;
       --shadow: 0 12px 40px rgba(15,23,42,.08);
       --shadow2: 0 10px 24px rgba(15,23,42,.10);
+      --radius:22px;
     }
     *{box-sizing:border-box}
     html,body{height:100%}
-    body{
-      margin:0;
-      font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
-      background:var(--bg);
-      color:var(--text);
-    }
-    .wrap{
-      max-width:1500px;
-      margin:0 auto;
-      padding:18px 16px 22px;
-    }
-    .top{
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:12px;
-      margin-bottom:14px;
-    }
-    .title{
-      font-weight:900;
-      font-size:18px;
-      letter-spacing:.2px;
-    }
-    .sub{
-      margin-top:4px;
-      color:rgba(100,116,139,.9);
-      font-weight:700;
-      font-size:12px;
-    }
-    .topRight{
-      display:flex;
-      align-items:center;
-      gap:10px;
-    }
-    .chip{
-      padding:10px 12px;
-      border-radius:16px;
-      border:1px solid var(--border);
-      background:#fff;
-      box-shadow: 0 6px 16px rgba(15,23,42,.06);
-      font-weight:800;
-      color:rgba(15,23,42,.82);
-      display:flex;
-      align-items:center;
-      gap:8px;
-    }
-    .avatarWrap{
-      position:relative;
-      width:40px;height:40px;
-      border-radius:999px;
-      overflow:hidden;
-      border:2px solid #fff;
-      box-shadow: 0 10px 22px rgba(15,23,42,.10);
-      background:#eef1ff;
-      display:grid;place-items:center;
-      font-weight:800;
-      color:#374151;
-      flex:0 0 auto;
-    }
-    .avatarWrap img{width:100%;height:100%;object-fit:cover;display:block}
+    body{margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:var(--bg);color:var(--text)}
+    .page{padding:18px 20px;}
+    .topTabs{display:flex;gap:22px;align-items:center;flex-wrap:wrap;margin-bottom:14px}
+    .tab{font-weight:800;color:rgba(15,23,42,.55);padding:8px 4px;border-bottom:3px solid transparent;cursor:pointer;user-select:none}
+    .tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+    .card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);}
+    .grid{display:grid;grid-template-columns: 420px 1fr;gap:18px;}
+    @media (max-width: 1100px){.grid{grid-template-columns:1fr;}}
+    .left{padding:14px}
+    .right{padding:14px}
+    .catList{display:flex;flex-direction:column;gap:12px}
+    .cat{padding:16px 18px;border-radius:18px;border:1px solid rgba(15,23,42,.08);background:#fff;cursor:pointer}
+    .cat:hover{background:rgba(109,94,241,.04)}
+    .cat.active{background:var(--accent);border-color:rgba(109,94,241,.35);color:#fff}
+    .cat .count{font-size:13px;font-weight:900;opacity:.7}
+    .cat.active .count{opacity:.9}
+    .cat .label{font-size:24px;font-weight:900;margin-top:2px;letter-spacing:-.02em}
+    .actionsRow{display:flex;gap:10px;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap}
+    .rightTitle{font-size:18px;font-weight:900}
+    .btn{border:1px solid rgba(15,23,42,.12);background:#fff;color:var(--text);border-radius:14px;padding:10px 12px;font-weight:900;cursor:pointer}
+    .btn.primary{background:var(--accent);border-color:rgba(109,94,241,.35);color:#fff}
+    .btn:disabled{opacity:.55;cursor:not-allowed}
+    .searchRow{display:flex;gap:12px;align-items:center;margin:6px 0 14px}
+    .search{flex:1;display:flex;gap:10px;align-items:center;background:#fff;border:1px solid var(--border);border-radius:18px;padding:12px 14px;}
+    .search input{border:0;outline:0;width:100%;font-size:14px}
+    .list{border:1px solid rgba(15,23,42,.08);border-radius:18px;overflow:hidden;background:#fff}
+    .row{display:grid;grid-template-columns: 160px 1fr 180px;gap:10px;align-items:center;padding:14px 14px;border-bottom:1px solid rgba(15,23,42,.06)}
+    .row:last-child{border-bottom:0}
+    .date{font-weight:900;font-size:16px;color:#0b1220;display:flex;gap:10px;align-items:center}
+    .docIcon{width:34px;height:34px;border-radius:12px;border:1px solid rgba(15,23,42,.10);display:flex;align-items:center;justify-content:center;background:rgba(15,23,42,.02)}
+    .name{font-weight:900;font-size:18px;}
+    .sub{color:rgba(15,23,42,.55);font-weight:800;margin-top:2px}
+    .open{justify-self:end}
+    .empty{padding:20px;color:rgba(15,23,42,.55);font-weight:800}
+    .note{margin-top:12px;color:rgba(15,23,42,.55);font-weight:800}
+    .err{margin:10px 0 0;color:#b91c1c;font-weight:900}
 
-    .layout{
-      display:grid;
-      grid-template-columns: 360px 1fr;
-      gap:14px;
-      align-items:start;
-    }
-    .card{
-      background:var(--card);
-      border:1px solid var(--border);
-      border-radius:22px;
-      box-shadow: var(--shadow);
-      overflow:hidden;
-    }
+    /* employee picker */
+    .picker{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
+    .select{flex:1;min-width:240px;border:1px solid rgba(15,23,42,.12);border-radius:14px;padding:10px 12px;font-weight:800;background:#fff}
+    .pill{display:inline-flex;gap:8px;align-items:center;padding:6px 10px;border:1px solid rgba(15,23,42,.12);border-radius:999px;font-weight:900;color:rgba(15,23,42,.65);background:rgba(15,23,42,.02)}
 
-    /* Employee list */
-    .empHead{
-      padding:14px 14px 10px;
-      border-bottom:1px solid rgba(15,23,42,.06);
-      display:flex;
-      gap:10px;
-      align-items:center;
-      justify-content:space-between;
-    }
-    .search{
-      display:flex;
-      align-items:center;
-      gap:10px;
-      padding:10px 12px;
-      border:1px solid var(--border);
-      border-radius:16px;
-      background:#fff;
-      width:100%;
-    }
-    .search input{
-      border:0;outline:none;background:transparent;
-      width:100%;
-      font:inherit;
-      font-weight:700;
-    }
-    .empList{
-      padding:12px;
-      display:flex;
-      flex-direction:column;
-      gap:10px;
-      max-height: calc(100vh - 180px);
-      overflow:auto;
-    }
-    .emp{
-      display:flex;
-      align-items:center;
-      gap:12px;
-      padding:12px 12px;
-      border-radius:18px;
-      border:1px solid rgba(15,23,42,.08);
-      background:#fff;
-      cursor:pointer;
-      transition:.15s ease;
-    }
-    .emp:hover{ border-color: rgba(109,94,241,.22); background: rgba(109,94,241,.03); }
-    .emp.active{
-      background: rgba(109,94,241,.08);
-      border-color: rgba(109,94,241,.35);
-      box-shadow: 0 18px 34px rgba(109,94,241,.10);
-    }
-    .empAva{
-      width:38px;height:38px;border-radius:999px;
-      background:#eef1ff;border:2px solid #fff;
-      box-shadow:0 10px 18px rgba(15,23,42,.10);
-      overflow:hidden;display:grid;place-items:center;
-      font-weight:900;color:#374151;
-      flex:0 0 auto;
-    }
-    .empAva img{width:100%;height:100%;object-fit:cover;display:block}
-    .empMeta{min-width:0}
-    .empName{
-      font-weight:900;
-      white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
-    }
-    .empDept{
-      margin-top:2px;
-      color:rgba(100,116,139,.9);
-      font-weight:700;
-      font-size:12px;
-      white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
-    }
-
-    /* Documents UI (same look as employee-documents) */
-    .tabs{
-      display:flex;
-      gap:26px;
-      flex-wrap:wrap;
-      align-items:flex-end;
-      padding:12px 16px 0;
-    }
-    .tab{
-      background:transparent;
-      border:0;
-      padding:10px 2px;
-      font:inherit;
-      cursor:pointer;
-      color:var(--muted);
-      font-weight:700;
-      position:relative;
-    }
-    .tab.active{ color:var(--accent); }
-    .tab.active:after{
-      content:"";
-      position:absolute;
-      left:0; right:0; bottom:2px;
-      height:3px;
-      border-radius:99px;
-      background:var(--accent);
-    }
-
-    .docBody{
-      padding:14px 16px 16px;
-      display:grid;
-      grid-template-columns: 360px 1fr;
-      gap:14px;
-      align-items:start;
-    }
-    .catCard{
-      border:1px solid rgba(15,23,42,.08);
-      border-radius:22px;
-      overflow:hidden;
-      box-shadow: 0 10px 24px rgba(15,23,42,.06);
-      background:#fff;
-    }
-    .leftList{
-      padding:14px;
-      display:flex;
-      flex-direction:column;
-      gap:12px;
-    }
-    .cat{
-      border:1px solid rgba(15,23,42,.08);
-      border-radius:18px;
-      padding:14px 16px;
-      cursor:pointer;
-      background:#fff;
-      transition:.15s ease;
-    }
-    .cat:hover{ border-color: rgba(109,94,241,.22); background: rgba(109,94,241,.03); }
-    .cat.active{
-      background: linear-gradient(180deg, rgba(109,94,241,.95), rgba(109,94,241,.80));
-      border-color: rgba(109,94,241,.25);
-      color:#fff;
-      box-shadow: 0 18px 34px rgba(109,94,241,.22);
-    }
-    .cat .count{
-      font-weight:700;
-      font-size:13px;
-      color:rgba(100,116,139,.9);
-    }
-    .cat.active .count{ color: rgba(255,255,255,.82); }
-    .cat .name{
-      margin-top:2px;
-      font-weight:800;
-      font-size:18px;
-      letter-spacing:.2px;
-    }
-
-    .right{
-      border:1px solid rgba(15,23,42,.08);
-      border-radius:22px;
-      overflow:hidden;
-      box-shadow: 0 10px 24px rgba(15,23,42,.06);
-      background:#fff;
-      padding:16px;
-    }
-    .searchRow{
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:10px;
-      margin-bottom:10px;
-    }
-    .docSearch{
-      display:flex;
-      align-items:center;
-      gap:10px;
-      padding:10px 12px;
-      border:1px solid rgba(15,23,42,.08);
-      border-radius:16px;
-      background:#fff;
-      min-width:260px;
-      max-width:420px;
-      width:100%;
-    }
-    .docSearch input{border:0;outline:none;font:inherit;width:100%;font-weight:600;background:transparent}
-    .thead{
-      display:grid;
-      grid-template-columns: 120px 1fr;
-      padding:10px 12px;
-      color:var(--muted);
-      font-weight:800;
-      letter-spacing:.2px;
-    }
-    .row{
-      display:grid;
-      grid-template-columns: 44px 120px 1fr;
-      align-items:center;
-      gap:12px;
-      padding:14px 12px;
-      border-top:1px solid rgba(15,23,42,.06);
-    }
-    .fileIco{
-      width:34px;height:34px;border-radius:12px;
-      border:1px solid rgba(15,23,42,.08);
-      background:rgba(15,23,42,.03);
-      display:grid;place-items:center;
-    }
-    .dateCell{
-      font-weight:800;
-      font-size:18px;
-      color:#111827;
-      letter-spacing:.2px;
-    }
-    .nameCell .title{
-      font-weight:900;
-      font-size:18px;
-      color:#111827;
-      letter-spacing:.2px;
-      line-height:1.12;
-    }
-    .nameCell .sub{
-      margin-top:4px;
-      font-weight:700;
-      color:rgba(100,116,139,.9);
-    }
-    .footerNav{
-      display:flex;
-      justify-content:flex-end;
-      gap:10px;
-      padding:14px 6px 0;
-    }
-    .pagerBtn{
-      width:44px;height:44px;border-radius:16px;
-      border:1px solid rgba(15,23,42,.08);
-      background:#fff;
-      cursor:pointer;
-      display:grid;place-items:center;
-      box-shadow: 0 6px 16px rgba(15,23,42,.06);
-    }
-    .pagerBtn:disabled{opacity:.45; cursor:not-allowed; box-shadow:none}
-    .empty{
-      padding:22px 12px;
-      color:rgba(100,116,139,.95);
-      font-weight:800;
-    }
-    .hint{
-      padding:10px 12px 0;
-      color:rgba(100,116,139,.85);
-      font-weight:700;
-      font-size:12px;
-    }
-
-    @media(max-width:1200px){
-      .layout{grid-template-columns: 1fr;}
-      .docBody{grid-template-columns: 1fr;}
-      .empList{max-height:none}
-    }
+    /* settings tab */
+    .settingsWrap{display:none}
+    .settingsWrap.show{display:block}
+    .tplGrid{display:grid;grid-template-columns:1fr;gap:12px;margin-top:14px}
+    .tpl{border:1px solid rgba(15,23,42,.10);border-radius:18px;padding:14px;background:#fff;display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+    .tpl .leftSide{display:flex;flex-direction:column;gap:4px}
+    .tpl .ttl{font-weight:900}
+    .tpl .meta{font-weight:800;color:rgba(15,23,42,.55)}
+    .tiny{font-size:12px}
   </style>
 </head>
 <body>
-  <div class="wrap">
-    <div class="top">
-      <div>
-        <div class="title">Documente angajați</div>
-        <div class="sub">Alege un angajat repartizat ție și vezi documentele/cererile lui (concedii, învoiri etc.).</div>
-      </div>
-
-      <div class="topRight">
-        <div class="chip" id="meChip" title="Cont admin">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-            <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-            <path d="M12 11a4 4 0 100-8 4 4 0 000 8z" stroke="currentColor" stroke-width="2"/>
-          </svg>
-          <span id="meLabel">Admin</span>
-        </div>
-        <div class="avatarWrap" title="Profil">
-          <img id="meAvatarImg" alt="" style="display:none"/>
-          <div id="meAvatarFallback">•</div>
-        </div>
-      </div>
+  <div class="page">
+    <div class="topTabs">
+      <div class="tab active" data-tab="cereri">Documentele cereri</div>
+      <div class="tab" data-tab="contractuale">Documente contractuale</div>
+      <div class="tab" data-tab="adeverinte">Adeverințe</div>
+      <div class="tab" data-tab="altele">Alte documente</div>
+      <div class="tab" data-tab="publice">Documente publice</div>
+      <div class="tab" data-tab="setari">Setări cereri</div>
     </div>
 
-    <div class="layout">
-      <div class="card">
-        <div class="empHead">
-          <div class="search">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-              <path d="M21 21l-4.3-4.3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-              <path d="M11 19a8 8 0 110-16 8 8 0 010 16z" stroke="currentColor" stroke-width="2"/>
-            </svg>
-            <input id="empQ" placeholder="Caută angajat" />
-          </div>
+    <div class="grid">
+      <div class="card left">
+        <div class="picker">
+          <select class="select" id="selEmployee"></select>
+          <button class="btn" id="btnSetManager" type="button">Manager</button>
         </div>
-        <div class="empList" id="empList"></div>
+        <div class="pill" id="mgrPill">Manager: —</div>
+        <div style="height:10px"></div>
+        <div class="catList" id="catList"></div>
+        <div class="note">Aici vezi doar PDF-urile completate (digitale), nu cererile brute.</div>
+        <div class="err" id="err"></div>
       </div>
 
-      <div class="card">
-        <div class="tabs" id="tabs"></div>
-        <div class="docBody">
-          <div class="catCard">
-            <div class="leftList" id="cats"></div>
+      <div class="card right">
+        <div id="viewMain">
+          <div class="actionsRow">
+            <div>
+              <div class="rightTitle" id="rightTitle">—</div>
+              <div class="pill" id="empPill" title="Angajat">Angajat: —</div>
+            </div>
+            <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+              <button class="btn" id="btnRefresh" type="button">Refresh</button>
+            </div>
           </div>
 
-          <div class="right">
-            <div class="searchRow">
-              <div class="docSearch">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                  <path d="M21 21l-4.3-4.3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                  <path d="M11 19a8 8 0 110-16 8 8 0 010 16z" stroke="currentColor" stroke-width="2"/>
-                </svg>
-                <input id="q" placeholder="Caută" />
-              </div>
-              <div style="font-weight:800;color:rgba(100,116,139,.85)" id="meta">—</div>
+          <div class="searchRow">
+            <div class="search">
+              <span style="opacity:.55;font-weight:900">🔎</span>
+              <input id="q" placeholder="Caută..." />
             </div>
-
-            <div class="thead">
-              <div>DATĂ</div>
-              <div>NUME</div>
-            </div>
-
-            <div id="rows"></div>
-
-            <div class="footerNav">
-              <button class="pagerBtn" id="prev" title="Pagina anterioară">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                  <path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-              </button>
-              <button class="pagerBtn" id="next" title="Pagina următoare">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                  <path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-              </button>
-            </div>
-
-            <div class="hint" id="hint"></div>
           </div>
+
+          <div class="list" id="list"></div>
+        </div>
+
+        <div id="viewSettings" class="settingsWrap">
+          <div class="actionsRow">
+            <div>
+              <div class="rightTitle">Setări cereri</div>
+              <div class="note">Încarcă șabloane PDF fillable pentru fiecare tip. Angajații vor vedea buton de completare.</div>
+            </div>
+            <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+              <button class="btn" id="btnReloadTpl" type="button">Reload șabloane</button>
+            </div>
+          </div>
+          <div class="tplGrid" id="tplGrid"></div>
         </div>
       </div>
     </div>
   </div>
 
 <script>
-  const $ = (s, r=document)=>r.querySelector(s);
-  const $$ = (s, r=document)=>Array.from(r.querySelectorAll(s));
+  const DOC_TYPES = [
+  { key:'concediu_odihna', label:'Concedii de odihnă' },
+  { key:'concediu_medical', label:'Concedii medicale' },
+  { key:'concediu_fara_plata', label:'Concedii fără plată' },
+  { key:'telemunca', label:'Cereri telemuncă' },
+  { key:'ore_suplimentare', label:'Cereri de ore suplimentare' },
+  { key:'evenimente', label:'Cereri evenimente' },
+  { key:'invoire', label:'Cereri învoire' }
+];
 
-  function esc(s){
-    return String(s||"").replace(/[&<>"']/g, c=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
-  }
-  function initials(name){
-    const p = String(name||"").trim().split(/\\s+/).filter(Boolean);
-    const a = p[0]?.[0]||"";
-    const b = p[1]?.[0]||"";
-    return (a+b).toUpperCase() || "•";
-  }
-  function ddmmyyyy(isoDate){
-    const s = String(isoDate||"").trim();
-    if (!s) return "—";
-    const m = s.match(/^(\\d{4})-(\\d{2})-(\\d{2})/);
-    if (m) return `${m[3]}.${m[2]}.${m[1]}`;
-    const d = new Date(s);
-    if (!isNaN(d)) {
-      const dd = String(d.getDate()).padStart(2,'0');
-      const mm = String(d.getMonth()+1).padStart(2,'0');
-      const yy = d.getFullYear();
-      return `${dd}.${mm}.${yy}`;
+  const LS_ADMIN_KEY = "pontaj_adminKey";
+  const LS_ADMIN_ME_EMAIL = "pontaj_admin_me_email";
+  const LS_ADMIN_ME_NAME  = "pontaj_admin_me_name";
+
+  let CFG = null;
+  let ENDPOINT = "";
+  let state = {
+    managerEmail: "",
+    managerName: "",
+    employees: [],
+    selectedEmployeeName: "",
+    docs: [],
+    templates: {},
+    selectedType: DOC_TYPES[0].key,
+    q: ""
+  };
+
+  function $(id){ return document.getElementById(id); }
+
+  async function loadConfig(){
+    const tries = ["config.json","./config.json","../config.json","/config.json"];
+    let lastErr = null;
+    for (const p of tries){
+      try{
+        const r = await fetch(p + "?v=" + Date.now(), {cache:"no-store"});
+        if (!r.ok) throw new Error("HTTP " + r.status);
+        return await r.json();
+      }catch(e){ lastErr = e; }
     }
-    return s;
+    throw lastErr || new Error("Nu pot citi config.json.");
   }
-  function ymFromDate(d){
-    const y = d.getFullYear();
-    const m = String(d.getMonth()+1).padStart(2,'0');
-    return `${y}-${m}`;
+
+  function endpointBase(cfg){
+    const raw = cfg.documentsEndpoint || cfg.adminEventsEndpoint || cfg.leaveEndpoint || cfg.webappUrl || cfg.scriptUrl || "";
+    return String(raw||"").replace(/\?.*$/, "").trim();
   }
-  function lastMonths(n){
-    const out = [];
-    const d = new Date();
-    d.setDate(1);
-    for (let i=0;i<n;i++){
-      out.push(ymFromDate(d));
-      d.setMonth(d.getMonth()-1);
-    }
-    return out;
+
+  function keyQS(){
+    const k = (CFG && CFG.adminKey) ? String(CFG.adminKey) : "";
+    const ls = (localStorage.getItem("ADMIN_KEY") || localStorage.getItem(LS_ADMIN_KEY) || "");
+    const key = (k || ls || "").trim();
+    return key ? ("&key=" + encodeURIComponent(key)) : "";
   }
 
   function jsonp(url){
     return new Promise((resolve, reject)=>{
-      const cb = "cb_" + Math.random().toString(16).slice(2);
+      const cb = "cb_" + Math.random().toString(36).slice(2);
       const s = document.createElement("script");
-      let done = false;
-      window[cb] = (data)=>{ done = true; cleanup(); resolve(data); };
-      function cleanup(){
-        try{ delete window[cb]; }catch(e){ window[cb] = undefined; }
-        try{ s.remove(); }catch(e){}
-      }
-      s.onerror = ()=>{ if (done) return; cleanup(); reject(new Error("JSONP error")); };
-      s.src = url + (url.includes("?") ? "&" : "?") + "callback=" + cb + "&_=" + Date.now();
+      const cleanup = ()=>{ try{delete window[cb];}catch(_){
+      }; s.remove(); };
+      const t = setTimeout(()=>{ cleanup(); reject(new Error("JSONP timeout")); }, 25000);
+      window[cb] = (data)=>{ clearTimeout(t); cleanup(); resolve(data); };
+      s.onerror = ()=>{ clearTimeout(t); cleanup(); reject(new Error("JSONP error")); };
+      s.src = url + (url.includes("?") ? "&" : "?") + "callback=" + cb;
       document.head.appendChild(s);
     });
   }
 
-  // ===== Config =====
-  let CFG = null;
-  async function loadConfig(){
-    const tries = ["config.json","./config.json","../config.json","/config.json"];
-    for (const p of tries){
-      try{
-        const r = await fetch(p+"?v="+Date.now(), {cache:"no-store"});
-        if (!r.ok) continue;
-        CFG = await r.json();
-        return;
-      }catch(e){}
-    }
-    throw new Error("Nu pot încărca config.json.");
-  }
-  function base(){
-    return String(CFG?.adminEventsEndpoint || CFG?.leaveEndpoint || CFG?.stateEndpoint || "").replace(/\?.*$/,'').trim();
-  }
-
-  // ===== Admin session =====
-  function getAdminKey(){
-    try{
-      return localStorage.getItem('pontaj_adminKey')
-          || localStorage.getItem('pontaj/adminKey')
-          || localStorage.getItem('ADMIN_KEY')
-          || '';
-    }catch(e){ return ''; }
-  }
-  function getAdminIdentity(){
-    try{
-      const s = localStorage.getItem('pontaj/admin/v1');
-      if (s){
-        const o = JSON.parse(s);
-        return {
-          email: String(o.email||o.user||'').trim(),
-          name: String(o.name||o.label||o.user||'Admin').trim()
-        };
-      }
-    }catch(e){}
-    return { email:'', name:'Admin' };
-  }
-
-  // ===== Tabs and categories =====
-  const TABS = [
-    {id:"requests", label:"Documentele cereri"},
-    {id:"contracts", label:"Documente contractuale"},
-    {id:"certs", label:"Adeverințe"},
-    {id:"other", label:"Alte documente"},
-    {id:"public", label:"Documente publice"},
-  ];
-  const CATS = [
-    {id:"odihna", label:"Concedii de odihnă"},
-    {id:"medical", label:"Concedii medicale"},
-    {id:"fara_plata", label:"Concedii fără plată"},
-    {id:"telework", label:"Cereri telemuncă"},
-    {id:"overtime", label:"Cereri de ore suplimentare"},
-    {id:"events", label:"Cereri evenimente"},
-  ];
-
-  let STATE = {
-    tab:"requests",
-    cat:"odihna",
-    q:"",
-    page:0,
-    pageSize:6,
-    admin:{ key:"", me:{email:"", name:""} },
-    employees:[], // {employeeKey,name,dept,avatarUrl,managerEmail,managerName}
-    empQ:"",
-    selectedEmpKey:"",
-    selectedEmpName:"",
-    leavesCache: new Map(), // empKey -> list
-    allItems:[], // for selected employee, mapped docs (requests tab)
-    catCounts:{},
-  };
-
-  function setAvatar(elImg, elFallback, url, name){
-    if (url){
-      elImg.src = url;
-      elImg.style.display = "block";
-      elFallback.style.display = "none";
-    }else{
-      elImg.style.display = "none";
-      elFallback.style.display = "grid";
-      elFallback.textContent = initials(name);
-    }
-  }
-
-  function renderTabs(){
-    const host = $("#tabs");
-    host.innerHTML = "";
-    for (const t of TABS){
-      const b = document.createElement("button");
-      b.className = "tab" + (STATE.tab===t.id ? " active" : "");
-      b.textContent = t.label;
-      b.addEventListener("click", ()=>{
-        STATE.tab = t.id;
-        STATE.page = 0;
-        renderAll();
-      });
-      host.appendChild(b);
-    }
-  }
-
-  function renderCats(){
-    const host = $("#cats");
-    host.innerHTML = "";
-    for (const c of CATS){
-      const count = STATE.catCounts[c.id] ?? 0;
-      const b = document.createElement("div");
-      b.className = "cat" + (STATE.cat===c.id ? " active" : "");
-      b.innerHTML = `
-        <div class="count">${count} fișiere</div>
-        <div class="name">${esc(c.label)}</div>
-      `;
-      b.addEventListener("click", ()=>{
-        STATE.cat = c.id;
-        STATE.page = 0;
-        renderAll();
-      });
-      host.appendChild(b);
-    }
-  }
-
-  function getTabItems(){
-    if (STATE.tab === "requests"){
-      return STATE.allItems;
-    }
-    const keyMap = {
-      contracts: "contractDocs",
-      certs: "certDocs",
-      other: "otherDocs",
-      public: "publicDocs"
-    };
-    const k = keyMap[STATE.tab];
-    const arr = (CFG && CFG.documents && Array.isArray(CFG.documents[k])) ? CFG.documents[k] : [];
-    return arr.map(x=>({
-      catId: STATE.cat,
-      dateIso: x.date || x.createdAt || "",
-      title: x.title || x.name || "Document",
-      by: x.by || x.author || "Companie",
-      meta: x.meta || "",
-      url: x.url || x.link || ""
-    }));
-  }
-
-  function filteredItems(){
-    const items = getTabItems();
-    const q = String(STATE.q||"").trim().toLowerCase();
-    const cat = STATE.cat;
-    return items.filter(it=>{
-      if (STATE.tab === "requests"){
-        if (it.catId !== cat) return false;
-      }
-      if (!q) return true;
-      return (String(it.title||"").toLowerCase().includes(q) || String(it.meta||"").toLowerCase().includes(q));
+  async function postNoCors(endpoint, payload){
+    await fetch(endpoint + "?fn=adminDocTemplateUploadChunkPost", {
+      method:"POST",
+      mode:"no-cors",
+      headers:{"Content-Type":"text/plain;charset=UTF-8"},
+      body: JSON.stringify(Object.assign({}, payload, { fn:"adminDocTemplateUploadChunkPost" }))
     });
   }
 
-  function renderRows(){
-    const host = $("#rows");
-    const items = filteredItems();
-    const totalPages = Math.max(1, Math.ceil(items.length / STATE.pageSize));
-    STATE.page = Math.max(0, Math.min(STATE.page, totalPages-1));
-    const start = STATE.page*STATE.pageSize;
-    const pageItems = items.slice(start, start+STATE.pageSize);
-
-    $("#meta").textContent = `${items.length} rezultate`;
-    $("#prev").disabled = (STATE.page<=0);
-    $("#next").disabled = (STATE.page>=totalPages-1);
-
-    if (!STATE.selectedEmpKey){
-      host.innerHTML = `<div class="empty">Alege un angajat din stânga.</div>`;
-      $("#hint").textContent = "";
-      return;
+  function bytesToB64Url(bytes){
+    let bin = "";
+    const chunk = 0x8000;
+    for (let i=0;i<bytes.length;i+=chunk){
+      bin += String.fromCharCode.apply(null, bytes.subarray(i, i+chunk));
     }
-
-    if (!pageItems.length){
-      host.innerHTML = `<div class="empty">Nu există documente de afișat aici.</div>`;
-      $("#hint").textContent = (STATE.tab==="requests")
-        ? "Tip: aici apar cererile de concediu/invoire. Pentru telemuncă/ore suplimentare putem conecta ulterior un sheet separat."
-        : "Tip: poți defini listele din config.json în obiectul documents.* (publicDocs / contractDocs / certDocs / otherDocs).";
-      return;
-    }
-
-    host.innerHTML = "";
-    for (const it of pageItems){
-      const row = document.createElement("div");
-      row.className = "row";
-      row.innerHTML = `
-        <div class="fileIco" aria-hidden="true">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-            <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" stroke="currentColor" stroke-width="2"/>
-            <path d="M14 2v6h6" stroke="currentColor" stroke-width="2"/>
-          </svg>
-        </div>
-        <div class="dateCell">${esc(ddmmyyyy(it.dateIso))}</div>
-        <div class="nameCell">
-          <div class="title">${esc(it.title)}</div>
-          <div class="sub">${esc(it.by || "")}</div>
-        </div>
-      `;
-      if (it.url){
-        row.style.cursor = "pointer";
-        row.addEventListener("click", ()=>window.open(it.url, "_blank"));
-      }
-      host.appendChild(row);
-    }
-    $("#hint").textContent = `Pagina ${STATE.page+1} / ${totalPages}`;
+    const b64 = btoa(bin).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+    return b64;
   }
 
-  function renderAll(){
-    renderTabs();
-    renderCats();
-    renderRows();
+  function fmtDate(d){
+    try{
+      const dt = new Date(d);
+      if (isNaN(dt)) return "";
+      const dd = String(dt.getDate()).padStart(2,'0');
+      const mm = String(dt.getMonth()+1).padStart(2,'0');
+      const yy = dt.getFullYear();
+      return dd + "." + mm + "." + yy;
+    }catch(_){
+      return "";
+    }
   }
 
-  function catOfLeave(x){
-    const kind = String(x.kind||"").toLowerCase();
-    const code = String(x.code||"").toUpperCase();
-    if (code === "CO") return "odihna";
-    if (code === "CFP") return "fara_plata";
-    if (code === "EV") return "events";
-    if (code === "BO" || code === "CM") return "medical";
-    if (kind === "invoire") return "events";
-    return "events";
-  }
-  function titleOfLeave(x){
-    const kind = String(x.kind||"").toLowerCase();
-    if (kind === "invoire"){
-      const d = ddmmyyyy(x.startDate || x.createdAt);
-      return `Învoire ${d}`;
-    }
-    const code = String(x.code||"").trim().toUpperCase() || "CO";
-    const s = ddmmyyyy(x.startDate);
-    const e = ddmmyyyy(x.endDate);
-    if (s !== "—" && e !== "—" && s !== e) return `Concediu ${code} ${s} – ${e}`;
-    return `Concediu ${code} ${s}`;
-  }
+  function setErr(msg){ $("err").textContent = msg || ""; }
 
-  function setCountsFromItems(items){
-    const counts = {};
-    for (const c of CATS) counts[c.id] = 0;
-    for (const it of items){
-      counts[it.catId] = (counts[it.catId]||0) + 1;
+  function ensureManager(){
+    const meEmail = (localStorage.getItem(LS_ADMIN_ME_EMAIL) || "").trim();
+    const meName  = (localStorage.getItem(LS_ADMIN_ME_NAME) || "").trim();
+    if (meEmail) {
+      state.managerEmail = meEmail;
+      state.managerName = meName;
     }
-    STATE.catCounts = counts;
+    $("mgrPill").textContent = "Manager: " + (state.managerEmail || "—");
   }
 
   async function loadEmployees(){
-    const b = base();
-    if (!b) throw new Error("Lipseaște endpoint în config.json.");
-    const url = `${b}?fn=adminEmployees${keyQS()}`;
+    const url = ENDPOINT + "?fn=adminEmployees" + keyQS() + "&ts=" + Date.now();
     const data = await jsonp(url);
+    if (!data || !data.ok) throw new Error(data?.error || "Nu pot încărca lista de angajați.");
+    const list = data.employees || data.list || data.rows || [];
+    state.employees = Array.isArray(list) ? list : [];
 
-    // backend returns { ok:true, employees:[...] } (adminEmployees_)
-    const list = (data && (data.employees || data.list || data.items)) || null;
-    if (!data || !data.ok || !Array.isArray(list)) {
-      throw new Error((data && data.error) ? data.error : "Nu pot încărca lista de angajați.");
+    // filter by managerEmail if set
+    let visible = state.employees;
+    if (state.managerEmail) {
+      visible = visible.filter(e => String(e.managerEmail||"").toLowerCase() === state.managerEmail.toLowerCase());
     }
-    // optional store managers map if provided
-    STATE.managersMap = (data && data.managersMap) ? data.managersMap : (STATE.managersMap || {});
-    return list;
+
+    // fill select
+    const sel = $("selEmployee");
+    sel.innerHTML = "";
+    if (!visible.length) {
+      const opt = document.createElement("option");
+      opt.value = "";
+      opt.textContent = state.managerEmail ? "Nu ai angajați repartizați." : "Niciun angajat.";
+      sel.appendChild(opt);
+      state.selectedEmployeeName = "";
+      return;
+    }
+    for (const e of visible) {
+      const opt = document.createElement("option");
+      opt.value = e.name || "";
+      opt.textContent = (e.name || "—") + (e.dept ? (" • " + e.dept) : "");
+      sel.appendChild(opt);
+    }
+    state.selectedEmployeeName = sel.value || visible[0].name || "";
+    $("empPill").textContent = "Angajat: " + (state.selectedEmployeeName || "—");
   }
 
-  function keyQS(){
-    const k = encodeURIComponent(STATE.admin.key || "");
-    return k ? `&ADMIN_KEY=${k}` : "";
+  async function loadTemplates(){
+    if (!state.managerEmail) {
+      state.templates = {};
+      return;
+    }
+    const url = ENDPOINT + "?fn=adminDocTemplatesGet" + keyQS()
+      + "&managerEmail=" + encodeURIComponent(state.managerEmail)
+      + "&ts=" + Date.now();
+    const data = await jsonp(url);
+    if (!data || !data.ok) throw new Error(data?.error || "Nu pot încărca șabloanele.");
+    state.templates = data.map || {};
   }
 
-  function filterEmployeesAssigned(all){
-    const me = (STATE.admin.me.email || "").toLowerCase();
-    if (!me) return all;
-    // if managerEmail missing, show all (fallback)
-    const hasAnyManager = all.some(x => String(x.managerEmail||"").trim());
-    if (!hasAnyManager) return all;
-    return all.filter(x => String(x.managerEmail||"").toLowerCase() === me);
+  async function loadDocs(){
+    if (!state.managerEmail) {
+      state.docs = [];
+      return;
+    }
+    const emp = state.selectedEmployeeName || "";
+    const url = ENDPOINT + "?fn=adminDocumentsList" + keyQS()
+      + "&managerEmail=" + encodeURIComponent(state.managerEmail)
+      + (emp ? ("&employeeName=" + encodeURIComponent(emp)) : "")
+      + "&ts=" + Date.now();
+    const data = await jsonp(url);
+    if (!data || !data.ok) throw new Error(data?.error || "Nu pot încărca documentele.");
+    state.docs = Array.isArray(data.list) ? data.list : [];
   }
 
-  function renderEmployees(){
-    const host = $("#empList");
-    const q = String(STATE.empQ||"").trim().toLowerCase();
-    const list = STATE.employees.filter(e=>{
-      if (!q) return true;
-      return String(e.name||"").toLowerCase().includes(q) || String(e.dept||"").toLowerCase().includes(q);
-    });
+  function renderCats(){
+    const wrap = $("catList");
+    wrap.innerHTML = "";
+    const counts = new Map(DOC_TYPES.map(t=>[t.key, 0]));
+    for (const d of state.docs) counts.set(d.typeKey, (counts.get(d.typeKey)||0)+1);
 
-    if (!list.length){
-      host.innerHTML = `<div class="empty">Nu există angajați de afișat.</div>`;
+    for (const t of DOC_TYPES){
+      const div = document.createElement("div");
+      div.className = "cat" + (t.key===state.selectedType ? " active" : "");
+      const c = counts.get(t.key)||0;
+      div.innerHTML = `
+        <div class="count">${c} fișiere</div>
+        <div class="label">${t.label}</div>
+      `;
+      div.onclick = ()=>{ state.selectedType = t.key; renderAll(); };
+      wrap.appendChild(div);
+    }
+  }
+
+  function renderList(){
+    const list = $("list");
+    const t = DOC_TYPES.find(x=>x.key===state.selectedType) || DOC_TYPES[0];
+    $("rightTitle").textContent = t.label;
+    $("empPill").textContent = "Angajat: " + (state.selectedEmployeeName || "—");
+
+    const q = state.q.trim().toLowerCase();
+    const filtered = state.docs
+      .filter(d => d.typeKey === state.selectedType)
+      .filter(d => !q || (String(d.typeLabel||"").toLowerCase().includes(q) || String(d.docId||"").toLowerCase().includes(q)));
+
+    if (!filtered.length){
+      list.innerHTML = `<div class="empty">Nu există documente completate pentru această categorie.</div>`;
       return;
     }
 
-    host.innerHTML = "";
-    for (const e of list){
+    list.innerHTML = "";
+    for (const d of filtered){
       const row = document.createElement("div");
-      row.className = "emp" + (STATE.selectedEmpKey===e.employeeKey ? " active" : "");
-      const ava = e.avatarUrl || "";
+      row.className = "row";
+      const date = fmtDate(d.createdAt);
       row.innerHTML = `
-        <div class="empAva">
-          ${ava ? `<img src="${esc(ava)}" alt="">` : `<span>${esc(initials(e.name))}</span>`}
+        <div class="date"><span class="docIcon">📄</span> <span>${date}</span></div>
+        <div>
+          <div class="name">${d.typeLabel || t.label}</div>
+          <div class="sub">${d.employeeName || ""}</div>
         </div>
-        <div class="empMeta">
-          <div class="empName">${esc(e.name)}</div>
-          <div class="empDept">${esc(e.dept || (e.managerName ? ("Mgr: "+e.managerName) : ""))}</div>
+        <div class="open">
+          <button class="btn" type="button">Deschide</button>
         </div>
       `;
-      row.addEventListener("click", async ()=>{
-        STATE.selectedEmpKey = e.employeeKey;
-        STATE.selectedEmpName = e.name;
-        STATE.page = 0;
-        STATE.q = "";
-        $("#q").value = "";
-        await loadDocsForSelected();
-        renderEmployees();
-        renderAll();
-      });
-      host.appendChild(row);
+      row.querySelector("button").onclick = ()=>{ window.open(d.pdfUrl, "_blank"); };
+      list.appendChild(row);
     }
   }
 
-  async function loadDocsForSelected(){
-    if (!STATE.selectedEmpKey) return;
-    // Use cache
-    if (STATE.leavesCache.has(STATE.selectedEmpKey)){
-      const leaves = STATE.leavesCache.get(STATE.selectedEmpKey) || [];
-      buildItemsFromLeaves(leaves);
-      return;
-    }
+  function renderSettings(){
+    const grid = $("tplGrid");
+    grid.innerHTML = "";
+    for (const t of DOC_TYPES){
+      const current = state.templates[t.key] || null;
+      const box = document.createElement("div");
+      box.className = "tpl";
+      const has = !!(current && current.templateUrl);
+      box.innerHTML = `
+        <div class="leftSide">
+          <div class="ttl">${t.label}</div>
+          <div class="meta tiny">${has ? "Șablon setat" : "Lipsește șablon"}</div>
+          <div class="meta tiny">${has && current.updatedAt ? ("Actualizat: " + fmtDate(current.updatedAt)) : ""}</div>
+        </div>
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+          <button class="btn" type="button" ${has ? "" : "disabled"}>Deschide</button>
+          <label class="btn primary" style="display:inline-flex;gap:8px;align-items:center">
+            Upload PDF
+            <input type="file" accept="application/pdf" style="display:none"/>
+          </label>
+        </div>
+      `;
+      const btnOpen = box.querySelector("button");
+      if (has) btnOpen.onclick = ()=>window.open(current.templateUrl, "_blank");
 
-    const b = base();
-    const months = lastMonths(12);
-    const all = [];
-    const seen = new Set();
-    for (const ym of months){
-      const url = `${b}?fn=adminLeavesMonth&ym=${encodeURIComponent(ym)}${keyQS()}`;
-      try{
-        const data = await jsonp(url);
-        if (!data || !data.ok || !Array.isArray(data.list)) continue;
-        for (const x of data.list){
-          const nm = String(x.employeeName||"");
-          if (STATE.selectedEmpName && nm && nm.trim().toLowerCase() !== STATE.selectedEmpName.trim().toLowerCase()) continue;
-          const id = String(x.id||"");
-          if (id && seen.has(id)) continue;
-          if (id) seen.add(id);
-          all.push(x);
+      const inp = box.querySelector("input[type=file]");
+      inp.onchange = async (ev)=>{
+        const f = ev.target.files && ev.target.files[0];
+        if (!f) return;
+        try{
+          await uploadTemplate(t.key, t.label, f);
+          await loadTemplates();
+          renderSettings();
+        }catch(err){
+          setErr(String(err && err.message ? err.message : err));
+        }finally{
+          inp.value = "";
         }
-      }catch(e){}
+      };
+
+      grid.appendChild(box);
     }
-    STATE.leavesCache.set(STATE.selectedEmpKey, all);
-    buildItemsFromLeaves(all);
   }
 
-  function buildItemsFromLeaves(leaves){
-    STATE.allItems = (leaves||[])
-      .map(x=>({
-        catId: catOfLeave(x),
-        dateIso: x.startDate || x.createdAt || "",
-        title: titleOfLeave(x),
-        by: "Adăugat de " + (x.employeeName || STATE.selectedEmpName || "angajat"),
-        meta: String(x.status||""),
-        url: ""
-      }))
-      .sort((a,b)=>String(b.dateIso||"").localeCompare(String(a.dateIso||"")));
-    setCountsFromItems(STATE.allItems);
-
-    const firstNonZero = CATS.find(c => (STATE.catCounts[c.id]||0) > 0);
-    STATE.cat = (firstNonZero ? firstNonZero.id : CATS[0].id);
+  function renderAll(){
+    renderCats();
+    renderList();
   }
 
-  async function init(){
-    await loadConfig();
+  async function uploadTemplate(typeKey, typeLabel, file){
+    if (!state.managerEmail) throw new Error("Setează Manager (email) ca să poți încărca șabloane.");
+    const ab = await file.arrayBuffer();
+    const b64url = bytesToB64Url(new Uint8Array(ab));
+    const CH = 120000;
+    const n = Math.max(1, Math.ceil(b64url.length / CH));
 
-    STATE.admin.key = getAdminKey();
-    STATE.admin.me = getAdminIdentity();
+    const initUrl = ENDPOINT + "?fn=adminDocTemplateUploadInit" + keyQS()
+      + "&managerEmail=" + encodeURIComponent(state.managerEmail)
+      + "&typeKey=" + encodeURIComponent(typeKey)
+      + "&typeLabel=" + encodeURIComponent(typeLabel)
+      + "&mime=" + encodeURIComponent("application/pdf")
+      + "&n=" + n + "&ts=" + Date.now();
 
-    $("#meLabel").textContent = STATE.admin.me.name || "Admin";
-    setAvatar($("#meAvatarImg"), $("#meAvatarFallback"), "", STATE.admin.me.name);
+    const init = await jsonp(initUrl);
+    if (!init || !init.ok) throw new Error(init?.error || "Init failed.");
+    const uid = init.uid, uk = init.uk;
+    if (!uid || !uk) throw new Error("Lipsește uid/uk.");
 
-    $("#empQ").addEventListener("input", (e)=>{ STATE.empQ = e.target.value || ""; renderEmployees(); });
-
-    $("#q").addEventListener("input", (e)=>{ STATE.q = e.target.value || ""; STATE.page=0; renderRows(); });
-    $("#prev").addEventListener("click", ()=>{ STATE.page=Math.max(0, STATE.page-1); renderRows(); });
-    $("#next").addEventListener("click", ()=>{ STATE.page=STATE.page+1; renderRows(); });
-
-    // basic errors
-    if (!STATE.admin.key){
-      $("#empList").innerHTML = `<div class="empty">Lipsește ADMIN_KEY în localStorage. Deschide admin-dashboard.html (login) și revino.</div>`;
-      return;
+    for (let i=0;i<n;i++) {
+      const c = b64url.slice(i*CH, (i+1)*CH);
+      await postNoCors(ENDPOINT, { uid, uk, i, n, c });
     }
 
+    const finUrl = ENDPOINT + "?fn=adminDocTemplateUploadFinalize" + keyQS()
+      + "&uid=" + encodeURIComponent(uid) + "&uk=" + encodeURIComponent(uk)
+      + "&n=" + n + "&ts=" + Date.now();
+    const fin = await jsonp(finUrl);
+    if (!fin || !fin.ok) throw new Error(fin?.error || "Finalize failed.");
+    return fin;
+  }
+
+  async function refreshAll(){
+    setErr("");
     try{
-      const all = await loadEmployees();
-      STATE.employees = filterEmployeesAssigned(all);
-      // select first
-      if (STATE.employees.length){
-        STATE.selectedEmpKey = STATE.employees[0].employeeKey;
-        STATE.selectedEmpName = STATE.employees[0].name;
-        await loadDocsForSelected();
-      }
-      renderEmployees();
+      if (!CFG) CFG = await loadConfig();
+      ENDPOINT = endpointBase(CFG);
+      if (!ENDPOINT) throw new Error("Lipsește adminEventsEndpoint/leaveEndpoint/documentsEndpoint în config.json.");
+
+      ensureManager();
+      await loadEmployees();
+      await loadTemplates();
+      await loadDocs();
+
       renderAll();
+      renderSettings();
     }catch(err){
-      $("#empList").innerHTML = `<div class="empty">${esc(String(err && err.message ? err.message : err))}</div>`;
+      setErr(String(err && err.message ? err.message : err));
     }
   }
 
-  init();
+  // events
+  $("q").addEventListener("input", (e)=>{ state.q = e.target.value || ""; renderList(); });
+  $("btnRefresh").onclick = ()=>refreshAll();
+  $("btnReloadTpl").onclick = async ()=>{ try{ await loadTemplates(); renderSettings(); }catch(err){ setErr(String(err && err.message ? err.message : err)); } };
+
+  $("selEmployee").addEventListener("change", async ()=>{
+    state.selectedEmployeeName = $("selEmployee").value || "";
+    await loadDocs();
+    renderAll();
+  });
+
+  $("btnSetManager").onclick = ()=>{
+    const current = state.managerEmail || "";
+    const email = prompt("Email manager/admin (pentru filtrare + șabloane):", current);
+    if (email === null) return;
+    const name = prompt("Nume manager (opțional):", state.managerName || "");
+    localStorage.setItem(LS_ADMIN_ME_EMAIL, (email||"").trim());
+    localStorage.setItem(LS_ADMIN_ME_NAME, (name||"").trim());
+    ensureManager();
+    refreshAll();
+  };
+
+  // tabs
+  function setTab(tab){
+    document.querySelectorAll(".tab").forEach(x=>x.classList.toggle("active", x.dataset.tab===tab));
+    $("viewSettings").classList.toggle("show", tab==="setari");
+    $("viewMain").style.display = (tab==="setari") ? "none" : "block";
+  }
+  document.querySelectorAll(".tab").forEach(t=>t.addEventListener("click", ()=>setTab(t.dataset.tab)));
+  setTab("cereri");
+
+  refreshAll();
 </script>
 </body>
 </html>
