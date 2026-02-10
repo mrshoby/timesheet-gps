@@ -240,13 +240,56 @@
 
   function setErr(msg){ $("err").textContent = msg || ""; }
 
-  function ensureManager(){
-    const meEmail = (localStorage.getItem(LS_ADMIN_ME_EMAIL) || "").trim();
-    const meName  = (localStorage.getItem(LS_ADMIN_ME_NAME) || "").trim();
-    if (meEmail) {
-      state.managerEmail = meEmail;
-      state.managerName = meName;
+  function _detectAdminIdentity(){
+    // best-effort: try known session keys used in other admin pages
+    const keys = ["pontaj/admin/v1","pontaj_admin_session","pontaj_admin","admin_session"];
+    for (const k of keys){
+      let raw = "";
+      try{ raw = (localStorage.getItem(k) || "").trim(); }catch(e){}
+      if (!raw) continue;
+
+      // sometimes value can be plain email
+      if (raw.includes("@") && raw[0] !== "{"){
+        return { email: raw, name: "" };
+      }
+
+      try{
+        const o = JSON.parse(raw);
+        if (!o) continue;
+        const email = (o.email || o.user || o.username || o.login || o.mail || "").trim();
+        const name  = (o.label || o.name || o.fullName || o.displayName || "").trim();
+        if (email && email.includes("@")) return { email, name };
+        // sometimes "user" can be the name and email absent
+        if (name && name.includes("@")) return { email: name, name: "" };
+      }catch(e){}
     }
+    return null;
+  }
+
+  function ensureManager(){
+    let meEmail = "";
+    let meName  = "";
+
+    try{ meEmail = (localStorage.getItem(LS_ADMIN_ME_EMAIL) || "").trim(); }catch(e){}
+    try{ meName  = (localStorage.getItem(LS_ADMIN_ME_NAME)  || "").trim(); }catch(e){}
+
+    // fallback: infer from admin session (most admin pages already set it)
+    if (!meEmail){
+      const id = _detectAdminIdentity();
+      if (id && id.email){
+        meEmail = id.email;
+        if (!meName) meName = id.name || "";
+        // persist for next time, so upload works without prompt
+        try{ localStorage.setItem(LS_ADMIN_ME_EMAIL, meEmail); }catch(e){}
+        if (meName) try{ localStorage.setItem(LS_ADMIN_ME_NAME, meName); }catch(e){}
+      }
+    }
+
+    if (meEmail){
+      state.managerEmail = meEmail;
+      state.managerName  = meName;
+    }
+
     $("mgrPill").textContent = "Manager: " + (state.managerEmail || "—");
   }
 
