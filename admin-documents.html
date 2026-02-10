@@ -1,0 +1,809 @@
+<!doctype html>
+<html lang="ro">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Pontaj • Admin • Documente</title>
+  <style>
+    :root{
+      --bg:#f6f6fb;
+      --card:#ffffff;
+      --txt:#1f2141;
+      --muted:#7b7fa8;
+      --line:rgba(105,112,160,.18);
+      --shadow:0 14px 34px rgba(10,10,30,.08);
+      --shadow2:0 10px 22px rgba(10,10,30,.06);
+      --purple:#5b3fd3;
+      --purpleSoft:rgba(91,63,211,.10);
+      --radius:22px;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+      background: var(--bg);
+      color: var(--txt);
+    }
+    a{color:inherit;text-decoration:none}
+
+    .app{height:100%;display:flex;gap:18px;padding:18px}
+    .sb{
+      width:66px; flex:0 0 66px;
+      background: #fff;
+      border:1px solid rgba(105,112,160,.14);
+      border-radius: 18px;
+      box-shadow: var(--shadow2);
+      display:flex; flex-direction:column; align-items:center;
+      padding:10px 8px;
+    }
+    .sb .logo{
+      width:44px;height:44px;border-radius:14px;
+      display:flex;align-items:center;justify-content:center;
+      background: var(--purpleSoft);
+      border:1px solid rgba(91,63,211,.20);
+      margin-bottom:10px;
+      font-weight:900;
+      color:var(--purple);
+    }
+    .sbNav{display:flex;flex-direction:column;gap:10px;margin-top:6px;flex:1}
+    .sbItem{
+      width:44px;height:44px;border-radius:14px;
+      display:flex;align-items:center;justify-content:center;
+      color:#5b5f7f;
+      border:1px solid transparent;
+      cursor:pointer;
+    }
+    .sbItem:hover{background:rgba(240,242,255,.65);border-color:rgba(105,112,160,.12)}
+    .sbItem.active{background:rgba(91,63,211,.12); color:var(--purple); border-color:rgba(91,63,211,.22)}
+    .sbFoot{margin-top:10px; opacity:.55; font-size:12px}
+
+    .main{flex:1; min-width:0; display:flex; flex-direction:column; gap:14px}
+    .top{
+      display:flex; align-items:flex-end; justify-content:space-between; gap:14px;
+      padding:6px 6px 0 6px;
+    }
+    .tabs{display:flex;gap:28px; align-items:flex-end; flex-wrap:wrap}
+    .tab{
+      padding:10px 2px;
+      border-bottom:3px solid transparent;
+      color:#7a7fa6;
+      font-weight:800;
+      cursor:pointer;
+      user-select:none;
+    }
+    .tab.active{color:var(--purple); border-bottom-color:var(--purple)}
+    .topRight{display:flex;align-items:center;gap:14px}
+    .iconRow{display:flex;align-items:center;gap:10px}
+    .ico{
+      width:36px;height:36px;border-radius:12px;
+      display:flex;align-items:center;justify-content:center;
+      background:#fff;border:1px solid rgba(105,112,160,.14);
+      box-shadow:0 6px 14px rgba(10,10,30,.06);
+      color:#5b5f7f;
+    }
+    .feedback{color:#2a2d4f;font-weight:800;font-size:14px;opacity:.8}
+    .profile{display:flex;align-items:center;gap:10px}
+    .avatar{
+      width:40px;height:40px;border-radius:999px;
+      background:#eef1ff;border:2px solid #fff;
+      box-shadow:0 10px 18px rgba(20,18,40,.10);
+      display:flex;align-items:center;justify-content:center;
+      font-weight:900; color:var(--purple);
+      overflow:hidden;
+    }
+    .avatar img{width:100%;height:100%;object-fit:cover;display:block}
+    .content{flex:1; min-height:0; display:grid; grid-template-columns: 420px 1fr; gap:18px; padding:0 6px 6px 6px}
+
+    .left{min-width:0; display:flex; flex-direction:column; gap:12px}
+    .right{min-width:0}
+
+    .picker{
+      background:#fff;
+      border:1px solid rgba(105,112,160,.14);
+      border-radius:18px;
+      box-shadow: var(--shadow2);
+      padding:14px 16px;
+      display:flex; flex-direction:column; gap:8px;
+    }
+    .picker .lbl{font-weight:950;color:#7b7fa8;font-size:13px}
+    .picker select{
+      width:100%;
+      border-radius:14px;
+      border:1px solid rgba(105,112,160,.20);
+      padding:10px 12px;
+      font-weight:900;
+      font-size:16px;
+      outline:none;
+      background:#fff;
+      color:#2a2d4f;
+    }
+
+    .catList{display:flex; flex-direction:column; gap:14px}
+    .cat{
+      background:#fff;
+      border:1px solid rgba(105,112,160,.14);
+      border-radius: 18px;
+      box-shadow: var(--shadow2);
+      padding:22px 22px;
+      cursor:pointer;
+      user-select:none;
+      transition: transform .08s ease, box-shadow .12s ease;
+    }
+    .cat:hover{transform: translateY(-1px); box-shadow: var(--shadow)}
+    .cat.active{
+      background: var(--purple);
+      border-color: rgba(91,63,211,.35);
+      color:#fff;
+    }
+    .cat .count{font-size:14px;font-weight:900;color:rgba(31,33,65,.35)}
+    .cat.active .count{color:rgba(255,255,255,.75)}
+    .cat .title{font-size:26px;line-height:1.12;font-weight:950;margin-top:6px}
+
+    .card{
+      background:#fff;
+      border:1px solid rgba(105,112,160,.14);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      height:100%;
+      display:flex; flex-direction:column;
+      overflow:hidden;
+    }
+    .cardInner{padding:18px 18px 10px 18px; display:flex; gap:10px; align-items:center; justify-content:space-between}
+    .search{
+      display:flex;align-items:center;gap:10px;
+      width:min(340px, 100%);
+      background:#fff;
+      border:1px solid rgba(105,112,160,.20);
+      border-radius:14px;
+      padding:10px 12px;
+      color:#6b6f90;
+      box-shadow:0 8px 18px rgba(10,10,30,.06);
+    }
+    .search input{
+      border:0;outline:none;background:transparent;
+      font-size:18px; font-weight:800; width:100%;
+      color:#3a3f66;
+    }
+    .small{
+      font-weight:900; color:#7b7fa8; font-size:13px;
+    }
+    .thead{
+      display:grid;
+      grid-template-columns: 200px 1fr;
+      padding:6px 18px 10px 18px;
+      color:#2a2d4f;
+      font-weight:950;
+      letter-spacing:.02em;
+      font-size:18px;
+    }
+    .rows{flex:1; overflow:auto}
+    .row{
+      display:grid;
+      grid-template-columns: 200px 1fr;
+      padding:18px 18px;
+      border-top:1px solid rgba(105,112,160,.18);
+      align-items:center;
+      cursor:pointer;
+    }
+    .row:hover{background:rgba(240,242,255,.45)}
+    .dateCell{display:flex;align-items:center;gap:12px; font-weight:950; font-size:20px; color:#1f2141}
+    .docIco{
+      width:42px;height:42px;border-radius:14px;
+      display:flex;align-items:center;justify-content:center;
+      color:#2a2d4f;
+      opacity:.92;
+    }
+    .nameCell .name{font-weight:950;font-size:22px;color:#1f2141;line-height:1.15}
+    .nameCell .sub{margin-top:4px;font-weight:800;color:rgba(31,33,65,.35);font-size:16px}
+    .pager{
+      display:flex;justify-content:flex-end;gap:10px;
+      padding:14px 16px 16px 16px;
+      border-top:1px solid rgba(105,112,160,.18);
+    }
+    .pgBtn{
+      width:38px;height:38px;border-radius:14px;
+      border:1px solid rgba(91,63,211,.25);
+      background: rgba(91,63,211,.10);
+      color:var(--purple);
+      font-size:22px;
+      font-weight:950;
+      cursor:pointer;
+    }
+    .pgBtn:disabled{opacity:.35;cursor:not-allowed}
+    .empty{
+      padding:28px 18px;
+      color:#7b7fa8;
+      font-weight:800;
+    }
+    /* modal */
+    .modalWrap{
+      position:fixed; inset:0;
+      background:rgba(10,10,20,.45);
+      display:none; align-items:center; justify-content:center;
+      padding:18px;
+      z-index:9999;
+    }
+    .modalWrap.show{display:flex}
+    .modal{
+      width:min(760px, 96vw);
+      background:#fff;
+      border-radius:22px;
+      border:1px solid rgba(105,112,160,.18);
+      box-shadow:0 30px 70px rgba(0,0,0,.25);
+      overflow:hidden;
+    }
+    .mHead{
+      padding:16px 18px;
+      display:flex;align-items:center;gap:12px;
+      border-bottom:1px solid rgba(105,112,160,.18);
+    }
+    .mTitle{font-weight:950;font-size:18px;flex:1}
+    .mClose{
+      width:38px;height:38px;border-radius:12px;
+      border:1px solid rgba(105,112,160,.20);
+      background:#fff; cursor:pointer;
+      font-size:18px; font-weight:950; color:#5b5f7f;
+    }
+    .mBody{padding:16px 18px 18px 18px}
+    .kv{display:grid;grid-template-columns: 160px 1fr; gap:10px 14px; align-items:start}
+    .k{color:#7b7fa8;font-weight:900}
+    .v{color:#1f2141;font-weight:800}
+    .pill{
+      display:inline-flex; align-items:center; gap:8px;
+      padding:8px 10px;
+      border-radius:999px;
+      background:rgba(91,63,211,.10);
+      border:1px solid rgba(91,63,211,.18);
+      color:var(--purple);
+      font-weight:950;
+    }
+
+    @media (max-width: 1080px){
+      .content{grid-template-columns: 1fr}
+      .sb{display:none}
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="sb">
+      <div class="logo" title="Pontaj">⚡</div>
+      <div class="sbNav">
+        <a class="sbItem" href="admin-dashboard.html" title="Admin dashboard">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M4 10.5 12 4l8 6.5V20a1 1 0 0 1-1 1h-5v-6H10v6H5a1 1 0 0 1-1-1v-9.5Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+        </a>
+        <a class="sbItem active" href="admin-documents.html" title="Documente">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M3.5 7.5A2.5 2.5 0 0 1 6 5h4l2 2h6A2.5 2.5 0 0 1 20.5 9.5v9A2.5 2.5 0 0 1 18 21H6A2.5 2.5 0 0 1 3.5 18.5v-11Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+        </a>
+        <a class="sbItem" href="admin-concedii.html" title="Concedii & Cereri">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M7 3h10a2 2 0 0 1 2 2v16l-4-2-4 2-4-2-4 2V5a2 2 0 0 1 2-2Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+        </a>
+        <a class="sbItem" href="admin-angajati.html" title="Angajați">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z" stroke="currentColor" stroke-width="2"/><path d="M22 21v-2a4 4 0 0 0-3-3.87" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M16 3.13a4 4 0 0 1 0 7.75" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+        </a>
+      </div>
+      <div class="sbFoot">v1</div>
+    </aside>
+
+    <main class="main">
+      <header class="top">
+        <div class="tabs" id="tabs"></div>
+
+        <div class="topRight">
+          <div class="iconRow">
+            <div class="ico" title="Aplicații">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M5 5h4v4H5V5Zm0 10h4v4H5v-4Zm10-10h4v4h-4V5Zm0 10h4v4h-4v-4Z" stroke="currentColor" stroke-width="2"/></svg>
+            </div>
+            <div class="ico" title="Notificări">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 7-3 7h18s-3 0-3-7Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M10 21a2 2 0 0 0 4 0" stroke="currentColor" stroke-width="2"/></svg>
+            </div>
+          </div>
+
+          <a class="feedback" href="#" onclick="alert('Feedback: adaugăm aici o pagină/flow.');return false;">Feedback</a>
+
+          <div class="profile">
+            <div class="avatar" id="topAvatar">A</div>
+          </div>
+        </div>
+      </header>
+
+      <section class="content">
+        <div class="left">
+          <div class="picker">
+            <div class="lbl">Angajat</div>
+            <select id="empSelect"></select>
+            <div class="small" id="empHint">—</div>
+          </div>
+
+          <div class="catList" id="catList"></div>
+        </div>
+
+        <div class="right">
+          <div class="card">
+            <div class="cardInner">
+              <div class="search">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M10.5 18a7.5 7.5 0 1 1 0-15 7.5 7.5 0 0 1 0 15Z" stroke="currentColor" stroke-width="2"/><path d="M16.5 16.5 21 21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                <input id="q" placeholder="Caută" autocomplete="off" />
+              </div>
+              <div class="small" id="smallMeta">—</div>
+            </div>
+
+            <div class="thead">
+              <div>DATĂ</div>
+              <div>NUME</div>
+            </div>
+
+            <div class="rows" id="rows"></div>
+
+            <div class="pager">
+              <button class="pgBtn" id="pgFirst" title="Prima pagină">«</button>
+              <button class="pgBtn" id="pgPrev" title="Înapoi">‹</button>
+              <button class="pgBtn" id="pgNext" title="Înainte">›</button>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div class="modalWrap" id="modalWrap">
+    <div class="modal">
+      <div class="mHead">
+        <div class="mTitle" id="mTitle">Detalii</div>
+        <button class="mClose" id="mClose">✕</button>
+      </div>
+      <div class="mBody">
+        <div class="kv" id="mKv"></div>
+      </div>
+    </div>
+  </div>
+
+<script>
+(() => {
+  const $ = (s, r=document) => r.querySelector(s);
+  const esc = (s) => String(s ?? "").replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const deacc = (s) => String(s||"")
+    .normalize("NFD").replace(/[\u0300-\u036f]/g,'')
+    .replace(/ș/g,'s').replace(/ț/g,'t').replace(/ă/g,'a').replace(/î/g,'i').replace(/â/g,'a')
+    .replace(/Ș/g,'S').replace(/Ț/g,'T').replace(/Ă/g,'A').replace(/Î/g,'I').replace(/Â/g,'A');
+  const keyName = (name) => deacc(String(name||"").trim()).toLowerCase().replace(/\s+/g,' ');
+  const pad2 = (n) => String(n).padStart(2,'0');
+  const fmtISOtoRO = (iso) => {
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return "";
+    return pad2(d.getDate()) + "." + pad2(d.getMonth()+1) + "." + d.getFullYear();
+  };
+  const fmtIsoDate = (yyyy_mm_dd) => {
+    const m = String(yyyy_mm_dd||"").match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (!m) return String(yyyy_mm_dd||"");
+    return m[3] + "." + m[2] + "." + m[1];
+  };
+  const initials = (name) => {
+    name = String(name||"").trim();
+    if (!name) return "?";
+    const p = name.split(/\s+/).filter(Boolean);
+    const a = (p[0]||"?")[0] || "?";
+    const b = (p.length>1 ? p[p.length-1][0] : "") || "";
+    return (a+b).toUpperCase();
+  };
+
+  // storage keys (same as other admin pages)
+  const LS_ADMIN = "pontaj/admin/v1";
+  const LS_ADMIN_KEY = "pontaj_adminKey";
+  let CFG = null;
+
+  async function loadConfig(){
+    const tries = ["config.json","./config.json","../config.json","/config.json"];
+    for (const p of tries){
+      try{
+        const r = await fetch(p + "?v=" + Date.now(), {cache:"no-store"});
+        if (!r.ok) continue;
+        CFG = await r.json();
+        return;
+      }catch(e){}
+    }
+    throw new Error("Nu pot încărca config.json.");
+  }
+  function ep(){
+    return (CFG?.adminEventsEndpoint || CFG?.stateEndpoint || CFG?.leaveEndpoint || CFG?.webappUrl || "").trim();
+  }
+  function getAdminSession(){
+    const raw = (localStorage.getItem(LS_ADMIN) || "").trim();
+    if (!raw) return null;
+    let obj = null;
+    try{ obj = JSON.parse(raw); }catch(_){ obj = null; }
+    if (obj && typeof obj === "object"){
+      const label = (obj.label || obj.name || obj.user || obj.email || obj.id || "").toString().trim();
+      const email = (obj.email || obj.userEmail || obj.mail || "").toString().trim();
+      if (!label && !email) return null;
+      return { raw: obj, label: label || email, email: email || "" };
+    }
+    return { raw:{value:raw}, label: raw, email:"" };
+  }
+  function getAdminKey(){
+    return (localStorage.getItem(LS_ADMIN_KEY) || "").trim();
+  }
+
+  // JSONP
+  function jsonp(url){
+    return new Promise((resolve, reject)=>{
+      const cb = "cb_" + Math.random().toString(16).slice(2);
+      const s = document.createElement("script");
+      let done = false;
+      window[cb] = (data)=>{ done=true; cleanup(); resolve(data); };
+      function cleanup(){
+        try{ delete window[cb]; }catch(e){ window[cb]=undefined; }
+        if (s && s.parentNode) s.parentNode.removeChild(s);
+      }
+      s.onerror = ()=>{ if (!done){ cleanup(); reject(new Error("JSONP error")); } };
+      const hasQ = url.includes("?");
+      s.src = url + (hasQ ? "&" : "?") + "callback=" + encodeURIComponent(cb);
+      document.head.appendChild(s);
+      setTimeout(()=>{ if(!done){ cleanup(); reject(new Error("JSONP timeout")); } }, 25000);
+    });
+  }
+
+  async function apiAdminEmployees(key){
+    const base = ep(); if (!base) throw new Error("Lipsește endpoint.");
+    const url = base + "?fn=adminEmployees&key=" + encodeURIComponent(key) + "&ts=" + Date.now();
+    const r = await jsonp(url);
+    if (!r || !r.ok) throw new Error(r?.error || "adminEmployees failed");
+    return r.employees || [];
+  }
+  async function apiAdminManagersMap(key){
+    const base = ep(); if (!base) throw new Error("Lipsește endpoint.");
+    const url = base + "?fn=adminManagersMap&key=" + encodeURIComponent(key) + "&ts=" + Date.now();
+    const r = await jsonp(url);
+    if (!r || !r.ok) throw new Error(r?.error || "adminManagersMap failed");
+    return r.map || {};
+  }
+  async function apiAdminLeavesAll(key, employeeName){
+    const base = ep(); if (!base) throw new Error("Lipsește endpoint.");
+    const url = base + "?fn=adminLeavesAll&key=" + encodeURIComponent(key)
+      + "&employeeName=" + encodeURIComponent(employeeName || "")
+      + "&ts=" + Date.now();
+    const r = await jsonp(url);
+    if (!r || !r.ok) throw new Error(r?.error || "adminLeavesAll failed");
+    return r.list || [];
+  }
+
+  // UI model
+  const TABS = [
+    { id:"requests", label:"Documentele cereri" },
+    { id:"contracts", label:"Documente contractuale" },
+    { id:"certs", label:"Adeverințe" },
+    { id:"other", label:"Alte documente" },
+    { id:"public", label:"Documente publice" }
+  ];
+  const REQ_CATS = [
+    { id:"vacation", label:"Concedii de odihnă" },
+    { id:"medical",  label:"Concedii medicale" },
+    { id:"unpaid",   label:"Concedii fără plată" },
+    { id:"telework", label:"Cereri telemuncă" },
+    { id:"overtime", label:"Cereri de ore suplimentare" },
+    { id:"events",   label:"Cereri evenimente" }
+  ];
+
+  const STATE = {
+    tabId:"requests",
+    catId:"telework",
+    q:"",
+    page:1,
+    perPage:6,
+    employees:[],
+    assigned:[],
+    selected:null,
+    leaves:[],
+    rows:[]
+  };
+
+  function catFromLeave(x){
+    const code = keyName(x.code || "");
+    const reason = keyName(x.reason || "");
+    const kind = keyName(x.kind || "");
+    const blob = (code + " " + reason + " " + kind);
+
+    if (blob.includes("tele") || blob.includes("tm") || blob.includes("wfh") || blob.includes("wfm")) return "telework";
+    if (blob.includes("ore") || blob.includes("os") || blob.includes("supl")) return "overtime";
+    if (blob.includes("even") || blob.includes("ev") || blob.includes("deleg") || blob.includes("event")) return "events";
+    if (code === "co" || blob.includes("odih")) return "vacation";
+    if (blob.includes("med") || code === "cm" || code === "bo") return "medical";
+    if (blob.includes("fara") || blob.includes("neplat") || code.includes("cfp") || code.includes("fnp") || code.includes("np")) return "unpaid";
+    return "events";
+  }
+
+  function titleForLeave(x){
+    const cat = catFromLeave(x);
+    const s = fmtIsoDate(x.startDate);
+    const e = fmtIsoDate(x.endDate);
+    const same = (x.startDate && x.endDate && x.startDate === x.endDate);
+
+    let prefix = "Cerere";
+    if (cat === "telework") prefix = "Telemuncă";
+    else if (cat === "overtime") prefix = "Ore suplimentare";
+    else if (cat === "events") prefix = "Eveniment";
+    else if (cat === "vacation") prefix = "Concediu de odihnă";
+    else if (cat === "medical") prefix = "Concediu medical";
+    else if (cat === "unpaid") prefix = "Concediu fără plată";
+
+    return prefix + " " + (same ? s : (s + " – " + e));
+  }
+
+  function buildRowsFromLeaves(leaves, empName){
+    const arr = (leaves || []).slice().sort((a,b)=> String(b.createdAt||"").localeCompare(String(a.createdAt||"")));
+    return arr.map(x => ({
+      type:"leave",
+      id:x.id,
+      catId:catFromLeave(x),
+      dateISO:x.createdAt,
+      dateText:fmtISOtoRO(x.createdAt),
+      title:titleForLeave(x),
+      subtitle:"Adăugat de " + (empName || "angajat"),
+      raw:x
+    }));
+  }
+
+  function renderTabs(){
+    const host = $("#tabs");
+    host.innerHTML = TABS.map(t => `
+      <div class="tab ${t.id===STATE.tabId ? "active":""}" data-tab="${esc(t.id)}">${esc(t.label)}</div>
+    `).join("");
+    host.querySelectorAll(".tab").forEach(el=>{
+      el.addEventListener("click", ()=>{
+        const id = el.getAttribute("data-tab");
+        STATE.tabId = id;
+        STATE.page = 1;
+        if (STATE.tabId === "requests"){
+          if (!REQ_CATS.some(c=>c.id===STATE.catId)) STATE.catId="telework";
+        }
+        renderAll();
+      });
+    });
+  }
+
+  function categoriesForTab(){
+    if (STATE.tabId === "requests") return REQ_CATS;
+    return [
+      { id:"soon1", label:"În curând" },
+      { id:"soon2", label:"În curând" },
+      { id:"soon3", label:"În curând" },
+      { id:"soon4", label:"În curând" },
+      { id:"soon5", label:"În curând" }
+    ];
+  }
+
+  function computeCounts(rows){
+    const map = new Map();
+    for (const r of rows){
+      if (!map.has(r.catId)) map.set(r.catId, 0);
+      map.set(r.catId, map.get(r.catId)+1);
+    }
+    return map;
+  }
+
+  function renderCategories(){
+    const host = $("#catList");
+    const cats = categoriesForTab();
+    const counts = computeCounts(STATE.rows);
+    if (!cats.some(c=>c.id===STATE.catId)) STATE.catId = cats[0]?.id || "";
+    host.innerHTML = cats.map(c=>{
+      const n = counts.get(c.id) || 0;
+      return `
+        <div class="cat ${c.id===STATE.catId ? "active":""}" data-cat="${esc(c.id)}">
+          <div class="count">${n} fișiere</div>
+          <div class="title">${esc(c.label)}</div>
+        </div>
+      `;
+    }).join("");
+
+    host.querySelectorAll(".cat").forEach(el=>{
+      el.addEventListener("click", ()=>{
+        STATE.catId = el.getAttribute("data-cat");
+        STATE.page = 1;
+        renderList();
+        renderCategories();
+      });
+    });
+  }
+
+  function filterRows(){
+    let arr = STATE.rows.slice();
+    const cats = categoriesForTab().map(c=>c.id);
+    arr = arr.filter(r => cats.includes(r.catId));
+    if (STATE.catId) arr = arr.filter(r => r.catId === STATE.catId);
+    const q = keyName(STATE.q);
+    if (q) arr = arr.filter(r => keyName(r.title).includes(q));
+    return arr;
+  }
+
+  function renderList(){
+    const host = $("#rows");
+    if (STATE.tabId !== "requests"){
+      host.innerHTML = `<div class="empty">Această secțiune va fi activată după ce definim sursa documentelor (Drive/Sheet). Pentru „Documentele cereri” este deja funcțional.</div>`;
+      $("#pgFirst").disabled = true; $("#pgPrev").disabled=true; $("#pgNext").disabled=true;
+      return;
+    }
+
+    const arr = filterRows();
+    const total = arr.length;
+    const per = STATE.perPage;
+    const maxPage = Math.max(1, Math.ceil(total / per));
+    STATE.page = Math.min(STATE.page, maxPage);
+    const start = (STATE.page - 1) * per;
+    const pageRows = arr.slice(start, start + per);
+
+    if (!pageRows.length){
+      host.innerHTML = `<div class="empty">Nu există documente în această categorie.</div>`;
+    }else{
+      host.innerHTML = pageRows.map(r => `
+        <div class="row" data-id="${esc(r.id)}">
+          <div class="dateCell">
+            <div class="docIco" aria-hidden="true">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
+                <path d="M14 2H7a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8l-5-6Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+                <path d="M14 2v6h6" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+              </svg>
+            </div>
+            <div>${esc(r.dateText || "—")}</div>
+          </div>
+          <div class="nameCell">
+            <div class="name">${esc(r.title)}</div>
+            <div class="sub">${esc(r.subtitle)}</div>
+          </div>
+        </div>
+      `).join("");
+
+      host.querySelectorAll(".row").forEach(el=>{
+        el.addEventListener("click", ()=>{
+          const id = el.getAttribute("data-id");
+          const found = STATE.rows.find(x => String(x.id) === String(id));
+          if (found) openModal(found);
+        });
+      });
+    }
+
+    $("#pgFirst").disabled = (STATE.page<=1);
+    $("#pgPrev").disabled  = (STATE.page<=1);
+    $("#pgNext").disabled  = (STATE.page>=maxPage);
+    $("#smallMeta").textContent = (STATE.selected?.name ? ("Total: " + total + " documente") : "—");
+  }
+
+  function renderAll(){
+    renderTabs();
+    renderCategories();
+    renderList();
+  }
+
+  // modal
+  function openModal(row){
+    const x = row.raw || {};
+    $("#mTitle").textContent = row.title || "Detalii";
+    const status = String(x.status || "").toLowerCase() || "pending";
+    const statusLabel = status === "approved" ? "Aprobat" : (status === "rejected" ? "Respins" : "În așteptare");
+    const kv = [
+      ["Status", `<span class="pill">${esc(statusLabel)}</span>`],
+      ["Angajat", esc(STATE.selected?.name || "—")],
+      ["Creat la", esc(fmtISOtoRO(x.createdAt))],
+      ["Tip", esc(x.kind || "")],
+      ["Cod", esc(x.code || "")],
+      ["Perioadă", esc(fmtIsoDate(x.startDate) + (x.endDate && x.endDate!==x.startDate ? (" – " + fmtIsoDate(x.endDate)) : ""))],
+      ["Ore", esc((x.startTime||"") + (x.endTime ? (" – " + x.endTime) : ""))],
+      ["Motiv", esc(x.reason || "—")],
+      ["Decis la", esc(x.decidedAt ? fmtISOtoRO(x.decidedAt) : "—")],
+      ["Decis de", esc(x.decidedBy || "—")],
+      ["Notă", esc(x.decisionNote || "—")]
+    ];
+    $("#mKv").innerHTML = kv.map(([k,v]) => `<div class="k">${k}</div><div class="v">${v}</div>`).join("");
+    $("#modalWrap").classList.add("show");
+  }
+  function closeModal(){ $("#modalWrap").classList.remove("show"); }
+  $("#mClose").addEventListener("click", closeModal);
+  $("#modalWrap").addEventListener("click", (e)=>{ if (e.target === $("#modalWrap")) closeModal(); });
+
+  // paging + search
+  $("#pgFirst").addEventListener("click", ()=>{ STATE.page=1; renderList(); });
+  $("#pgPrev").addEventListener("click", ()=>{ STATE.page=Math.max(1, STATE.page-1); renderList(); });
+  $("#pgNext").addEventListener("click", ()=>{ STATE.page=STATE.page+1; renderList(); });
+
+  let searchT=null;
+  $("#q").addEventListener("input", ()=>{
+    clearTimeout(searchT);
+    searchT=setTimeout(()=>{
+      STATE.q = $("#q").value || "";
+      STATE.page=1;
+      renderList();
+    }, 180);
+  });
+
+  // employee selection
+  async function selectEmployeeByKey(empKey){
+    const emp = STATE.assigned.find(e => e.employeeKey === empKey) || null;
+    STATE.selected = emp;
+    STATE.leaves = [];
+    STATE.rows = [];
+    STATE.page = 1;
+    $("#empHint").textContent = emp ? (emp.dept ? ("Departament: " + emp.dept) : "—") : "—";
+    $("#smallMeta").textContent = "—";
+    renderAll();
+
+    if (!emp) return;
+
+    const key = getAdminKey();
+    try{
+      const list = await apiAdminLeavesAll(key, emp.name);
+      STATE.leaves = list;
+      STATE.rows = buildRowsFromLeaves(list, emp.name);
+    }catch(err){
+      console.warn(err);
+      STATE.leaves = [];
+      STATE.rows = [];
+    }
+    renderAll();
+  }
+
+  function renderEmployeeSelect(){
+    const sel = $("#empSelect");
+    const opts = STATE.assigned.map(e => `<option value="${esc(e.employeeKey)}">${esc(e.name)}</option>`).join("");
+    sel.innerHTML = opts || `<option value="">(nu există angajați repartizați)</option>`;
+    sel.disabled = !STATE.assigned.length;
+    sel.addEventListener("change", ()=> selectEmployeeByKey(sel.value));
+  }
+
+  async function init(){
+    const s = getAdminSession();
+    const key = getAdminKey();
+    if (!s || !key){
+      alert("Neautentificat (admin). Deschide admin-dashboard.html și loghează-te.");
+      location.href = "admin-dashboard.html";
+      return;
+    }
+    $("#topAvatar").textContent = initials(s.label);
+    await loadConfig();
+
+    // employees
+    let employees = [];
+    let managers = {};
+    try{
+      // adminEmployees already returns manager fields but we also get full map
+      [employees, managers] = await Promise.all([apiAdminEmployees(key), apiAdminManagersMap(key)]);
+    }catch(err){
+      console.warn(err);
+      employees = [];
+      managers = {};
+    }
+    STATE.employees = employees;
+
+    // filter assigned to this admin
+    const myEmail = (s.email || "").trim().toLowerCase();
+    const myLabel = (s.label || "").trim().toLowerCase();
+    let assigned = employees.slice();
+
+    if (myEmail){
+      assigned = assigned.filter(e => (String(e.managerEmail||"").trim().toLowerCase() === myEmail));
+    } else if (myLabel){
+      assigned = assigned.filter(e => (String(e.managerName||"").trim().toLowerCase() === myLabel));
+    }
+
+    // fallback: if none matched, keep none (as requested)
+    STATE.assigned = assigned;
+    renderEmployeeSelect();
+
+    // auto-select first employee
+    const first = STATE.assigned[0];
+    if (first){
+      $("#empSelect").value = first.employeeKey;
+      await selectEmployeeByKey(first.employeeKey);
+    } else {
+      $("#empHint").textContent = "Nu ai angajați repartizați ție (Managers sheet).";
+      STATE.selected = null;
+      STATE.rows = [];
+      renderAll();
+    }
+  }
+
+  init();
+})();
+</script>
+</body>
+</html>
