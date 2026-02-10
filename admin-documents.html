@@ -740,8 +740,15 @@
     if (!b) throw new Error("Lipseaște endpoint în config.json.");
     const url = `${b}?fn=adminEmployees${keyQS()}`;
     const data = await jsonp(url);
-    if (!data || !data.ok || !Array.isArray(data.list)) throw new Error(data && data.error ? data.error : "Nu pot încărca lista de angajați.");
-    return data.list;
+
+    // backend returns { ok:true, employees:[...] } (adminEmployees_)
+    const list = (data && (data.employees || data.list || data.items)) || null;
+    if (!data || !data.ok || !Array.isArray(list)) {
+      throw new Error((data && data.error) ? data.error : "Nu pot încărca lista de angajați.");
+    }
+    // optional store managers map if provided
+    STATE.managersMap = (data && data.managersMap) ? data.managersMap : (STATE.managersMap || {});
+    return list;
   }
 
   function keyQS(){
