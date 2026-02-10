@@ -395,7 +395,7 @@
     }
     throw new Error("Nu pot încărca config.json.");
   }
-  function ep(){ return (CFG?.leaveEndpoint || CFG?.stateEndpoint || CFG?.adminEventsEndpoint || "").replace(/\\?.*$/,''); }
+  function ep(){ return (CFG?.leaveEndpoint || CFG?.stateEndpoint || CFG?.adminEventsEndpoint || "").replace(/\?.*$/,''); }
 
   // ===== Tabs (UI only) =====
   const TABS = [
