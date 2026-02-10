@@ -19,6 +19,8 @@
   "stateEndpoint": "https://script.google.com/macros/s/AKfycbzEbPv1oQ31Ge9KNL5w-XH6vUyg3q4BRSuial5Vwz6_Gnj86dZcTRzzYxfcc-X5NgBP/exec",
   "guardEndpoint": "https://script.google.com/macros/s/AKfycbzEbPv1oQ31Ge9KNL5w-XH6vUyg3q4BRSuial5Vwz6_Gnj86dZcTRzzYxfcc-X5NgBP/exec",
   "adminEventsEndpoint": "https://script.google.com/macros/s/AKfycbzEbPv1oQ31Ge9KNL5w-XH6vUyg3q4BRSuial5Vwz6_Gnj86dZcTRzzYxfcc-X5NgBP/exec",
+  "documentsEndpoint": "https://script.google.com/macros/s/AKfycbzEbPv1oQ31Ge9KNL5w-XH6vUyg3q4BRSuial5Vwz6_Gnj86dZcTRzzYxfcc-X5NgBP/exec",
+
 
   "departmentsCsv": "https://raw.githubusercontent.com/mrshoby/timesheet-gps/main/departments.csv",
 
