@@ -503,7 +503,7 @@
     throw new Error("Nu pot încărca config.json.");
   }
   function base(){
-    return String(CFG?.adminEventsEndpoint || CFG?.leaveEndpoint || CFG?.stateEndpoint || "").replace(/\\?.*$/,'').trim();
+    return String(CFG?.adminEventsEndpoint || CFG?.leaveEndpoint || CFG?.stateEndpoint || "").replace(/\?.*$/,'').trim();
   }
 
   // ===== Admin session =====
