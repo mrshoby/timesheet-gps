@@ -895,6 +895,150 @@
 
   // ======= Shared Admins + Managers (global in this IIFE) =======
   const ADMINS = { list: [], byEmail: new Map(), byName: new Map() };
+
+  const LS_ADMIN_SESSION = 'pontaj/admin/v1';
+  const LS_ADMIN_ME_EMAIL = 'pontaj_admin_me_email';
+  const LS_ADMIN_ME_NAME  = 'pontaj_admin_me_name';
+
+  function _readAdminSession_(){
+    try{
+      const raw = localStorage.getItem(LS_ADMIN_SESSION);
+      return raw ? JSON.parse(raw) : null;
+    }catch(_){ return null; }
+  }
+  function _writeAdminSession_(obj){
+    try{ localStorage.setItem(LS_ADMIN_SESSION, JSON.stringify(obj||{})); }catch(_){}
+  }
+
+  function ensureAdminIdentityGlobal(){
+    // Ensures we have a stable "me" identity saved in localStorage so other admin pages can recognize you.
+    // If missing, asks once to pick from admin-auth list.
+    return new Promise(async (resolve)=>{
+      const s0 = _readAdminSession_();
+      if (s0 && (s0.email || s0.user || s0.name)){
+        // also keep compat keys in sync
+        try{ localStorage.setItem(LS_ADMIN_ME_NAME,  String(s0.user||s0.name||'').trim()); }catch(_){}
+        try{ localStorage.setItem(LS_ADMIN_ME_EMAIL, String(s0.email || s0.user || s0.name || '').trim()); }catch(_){}
+        resolve(s0);
+        return;
+      }
+
+      // if compat keys exist, promote them into session
+      let meId = '';
+      let meName = '';
+      try{ meId = (localStorage.getItem(LS_ADMIN_ME_EMAIL)||'').trim(); }catch(_){}
+      try{ meName = (localStorage.getItem(LS_ADMIN_ME_NAME)||'').trim(); }catch(_){}
+      if (meId || meName){
+        const out = { user: meName || meId || 'Admin', email: (meId && meId.includes('@')) ? meId : '', at: new Date().toISOString(), role: 'admin' };
+        _writeAdminSession_(out);
+        resolve(out);
+        return;
+      }
+
+      // Need to ask once
+      const list = (ADMINS && ADMINS.list) ? ADMINS.list.slice() : [];
+      if (!list.length){
+        // last resort
+        const v = (prompt('Nume admin/manager (pentru recunoaștere globală):', '') || '').trim();
+        if (v){
+          const out = { user: v, email: '', at: new Date().toISOString(), role: 'admin' };
+          _writeAdminSession_(out);
+          try{ localStorage.setItem(LS_ADMIN_ME_NAME, v); }catch(_){}
+          try{ localStorage.setItem(LS_ADMIN_ME_EMAIL, v); }catch(_){}
+          resolve(out);
+        }else{
+          resolve(null);
+        }
+        return;
+      }
+
+      // If exactly one, pick it
+      if (list.length === 1){
+        const a = list[0];
+        const name = String(a.name || a.email || 'Admin').trim();
+        const email = String(a.email || '').trim();
+        const out = { user: name, email, at: new Date().toISOString(), role: 'admin' };
+        _writeAdminSession_(out);
+        try{ localStorage.setItem(LS_ADMIN_ME_NAME, name); }catch(_){}
+        try{ localStorage.setItem(LS_ADMIN_ME_EMAIL, email || name); }catch(_){}
+        resolve(out);
+        return;
+      }
+
+      // modal picker
+      const ov = document.createElement('div');
+      ov.style.cssText = "position:fixed;inset:0;background:rgba(15,23,42,.45);display:flex;align-items:center;justify-content:center;z-index:99999;";
+      const card = document.createElement('div');
+      card.style.cssText = "width:min(520px,92vw);background:#fff;border-radius:18px;box-shadow:0 20px 60px rgba(15,23,42,.25);padding:18px 18px 14px;font-family:Inter,system-ui,Segoe UI,Arial;";
+      const h = document.createElement('div');
+      h.style.cssText = "display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px";
+      const title = document.createElement('div');
+      title.textContent = "Selectează contul tău admin/manager";
+      title.style.cssText = "font-weight:800;font-size:18px;color:#0f172a";
+      const x = document.createElement('button');
+      x.textContent = "✕";
+      x.style.cssText = "border:0;background:#f1f5f9;border-radius:12px;width:38px;height:38px;cursor:pointer;font-weight:800";
+      h.appendChild(title); h.appendChild(x);
+
+      const sub = document.createElement('div');
+      sub.textContent = "O singură dată. După asta ești recunoscut global în toate paginile Admin.";
+      sub.style.cssText = "color:#475569;font-size:13px;margin-bottom:10px";
+
+      const lab = document.createElement('label');
+      lab.textContent = "Admin/Manager";
+      lab.style.cssText = "display:block;font-size:12px;color:#334155;margin-bottom:6px";
+
+      const sel = document.createElement('select');
+      sel.style.cssText = "width:100%;padding:12px 12px;border:1px solid #e2e8f0;border-radius:12px;font-size:14px";
+      list.forEach(a=>{
+        const opt = document.createElement('option');
+        const val = String((a.email || a.name || '')).trim();
+        const text = (a.name && a.email) ? (a.name + " — " + a.email) : (a.name || a.email || '');
+        opt.value = val;
+        opt.textContent = text || val || 'Admin';
+        sel.appendChild(opt);
+      });
+
+      const btnRow = document.createElement('div');
+      btnRow.style.cssText = "display:flex;gap:10px;justify-content:flex-end;margin-top:14px";
+      const cancel = document.createElement('button');
+      cancel.textContent = "Anulează";
+      cancel.style.cssText = "padding:10px 14px;border-radius:12px;border:1px solid #e2e8f0;background:#fff;cursor:pointer;font-weight:700";
+      const ok = document.createElement('button');
+      ok.textContent = "Salvează";
+      ok.style.cssText = "padding:10px 14px;border-radius:12px;border:0;background:#6d5efc;color:#fff;cursor:pointer;font-weight:800";
+      btnRow.appendChild(cancel); btnRow.appendChild(ok);
+
+      card.appendChild(h);
+      card.appendChild(sub);
+      card.appendChild(lab);
+      card.appendChild(sel);
+      card.appendChild(btnRow);
+      ov.appendChild(card);
+      document.body.appendChild(ov);
+
+      function close(val){
+        try{ ov.remove(); }catch(_){}
+        resolve(val||null);
+      }
+      ov.addEventListener('click', (e)=>{ if(e.target===ov) close(null); });
+      x.onclick = ()=>close(null);
+      cancel.onclick = ()=>close(null);
+      ok.onclick = ()=>{
+        const v = String(sel.value||'').trim();
+        const found = list.find(a => String((a.email||a.name||'')).trim() === v) || null;
+        const name = String((found && found.name) ? found.name : v).trim();
+        const email = String((found && found.email) ? found.email : '').trim();
+        const out = { user: name || email || 'Admin', email: email || '', at: new Date().toISOString(), role: 'admin' };
+        _writeAdminSession_(out);
+        try{ localStorage.setItem(LS_ADMIN_ME_NAME, out.user); }catch(_){}
+        try{ localStorage.setItem(LS_ADMIN_ME_EMAIL, out.email || out.user); }catch(_){}
+        close(out);
+      };
+    });
+  }
+
+
   // Managers map: employeeKeyLower -> {employeeKey, employeeName, managerEmail, managerName, updatedAt, updatedBy}
   const MANAGERS = { map: new Map() };
 
@@ -2692,6 +2836,7 @@ document.documentElement.classList.remove('upLockScroll');
 
         // load admins list + managers map AFTER config is available
         await _loadAdminAuth();
+        await ensureAdminIdentityGlobal();
         await _loadManagersMap();
 
         // load avatar map (for global avatars)
