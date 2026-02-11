@@ -663,7 +663,7 @@ async function loadEmployees(){
     if (!state.managerEmail) throw new Error("Nu ești identificat ca admin/manager. Intră în index.html și fă login (sau apasă «Setează Manager» o singură dată).");
     const ab = await file.arrayBuffer();
     const b64url = bytesToB64Url(new Uint8Array(ab));
-    const CH = 120000;
+    const CH = 75000;
     const n = Math.max(1, Math.ceil(b64url.length / CH));
 
     const initUrl = ENDPOINT + "?fn=adminDocTemplateUploadInit" + keyQS()
@@ -683,12 +683,33 @@ async function loadEmployees(){
       await postNoCors(ENDPOINT, { uid, uk, i, n, c });
     }
 
-    const finUrl = ENDPOINT + "?fn=adminDocTemplateUploadFinalize" + keyQS()
+    const finUrlBase = ENDPOINT + "?fn=adminDocTemplateUploadFinalize" + keyQS()
       + "&uid=" + encodeURIComponent(uid) + "&uk=" + encodeURIComponent(uk)
-      + "&n=" + n + "&ts=" + Date.now();
-    const fin = await jsonp(finUrl);
-    if (!fin || !fin.ok) throw new Error(fin?.error || "Finalize failed.");
-    return fin;
+      + "&n=" + n;
+
+    // Retry missing chunks (no-cors POST can't be read, but finalize is JSONP so we can recover)
+    let attempts = 0;
+
+    while (true) {
+      const finUrl = finUrlBase + "&ts=" + Date.now();
+      const fin = await jsonp(finUrl);
+      if (fin && fin.ok) return fin;
+
+      const msg = (fin && (fin.error || fin.msg)) ? String(fin.error || fin.msg) : "Finalize failed.";
+      const m = msg.match(/Lipsește\s+chunk\s+(\d+)\s*\/\s*(\d+)/i);
+
+      if (m && attempts < 6) {
+        const miss1 = parseInt(m[1], 10);
+        const mi = miss1 - 1; // server message is 1-based
+        if (isFinite(mi) && mi >= 0 && mi < n) {
+          const c = b64url.slice(mi * CH, (mi + 1) * CH);
+          await postNoCors(ENDPOINT, { uid, uk, i: mi, n, c });
+          attempts++;
+          continue;
+        }
+      }
+      throw new Error(msg);
+    }
   }
 
   async function refreshAll(){
