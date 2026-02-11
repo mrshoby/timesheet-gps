@@ -151,6 +151,8 @@
   const LS_ADMIN_KEY = "pontaj_adminKey";
   const LS_ADMIN_ME_EMAIL = "pontaj_admin_me_email";
   const LS_ADMIN_ME_NAME  = "pontaj_admin_me_name";
+  const LS_ADMIN_SESSION  = "pontaj/admin/v1";
+  const LS_ADMIN_SESSION_FALLBACK = "pontaj_admin_session";
 
   let CFG = null;
   let ENDPOINT = "";
@@ -327,6 +329,113 @@
     return null;
   }
 
+
+  function _readAdminSessionObj_(){
+    const keys = [LS_ADMIN_SESSION, LS_ADMIN_SESSION_FALLBACK, "pontaj_admin", "admin_session"];
+    for (const k of keys){
+      let raw = "";
+      try{ raw = (localStorage.getItem(k) || "").trim(); }catch(e){}
+      if (!raw) continue;
+      if (raw[0] !== "{") return { user: raw };
+      try{ return JSON.parse(raw); }catch(e){}
+    }
+    return null;
+  }
+
+  function _writeAdminSessionObj_(obj){
+    try{ localStorage.setItem(LS_ADMIN_SESSION, JSON.stringify(obj||{})); }catch(e){}
+  }
+
+  function openAdminIdentityPicker(){
+    // Returns {name,email} or null
+    return new Promise(async (resolve)=>{
+      try{ await loadAdminAuth(); }catch(e){}
+      const list = (ADMINS && ADMINS.list) ? ADMINS.list.slice() : [];
+      if (!list.length){
+        resolve(null);
+        return;
+      }
+
+      const ov = document.createElement('div');
+      ov.style.cssText = "position:fixed;inset:0;background:rgba(15,23,42,.45);display:flex;align-items:center;justify-content:center;z-index:99999;";
+      const card = document.createElement('div');
+      card.style.cssText = "width:min(520px,92vw);background:#fff;border-radius:18px;box-shadow:0 20px 60px rgba(15,23,42,.25);padding:18px 18px 14px;font-family:Inter,system-ui,Segoe UI,Arial;";
+
+      const h = document.createElement('div');
+      h.style.cssText = "display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px";
+      const title = document.createElement('div');
+      title.textContent = "Selectează contul tău admin/manager";
+      title.style.cssText = "font-weight:800;font-size:18px;color:#0f172a";
+      const x = document.createElement('button');
+      x.textContent = "✕";
+      x.style.cssText = "border:0;background:#f1f5f9;border-radius:12px;width:38px;height:38px;cursor:pointer;font-weight:800";
+      h.appendChild(title); h.appendChild(x);
+
+      const sub = document.createElement('div');
+      sub.textContent = "Se salvează local și te recunoaște global în toate paginile Admin.";
+      sub.style.cssText = "color:#475569;font-size:13px;margin-bottom:10px";
+
+      const lab = document.createElement('label');
+      lab.textContent = "Admin/Manager";
+      lab.style.cssText = "display:block;font-size:12px;color:#334155;margin-bottom:6px";
+
+      const sel = document.createElement('select');
+      sel.style.cssText = "width:100%;padding:12px 12px;border:1px solid #e2e8f0;border-radius:12px;font-size:14px";
+
+      list.forEach(a=>{
+        const opt = document.createElement('option');
+        const val = String((a.email || a.name || '')).trim();
+        const text = (a.name && a.email) ? (a.name + " — " + a.email) : (a.name || a.email || '');
+        opt.value = val;
+        opt.textContent = text || val || 'Admin';
+        sel.appendChild(opt);
+      });
+
+      // preselect if we have something already
+      const ses = _readAdminSessionObj_() || {};
+      const pre = String(ses.email || ses.userEmail || ses.user || "").trim();
+      if (pre){
+        for (const o of sel.options){
+          if (String(o.value||"").toLowerCase() === pre.toLowerCase()){
+            sel.value = o.value;
+            break;
+          }
+        }
+      }
+
+      const btnRow = document.createElement('div');
+      btnRow.style.cssText = "display:flex;gap:10px;justify-content:flex-end;margin-top:14px";
+      const cancel = document.createElement('button');
+      cancel.textContent = "Anulează";
+      cancel.style.cssText = "padding:10px 14px;border-radius:12px;border:1px solid #e2e8f0;background:#fff;cursor:pointer;font-weight:700";
+      const ok = document.createElement('button');
+      ok.textContent = "Salvează";
+      ok.style.cssText = "padding:10px 14px;border-radius:12px;border:0;background:#6d5efc;color:#fff;cursor:pointer;font-weight:800";
+      btnRow.appendChild(cancel); btnRow.appendChild(ok);
+
+      card.appendChild(h);
+      card.appendChild(sub);
+      card.appendChild(lab);
+      card.appendChild(sel);
+      card.appendChild(btnRow);
+      ov.appendChild(card);
+      document.body.appendChild(ov);
+
+      function close(val){
+        try{ ov.remove(); }catch(e){}
+        resolve(val||null);
+      }
+      ov.addEventListener('click', (e)=>{ if(e.target===ov) close(null); });
+      x.onclick = ()=>close(null);
+      cancel.onclick = ()=>close(null);
+      ok.onclick = ()=>{
+        const v = String(sel.value||"").trim();
+        const found = list.find(a => String((a.email||a.name||'')).trim() === v) || null;
+        close(found || {name:v, email:""});
+      };
+    });
+  }
+
   async function ensureManager(){
     let meId   = "";
     let meName = "";
@@ -346,6 +455,22 @@
         if (meName) try{ localStorage.setItem(LS_ADMIN_ME_NAME, meName); }catch(e){}
       }
     }
+    // if still not set, ask once (picker) and persist session for global use
+    if (!meId){
+      const pick = await openAdminIdentityPicker();
+      if (pick){
+        meId = String((pick.email || pick.name || "")).trim();
+        meName = String((pick.name || pick.email || "")).trim();
+        try{ localStorage.setItem(LS_ADMIN_ME_EMAIL, meId); }catch(e){}
+        try{ localStorage.setItem(LS_ADMIN_ME_NAME,  meName); }catch(e){}
+        // also persist global admin session so every page recognizes you
+        const ses = _readAdminSessionObj_() || {};
+        const out = Object.assign({}, ses, { user: meName || meId || ses.user || 'Admin', email: (meId.includes('@') ? meId : (ses.email||'')), at: new Date().toISOString() });
+        _writeAdminSessionObj_(out);
+      }
+    }
+
+
 
     // If we only have a name/label, try to resolve to real email from admin-auth.json (if available)
     await loadAdminAuth();
@@ -365,7 +490,7 @@
       state.managerName  = meName;
     }
 
-    $("mgrPill").textContent = "Manager: " + (state.managerEmail || "—");
+    $("mgrPill").textContent = "Manager: " + ((state.managerName || state.managerEmail) || "—");
   }
 async function loadEmployees(){
     const url = ENDPOINT + "?fn=adminEmployees" + keyQS() + "&ts=" + Date.now();
@@ -534,7 +659,8 @@ async function loadEmployees(){
   }
 
   async function uploadTemplate(typeKey, typeLabel, file){
-    if (!state.managerEmail) throw new Error("Setează Manager (email) ca să poți încărca șabloane.");
+    if (!state.managerEmail){ await ensureManager(); }
+    if (!state.managerEmail) throw new Error("Nu ești identificat ca admin/manager. Intră în index.html și fă login (sau apasă «Setează Manager» o singură dată).");
     const ab = await file.arrayBuffer();
     const b64url = bytesToB64Url(new Uint8Array(ab));
     const CH = 120000;
@@ -597,7 +723,7 @@ async function loadEmployees(){
 
   $("btnSetManager").onclick = ()=>{
     const current = state.managerEmail || "";
-    const email = prompt("Email manager/admin (pentru filtrare + șabloane):", current);
+    const email = prompt("Identitate manager/admin (email sau nume/label) — pentru filtrare + șabloane:", current);
     if (email === null) return;
     const name = prompt("Nume manager (opțional):", state.managerName || "");
     localStorage.setItem(LS_ADMIN_ME_EMAIL, (email||"").trim());
