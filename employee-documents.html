@@ -3,11 +3,10 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>Documente • Employee</title>
+  <title>Documente • Admin</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
   <style>
     :root{
       --bg:#F6F7FB;
@@ -26,57 +25,54 @@
     body{margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:var(--bg);color:var(--text)}
     .page{padding:18px 20px;}
     .topTabs{display:flex;gap:22px;align-items:center;flex-wrap:wrap;margin-bottom:14px}
-    .tab{font-weight:700;color:rgba(15,23,42,.55);padding:8px 4px;border-bottom:3px solid transparent;cursor:pointer;user-select:none}
+    .tab{font-weight:800;color:rgba(15,23,42,.55);padding:8px 4px;border-bottom:3px solid transparent;cursor:pointer;user-select:none}
     .tab.active{color:var(--accent);border-bottom-color:var(--accent)}
     .card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);}
     .grid{display:grid;grid-template-columns: 420px 1fr;gap:18px;}
     @media (max-width: 1100px){.grid{grid-template-columns:1fr;}}
     .left{padding:14px}
     .right{padding:14px}
-    .searchRow{display:flex;gap:12px;align-items:center;margin:6px 0 14px}
-    .search{flex:1;display:flex;gap:10px;align-items:center;background:#fff;border:1px solid var(--border);border-radius:18px;padding:12px 14px;}
-    .search input{border:0;outline:0;width:100%;font-size:14px}
     .catList{display:flex;flex-direction:column;gap:12px}
     .cat{padding:16px 18px;border-radius:18px;border:1px solid rgba(15,23,42,.08);background:#fff;cursor:pointer}
     .cat:hover{background:rgba(109,94,241,.04)}
     .cat.active{background:var(--accent);border-color:rgba(109,94,241,.35);color:#fff}
-    .cat .count{font-size:13px;font-weight:800;opacity:.7}
+    .cat .count{font-size:13px;font-weight:900;opacity:.7}
     .cat.active .count{opacity:.9}
-    .cat .label{font-size:24px;font-weight:800;margin-top:2px;letter-spacing:-.02em}
+    .cat .label{font-size:24px;font-weight:900;margin-top:2px;letter-spacing:-.02em}
     .actionsRow{display:flex;gap:10px;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap}
-    .rightTitle{font-size:18px;font-weight:800}
-    .btn{border:1px solid rgba(15,23,42,.12);background:#fff;color:var(--text);border-radius:14px;padding:10px 12px;font-weight:800;cursor:pointer}
+    .rightTitle{font-size:18px;font-weight:900}
+    .btn{border:1px solid rgba(15,23,42,.12);background:#fff;color:var(--text);border-radius:14px;padding:10px 12px;font-weight:900;cursor:pointer}
     .btn.primary{background:var(--accent);border-color:rgba(109,94,241,.35);color:#fff}
     .btn:disabled{opacity:.55;cursor:not-allowed}
+    .searchRow{display:flex;gap:12px;align-items:center;margin:6px 0 14px}
+    .search{flex:1;display:flex;gap:10px;align-items:center;background:#fff;border:1px solid var(--border);border-radius:18px;padding:12px 14px;}
+    .search input{border:0;outline:0;width:100%;font-size:14px}
     .list{border:1px solid rgba(15,23,42,.08);border-radius:18px;overflow:hidden;background:#fff}
-    .row{display:grid;grid-template-columns: 140px 1fr 140px;gap:10px;align-items:center;padding:14px 14px;border-bottom:1px solid rgba(15,23,42,.06)}
+    .row{display:grid;grid-template-columns: 160px 1fr 180px;gap:10px;align-items:center;padding:14px 14px;border-bottom:1px solid rgba(15,23,42,.06)}
     .row:last-child{border-bottom:0}
-    .date{font-weight:900;font-size:18px;color:#0b1220;display:flex;gap:10px;align-items:center}
+    .date{font-weight:900;font-size:16px;color:#0b1220;display:flex;gap:10px;align-items:center}
     .docIcon{width:34px;height:34px;border-radius:12px;border:1px solid rgba(15,23,42,.10);display:flex;align-items:center;justify-content:center;background:rgba(15,23,42,.02)}
     .name{font-weight:900;font-size:18px;}
-    .sub{color:rgba(15,23,42,.55);font-weight:700;margin-top:2px}
+    .sub{color:rgba(15,23,42,.55);font-weight:800;margin-top:2px}
     .open{justify-self:end}
-    .empty{padding:20px;color:rgba(15,23,42,.55);font-weight:700}
-    .note{margin-top:12px;color:rgba(15,23,42,.55);font-weight:700}
-    .err{margin:10px 0 0;color:#b91c1c;font-weight:800}
+    .empty{padding:20px;color:rgba(15,23,42,.55);font-weight:800}
+    .note{margin-top:12px;color:rgba(15,23,42,.55);font-weight:800}
+    .err{margin:10px 0 0;color:#b91c1c;font-weight:900}
 
-    /* modal */
-    .modalBack{position:fixed;inset:0;background:rgba(15,23,42,.45);display:none;align-items:center;justify-content:center;padding:20px;z-index:50}
-    .modalBack.show{display:flex}
-    .modal{width:min(980px,96vw);max-height:92vh;overflow:auto;background:#fff;border-radius:22px;border:1px solid rgba(15,23,42,.12);box-shadow:0 30px 90px rgba(15,23,42,.25)}
-    .modalHead{padding:16px 18px;border-bottom:1px solid rgba(15,23,42,.08);display:flex;gap:10px;align-items:center;justify-content:space-between;position:sticky;top:0;background:#fff;z-index:2}
-    .modalHead .t{font-weight:900;font-size:16px}
-    .modalBody{padding:16px 18px}
-    .fields{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-    @media(max-width:900px){.fields{grid-template-columns:1fr}}
-    .f{border:1px solid rgba(15,23,42,.10);border-radius:16px;padding:12px}
-    .f label{display:block;font-weight:900;font-size:12px;color:rgba(15,23,42,.65);margin-bottom:8px}
-    .f input,.f select, .f textarea{width:100%;border:1px solid rgba(15,23,42,.12);border-radius:12px;padding:10px 10px;font-family:inherit;font-weight:700}
-    .f textarea{min-height:80px;resize:vertical}
-    .modalFoot{padding:16px 18px;border-top:1px solid rgba(15,23,42,.08);display:flex;gap:10px;justify-content:flex-end;position:sticky;bottom:0;background:#fff}
-    .pill{display:inline-flex;gap:8px;align-items:center;padding:6px 10px;border:1px solid rgba(15,23,42,.12);border-radius:999px;font-weight:800;color:rgba(15,23,42,.65);background:rgba(15,23,42,.02)}
-    .spin{width:16px;height:16px;border-radius:999px;border:2px solid rgba(15,23,42,.22);border-top-color:var(--accent);animation:spin 1s linear infinite}
-    @keyframes spin{to{transform:rotate(360deg)}}
+    /* employee picker */
+    .picker{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
+    .select{flex:1;min-width:240px;border:1px solid rgba(15,23,42,.12);border-radius:14px;padding:10px 12px;font-weight:800;background:#fff}
+    .pill{display:inline-flex;gap:8px;align-items:center;padding:6px 10px;border:1px solid rgba(15,23,42,.12);border-radius:999px;font-weight:900;color:rgba(15,23,42,.65);background:rgba(15,23,42,.02)}
+
+    /* settings tab */
+    .settingsWrap{display:none}
+    .settingsWrap.show{display:block}
+    .tplGrid{display:grid;grid-template-columns:1fr;gap:12px;margin-top:14px}
+    .tpl{border:1px solid rgba(15,23,42,.10);border-radius:18px;padding:14px;background:#fff;display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+    .tpl .leftSide{display:flex;flex-direction:column;gap:4px}
+    .tpl .ttl{font-weight:900}
+    .tpl .meta{font-weight:800;color:rgba(15,23,42,.55)}
+    .tiny{font-size:12px}
   </style>
 </head>
 <body>
@@ -87,59 +83,56 @@
       <div class="tab" data-tab="adeverinte">Adeverințe</div>
       <div class="tab" data-tab="altele">Alte documente</div>
       <div class="tab" data-tab="publice">Documente publice</div>
+      <div class="tab" data-tab="setari">Setări cereri</div>
     </div>
 
     <div class="grid">
       <div class="card left">
+        <div class="picker">
+          <select class="select" id="selEmployee"></select>
+          <button class="btn" id="btnSetManager" type="button">Manager</button>
+        </div>
+        <div class="pill" id="mgrPill">Manager: —</div>
+        <div style="height:10px"></div>
         <div class="catList" id="catList"></div>
-        <div class="note">Aici vezi șabloanele (PDF) setate de managerul tău și documentele completate de tine.</div>
+        <div class="note">Aici vezi doar PDF-urile completate (digitale), nu cererile brute.</div>
         <div class="err" id="err"></div>
       </div>
 
       <div class="card right">
-        <div class="actionsRow">
-          <div>
-            <div class="rightTitle" id="rightTitle">—</div>
-            <div class="pill" id="mgrPill" title="Manager">Manager: —</div>
+        <div id="viewMain">
+          <div class="actionsRow">
+            <div>
+              <div class="rightTitle" id="rightTitle">—</div>
+              <div class="pill" id="empPill" title="Angajat">Angajat: —</div>
+            </div>
+            <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+              <button class="btn" id="btnRefresh" type="button">Refresh</button>
+            </div>
           </div>
-          <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
-            <button class="btn" id="btnViewTpl" type="button" disabled>Vezi șablon</button>
-            <button class="btn primary" id="btnFill" type="button" disabled>Completează & Salvează</button>
+
+          <div class="searchRow">
+            <div class="search">
+              <span style="opacity:.55;font-weight:900">🔎</span>
+              <input id="q" placeholder="Caută..." />
+            </div>
           </div>
+
+          <div class="list" id="list"></div>
         </div>
 
-        <div class="searchRow">
-          <div class="search">
-            <span style="opacity:.55;font-weight:900">🔎</span>
-            <input id="q" placeholder="Caută..." />
+        <div id="viewSettings" class="settingsWrap">
+          <div class="actionsRow">
+            <div>
+              <div class="rightTitle">Setări cereri</div>
+              <div class="note">Încarcă șabloane PDF fillable pentru fiecare tip. Angajații vor vedea buton de completare.</div>
+            </div>
+            <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+              <button class="btn" id="btnReloadTpl" type="button">Reload șabloane</button>
+            </div>
           </div>
-          <button class="btn" id="btnRefresh" type="button">Refresh</button>
+          <div class="tplGrid" id="tplGrid"></div>
         </div>
-
-        <div class="list" id="list"></div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Modal completează -->
-  <div class="modalBack" id="modalBack">
-    <div class="modal">
-      <div class="modalHead">
-        <div class="t" id="modalTitle">Completează</div>
-        <button class="btn" id="btnCloseModal" type="button">Închide</button>
-      </div>
-      <div class="modalBody">
-        <div class="pill" id="modalStatus"><span class="spin"></span> Se încarcă șablonul...</div>
-        <div style="height:12px"></div>
-        <div class="fields" id="fields"></div>
-        <div class="note" style="margin-top:12px">
-          Notă: câmpurile apar doar dacă șablonul PDF este fillable (AcroForm). Dacă nu apar câmpuri, cere adminului să urce un șablon fillable.
-        </div>
-        <div class="err" id="modalErr"></div>
-      </div>
-      <div class="modalFoot">
-        <button class="btn" id="btnDownloadPreview" type="button" disabled>Preview (deschide)</button>
-        <button class="btn primary" id="btnSavePdf" type="button" disabled>Salvează PDF (trimite)</button>
       </div>
     </div>
   </div>
@@ -155,16 +148,21 @@
   { key:'invoire', label:'Cereri învoire' }
 ];
 
-  // session keys (same as employee-dashboard.html)
-  const EMP_TOKEN_KEY = "pontaj_me_token";
-  const EMP_NAME_KEY  = "pontaj_me_name";
+  const LS_ADMIN_KEY = "pontaj_adminKey";
+  const LS_ADMIN_ME_EMAIL = "pontaj_admin_me_email";
+  const LS_ADMIN_ME_NAME  = "pontaj_admin_me_name";
+  const LS_ADMIN_SESSION  = "pontaj/admin/v1";
+  const LS_ADMIN_SESSION_FALLBACK = "pontaj_admin_session";
 
   let CFG = null;
   let ENDPOINT = "";
   let state = {
     managerEmail: "",
-    templates: {},   // typeKey -> {templateUrl, typeLabel}
-    docs: [],          // list of completed docs
+    managerName: "",
+    employees: [],
+    selectedEmployeeName: "",
+    docs: [],
+    templates: {},
     selectedType: DOC_TYPES[0].key,
     q: ""
   };
@@ -185,8 +183,15 @@
   }
 
   function endpointBase(cfg){
-    const raw = cfg.documentsEndpoint || cfg.leaveEndpoint || cfg.adminEventsEndpoint || cfg.webappUrl || cfg.scriptUrl || "";
+    const raw = cfg.documentsEndpoint || cfg.adminEventsEndpoint || cfg.leaveEndpoint || cfg.webappUrl || cfg.scriptUrl || "";
     return String(raw||"").replace(/\?.*$/, "").trim();
+  }
+
+  function keyQS(){
+    const k = (CFG && CFG.adminKey) ? String(CFG.adminKey) : "";
+    const ls = (localStorage.getItem("ADMIN_KEY") || localStorage.getItem(LS_ADMIN_KEY) || "");
+    const key = (k || ls || "").trim();
+    return key ? ("&key=" + encodeURIComponent(key)) : "";
   }
 
   function jsonp(url){
@@ -204,11 +209,11 @@
   }
 
   async function postNoCors(endpoint, payload){
-    await fetch(endpoint + "?fn=meDocUploadChunkPost", {
+    await fetch(endpoint + "?fn=adminDocTemplateUploadChunkPost", {
       method:"POST",
       mode:"no-cors",
       headers:{"Content-Type":"text/plain;charset=UTF-8"},
-      body: JSON.stringify(Object.assign({}, payload, { fn:"meDocUploadChunkPost" }))
+      body: JSON.stringify(Object.assign({}, payload, { fn:"adminDocTemplateUploadChunkPost" }))
     });
   }
 
@@ -237,6 +242,318 @@
 
   function setErr(msg){ $("err").textContent = msg || ""; }
 
+  
+  // ===== Admin identity (who am I?) =====
+  const ADMINS = { loaded:false, list:[], byEmail:new Map(), byName:new Map() };
+
+  function _parseAdminAuth(data){
+    const arr = Array.isArray(data) ? data : (data.admins || data.list || data.users || []);
+    const list = (Array.isArray(arr) ? arr : [])
+      .map(a => ({
+        name: String(a.label || a.name || a.displayName || a.n || a.user || a.username || a.managerName || '').trim(),
+        email: String(a.email || a.e || a.mail || a.managerEmail || '').trim()
+      }))
+      .filter(a => a.name || a.email);
+
+    // de-dup (by email|name)
+    const seen = new Set();
+    const dedup = list.filter(a=>{
+      const k = (a.email||'').toLowerCase() + '|' + (a.name||'').toLowerCase();
+      if (seen.has(k)) return false;
+      seen.add(k);
+      return true;
+    });
+
+    ADMINS.list = dedup;
+    ADMINS.byEmail = new Map(ADMINS.list.filter(a=>a.email).map(a=>[a.email.toLowerCase(), a]));
+    ADMINS.byName  = new Map(ADMINS.list.filter(a=>a.name).map(a=>[a.name.toLowerCase(), a]));
+  }
+
+  async function loadAdminAuth(){
+    if (ADMINS.loaded) return;
+    ADMINS.loaded = true;
+
+    try{
+      const cfg = (window.CFG || CFG || {}) || {};
+      const candidates = [];
+      const mainUrl = String(cfg.adminAuthUrl || '').trim();
+      if (mainUrl) candidates.push(mainUrl);
+      candidates.push('admin-auth.json','./admin-auth.json','../admin-auth.json','/admin-auth.json');
+
+      const seen = new Set();
+      const urls = candidates
+        .map(u => String(u || '').trim())
+        .filter(u => u && !seen.has(u) && (seen.add(u), true));
+
+      let lastErr = null;
+      for (const u of urls){
+        try{
+          const r = await fetch(u + (u.includes('?') ? '&' : '?') + 'v=' + Date.now(), {cache:'no-store'});
+          if (!r.ok) throw new Error('HTTP ' + r.status);
+          const data = await r.json();
+          _parseAdminAuth(data);
+          return;
+        }catch(e){ lastErr = e; }
+      }
+      if (lastErr) console.warn('admin-auth load failed:', lastErr);
+    }catch(e){
+      console.warn('admin-auth load failed:', e);
+    }
+  }
+
+  function _detectAdminIdentity(){
+    // Best-effort: try known session keys used in other admin pages
+    const keys = ["pontaj/admin/v1","pontaj_admin_session","pontaj_admin","admin_session"];
+    for (const k of keys){
+      let raw = "";
+      try{ raw = (localStorage.getItem(k) || "").trim(); }catch(e){}
+      if (!raw) continue;
+
+      // sometimes value can be plain id/email
+      if (raw[0] !== "{"){
+        return { id: raw, name: "" };
+      }
+
+      try{
+        const o = JSON.parse(raw);
+        if (!o) continue;
+
+        // NOTE: in unele pagini o.user poate fi nume (nu email). Acceptăm ca "id".
+        const id = String(o.email || o.userEmail || o.user || o.username || o.login || o.mail || o.id || "").trim();
+        const name = String(o.label || o.name || o.fullName || o.displayName || o.userName || "").trim();
+
+        if (id) return { id, name };
+        if (name) return { id: name, name: "" };
+      }catch(e){}
+    }
+    return null;
+  }
+
+
+  function _readAdminSessionObj_(){
+    const keys = [LS_ADMIN_SESSION, LS_ADMIN_SESSION_FALLBACK, "pontaj_admin", "admin_session"];
+    for (const k of keys){
+      let raw = "";
+      try{ raw = (localStorage.getItem(k) || "").trim(); }catch(e){}
+      if (!raw) continue;
+      if (raw[0] !== "{") return { user: raw };
+      try{ return JSON.parse(raw); }catch(e){}
+    }
+    return null;
+  }
+
+  function _writeAdminSessionObj_(obj){
+    try{ localStorage.setItem(LS_ADMIN_SESSION, JSON.stringify(obj||{})); }catch(e){}
+  }
+
+  function openAdminIdentityPicker(){
+    // Returns {name,email} or null
+    return new Promise(async (resolve)=>{
+      try{ await loadAdminAuth(); }catch(e){}
+      const list = (ADMINS && ADMINS.list) ? ADMINS.list.slice() : [];
+      if (!list.length){
+        resolve(null);
+        return;
+      }
+
+      const ov = document.createElement('div');
+      ov.style.cssText = "position:fixed;inset:0;background:rgba(15,23,42,.45);display:flex;align-items:center;justify-content:center;z-index:99999;";
+      const card = document.createElement('div');
+      card.style.cssText = "width:min(520px,92vw);background:#fff;border-radius:18px;box-shadow:0 20px 60px rgba(15,23,42,.25);padding:18px 18px 14px;font-family:Inter,system-ui,Segoe UI,Arial;";
+
+      const h = document.createElement('div');
+      h.style.cssText = "display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px";
+      const title = document.createElement('div');
+      title.textContent = "Selectează contul tău admin/manager";
+      title.style.cssText = "font-weight:800;font-size:18px;color:#0f172a";
+      const x = document.createElement('button');
+      x.textContent = "✕";
+      x.style.cssText = "border:0;background:#f1f5f9;border-radius:12px;width:38px;height:38px;cursor:pointer;font-weight:800";
+      h.appendChild(title); h.appendChild(x);
+
+      const sub = document.createElement('div');
+      sub.textContent = "Se salvează local și te recunoaște global în toate paginile Admin.";
+      sub.style.cssText = "color:#475569;font-size:13px;margin-bottom:10px";
+
+      const lab = document.createElement('label');
+      lab.textContent = "Admin/Manager";
+      lab.style.cssText = "display:block;font-size:12px;color:#334155;margin-bottom:6px";
+
+      const sel = document.createElement('select');
+      sel.style.cssText = "width:100%;padding:12px 12px;border:1px solid #e2e8f0;border-radius:12px;font-size:14px";
+
+      list.forEach(a=>{
+        const opt = document.createElement('option');
+        const val = String((a.email || a.name || '')).trim();
+        const text = (a.name && a.email) ? (a.name + " — " + a.email) : (a.name || a.email || '');
+        opt.value = val;
+        opt.textContent = text || val || 'Admin';
+        sel.appendChild(opt);
+      });
+
+      // preselect if we have something already
+      const ses = _readAdminSessionObj_() || {};
+      const pre = String(ses.email || ses.userEmail || ses.user || "").trim();
+      if (pre){
+        for (const o of sel.options){
+          if (String(o.value||"").toLowerCase() === pre.toLowerCase()){
+            sel.value = o.value;
+            break;
+          }
+        }
+      }
+
+      const btnRow = document.createElement('div');
+      btnRow.style.cssText = "display:flex;gap:10px;justify-content:flex-end;margin-top:14px";
+      const cancel = document.createElement('button');
+      cancel.textContent = "Anulează";
+      cancel.style.cssText = "padding:10px 14px;border-radius:12px;border:1px solid #e2e8f0;background:#fff;cursor:pointer;font-weight:700";
+      const ok = document.createElement('button');
+      ok.textContent = "Salvează";
+      ok.style.cssText = "padding:10px 14px;border-radius:12px;border:0;background:#6d5efc;color:#fff;cursor:pointer;font-weight:800";
+      btnRow.appendChild(cancel); btnRow.appendChild(ok);
+
+      card.appendChild(h);
+      card.appendChild(sub);
+      card.appendChild(lab);
+      card.appendChild(sel);
+      card.appendChild(btnRow);
+      ov.appendChild(card);
+      document.body.appendChild(ov);
+
+      function close(val){
+        try{ ov.remove(); }catch(e){}
+        resolve(val||null);
+      }
+      ov.addEventListener('click', (e)=>{ if(e.target===ov) close(null); });
+      x.onclick = ()=>close(null);
+      cancel.onclick = ()=>close(null);
+      ok.onclick = ()=>{
+        const v = String(sel.value||"").trim();
+        const found = list.find(a => String((a.email||a.name||'')).trim() === v) || null;
+        close(found || {name:v, email:""});
+      };
+    });
+  }
+
+  async function ensureManager(){
+    let meId   = "";
+    let meName = "";
+
+    try{ meId   = (localStorage.getItem(LS_ADMIN_ME_EMAIL) || "").trim(); }catch(e){}
+    try{ meName = (localStorage.getItem(LS_ADMIN_ME_NAME)  || "").trim(); }catch(e){}
+
+    // fallback: infer from admin session (most admin pages already set it)
+    if (!meId){
+      const id = _detectAdminIdentity();
+      if (id && id.id){
+        meId = String(id.id || "").trim();
+        if (!meName) meName = String(id.name || "").trim();
+
+        // persist for next time, so upload works without prompt
+        try{ localStorage.setItem(LS_ADMIN_ME_EMAIL, meId); }catch(e){}
+        if (meName) try{ localStorage.setItem(LS_ADMIN_ME_NAME, meName); }catch(e){}
+      }
+    }
+    // if still not set, ask once (picker) and persist session for global use
+    if (!meId){
+      const pick = await openAdminIdentityPicker();
+      if (pick){
+        meId = String((pick.email || pick.name || "")).trim();
+        meName = String((pick.name || pick.email || "")).trim();
+        try{ localStorage.setItem(LS_ADMIN_ME_EMAIL, meId); }catch(e){}
+        try{ localStorage.setItem(LS_ADMIN_ME_NAME,  meName); }catch(e){}
+        // also persist global admin session so every page recognizes you
+        const ses = _readAdminSessionObj_() || {};
+        const out = Object.assign({}, ses, { user: meName || meId || ses.user || 'Admin', email: (meId.includes('@') ? meId : (ses.email||'')), at: new Date().toISOString() });
+        _writeAdminSessionObj_(out);
+      }
+    }
+
+
+
+    // If we only have a name/label, try to resolve to real email from admin-auth.json (if available)
+    await loadAdminAuth();
+    if (meId && !meId.includes("@")){
+      const k = meId.toLowerCase();
+      const a = ADMINS.byEmail.get(k) || ADMINS.byName.get(k) || null;
+      if (a && a.email){
+        state.managerEmail = String(a.email).trim();
+        state.managerName  = meName || a.name || meId;
+      }else{
+        // fallback: use id as-is (compat with managerEmail stored as label)
+        state.managerEmail = meId;
+        state.managerName  = meName || meId;
+      }
+    }else if (meId){
+      state.managerEmail = meId;
+      state.managerName  = meName;
+    }
+
+    $("mgrPill").textContent = "Manager: " + ((state.managerName || state.managerEmail) || "—");
+  }
+async function loadEmployees(){
+    const url = ENDPOINT + "?fn=adminEmployees" + keyQS() + "&ts=" + Date.now();
+    const data = await jsonp(url);
+    if (!data || !data.ok) throw new Error(data?.error || "Nu pot încărca lista de angajați.");
+    const list = data.employees || data.list || data.rows || [];
+    state.employees = Array.isArray(list) ? list : [];
+
+    // filter by managerEmail if set
+    let visible = state.employees;
+    if (state.managerEmail) {
+      visible = visible.filter(e => String(e.managerEmail||"").toLowerCase() === state.managerEmail.toLowerCase());
+    }
+
+    // fill select
+    const sel = $("selEmployee");
+    sel.innerHTML = "";
+    if (!visible.length) {
+      const opt = document.createElement("option");
+      opt.value = "";
+      opt.textContent = state.managerEmail ? "Nu ai angajați repartizați." : "Niciun angajat.";
+      sel.appendChild(opt);
+      state.selectedEmployeeName = "";
+      return;
+    }
+    for (const e of visible) {
+      const opt = document.createElement("option");
+      opt.value = e.name || "";
+      opt.textContent = (e.name || "—") + (e.dept ? (" • " + e.dept) : "");
+      sel.appendChild(opt);
+    }
+    state.selectedEmployeeName = sel.value || visible[0].name || "";
+    $("empPill").textContent = "Angajat: " + (state.selectedEmployeeName || "—");
+  }
+
+  async function loadTemplates(){
+    if (!state.managerEmail) {
+      state.templates = {};
+      return;
+    }
+    const url = ENDPOINT + "?fn=adminDocTemplatesGet" + keyQS()
+      + "&managerEmail=" + encodeURIComponent(state.managerEmail)
+      + "&ts=" + Date.now();
+    const data = await jsonp(url);
+    if (!data || !data.ok) throw new Error(data?.error || "Nu pot încărca șabloanele.");
+    state.templates = data.map || {};
+  }
+
+  async function loadDocs(){
+    if (!state.managerEmail) {
+      state.docs = [];
+      return;
+    }
+    const emp = state.selectedEmployeeName || "";
+    const url = ENDPOINT + "?fn=adminDocumentsList" + keyQS()
+      + "&managerEmail=" + encodeURIComponent(state.managerEmail)
+      + (emp ? ("&employeeName=" + encodeURIComponent(emp)) : "")
+      + "&ts=" + Date.now();
+    const data = await jsonp(url);
+    if (!data || !data.ok) throw new Error(data?.error || "Nu pot încărca documentele.");
+    state.docs = Array.isArray(data.list) ? data.list : [];
+  }
+
   function renderCats(){
     const wrap = $("catList");
     wrap.innerHTML = "";
@@ -260,10 +577,7 @@
     const list = $("list");
     const t = DOC_TYPES.find(x=>x.key===state.selectedType) || DOC_TYPES[0];
     $("rightTitle").textContent = t.label;
-
-    const tpl = state.templates[state.selectedType];
-    $("btnViewTpl").disabled = !tpl || !tpl.templateUrl;
-    $("btnFill").disabled = !tpl || !tpl.templateUrl;
+    $("empPill").textContent = "Angajat: " + (state.selectedEmployeeName || "—");
 
     const q = state.q.trim().toLowerCase();
     const filtered = state.docs
@@ -284,7 +598,7 @@
         <div class="date"><span class="docIcon">📄</span> <span>${date}</span></div>
         <div>
           <div class="name">${d.typeLabel || t.label}</div>
-          <div class="sub">Completat de tine</div>
+          <div class="sub">${d.employeeName || ""}</div>
         </div>
         <div class="open">
           <button class="btn" type="button">Deschide</button>
@@ -295,184 +609,65 @@
     }
   }
 
+  function renderSettings(){
+    const grid = $("tplGrid");
+    grid.innerHTML = "";
+    for (const t of DOC_TYPES){
+      const current = state.templates[t.key] || null;
+      const box = document.createElement("div");
+      box.className = "tpl";
+      const has = !!(current && current.templateUrl);
+      box.innerHTML = `
+        <div class="leftSide">
+          <div class="ttl">${t.label}</div>
+          <div class="meta tiny">${has ? "Șablon setat" : "Lipsește șablon"}</div>
+          <div class="meta tiny">${has && current.updatedAt ? ("Actualizat: " + fmtDate(current.updatedAt)) : ""}</div>
+        </div>
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+          <button class="btn" type="button" ${has ? "" : "disabled"}>Deschide</button>
+          <label class="btn primary" style="display:inline-flex;gap:8px;align-items:center">
+            Upload PDF
+            <input type="file" accept="application/pdf" style="display:none"/>
+          </label>
+        </div>
+      `;
+      const btnOpen = box.querySelector("button");
+      if (has) btnOpen.onclick = ()=>window.open(current.templateUrl, "_blank");
+
+      const inp = box.querySelector("input[type=file]");
+      inp.onchange = async (ev)=>{
+        const f = ev.target.files && ev.target.files[0];
+        if (!f) return;
+        try{
+          await uploadTemplate(t.key, t.label, f);
+          await loadTemplates();
+          renderSettings();
+        }catch(err){
+          setErr(String(err && err.message ? err.message : err));
+        }finally{
+          inp.value = "";
+        }
+      };
+
+      grid.appendChild(box);
+    }
+  }
+
   function renderAll(){
     renderCats();
     renderList();
   }
 
-  async function refresh(){
-    setErr("");
-    try{
-      if (!CFG) CFG = await loadConfig();
-      ENDPOINT = endpointBase(CFG);
-      if (!ENDPOINT) throw new Error("Lipsește leaveEndpoint/documentsEndpoint în config.json.");
-
-      const token = (localStorage.getItem(EMP_TOKEN_KEY) || "").trim();
-      if (!token){
-        setErr("Nu ești logat. Deschide employee-dashboard și apasă Login (sau setează pontaj_me_token).");
-        return;
-      }
-
-      // templates
-      const tplUrl = ENDPOINT + "?fn=meDocTemplates&token=" + encodeURIComponent(token) + "&ts=" + Date.now();
-      const tpls = await jsonp(tplUrl);
-      if (!tpls || !tpls.ok) throw new Error(tpls?.error || "Nu pot încărca șabloanele.");
-      state.managerEmail = tpls.managerEmail || "";
-      $("mgrPill").textContent = "Manager: " + (state.managerEmail || "—");
-      state.templates = tpls.map || {};
-
-      // docs list
-      const docsUrl = ENDPOINT + "?fn=meDocumentsList&token=" + encodeURIComponent(token) + "&ts=" + Date.now();
-      const docs = await jsonp(docsUrl);
-      if (!docs || !docs.ok) throw new Error(docs?.error || "Nu pot încărca documentele.");
-      state.docs = Array.isArray(docs.list) ? docs.list : [];
-
-      renderAll();
-    }catch(err){
-      setErr(String(err && err.message ? err.message : err));
-    }
-  }
-
-  // ========== modal fill ==========
-  let modalPdfDoc = null;
-  let modalFields = [];
-  let modalTplUrl = "";
-  let modalPreviewBlobUrl = "";
-
-  function showModal(show) {
-    $("modalBack").classList.toggle("show", !!show);
-    if (!show) {
-      $("fields").innerHTML = "";
-      $("modalErr").textContent = "";
-      $("modalStatus").innerHTML = '<span class="spin"></span> Se încarcă șablonul...';
-      $("btnSavePdf").disabled = true;
-      $("btnDownloadPreview").disabled = true;
-      modalPdfDoc = null;
-      modalFields = [];
-      modalTplUrl = "";
-      if (modalPreviewBlobUrl) {
-        URL.revokeObjectURL(modalPreviewBlobUrl);
-        modalPreviewBlobUrl = "";
-      }
-    }
-  }
-
-  async function openFillModal() {
-    $("modalErr").textContent = "";
-    const tpl = state.templates[state.selectedType];
-    if (!tpl || !tpl.templateUrl) return;
-    modalTplUrl = tpl.templateUrl;
-
-    showModal(true);
-    $("modalTitle").textContent = "Completează: " + (tpl.typeLabel || (DOC_TYPES.find(x=>x.key===state.selectedType)?.label || "Document"));
-
-    try {
-      const r = await fetch(modalTplUrl, {cache:"no-store"});
-      if (!r.ok) throw new Error("Nu pot descărca șablonul (HTTP " + r.status + ").");
-      const ab = await r.arrayBuffer();
-      const pdfDoc = await PDFLib.PDFDocument.load(ab);
-      modalPdfDoc = pdfDoc;
-      const form = pdfDoc.getForm();
-      const fields = form.getFields();
-      modalFields = fields;
-
-      const wrap = $("fields");
-      wrap.innerHTML = "";
-
-      if (!fields.length) {
-        $("modalStatus").textContent = "Șablonul nu are câmpuri (AcroForm).";
-      } else {
-        $("modalStatus").textContent = "Completează câmpurile:";
-      }
-
-      for (const f of fields) {
-        const name = f.getName();
-        const type = (f.constructor && f.constructor.name) ? f.constructor.name : "Field";
-        const box = document.createElement("div");
-        box.className = "f";
-        let inputHtml = "";
-        const id = "f_" + Math.random().toString(36).slice(2);
-        if (type === "PDFCheckBox") {
-          inputHtml = `<input type="checkbox" id="${id}">`;
-        } else if (type === "PDFDropdown") {
-          const opts = (f.getOptions ? f.getOptions() : []) || [];
-          inputHtml = `<select id="${id}">${opts.map(o=>`<option value="${String(o)}">${String(o)}</option>`).join("")}</select>`;
-        } else {
-          inputHtml = `<input type="text" id="${id}" placeholder="...">`;
-        }
-        box.innerHTML = `<label title="${type}">${name}</label>${inputHtml}`;
-        box.dataset.fieldName = name;
-        box.dataset.fieldType = type;
-        wrap.appendChild(box);
-      }
-
-      $("btnSavePdf").disabled = false;
-      $("btnDownloadPreview").disabled = false;
-
-      $("btnDownloadPreview").onclick = async ()=>{
-        const bytes = await buildPdfBytes(false);
-        const blob = new Blob([bytes], {type:"application/pdf"});
-        modalPreviewBlobUrl = URL.createObjectURL(blob);
-        window.open(modalPreviewBlobUrl, "_blank");
-      };
-
-    } catch (err) {
-      $("modalErr").textContent = String(err && err.message ? err.message : err);
-      $("modalStatus").textContent = "Eroare la încărcarea șablonului.";
-    }
-  }
-
-  async function buildPdfBytes(flatten=true) {
-    if (!modalPdfDoc) throw new Error("Nu e încărcat șablonul.");
-    const pdfDoc = modalPdfDoc;
-    const form = pdfDoc.getForm();
-
-    // apply values from UI
-    const nodes = Array.from(document.querySelectorAll("#fields .f"));
-    for (const n of nodes) {
-      const name = n.dataset.fieldName;
-      const type = n.dataset.fieldType;
-      if (!name) continue;
-      try {
-        if (type === "PDFCheckBox") {
-          const v = n.querySelector("input").checked;
-          const field = form.getCheckBox(name);
-          if (v) field.check(); else field.uncheck();
-        } else if (type === "PDFDropdown") {
-          const v = n.querySelector("select").value;
-          const field = form.getDropdown(name);
-          field.select(v);
-        } else {
-          const v = n.querySelector("input").value || "";
-          const field = form.getTextField(name);
-          field.setText(String(v));
-        }
-      } catch (_) {
-        // ignore field errors (missing type mismatch)
-      }
-    }
-
-    if (flatten) {
-      try { form.flatten(); } catch(_){}
-    }
-    const bytes = await pdfDoc.save({useObjectStreams:false});
-    return bytes;
-  }
-
-  async function uploadPdf(bytes) {
-    const token = (localStorage.getItem(EMP_TOKEN_KEY) || "").trim();
-    if (!token) throw new Error("Nu ești logat.");
-
-    const CH = 120000;
-    const b64url = bytesToB64Url(new Uint8Array(bytes));
+  async function uploadTemplate(typeKey, typeLabel, file){
+    if (!state.managerEmail){ await ensureManager(); }
+    if (!state.managerEmail) throw new Error("Nu ești identificat ca admin/manager. Intră în index.html și fă login (sau apasă «Setează Manager» o singură dată).");
+    const ab = await file.arrayBuffer();
+    const b64url = bytesToB64Url(new Uint8Array(ab));
+    const CH = 75000;
     const n = Math.max(1, Math.ceil(b64url.length / CH));
 
-    $("modalStatus").innerHTML = '<span class="spin"></span> Init upload...';
-
-    const typeKey = state.selectedType;
-    const typeLabel = (state.templates[typeKey]?.typeLabel) || (DOC_TYPES.find(x=>x.key===typeKey)?.label) || typeKey;
-
-    const initUrl = ENDPOINT + "?fn=meDocUploadInit&token=" + encodeURIComponent(token)
+    const initUrl = ENDPOINT + "?fn=adminDocTemplateUploadInit" + keyQS()
+      + "&managerEmail=" + encodeURIComponent(state.managerEmail)
       + "&typeKey=" + encodeURIComponent(typeKey)
       + "&typeLabel=" + encodeURIComponent(typeLabel)
       + "&mime=" + encodeURIComponent("application/pdf")
@@ -485,55 +680,88 @@
 
     for (let i=0;i<n;i++) {
       const c = b64url.slice(i*CH, (i+1)*CH);
-      $("modalStatus").innerHTML = '<span class="spin"></span> Upload chunk ' + (i+1) + '/' + n + ' ...';
       await postNoCors(ENDPOINT, { uid, uk, i, n, c });
     }
 
-    $("modalStatus").innerHTML = '<span class="spin"></span> Finalize...';
-    const finUrl = ENDPOINT + "?fn=meDocUploadFinalize&uid=" + encodeURIComponent(uid)
-      + "&uk=" + encodeURIComponent(uk) + "&n=" + n + "&ts=" + Date.now();
-    const fin = await jsonp(finUrl);
-    if (!fin || !fin.ok) throw new Error(fin?.error || "Finalize failed.");
+    const finUrlBase = ENDPOINT + "?fn=adminDocTemplateUploadFinalize" + keyQS()
+      + "&uid=" + encodeURIComponent(uid) + "&uk=" + encodeURIComponent(uk)
+      + "&n=" + n;
 
-    $("modalStatus").textContent = "Salvat! Documentul a fost trimis.";
-    return fin;
+    // Retry missing chunks (no-cors POST can't be read, but finalize is JSONP so we can recover)
+    let attempts = 0;
+
+    while (true) {
+      const finUrl = finUrlBase + "&ts=" + Date.now();
+      const fin = await jsonp(finUrl);
+      if (fin && fin.ok) return fin;
+
+      const msg = (fin && (fin.error || fin.msg)) ? String(fin.error || fin.msg) : "Finalize failed.";
+      const m = msg.match(/Lipsește\s+chunk\s+(\d+)\s*\/\s*(\d+)/i);
+
+      if (m && attempts < 6) {
+        const miss1 = parseInt(m[1], 10);
+        const mi = miss1 - 1; // server message is 1-based
+        if (isFinite(mi) && mi >= 0 && mi < n) {
+          const c = b64url.slice(mi * CH, (mi + 1) * CH);
+          await postNoCors(ENDPOINT, { uid, uk, i: mi, n, c });
+          attempts++;
+          continue;
+        }
+      }
+      throw new Error(msg);
+    }
   }
 
-  async function saveModalPdf() {
-    $("modalErr").textContent = "";
-    try {
-      const bytes = await buildPdfBytes(true);
-      await uploadPdf(bytes);
-      await refresh();
-    } catch (err) {
-      $("modalErr").textContent = String(err && err.message ? err.message : err);
-      $("modalStatus").textContent = "Eroare.";
-      return;
+  async function refreshAll(){
+    setErr("");
+    try{
+      if (!CFG) CFG = await loadConfig();
+      ENDPOINT = endpointBase(CFG);
+      if (!ENDPOINT) throw new Error("Lipsește adminEventsEndpoint/leaveEndpoint/documentsEndpoint în config.json.");
+
+      await ensureManager();
+      await loadEmployees();
+      await loadTemplates();
+      await loadDocs();
+
+      renderAll();
+      renderSettings();
+    }catch(err){
+      setErr(String(err && err.message ? err.message : err));
     }
   }
 
   // events
   $("q").addEventListener("input", (e)=>{ state.q = e.target.value || ""; renderList(); });
-  $("btnRefresh").onclick = ()=>refresh();
-  $("btnViewTpl").onclick = ()=>{
-    const tpl = state.templates[state.selectedType];
-    if (tpl?.templateUrl) window.open(tpl.templateUrl, "_blank");
-  };
-  $("btnFill").onclick = ()=>openFillModal();
+  $("btnRefresh").onclick = ()=>refreshAll();
+  $("btnReloadTpl").onclick = async ()=>{ try{ await loadTemplates(); renderSettings(); }catch(err){ setErr(String(err && err.message ? err.message : err)); } };
 
-  $("btnCloseModal").onclick = ()=>showModal(false);
-  $("modalBack").addEventListener("click", (e)=>{ if (e.target === $("modalBack")) showModal(false); });
-  $("btnSavePdf").onclick = ()=>saveModalPdf();
-
-  // tabs (UI only for now)
-  document.querySelectorAll(".tab").forEach(t=>{
-    t.addEventListener("click", ()=>{
-      document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));
-      t.classList.add("active");
-    });
+  $("selEmployee").addEventListener("change", async ()=>{
+    state.selectedEmployeeName = $("selEmployee").value || "";
+    await loadDocs();
+    renderAll();
   });
 
-  refresh();
+  $("btnSetManager").onclick = ()=>{
+    const current = state.managerEmail || "";
+    const email = prompt("Identitate manager/admin (email sau nume/label) — pentru filtrare + șabloane:", current);
+    if (email === null) return;
+    const name = prompt("Nume manager (opțional):", state.managerName || "");
+    localStorage.setItem(LS_ADMIN_ME_EMAIL, (email||"").trim());
+    localStorage.setItem(LS_ADMIN_ME_NAME, (name||"").trim());
+    ensureManager().then(()=>refreshAll());
+  };
+
+  // tabs
+  function setTab(tab){
+    document.querySelectorAll(".tab").forEach(x=>x.classList.toggle("active", x.dataset.tab===tab));
+    $("viewSettings").classList.toggle("show", tab==="setari");
+    $("viewMain").style.display = (tab==="setari") ? "none" : "block";
+  }
+  document.querySelectorAll(".tab").forEach(t=>t.addEventListener("click", ()=>setTab(t.dataset.tab)));
+  setTab("cereri");
+
+  refreshAll();
 </script>
 </body>
 </html>
