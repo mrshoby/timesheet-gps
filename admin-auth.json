@@ -2,8 +2,8 @@
   "admins": [
     {
       "label": "SERVELECT Admin",
-      "usernameHash": "37268335dd6931045bdcdf92623ff819a64244b53d0e746d438797349d4da578",
-      "passwordHash": "37268335dd6931045bdcdf92623ff819a64244b53d0e746d438797349d4da578"
+      "usernameHash": "06d4fae79c09365dcb14045b90f251ace01e4d8755be50856eb3594d6b1625ce",
+      "passwordHash": "06d4fae79c09365dcb14045b90f251ace01e4d8755be50856eb3594d6b1625ce"
     },
     {
       "label": "Alin Ceclan",
@@ -27,6 +27,7 @@
     }
   ]
 }
+
 
 
 
